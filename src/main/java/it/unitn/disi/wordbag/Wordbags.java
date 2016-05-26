@@ -64,7 +64,6 @@ public final class Wordbags {
 
     private static Map<String, String> inverseRelations = new HashMap();
 
-    private static Map<DBConfig, Configuration> cachedHibernateConfigurations = new HashMap(); 
 
     /**
      * Mappings from Uby classes to out own custom ones.
@@ -235,21 +234,19 @@ public final class Wordbags {
      * 
      * @since 0.1
      */
-    public static Configuration getHibernateConfig(DBConfig dbConfig, boolean validate) {
+    public static Configuration getHibernateConfig(DBConfig dbConfig, boolean validate) {       
 
-        if (cachedHibernateConfigurations.get(dbConfig) != null) {
-            return configWithValidate(cachedHibernateConfigurations.get(dbConfig), validate);            
-        }
-
-        LOG.info("Going to load configuration...");
-
-        Configuration hcfg = new Configuration()
+        Configuration ret = new Configuration()
                                                 .addProperties(HibernateConnect.getProperties(dbConfig.getJdbc_url(),
                                                         dbConfig.getJdbc_driver_class(),
                                                         dbConfig.getDb_vendor(), dbConfig.getUser(),
                                                         dbConfig.getPassword(), dbConfig.isShowSQL()));
         
-        hcfg.setProperty("hibernate.hbm2ddl.auto", "none");
+        if (validate){
+            ret.setProperty("hibernate.hbm2ddl.auto", "validate");            
+        } else {
+            ret.setProperty("hibernate.hbm2ddl.auto", "none");
+        }
 
         LOG.info("Going to load default UBY hibernate mappings...");
 
@@ -272,7 +269,7 @@ public final class Wordbags {
                 if (isCustomized) {
                     LOG.info("Skipping class customized by Smatch Uby: " + mapping.getDescription());
                 } else {
-                    loadHibernateXml(hcfg, mapping);
+                    loadHibernateXml(ret, mapping);
 
                 }
             }
@@ -290,33 +287,18 @@ public final class Wordbags {
                                                                                                            .getResources(
                                                                                                                    "hybernatemap/access/**/*.hbm.xml");
             for (Resource r : resources) {
-                hcfg.addURL(r.getURL());
+                ret.addURL(r.getURL());
             }
 
         } catch (Exception ex) {
             throw new RuntimeException("Error while loading hibernate mappings!", ex);
         }
 
-        LOG.info("Done loading custom mappings. ");
-
-        cachedHibernateConfigurations.put(dbConfig, hcfg);
+        LOG.info("Done loading custom mappings. ");       
               
-        return configWithValidate(hcfg, validate);       
+        return ret;      
     }
     
-    static Configuration configWithValidate(Configuration config, boolean validate){
-        Internals.checkArgument(config.getProperty("hibernate.hbm2ddl.auto").equals("none"));        
-        
-        if (validate){
-            Configuration ret = Internals.deepCopy(config);
-            ret.setProperty("hibernate.hbm2ddl.auto", "validate");
-            return ret;
-        } else {
-            return config;
-        }
-                
-    }
-
     /**
      * 
      * Saves a LexicalResource complete with all the lexicons, synsets, etc into

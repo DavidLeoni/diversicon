@@ -23,6 +23,8 @@ public final class Internals {
     
     private static final Logger LOG = LoggerFactory.getLogger(Wordbags.class);
 
+    private static final @Nullable Cloner cloner = new Cloner();
+    
     private Internals() {
 
     }
@@ -480,9 +482,9 @@ public final class Internals {
      * 
      * @since 0.1
      */
-    public static <T> T deepCopy(T orig) {
-        Cloner cloner = new Cloner();
+    public static <T> T deepCopy(T orig) {        
         return cloner.deepClone(orig);
     }    
+    
     
 }
