@@ -35,7 +35,7 @@ public class HibernateExperimentsTest {
         DBConfig dbConfig = new DBConfig("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1", "org.h2.Driver",
                 UBYH2Dialect.class.getName(), "root", "pass", true);    
         
-        Wordbag uby = new Wordbag(dbConfig);
+        Wordbag uby = Wordbag.create(dbConfig);
         
         Session session = uby.getSession();
 

@@ -1,8 +1,11 @@
 package it.unitn.disi.wordbag;
 
-import static it.unitn.disi.wordbag.Wordbags.checkNotEmpty;
-import static it.unitn.disi.wordbag.Wordbags.checkNotNull;
+import static it.unitn.disi.wordbag.internal.Internals.checkNotEmpty;
+import static it.unitn.disi.wordbag.internal.Internals.checkNotNull;
 import java.io.File;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import org.hibernate.CacheMode;
@@ -20,48 +23,59 @@ import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import de.tudarmstadt.ukp.lmf.transform.XMLToDBTransformer;
+import it.unitn.disi.wordbag.internal.Internals;
 
 /**
- * Version of Uby with some additional fields in the db to speed up computations
+ * Extension of {@link de.tudarmstadt.ukp.lmf.api.Uby Uby} LMF knowledge base with some 
+ * additional fields in the db to speed up computations
+ * 
+ * To create instances use {@link #create(DBConfig)} method
  *
  * @since 0.1
  */
 public class Wordbag extends Uby {
 
-    private static final Logger log = LoggerFactory.getLogger(Wordbag.class);
-    
-    
+    private static final Logger LOG = LoggerFactory.getLogger(Wordbag.class);
+        
     /**
      * Amount of items to flush when writing into db with Hibernate.
      */
     private static final int BATCH_FLUSH_COUNT = 20;
-
-    public Wordbag(DBConfig dbConfig) {
-        super(dbConfig);
-
-        if (dbConfig == null) {
-            throw new IllegalArgumentException("database configuration is null");
-        }
+    
+    
+    private Wordbag(DBConfig dbConfig) {
+        super(); // so it doesn't open connections! Let's hope they don't delete it!
+        checkNotNull(dbConfig, "database configuration is null");
 
         this.dbConfig = dbConfig;
 
-        // dav: note here we are overwriting cfg and sessionFactory
-        cfg = Wordbags.getHibernateConfig(dbConfig);
-
+        // note: here we are overwriting cfg and sessionFactory
+        if (Wordbags.exists(dbConfig)){
+            LOG.info("Reusing existing database at " + dbConfig.getJdbc_url());
+            cfg = Wordbags.getHibernateConfig(dbConfig, true);            
+        } else {
+            LOG.info("Database doesn't exist, going to create it");
+            Wordbags.dropCreateTables(dbConfig);            
+            cfg = Wordbags.getHibernateConfig(dbConfig, false);             
+        }
+        
+              
         ServiceRegistryBuilder serviceRegistryBuilder = new ServiceRegistryBuilder().applySettings(cfg.getProperties());
         sessionFactory = cfg.buildSessionFactory(serviceRegistryBuilder.buildServiceRegistry());
         session = sessionFactory.openSession();
     }
 
     /**
-     * Augments the graph with is-a transitive closure and eventally adds
-     * symmetric hyperym/hyponim relations.
+     * Augments the synsetRelation graph with transitive closure of {@link Wordbags#getCanonicalRelations() canonical relations}
+     *  and eventally adds needed symmetric relations.
+     * 
+     * @since 0.1
      */
     // todo what about provenance? todo instances?
     public void augmentGraph() {
 
         normalizeGraph();
-
+        
         computeTransitiveClosure();
 
     }
@@ -127,7 +141,7 @@ public class Wordbag extends Uby {
         while (synsets.next()) {
 
             Synset synset = (Synset) synsets.get(0);
-            log.info("Processing synset with id " + synset.getId() + " ...");
+            LOG.info("Processing synset with id " + synset.getId() + " ...");
 
             List<SynsetRelation> relations = synset.getSynsetRelations();
 
@@ -168,12 +182,11 @@ public class Wordbag extends Uby {
         }
 
         tx.commit();
-        session.close();
 
-        log.info("");
-        log.info("Done normalizing SynsetRelations:");
-        log.info("");
-        log.info(relStats.toString());
+        LOG.info("");
+        LOG.info("Done normalizing SynsetRelations:");
+        LOG.info("");
+        LOG.info(relStats.toString());
     }
 
     /**
@@ -181,7 +194,7 @@ public class Wordbag extends Uby {
      */
     private void computeTransitiveClosure() {
 
-        log.info("Computing transitive closure for SynsetRelations ...");
+        LOG.info("Computing transitive closure for SynsetRelations ...");
 
         Session session = sessionFactory.openSession();
         Transaction tx = session.beginTransaction();        
@@ -261,36 +274,66 @@ public class Wordbag extends Uby {
         } while (processedRelationsInCurLevel > 0);
         
         tx.commit();
-        session.close();
         
-        log.info("");
-        log.info("Done computing transitive closure for SynsetRelations:");
-        log.info("");
-        log.info(relStats.toString());        
+        LOG.info("");
+        LOG.info("Done computing transitive closure for SynsetRelations:");
+        LOG.info("");
+        LOG.info(relStats.toString());        
     }
 
     /**
-     * 
-     * @param filepath
+     * See {@link #loadLexicalResources(Collection, Collection)}
+     */
+    public void loadLexicalResources(String filepath,
+                                     String lexicalResourceName) {
+        
+        loadLexicalResources(Arrays.asList(filepath), Arrays.asList(lexicalResourceName));
+    }
+    
+    /**
+     * Loads provided resources and automatically augments graph with transitive closure at the 
+     * end of the loading.
+     *  
+     * @param filepaths paths to lmf xml files
      * @param lexicalResourceName
      *            todo meaning? name seems not be required to be in the xml
      */
-    public void loadLmfXml(String filepath, String lexicalResourceName) {
+    // todo think about .sql files
+    public void loadLexicalResources(Collection<String> filepaths,
+                                     Collection<String> lexicalResourceNames) {
 
-        XMLToDBTransformer trans = new XMLToDBTransformer(dbConfig);
+        checkNotEmpty(filepaths, "invalid filepaths length!");
+        checkNotEmpty(lexicalResourceNames, "invalid lexicalResourceNames length!");
+        
+        Internals.checkArgument(filepaths.size() == lexicalResourceNames.size(),
+                "Lexical resource names don't match with files! Found "
+                + filepaths.size() + " filepaths and " + lexicalResourceNames.size() + " resource names");
+        
+        Iterator<String> namesIter = lexicalResourceNames.iterator();
+        
+        for (String filepath : filepaths){
+            String lexicalResourceName = namesIter.next();
+            
+            LOG.info("Loading LMF : " + filepath + " with lexical resource name " + lexicalResourceName + " ...");
+                        
+            XMLToDBTransformer trans = new XMLToDBTransformer(dbConfig);
 
-        try {
-            trans.transform(new File(filepath), lexicalResourceName);
-        } catch (Exception ex) {
-            throw new RuntimeException("Error while loading lmf xml " + filepath, ex);
+            try {
+                trans.transform(new File(filepath), lexicalResourceName);
+            } catch (Exception ex) {
+                throw new RuntimeException("Error while loading lmf xml " + filepath, ex);
+            }
+            
+            LOG.info("Done loading LMF : " + filepath + " with lexical resource name " + lexicalResourceName + " .");
         }
 
         try {
             augmentGraph();
         } catch (Exception ex) {
-            log.error("Error while augmenting graph with computed edges!", ex);
+            throw new WbException("Error while augmenting graph with computed edges!", ex);
         }
 
+        LOG.info("Done loading LMFs.");
     }
 
     /**
@@ -299,5 +342,15 @@ public class Wordbag extends Uby {
     public static String getProvenanceId() {
         return Wordbag.class.getPackage()
                            .getName();
+    }
+    
+    /**
+     * Creates an instance of a Wordbag.
+     * 
+     * @param dbConfig
+     */
+    public static Wordbag create(DBConfig dbConfig){
+        Wordbag ret = new Wordbag(dbConfig);
+        return ret;
     }
 }

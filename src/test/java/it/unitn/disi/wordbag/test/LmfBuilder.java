@@ -5,7 +5,9 @@ import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import it.unitn.disi.wordbag.Wordbags;
-import static it.unitn.disi.wordbag.Wordbags.checkNotEmpty;
+import it.unitn.disi.wordbag.internal.Internals;
+
+import static it.unitn.disi.wordbag.internal.Internals.checkNotEmpty;
 
 /**
  * 
@@ -67,7 +69,7 @@ public class LmfBuilder {
 	public LmfBuilder synsetRelation(String relName, int targetIdNum) {
 		checkBuilt();
 		checkNotEmpty(relName, "Invalid relation name!");
-		Wordbags.checkArgument(targetIdNum > 0, "Expected idNum greater than zero, found " + targetIdNum + " instead!");
+		Internals.checkArgument(targetIdNum > 0, "Expected idNum greater than zero, found " + targetIdNum + " instead!");
 		SynsetRelation sr = new SynsetRelation();
 		sr.setTarget(getSynset(targetIdNum));
 		Synset curSynset = getCurSynset();
@@ -86,7 +88,7 @@ public class LmfBuilder {
     public LmfBuilder synsetRelation(String relName, int sourceIdNum, int targetIdNum) {
         checkBuilt();
         checkNotEmpty(relName, "Invalid relation name!");
-        Wordbags.checkArgument(targetIdNum > 0, "Expected idNum greater than zero, found " + targetIdNum + " instead!");
+        Internals.checkArgument(targetIdNum > 0, "Expected idNum greater than zero, found " + targetIdNum + " instead!");
         SynsetRelation sr = new SynsetRelation();
         sr.setTarget(getSynset(targetIdNum));
         Synset source = getSynset(sourceIdNum);

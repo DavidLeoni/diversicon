@@ -3,6 +3,8 @@ package it.unitn.disi.wordbag.test;
 import static org.junit.Assert.assertEquals;
 import static it.unitn.disi.wordbag.test.LmfBuilder.lmf;
 import static org.junit.Assert.assertNotNull;
+
+import java.util.Iterator;
 import java.util.List;
 
 import org.junit.After;
@@ -12,6 +14,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import de.tudarmstadt.ukp.lmf.api.Uby;
 import de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalEntry;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
@@ -21,13 +24,16 @@ import de.tudarmstadt.ukp.lmf.model.enums.ERelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
+import it.unitn.disi.wordbag.WbException;
+import it.unitn.disi.wordbag.WbNotFoundException;
 import it.unitn.disi.wordbag.WbSynsetRelation;
 import it.unitn.disi.wordbag.Wordbag;
 import it.unitn.disi.wordbag.Wordbags;
+import it.unitn.disi.wordbag.internal.Internals;
 
 public class WordbagTest {
 
-    private static final Logger log = LoggerFactory.getLogger(WordbagTest.class);
+    private static final Logger LOG = LoggerFactory.getLogger(WordbagTest.class);
 
     private DBConfig dbConfig;
 
@@ -43,31 +49,11 @@ public class WordbagTest {
     }
 
 
-    /**
-     * Tests simple saving with Hibernate
-     * 
-     * @since 0.1
-     */
-    @Test
-    public void testHibernateSave() {
-        /*
-         * try {
-         * Wordbags.createTables(dbConfig);
-         * } catch (FileNotFoundException e) {
-         * throw new RuntimeException("Couldn't create tables in database " +
-         * dbConfig.getJdbc_url() + "!", e); // todo
-         * }
-         * 
-         * WbLinguisticOracle oracle = new WbLinguisticOracle(dbConfig, null);
-         * 
-         * WbUby uby = oracle.getUby();
-         * 
-         * uby.getSession().save(arg0)
-         */
-    }
+    
 
     /**
      * todo this seems a uby bug, it always return null !
+     * @since 0.1
      */
     @Test
     @Ignore
@@ -76,6 +62,18 @@ public class WordbagTest {
     }
 
     /**
+     * Tests db tables are automatically created.
+     * 
+     * @since 0.1
+     */
+    @Test
+    public void testAutoCreate() {
+        Wordbag uby = Wordbag.create(dbConfig);
+        uby.getSession().close();
+    }
+    
+    
+    /**
      * Checks our extended model of uby with is actually returned by Hibernate
      * 
      * @since 0.1
@@ -83,7 +81,7 @@ public class WordbagTest {
     @Test
     public void testHibernateExtraAttributes() {
 
-        Wordbags.createTables(dbConfig);
+        Wordbags.dropCreateTables(dbConfig);
 
         LexicalResource lexicalResource = new LexicalResource();
         lexicalResource.setName("lexicalResource 1");
@@ -109,7 +107,7 @@ public class WordbagTest {
 
         Wordbags.saveLexicalResourceToDb(dbConfig, lexicalResource, "lexical resource 1");       
 
-        Wordbag uby = new Wordbag(dbConfig);
+        Wordbag uby = Wordbag.create(dbConfig);
 
         assertNotNull(uby.getLexicalResource("lexicalResource 1"));
         assertEquals(1, uby.getLexicons()
@@ -128,7 +126,7 @@ public class WordbagTest {
         SynsetRelation rel = synRels.get(0);
         assertNotNull(rel);
 
-        log.info("Asserting rel is instance of " + WbSynsetRelation.class);
+        LOG.info("Asserting rel is instance of " + WbSynsetRelation.class);
         if (!(rel instanceof WbSynsetRelation)) {
             throw new RuntimeException(
                     "relation is not of type " + WbSynsetRelation.class + " found instead " + rel.getClass());
@@ -138,6 +136,8 @@ public class WordbagTest {
 
         assertEquals(3, WbRel.getDepth());
         assertEquals("a", WbRel.getProvenance());
+        
+        uby.getSession().close();
     };
     
     /**
@@ -145,25 +145,31 @@ public class WordbagTest {
      * with transitive closure, and tests database actually matches {@code expectedLexicalResource}   
      * @param lexicalResource
      * @param expectedLexicalResource
+     * @since 0.1
      */    
     public void assertAugmentation(
                 LexicalResource lexicalResource,
                 LexicalResource expectedLexicalResource                
             ){
         
-        Wordbags.createTables(dbConfig);
+        Wordbags.dropCreateTables(dbConfig);
 
 
         Wordbags.saveLexicalResourceToDb(dbConfig, lexicalResource, "lexical resource 1");
         
-        Wordbag uby = new Wordbag(dbConfig);
+        Wordbag uby = Wordbag.create(dbConfig);
 
         uby.augmentGraph();
            
-        WordbagTester.checkDb(expectedLexicalResource, uby);
+        checkDb(expectedLexicalResource, uby);
+        
+        uby.getSession().close();
                 
     };
 
+    /**
+     * @since 0.1
+     */
     @Test
     public void testNormalizeNonCanonicalEdge() {
 
@@ -183,6 +189,9 @@ public class WordbagTest {
                 .build());        
     }
 
+    /**
+     * @since 0.1
+     */
     @Test
     public void testNormalizeCanonicalEdge() {              
 
@@ -195,6 +204,9 @@ public class WordbagTest {
         assertAugmentation(lexicalResource, lexicalResource);               
     }
     
+    /**
+     * @since 0.1
+     */
     @Test
     public void testNormalizeUnknownEdge() {              
 
@@ -207,7 +219,9 @@ public class WordbagTest {
         assertAugmentation(lexicalResource, lexicalResource);               
     }
     
-    
+    /**
+     * @since 0.1    
+     */
     @Test
     public void testTransitiveClosureDepth_2() {
 
@@ -229,6 +243,9 @@ public class WordbagTest {
                                 .build());              
     }
     
+    /**
+     * @since 0.1    
+     */    
     @Test
     public void testTransitiveClosureDepth_3() {
 
@@ -257,6 +274,10 @@ public class WordbagTest {
                                 .build());              
     }
     
+    
+    /**
+     * @since 0.1    
+     */    
     @Test
     public void testTransitiveClosureNoDuplicates() {
         
@@ -270,6 +291,9 @@ public class WordbagTest {
                 .build());              
     }
     
+    /**
+     * @since 0.1    
+     */    
     @Test
     public void testTransitiveClosureIgnoreNonCanonical() {
         
@@ -284,11 +308,125 @@ public class WordbagTest {
 
     /**
      * Asserts the provided lexical resource doesn't provoke any augmentation in the database.
+     * @since 0.1
      */
     private void assertNoAugmentation(LexicalResource lr) {
         assertAugmentation(lr, lr);
     }
 
-    
+    /**
+     * 
+     * Retrieves the synset with id 'synset ' + {@code idNum}
+     * 
+     * @param idNum
+     *            index starts from 1
+     * @throws WbNotFoundException
+     */
+    public static Synset getSynset(LexicalResource lr, int idNum) {
+        Internals.checkArgument(idNum >= 1, "idNum must be positive, found instead " + idNum);
+
+        for (Lexicon lexicon : lr.getLexicons()) {
+            for (Synset synset : lexicon.getSynsets()) {
+                if (synset.getId()
+                          .equals("synset " + idNum)) {
+                    return synset;
+                }
+            }
+        }
+        throw new WbNotFoundException("Couldn't find synset with id 'synset " + idNum);
+    }
+
+    /**
+     * 
+     * Checks provided lexical resource corresponds to current db.
+     * 
+     * Checks only for elements we care about in S-Match Uby, and only for the
+     * ones which are not {@code null} in provided model.
+     */
+    public static void checkDb(LexicalResource lr, Uby uby) {
+        Internals.checkNotNull(lr);
+
+        LexicalResource ulr = uby.getLexicalResource(lr.getName());
+
+        assertEquals(lr.getName(), ulr.getName());
+
+        for (Lexicon lex : lr.getLexicons()) {
+
+            try {
+                Lexicon uLex = uby.getLexiconById(lex.getId());
+                assertEquals(lex.getId(), uLex.getId());
+                assertEquals(lex.getSynsets()
+                                .size(),
+                        uLex.getSynsets()
+                            .size());
+
+                for (Synset syn : lex.getSynsets()) {
+                    try {
+                        Synset uSyn = uby.getSynsetById(syn.getId());
+                        assertEquals(syn.getId(), uSyn.getId());
+
+                        assertEquals(syn.getSynsetRelations()
+                                        .size(),
+                                uSyn.getSynsetRelations()
+                                    .size());
+
+                        Iterator<SynsetRelation> iter = uSyn.getSynsetRelations()
+                                                            .iterator();
+
+                        for (SynsetRelation sr : syn.getSynsetRelations()) {
+
+                            try {
+                                SynsetRelation usr = iter.next();
+
+                                if (sr.getRelName() != null) {
+                                    assertEquals(sr.getRelName(), usr.getRelName());
+                                }
+
+                                if (sr.getRelType() != null) {
+                                    assertEquals(sr.getRelType(), usr.getRelType());
+                                }
+
+                                if (sr.getSource() != null) {
+                                    assertEquals(sr.getSource()
+                                                   .getId(),
+                                            usr.getSource()
+                                               .getId());
+                                }
+
+                                if (sr.getTarget() != null) {
+                                    assertEquals(sr.getTarget()
+                                                   .getId(),
+                                            usr.getTarget()
+                                               .getId());
+                                }
+
+                                if (sr instanceof WbSynsetRelation) {
+                                    WbSynsetRelation Wbsr = (WbSynsetRelation) sr;
+                                    WbSynsetRelation Wbusr = (WbSynsetRelation) usr;
+
+                                    assertEquals(Wbsr.getDepth(), Wbusr.getDepth());
+
+                                    if (Wbsr.getProvenance() != null) {
+                                        assertEquals(Wbsr.getProvenance(), Wbusr.getProvenance());
+                                    }
+                                }
+                            } catch (Error ex) {
+                                throw new WbException("Error while checking synset relation: " + Wordbags.synsetRelationToString(sr),
+                                        ex);
+                            }
+
+                        }
+                    } catch (Error ex) {
+                        String synId = syn == null ? "null" : syn.getId();
+                        throw new WbException("Error while checking synset " + synId, ex);
+                    }
+                }
+            } catch (Error ex) {
+                String lexId = lex == null ? "null" : lex.getId();
+                throw new WbException("Error while checking lexicon " + lexId, ex);
+
+            }
+        }
+    }
 
 }

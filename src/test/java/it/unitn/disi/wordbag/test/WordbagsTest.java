@@ -19,6 +19,7 @@ import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import it.unitn.disi.wordbag.WbNotFoundException;
 import it.unitn.disi.wordbag.Wordbags;
+import it.unitn.disi.wordbag.internal.Internals;
 
 
 
@@ -58,18 +59,30 @@ public class WordbagsTest {
 	
 	
 	@Test
+	public void testExistsDb(){
+	    
+	    assertFalse(Wordbags.exists(dbConfig));
+	    
+	    Wordbags.dropCreateTables(dbConfig);
+	    assertTrue(Wordbags.exists(dbConfig));
+	       
+	}
+	
+	
+	
+	@Test
 	public void testNewMap(){
 	    
-	    HashMap<String, Integer> m1 = Wordbags.newMap("a", 1);	    
+	    HashMap<String, Integer> m1 = Internals.newMap("a", 1);	    
 	    assertEquals(Integer.valueOf(1), m1.get("a"));
 	    
         try {
-            Wordbags.newMap("a", "b", 3, "f");
+            Internals.newMap("a", "b", 3, "f");
             Assert.fail("Shouldn't arrive here!");
         } catch (IllegalArgumentException ex){
             
         }
-        HashMap<String, Integer> m2 = Wordbags.newMap("a", 1, "b", 2);     
+        HashMap<String, Integer> m2 = Internals.newMap("a", 1, "b", 2);     
         assertEquals(Integer.valueOf(1),  m2.get("a"));
         assertEquals(Integer.valueOf(2),  m2.get("b"));
 	    

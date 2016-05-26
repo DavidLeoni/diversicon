@@ -17,7 +17,7 @@
 		<version>1.3.0</version>
 	</parent>
 
-    <groupId>eu.trentorise.opendata</groupId>
+    <groupId>it.unitn.disi</groupId>
 	<artifactId>wordbag</artifactId>
 	<version>0.1.0-SNAPSHOT</version>
 	<packaging>jar</packaging>

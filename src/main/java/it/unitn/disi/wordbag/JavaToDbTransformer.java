@@ -1,7 +1,7 @@
 package it.unitn.disi.wordbag;
 
-import static it.unitn.disi.wordbag.Wordbags.checkNotEmpty;
-import static it.unitn.disi.wordbag.Wordbags.checkNotNull;
+import static it.unitn.disi.wordbag.internal.Internals.checkNotEmpty;
+import static it.unitn.disi.wordbag.internal.Internals.checkNotNull;
 
 import java.io.FileNotFoundException;
 import java.io.Serializable;
@@ -30,6 +30,7 @@ import de.tudarmstadt.ukp.lmf.model.syntax.SubcategorizationFrameSet;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 
 import de.tudarmstadt.ukp.lmf.transform.LMFDBTransformer;
+import it.unitn.disi.wordbag.internal.Internals;
 
 /**
  * 
@@ -67,7 +68,7 @@ class JavaToDbTransformer extends LMFDBTransformer {
 	public JavaToDbTransformer(DBConfig dbConfig, LexicalResource lexicalResource, String lexicalResourceId) throws FileNotFoundException {
 		super(dbConfig);
 		
-		Configuration cfg = Wordbags.getHibernateConfig(dbConfig);
+		Configuration cfg = Wordbags.getHibernateConfig(dbConfig, false);
 		sessionFactory = cfg.buildSessionFactory(
 				new ServiceRegistryBuilder().applySettings(
 				cfg.getProperties()).buildServiceRegistry());		
@@ -76,7 +77,7 @@ class JavaToDbTransformer extends LMFDBTransformer {
 		checkNotEmpty(lexicalResourceId, "Invalid lexicalResourceId!");
 
 		// copying to avoid double additions by LMFDBTransformer		
-		this.lexicalResource = Wordbags.deepCopy(lexicalResource);
+		this.lexicalResource = Internals.deepCopy(lexicalResource);
 		
 		this.lexicalResourceId = lexicalResourceId;
 
