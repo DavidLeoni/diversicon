@@ -1,6 +1,6 @@
-package it.unitn.disi.wordbag;
+package it.unitn.disi.diversicon;
 
-import static it.unitn.disi.wordbag.internal.Internals.checkNotEmpty;
+import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
 
 import java.util.HashMap;
 import java.util.Map;

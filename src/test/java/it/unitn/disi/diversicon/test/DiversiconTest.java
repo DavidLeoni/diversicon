@@ -1,6 +1,6 @@
-package it.unitn.disi.wordbag.test;
+package it.unitn.disi.diversicon.test;
 
-import static it.unitn.disi.wordbag.test.LmfBuilder.lmf;
+import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
@@ -23,16 +23,16 @@ import de.tudarmstadt.ukp.lmf.model.enums.ERelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
-import it.unitn.disi.wordbag.WbException;
-import it.unitn.disi.wordbag.WbNotFoundException;
-import it.unitn.disi.wordbag.WbSynsetRelation;
-import it.unitn.disi.wordbag.Wordbag;
-import it.unitn.disi.wordbag.Wordbags;
-import it.unitn.disi.wordbag.internal.Internals;
+import it.unitn.disi.diversicon.DivException;
+import it.unitn.disi.diversicon.DivNotFoundException;
+import it.unitn.disi.diversicon.DivSynsetRelation;
+import it.unitn.disi.diversicon.Diversicon;
+import it.unitn.disi.diversicon.Diversicons;
+import it.unitn.disi.diversicon.internal.Internals;
 
-public class WordbagTest {
+public class DiversiconTest {
 
-    private static final Logger LOG = LoggerFactory.getLogger(WordbagTest.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DiversiconTest.class);
 
 
     /**
@@ -75,7 +75,7 @@ public class WordbagTest {
      */
     @Test
     public void testAutoCreate() {
-        Wordbag uby = Wordbag.create(dbConfig);
+        Diversicon uby = Diversicon.create(dbConfig);
         uby.getSession().close();
     }
     
@@ -88,7 +88,7 @@ public class WordbagTest {
     @Test
     public void testHibernateExtraAttributes() {
 
-        Wordbags.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(dbConfig);
 
         LexicalResource lexicalResource = new LexicalResource();
         lexicalResource.setName("lexicalResource 1");
@@ -102,7 +102,7 @@ public class WordbagTest {
         lexicon.getSynsets()
                .add(synset);
         synset.setId("synset 1");
-        WbSynsetRelation synsetRelation = new WbSynsetRelation();
+        DivSynsetRelation synsetRelation = new DivSynsetRelation();
         synsetRelation.setRelType(ERelTypeSemantics.taxonomic);
         synsetRelation.setRelName(ERelNameSemantics.HYPERNYM);
         synsetRelation.setDepth(3);
@@ -112,9 +112,9 @@ public class WordbagTest {
         synset.getSynsetRelations()
               .add(synsetRelation);
 
-        Wordbags.saveLexicalResourceToDb(dbConfig, lexicalResource, "lexical resource 1");       
+        Diversicons.saveLexicalResourceToDb(dbConfig, lexicalResource, "lexical resource 1");       
 
-        Wordbag uby = Wordbag.create(dbConfig);
+        Diversicon uby = Diversicon.create(dbConfig);
 
         assertNotNull(uby.getLexicalResource("lexicalResource 1"));
         assertEquals(1, uby.getLexicons()
@@ -133,13 +133,13 @@ public class WordbagTest {
         SynsetRelation rel = synRels.get(0);
         assertNotNull(rel);
 
-        LOG.info("Asserting rel is instance of " + WbSynsetRelation.class);
-        if (!(rel instanceof WbSynsetRelation)) {
+        LOG.info("Asserting rel is instance of " + DivSynsetRelation.class);
+        if (!(rel instanceof DivSynsetRelation)) {
             throw new RuntimeException(
-                    "relation is not of type " + WbSynsetRelation.class + " found instead " + rel.getClass());
+                    "relation is not of type " + DivSynsetRelation.class + " found instead " + rel.getClass());
         }
 
-        WbSynsetRelation WbRel = (WbSynsetRelation) rel;
+        DivSynsetRelation WbRel = (DivSynsetRelation) rel;
 
         assertEquals(3, WbRel.getDepth());
         assertEquals("a", WbRel.getProvenance());
@@ -159,11 +159,11 @@ public class WordbagTest {
                 LexicalResource expectedLexicalResource                
             ){
         
-        Wordbags.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(dbConfig);
 
-        Wordbags.saveLexicalResourceToDb(dbConfig, lexicalResource, "lexical resource 1");
+        Diversicons.saveLexicalResourceToDb(dbConfig, lexicalResource, "lexical resource 1");
         
-        Wordbag uby = Wordbag.create(dbConfig);
+        Diversicon uby = Diversicon.create(dbConfig);
 
         uby.augmentGraph();
            
@@ -303,7 +303,7 @@ public class WordbagTest {
      * Checks sequence indicated by provided provided iterator contains all the 
      * synsets of given ids. 
      * 
-     * @throws WbNotFoundException
+     * @throws DivNotFoundException
      */
     private static void checkContains(Iterator<Synset> iter, String... ids){               
         
@@ -322,7 +322,7 @@ public class WordbagTest {
                 }
             }
             if (!found){
-                throw new WbNotFoundException("Couldn't find synset with id " + id 
+                throw new DivNotFoundException("Couldn't find synset with id " + id 
                         + " while checking " + synsets.size() + " synsets.");
             }
         }                                        
@@ -337,11 +337,11 @@ public class WordbagTest {
     public void testGetSynsetParents_Graph_1_Hypernym(){
         
         
-            Wordbags.dropCreateTables(dbConfig);
+            Diversicons.dropCreateTables(dbConfig);
             
-            Wordbags.saveLexicalResourceToDb(dbConfig, GRAPH_1_HYPERNYM, "lexical resource 1");
+            Diversicons.saveLexicalResourceToDb(dbConfig, GRAPH_1_HYPERNYM, "lexical resource 1");
             
-            Wordbag wb = Wordbag.create(dbConfig);            
+            Diversicon wb = Diversicon.create(dbConfig);            
             
             assertFalse(wb.getSynsetParents(
                     "synset 2", 
@@ -373,11 +373,11 @@ public class WordbagTest {
     @Test
     public void testGetSynsetParents_Dag_3_Hypernym(){
 
-        Wordbags.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(dbConfig);
         
-        Wordbags.saveLexicalResourceToDb(dbConfig, DAG_3_HYPERNYM, "lexical resource 1");
+        Diversicons.saveLexicalResourceToDb(dbConfig, DAG_3_HYPERNYM, "lexical resource 1");
         
-        Wordbag wb = Wordbag.create(dbConfig);        
+        Diversicon wb = Diversicon.create(dbConfig);        
 
         checkContains(wb.getSynsetParents(
                             "synset 2", 
@@ -407,7 +407,7 @@ public class WordbagTest {
      * 
      * @param idNum
      *            index starts from 1
-     * @throws WbNotFoundException
+     * @throws DivNotFoundException
      */
     public static Synset getSynset(LexicalResource lr, int idNum) {
         Internals.checkArgument(idNum >= 1, "idNum must be positive, found instead " + idNum);
@@ -420,27 +420,27 @@ public class WordbagTest {
                 }
             }
         }
-        throw new WbNotFoundException("Couldn't find synset with id 'synset " + idNum);
+        throw new DivNotFoundException("Couldn't find synset with id 'synset " + idNum);
     }
 
     /**
      * 
      * Checks provided lexical resource corresponds to current db.
      * 
-     * Checks only for elements we care about in Wordbag, and only for the
+     * Checks only for elements we care about in Diversicon, and only for the
      * ones which are not {@code null} in provided model.
      */
-    public static void checkDb(LexicalResource lr, Wordbag wordbag) {
+    public static void checkDb(LexicalResource lr, Diversicon diversicon) {
         Internals.checkNotNull(lr);
 
-        LexicalResource ulr = wordbag.getLexicalResource(lr.getName());
+        LexicalResource ulr = diversicon.getLexicalResource(lr.getName());
 
         assertEquals(lr.getName(), ulr.getName());
 
         for (Lexicon lex : lr.getLexicons()) {
 
             try {
-                Lexicon uLex = wordbag.getLexiconById(lex.getId());
+                Lexicon uLex = diversicon.getLexiconById(lex.getId());
                 assertEquals(lex.getId(), uLex.getId());
                 assertEquals(lex.getSynsets()
                                 .size(),
@@ -449,7 +449,7 @@ public class WordbagTest {
 
                 for (Synset syn : lex.getSynsets()) {
                     try {
-                        Synset uSyn = wordbag.getSynsetById(syn.getId());
+                        Synset uSyn = diversicon.getSynsetById(syn.getId());
                         assertEquals(syn.getId(), uSyn.getId());
 
                         assertEquals(syn.getSynsetRelations()
@@ -487,9 +487,9 @@ public class WordbagTest {
                                                .getId());
                                 }
 
-                                if (sr instanceof WbSynsetRelation) {
-                                    WbSynsetRelation Wbsr = (WbSynsetRelation) sr;
-                                    WbSynsetRelation Wbusr = (WbSynsetRelation) usr;
+                                if (sr instanceof DivSynsetRelation) {
+                                    DivSynsetRelation Wbsr = (DivSynsetRelation) sr;
+                                    DivSynsetRelation Wbusr = (DivSynsetRelation) usr;
 
                                     assertEquals(Wbsr.getDepth(), Wbusr.getDepth());
 
@@ -498,19 +498,19 @@ public class WordbagTest {
                                     }
                                 }
                             } catch (Error ex) {
-                                throw new WbException("Error while checking synset relation: " + Wordbags.synsetRelationToString(sr),
+                                throw new DivException("Error while checking synset relation: " + Diversicons.synsetRelationToString(sr),
                                         ex);
                             }
 
                         }
                     } catch (Error ex) {
                         String synId = syn == null ? "null" : syn.getId();
-                        throw new WbException("Error while checking synset " + synId, ex);
+                        throw new DivException("Error while checking synset " + synId, ex);
                     }
                 }
             } catch (Error ex) {
                 String lexId = lex == null ? "null" : lex.getId();
-                throw new WbException("Error while checking lexicon " + lexId, ex);
+                throw new DivException("Error while checking lexicon " + lexId, ex);
 
             }
         }

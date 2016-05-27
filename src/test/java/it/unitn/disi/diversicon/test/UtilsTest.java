@@ -1,4 +1,4 @@
-package it.unitn.disi.wordbag.test;
+package it.unitn.disi.diversicon.test;
 
 
 import static org.junit.Assert.assertEquals;
@@ -21,16 +21,16 @@ import de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
-import it.unitn.disi.wordbag.WbNotFoundException;
-import it.unitn.disi.wordbag.Wordbags;
-import it.unitn.disi.wordbag.internal.Internals;
+import it.unitn.disi.diversicon.DivNotFoundException;
+import it.unitn.disi.diversicon.Diversicons;
+import it.unitn.disi.diversicon.internal.Internals;
 
 
 
-public class WordbagsTest {
+public class UtilsTest {
 
 		
-	private static final Logger log = LoggerFactory.getLogger(WordbagsTest.class);
+	private static final Logger log = LoggerFactory.getLogger(UtilsTest.class);
 	
 	private DBConfig dbConfig;
 		
@@ -48,15 +48,15 @@ public class WordbagsTest {
 
 	@Test
 	public void testInverses(){
-		assertTrue(Wordbags.isInverse(ERelNameSemantics.HYPERNYM, ERelNameSemantics.HYPONYM));
-		assertTrue(Wordbags.isInverse(ERelNameSemantics.HYPONYM, ERelNameSemantics.HYPERNYM));
+		assertTrue(Diversicons.isInverse(ERelNameSemantics.HYPERNYM, ERelNameSemantics.HYPONYM));
+		assertTrue(Diversicons.isInverse(ERelNameSemantics.HYPONYM, ERelNameSemantics.HYPERNYM));
 		
-		assertFalse(Wordbags.isInverse("a", ERelNameSemantics.HYPERNYM));
+		assertFalse(Diversicons.isInverse("a", ERelNameSemantics.HYPERNYM));
 		
 		try {
-			Wordbags.getInverse("a");
+			Diversicons.getInverse("a");
 			Assert.fail("Shouldn't arrive here!");
-		} catch (WbNotFoundException ex){
+		} catch (DivNotFoundException ex){
 			
 		}
 	}	
@@ -65,10 +65,10 @@ public class WordbagsTest {
 	@Test
 	public void testExistsDb(){
 	    
-	    assertFalse(Wordbags.exists(dbConfig));
+	    assertFalse(Diversicons.exists(dbConfig));
 	    
-	    Wordbags.dropCreateTables(dbConfig);
-	    assertTrue(Wordbags.exists(dbConfig));
+	    Diversicons.dropCreateTables(dbConfig);
+	    assertTrue(Diversicons.exists(dbConfig));
 	       
 	}
 	

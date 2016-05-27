@@ -1,4 +1,4 @@
-package it.unitn.disi.wordbag.test;
+package it.unitn.disi.diversicon.test;
 
 import java.io.FileNotFoundException;
 
@@ -27,7 +27,7 @@ public class UbyTest {
 
     @Before
     public void beforeMethod() {
-        dbConfig = WordbagTest.createDbConfig();
+        dbConfig = DiversiconTest.createDbConfig();
     }
 
     @After

@@ -1,4 +1,4 @@
-package it.unitn.disi.wordbag;
+package it.unitn.disi.diversicon;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -29,17 +29,17 @@ import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 
 import static de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics.*;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
-import it.unitn.disi.wordbag.internal.Internals;
-import static it.unitn.disi.wordbag.internal.Internals.checkNotEmpty;
+import it.unitn.disi.diversicon.internal.Internals;
+import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
 
 /**
  * Utility class for S-match Uby
  * 
  * @since 0.1
  */
-public final class Wordbags {
+public final class Diversicons {
 
-    private static final Logger LOG = LoggerFactory.getLogger(Wordbags.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Diversicons.class);
     
     
     private static final List<String> CANONICAL_RELATIONS = Collections.unmodifiableList(
@@ -85,14 +85,14 @@ public final class Wordbags {
         
         customClassMappings = new LinkedHashMap();
         customClassMappings.put(de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation.class.getCanonicalName(),
-                WbSynsetRelation.class.getCanonicalName());        
+                DivSynsetRelation.class.getCanonicalName());        
 
     }
 
 
 
     
-    private Wordbags() {
+    private Diversicons() {
     }
 
     /**
@@ -112,7 +112,7 @@ public final class Wordbags {
     }
 
     /**
-     * @throws WbNotFoundException
+     * @throws DivNotFoundException
      *             if {code relation} does not have an inverse
      * @since 0.1
      */
@@ -121,7 +121,7 @@ public final class Wordbags {
 
         String ret = inverseRelations.get(relation);
         if (ret == null) {
-            throw new WbNotFoundException("Couldn't find the relation " + relation);
+            throw new DivNotFoundException("Couldn't find the relation " + relation);
         }
         return ret;
     }
@@ -188,7 +188,7 @@ public final class Wordbags {
 
     
     static Session openSession(DBConfig dbConfig, boolean validate){
-        Configuration cfg = Wordbags.getHibernateConfig(dbConfig, validate);
+        Configuration cfg = Diversicons.getHibernateConfig(dbConfig, validate);
         
         ServiceRegistryBuilder serviceRegistryBuilder = new ServiceRegistryBuilder().applySettings(cfg.getProperties());
         SessionFactory sessionFactory = cfg.buildSessionFactory(serviceRegistryBuilder.buildServiceRegistry());
@@ -283,7 +283,7 @@ public final class Wordbags {
 
         try {
 
-            Resource[] resources = new PathMatchingResourcePatternResolver(Wordbags.class.getClassLoader())
+            Resource[] resources = new PathMatchingResourcePatternResolver(Diversicons.class.getClassLoader())
                                                                                                            .getResources(
                                                                                                                    "hybernatemap/access/**/*.hbm.xml");
             for (Resource r : resources) {
@@ -312,7 +312,7 @@ public final class Wordbags {
      * @param lexicalResourceId
      *            todo don't know well the meaning
      * 
-     * @throws WbException
+     * @throws DivException
      * @since 0.1
      */
     public static void saveLexicalResourceToDb(
@@ -323,7 +323,7 @@ public final class Wordbags {
         try {
             new JavaToDbTransformer(dbConfig, lexicalResource, lexicalResourceId).transform();
         } catch (Exception ex) {
-            throw new WbException("Error when importing lexical resource " + lexicalResourceId + " !", ex);
+            throw new DivException("Error when importing lexical resource " + lexicalResourceId + " !", ex);
         }
         LOG.info("Done saving.");
     }
@@ -343,7 +343,7 @@ public final class Wordbags {
     /**
      * Returns the type of the provided relation.
      * 
-     * @throws WbNotFoundException
+     * @throws DivNotFoundException
      * @since 0.1
      */
     public static ERelTypeSemantics getCanonicalRelationType(String relName) {
@@ -351,7 +351,7 @@ public final class Wordbags {
         ERelTypeSemantics ret = CANONICAL_RELATION_TYPES.get(relName);
 
         if (ret == null) {
-            throw new WbNotFoundException("There is no reltaion type associated to relation " + relName);
+            throw new DivNotFoundException("There is no reltaion type associated to relation " + relName);
         }
         return ret;
     }
@@ -365,7 +365,7 @@ public final class Wordbags {
         if (sr == null) {
             return "null";
         } else {
-            if (sr instanceof WbSynsetRelation) {
+            if (sr instanceof DivSynsetRelation) {
                 return sr.toString();
             } else {
                 String sourceId = sr.getSource() == null ? "null" : sr.getSource()
@@ -383,7 +383,7 @@ public final class Wordbags {
    
 
     /**
-     * Returns a list of relations used by Wordbag, in
+     * Returns a list of relations used by Diversicon, in
      * {@link de.tudarmstadt.ukp.uby.lmf.model.ERelNameSemantics Uby format}
      * The list will contain only the canonical relations and not their inverse.
      * 
@@ -400,7 +400,7 @@ public final class Wordbags {
      */
     public static boolean exists(DBConfig dbConfig) {              
         
-        Configuration cfg = Wordbags.getHibernateConfig(dbConfig, false);
+        Configuration cfg = Diversicons.getHibernateConfig(dbConfig, false);
                
         ServiceRegistryBuilder serviceRegistryBuilder = new ServiceRegistryBuilder().applySettings(cfg.getProperties());
         SessionFactory sessionFactory = cfg.buildSessionFactory(serviceRegistryBuilder.buildServiceRegistry());

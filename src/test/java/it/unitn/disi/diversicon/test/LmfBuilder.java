@@ -1,13 +1,13 @@
-package it.unitn.disi.wordbag.test;
+package it.unitn.disi.diversicon.test;
 
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
-import it.unitn.disi.wordbag.Wordbags;
-import it.unitn.disi.wordbag.internal.Internals;
+import it.unitn.disi.diversicon.Diversicons;
+import it.unitn.disi.diversicon.internal.Internals;
 
-import static it.unitn.disi.wordbag.internal.Internals.checkNotEmpty;
+import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
 
 /**
  * 

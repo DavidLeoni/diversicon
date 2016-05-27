@@ -1,4 +1,4 @@
-package it.unitn.disi.wordbag.test;
+package it.unitn.disi.diversicon.test;
 
 
 
@@ -10,8 +10,8 @@ import org.slf4j.LoggerFactory;
 
 import de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
-import it.unitn.disi.wordbag.Wordbag;
-import it.unitn.disi.wordbag.Wordbags;
+import it.unitn.disi.diversicon.Diversicon;
+import it.unitn.disi.diversicon.Diversicons;
 
 
 /**
@@ -35,17 +35,17 @@ public class HibernateExperimentsTest {
         DBConfig dbConfig = new DBConfig("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1", "org.h2.Driver",
                 UBYH2Dialect.class.getName(), "root", "pass", true);    
         
-        Wordbag uby = Wordbag.create(dbConfig);
+        Diversicon uby = Diversicon.create(dbConfig);
         
         Session session = uby.getSession();
 
         Transaction tx = session.beginTransaction();
 
-        for (String relName : Wordbags.getCanonicalRelations()) {
+        for (String relName : Diversicons.getCanonicalRelations()) {
 
             log.info("Normalizing graph with canonical relation " + relName + " ...");
 
-            String inverseRelName = Wordbags.getInverse(relName);
+            String inverseRelName = Diversicons.getInverse(relName);
             log.info("inverse relation name = " + inverseRelName);
 
 /*            String hqlInsert = "INSERT INTO SynsetRelation (source, target, relType, relName, depth, provenance) "
@@ -65,7 +65,7 @@ public class HibernateExperimentsTest {
             
             String hqlInsert = "INSERT INTO SynsetRelation (synsetId, target,  relType, relName,  depth, provenance) "
                     + "  SELECT SR.target, SR.synsetId,  SR.relType, " 
-                    + "         '" + relName + "', 1, '" + Wordbag.getProvenanceId() + "'"
+                    + "         '" + relName + "', 1, '" + Diversicon.getProvenanceId() + "'"
                     + "  FROM SynsetRelation SR"    
                    +  "  WHERE" 
                     + "        SR.relName='" + inverseRelName + "'"; 

@@ -1,4 +1,4 @@
-package it.unitn.disi.wordbag.internal;
+package it.unitn.disi.diversicon.internal;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -10,18 +10,18 @@ import org.slf4j.LoggerFactory;
 
 import com.rits.cloning.Cloner;
 
-import it.unitn.disi.wordbag.Wordbags;
+import it.unitn.disi.diversicon.Diversicons;
 
 /**
  * 
- * Utility toolbox for Wordbag internal usage.
+ * Utility toolbox for Diversicon internal usage.
  * 
  * DO NOT USE THIS CLASS OUTSIDE OF WORDBAG PROJECT. THANKS.
  *
  */
 public final class Internals {
     
-    private static final Logger LOG = LoggerFactory.getLogger(Wordbags.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Diversicons.class);
 
     private static final @Nullable Cloner cloner = new Cloner();
     

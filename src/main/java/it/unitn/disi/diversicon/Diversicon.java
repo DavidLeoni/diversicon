@@ -1,8 +1,8 @@
-package it.unitn.disi.wordbag;
+package it.unitn.disi.diversicon;
 
-import static it.unitn.disi.wordbag.internal.Internals.checkArgument;
-import static it.unitn.disi.wordbag.internal.Internals.checkNotEmpty;
-import static it.unitn.disi.wordbag.internal.Internals.checkNotNull;
+import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
+import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
+import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,7 +31,7 @@ import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import de.tudarmstadt.ukp.lmf.transform.XMLToDBTransformer;
-import it.unitn.disi.wordbag.internal.Internals;
+import it.unitn.disi.diversicon.internal.Internals;
 
 /**
  * Extension of {@link de.tudarmstadt.ukp.lmf.api.Uby Uby} LMF knowledge base
@@ -42,16 +42,16 @@ import it.unitn.disi.wordbag.internal.Internals;
  *
  * @since 0.1
  */
-public class Wordbag extends Uby {
+public class Diversicon extends Uby {
 
-    private static final Logger LOG = LoggerFactory.getLogger(Wordbag.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Diversicon.class);
 
     /**
      * Amount of items to flush when writing into db with Hibernate.
      */
     private static final int BATCH_FLUSH_COUNT = 20;
 
-    private Wordbag(DBConfig dbConfig) {
+    private Diversicon(DBConfig dbConfig) {
         super(); // so it doesn't open connections! Let's hope they don't delete
                  // it!
         checkNotNull(dbConfig, "database configuration is null");
@@ -59,13 +59,13 @@ public class Wordbag extends Uby {
         this.dbConfig = dbConfig;
 
         // note: here we are overwriting cfg and sessionFactory
-        if (Wordbags.exists(dbConfig)) {
+        if (Diversicons.exists(dbConfig)) {
             LOG.info("Reusing existing database at " + dbConfig.getJdbc_url());
-            cfg = Wordbags.getHibernateConfig(dbConfig, true);
+            cfg = Diversicons.getHibernateConfig(dbConfig, true);
         } else {
             LOG.info("Database doesn't exist, going to create it");
-            Wordbags.dropCreateTables(dbConfig);
-            cfg = Wordbags.getHibernateConfig(dbConfig, false);
+            Diversicons.dropCreateTables(dbConfig);
+            cfg = Diversicons.getHibernateConfig(dbConfig, false);
         }
 
         ServiceRegistryBuilder serviceRegistryBuilder = new ServiceRegistryBuilder().applySettings(cfg.getProperties());
@@ -78,7 +78,7 @@ public class Wordbag extends Uby {
      * Finds all of the transitive parents of a synset within given depth. In
      * order to find them,
      * relation must be among the ones for which transitive closure is computed
-     * (see {@link Wordbags#getCanonicalRelations()}).
+     * (see {@link Diversicons#getCanonicalRelations()}).
      * 
      * @param synsetId
      * @param relName
@@ -124,7 +124,7 @@ public class Wordbag extends Uby {
 
     /**
      * Augments the synsetRelation graph with transitive closure of
-     * {@link Wordbags#getCanonicalRelations() canonical relations}
+     * {@link Diversicons#getCanonicalRelations() canonical relations}
      * and eventally adds needed symmetric relations.
      * 
      * @since 0.1
@@ -206,20 +206,20 @@ public class Wordbag extends Uby {
             List<SynsetRelation> relations = synset.getSynsetRelations();
 
             for (SynsetRelation sr : relations) {
-                WbSynsetRelation ssr = (WbSynsetRelation) sr;
+                DivSynsetRelation ssr = (DivSynsetRelation) sr;
 
-                if (Wordbags.hasInverse(ssr.getRelName())) {
-                    String inverseRelName = Wordbags.getInverse(ssr.getRelName());
-                    if (Wordbags.isCanonical(inverseRelName)
+                if (Diversicons.hasInverse(ssr.getRelName())) {
+                    String inverseRelName = Diversicons.getInverse(ssr.getRelName());
+                    if (Diversicons.isCanonical(inverseRelName)
                             && !containsRel(ssr.getTarget(),
                                     ssr.getSource(),
                                     inverseRelName)) {
-                        WbSynsetRelation newSsr = new WbSynsetRelation();
+                        DivSynsetRelation newSsr = new DivSynsetRelation();
 
                         newSsr.setDepth(1);
-                        newSsr.setProvenance(Wordbag.getProvenanceId());
+                        newSsr.setProvenance(Diversicon.getProvenanceId());
                         newSsr.setRelName(inverseRelName);
-                        newSsr.setRelType(Wordbags.getCanonicalRelationType(inverseRelName));
+                        newSsr.setRelType(Diversicons.getCanonicalRelationType(inverseRelName));
                         newSsr.setSource(ssr.getTarget());
                         newSsr.setTarget(ssr.getSource());
 
@@ -271,7 +271,7 @@ public class Wordbag extends Uby {
         String hqlSelect = "    SELECT SR_A.source, SR_B.target,  SR_A.relName"
                 + "      FROM SynsetRelation SR_A, SynsetRelation SR_B"
                 + "      WHERE"
-                + "          SR_A.relName IN " + makeSqlList(Wordbags.getCanonicalRelations())
+                + "          SR_A.relName IN " + makeSqlList(Diversicons.getCanonicalRelations())
                 + "      AND SR_A.depth = :depth"
                 + "      AND SR_B.depth = 1"
                 + "      AND SR_A.relName = SR_B.relName"
@@ -307,11 +307,11 @@ public class Wordbag extends Uby {
                 Synset target = (Synset) results.get(1);
                 String relName = (String) results.get(2);
 
-                WbSynsetRelation ssr = new WbSynsetRelation();
+                DivSynsetRelation ssr = new DivSynsetRelation();
                 ssr.setDepth(depthToSearch + 1);
-                ssr.setProvenance(Wordbag.getProvenanceId());
+                ssr.setProvenance(Diversicon.getProvenanceId());
                 ssr.setRelName(relName);
-                ssr.setRelType(Wordbags.getCanonicalRelationType(relName));
+                ssr.setRelType(Diversicons.getCanonicalRelationType(relName));
                 ssr.setSource(source);
                 ssr.setTarget(target);
 
@@ -393,7 +393,7 @@ public class Wordbag extends Uby {
         try {
             augmentGraph();
         } catch (Exception ex) {
-            throw new WbException("Error while augmenting graph with computed edges!", ex);
+            throw new DivException("Error while augmenting graph with computed edges!", ex);
         }
 
         LOG.info("Done loading LMFs.");
@@ -403,17 +403,17 @@ public class Wordbag extends Uby {
      * Returns the fully qualified package name.
      */
     public static String getProvenanceId() {
-        return Wordbag.class.getPackage()
+        return Diversicon.class.getPackage()
                             .getName();
     }
 
     /**
-     * Creates an instance of a Wordbag.
+     * Creates an instance of a Diversicon.
      * 
      * @param dbConfig
      */
-    public static Wordbag create(DBConfig dbConfig) {
-        Wordbag ret = new Wordbag(dbConfig);
+    public static Diversicon create(DBConfig dbConfig) {
+        Diversicon ret = new Diversicon(dbConfig);
         return ret;
     }
 }

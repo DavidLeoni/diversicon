@@ -18,12 +18,12 @@
 	</parent>
 
     <groupId>it.unitn.disi</groupId>
-	<artifactId>wordbag</artifactId>
+	<artifactId>diversicon</artifactId>
 	<version>0.1.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
-	<name>WordBag</name>
-	<url>https://github.com/DavidLeoni/wordbag</url>
+	<name>Diversicon</name>
+	<url>https://github.com/DavidLeoni/diversicon</url>
 	<description>Knowledge base for lexicons and concepts, based on UBY.</description>
 
 	<!-- better to copy scm, see https://github.com/opendatatrentino/tod-super-pom/issues/1 -->

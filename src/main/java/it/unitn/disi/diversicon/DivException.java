@@ -1,4 +1,4 @@
-package it.unitn.disi.wordbag;
+package it.unitn.disi.diversicon;
 
 
 /**
@@ -7,23 +7,23 @@ package it.unitn.disi.wordbag;
  * @author David Leoni <david.leoni@unitn.it>
  * @since 0.1
  */
-public class WbException extends RuntimeException {
+public class DivException extends RuntimeException {
     
     private static final long serialVersionUID = 1L;
 
-    protected WbException(){
+    protected DivException(){
         super();
     }
     
-    public WbException(Throwable tr) {
+    public DivException(Throwable tr) {
         super(tr);
     }
 
-    public WbException(String msg, Throwable tr) {
+    public DivException(String msg, Throwable tr) {
         super(msg, tr);
     }
 
-    public WbException(String msg) {
+    public DivException(String msg) {
         super(msg);
     }
 }

@@ -1,4 +1,4 @@
-package it.unitn.disi.wordbag;
+package it.unitn.disi.diversicon;
 
 
 public class DbInfo {
