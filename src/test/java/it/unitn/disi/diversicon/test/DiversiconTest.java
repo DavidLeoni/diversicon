@@ -67,6 +67,7 @@ public class DiversiconTest {
                                                                .synset()
                                                                .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
                                                                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                                               .depth(2)
                                                                .build();
 
     /**
@@ -285,13 +286,16 @@ public class DiversiconTest {
                      .synset()
                      .synset()
                      .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                     .synset()
+                     .synset()                     
                      .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
                      .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                     .depth(2)
                      .synset()
-                     .synsetRelation(ERelNameSemantics.HYPERNYM, 3)
+                     .synsetRelation(ERelNameSemantics.HYPERNYM, 3)                     
                      .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
+                     .depth(2)
                      .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                     .depth(3)
                      .build());
     }
 
@@ -357,7 +361,7 @@ public class DiversiconTest {
      * @since 0.1
      */
     @Test
-    public void testGetSynsetParents_Graph_1_Hypernym() {
+    public void testGetTransitiveSynsets_Graph_1_Hypernym() {
 
         Diversicons.dropCreateTables(dbConfig);
 
@@ -365,19 +369,19 @@ public class DiversiconTest {
 
         Diversicon wb = Diversicon.create(dbConfig);
 
-        assertFalse(wb.getSynsetParents(
+        assertFalse(wb.getTransitiveSynsets(
                 "synset 2",
                 0,
                 ERelNameSemantics.HYPERNYM)
                       .hasNext());
 
-        checkContainsAll(wb.getSynsetParents(
+        checkContainsAll(wb.getTransitiveSynsets(
                 "synset 2",
                 1,
                 ERelNameSemantics.HYPERNYM),
                 "synset 1");
 
-        checkContainsAll(wb.getSynsetParents(
+        checkContainsAll(wb.getTransitiveSynsets(
                 "synset 2",
                 1,
                 "hello"));
@@ -391,7 +395,7 @@ public class DiversiconTest {
      * @since 0.1
      */
     @Test
-    public void testGetSynsetParents_Dag_3_Hypernym() {
+    public void testGetTransitiveSynsets_Dag_3_Hypernym() {
 
         Diversicons.dropCreateTables(dbConfig);
 
@@ -399,24 +403,32 @@ public class DiversiconTest {
 
         Diversicon wb = Diversicon.create(dbConfig);
 
-        checkContainsAll(wb.getSynsetParents(
+        checkContainsAll(wb.getTransitiveSynsets(
                 "synset 2",
                 1,
                 ERelNameSemantics.HYPERNYM),
                 "synset 1");
 
-        checkContainsAll(wb.getSynsetParents(
+        checkContainsAll(wb.getTransitiveSynsets(
                 "synset 3",
                 1,
                 ERelNameSemantics.HYPERNYM),
                 "synset 2");
 
-        checkContainsAll(wb.getSynsetParents(
+        checkContainsAll(wb.getTransitiveSynsets(
                 "synset 3",
                 2,
                 ERelNameSemantics.HYPERNYM),
                 "synset 1", "synset 2");
-
+        
+        /*
+        checkContainsAll(wb.getTransitiveSynsets(
+                "synset 1",
+                2,
+                ERelNameSemantics.HYPONYM),
+                "synset 1", "synset 2");        
+        */
+        
         wb.getSession()
           .close();
 
@@ -426,7 +438,7 @@ public class DiversiconTest {
      * @since 0.1
      */
     @Test
-    public void testGetSynsetParentsMultiRelNames() {
+    public void testGetTransitiveSynsetsMultiRelNames() {
 
         Diversicons.dropCreateTables(dbConfig);
 
@@ -434,7 +446,7 @@ public class DiversiconTest {
 
         Diversicon wb = Diversicon.create(dbConfig);
 
-        checkContainsAll(wb.getSynsetParents(
+        checkContainsAll(wb.getTransitiveSynsets(
                 "synset 4",
                 1,
                 ERelNameSemantics.HYPERNYM,
@@ -451,7 +463,7 @@ public class DiversiconTest {
      * @since 0.1
      */
     @Test
-    public void testGetSynsetParentsNoDups() {
+    public void testGetTransitiveSynsetsNoDups() {
 
         Diversicons.dropCreateTables(dbConfig);
 
@@ -459,7 +471,7 @@ public class DiversiconTest {
 
         Diversicon wb = Diversicon.create(dbConfig);
 
-        checkContainsAll(wb.getSynsetParents(
+        checkContainsAll(wb.getTransitiveSynsets(
                 "synset 2",
                 1,
                 ERelNameSemantics.HYPERNYM,
@@ -469,7 +481,7 @@ public class DiversiconTest {
         wb.getSession()
           .close();
 
-    }
+    }          
 
     
     
@@ -512,61 +524,62 @@ public class DiversiconTest {
         for (Lexicon lex : lr.getLexicons()) {
 
             try {
-                Lexicon uLex = diversicon.getLexiconById(lex.getId());
-                assertEquals(lex.getId(), uLex.getId());
+                Lexicon dbLex = diversicon.getLexiconById(lex.getId());
+                assertEquals(lex.getId(), dbLex.getId());
                 assertEquals(lex.getSynsets()
                                 .size(),
-                        uLex.getSynsets()
+                        dbLex.getSynsets()
                             .size());
 
                 for (Synset syn : lex.getSynsets()) {
                     try {
-                        Synset uSyn = diversicon.getSynsetById(syn.getId());
-                        assertEquals(syn.getId(), uSyn.getId());
+                        Synset dbSyn = diversicon.getSynsetById(syn.getId());
+                        assertEquals(syn.getId(), dbSyn.getId());
 
                         assertEquals(syn.getSynsetRelations()
                                         .size(),
-                                uSyn.getSynsetRelations()
+                                dbSyn.getSynsetRelations()
                                     .size());
 
-                        Iterator<SynsetRelation> iter = uSyn.getSynsetRelations()
+                        Iterator<SynsetRelation> iter = dbSyn.getSynsetRelations()
                                                             .iterator();
 
                         for (SynsetRelation sr : syn.getSynsetRelations()) {
 
                             try {
-                                SynsetRelation usr = iter.next();
+                                SynsetRelation dbSr = iter.next();
 
                                 if (sr.getRelName() != null) {
-                                    assertEquals(sr.getRelName(), usr.getRelName());
+                                    assertEquals(sr.getRelName(), dbSr.getRelName());
                                 }
 
                                 if (sr.getRelType() != null) {
-                                    assertEquals(sr.getRelType(), usr.getRelType());
+                                    assertEquals(sr.getRelType(), dbSr.getRelType());
                                 }
 
                                 if (sr.getSource() != null) {
                                     assertEquals(sr.getSource()
                                                    .getId(),
-                                            usr.getSource()
+                                            dbSr.getSource()
                                                .getId());
                                 }
 
                                 if (sr.getTarget() != null) {
                                     assertEquals(sr.getTarget()
                                                    .getId(),
-                                            usr.getTarget()
+                                            dbSr.getTarget()
                                                .getId());
                                 }
 
                                 if (sr instanceof DivSynsetRelation) {
-                                    DivSynsetRelation Wbsr = (DivSynsetRelation) sr;
-                                    DivSynsetRelation Wbusr = (DivSynsetRelation) usr;
+                                    DivSynsetRelation divSr = (DivSynsetRelation) sr;
+                                    DivSynsetRelation divDbSr = (DivSynsetRelation) dbSr;
 
-                                    assertEquals(Wbsr.getDepth(), Wbusr.getDepth());
+                                    assertEquals(divSr.getDepth(), divDbSr.getDepth());
 
-                                    if (Wbsr.getProvenance() != null) {
-                                        assertEquals(Wbsr.getProvenance(), Wbusr.getProvenance());
+                                    if (divSr.getProvenance() != null
+                                            && !divSr.getProvenance().isEmpty() ) {
+                                        assertEquals(divSr.getProvenance(), divDbSr.getProvenance());
                                     }
                                 }
                             } catch (Error ex) {

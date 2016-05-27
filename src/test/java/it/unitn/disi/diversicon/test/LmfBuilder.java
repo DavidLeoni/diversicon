@@ -4,6 +4,7 @@ import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
+import it.unitn.disi.diversicon.DivSynsetRelation;
 import it.unitn.disi.diversicon.Diversicons;
 import it.unitn.disi.diversicon.internal.Internals;
 
@@ -70,15 +71,29 @@ public class LmfBuilder {
 		checkBuilt();
 		checkNotEmpty(relName, "Invalid relation name!");
 		Internals.checkArgument(targetIdNum > 0, "Expected idNum greater than zero, found " + targetIdNum + " instead!");
-		SynsetRelation sr = new SynsetRelation();
-		sr.setTarget(getSynset(targetIdNum));
-		Synset curSynset = getCurSynset();
-		sr.setSource(curSynset);
-		sr.setRelName(relName);
+		DivSynsetRelation sr = new DivSynsetRelation();
+        sr.setTarget(getSynset(targetIdNum));
+        Synset curSynset = getCurSynset();
+        sr.setSource(curSynset);
+        sr.setRelName(relName);             
 		curSynset.getSynsetRelations().add(sr);
 		return this;
 
 	}
+	
+	public LmfBuilder depth(int i){
+	    SynsetRelation sr = getCurSynsetRelation();
+	    
+	    if (sr instanceof DivSynsetRelation){
+	        DivSynsetRelation dsr = (DivSynsetRelation) sr;
+	        dsr.setDepth(i);    
+	    } else {
+	        throw new IllegalStateException("Expected " + DivSynsetRelation.class.getCanonicalName() + " Found instead: " + sr.getClass().getCanonicalName());
+	    }
+	    
+	    return this;
+	}
+	
 	
     /**
      * 
@@ -99,6 +114,16 @@ public class LmfBuilder {
 
     }
 	
+    private SynsetRelation getCurSynsetRelation() {
+        checkBuilt();
+        Synset synset = getCurSynset();
+        
+        int size = synset.getSynsetRelations().size();
+        if (size == 0) {
+            throw new IllegalStateException("There are no synsets relations in current synset " + synset.getId() + "!");
+        }
+        return synset.getSynsetRelations().get(size - 1);        
+    }
 
 	private Synset getCurSynset() {
 		checkBuilt();

@@ -75,51 +75,61 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * Finds all of the transitive parents of a synset within given depth. In
-     * order to find them,
-     * relation must be among the ones for which transitive closure is computed
+     * Finds all of the synsets reachable from {@code synsetId} along paths of
+     * {@code relNames}
+     * within given depth. In order to actually find them,
+     * relations in {@code relNames} must be among the ones for which transitive
+     * closure is computed.
      * (see {@link Diversicons#getCanonicalRelations()}).
      * 
      * @param synsetId
-     * @param relNames if none is provided all reachable parent synsets are returned.
+     * @param relNames
+     *            if none is provided all reachable parent synsets are returned.
      * @param depth
-     *            if -1 all parents until the root are retrieved. If zero nothing is returned.
+     *            if -1 all parents until the root are retrieved. If zero
+     *            nothing is returned.
      * @param lexicon
      * @return
      */
-    public Iterator<Synset> getSynsetParents(
-            String synsetId,            
+    public Iterator<Synset> getTransitiveSynsets(
+            String synsetId,
             int depth,
-            String... relNames) {
+            String... relNames) {       
         
         checkNotEmpty(synsetId, "Invalid synset id!");
-        for (String relName : relNames){
-            checkNotEmpty(relName, "Found invalid relation name!");    
-        }
         
+        /*      
+         List<String> actualRelnames = new ArrayList();
+        for (String relName : relNames) {            
+            if (Diversicons.isCanonical(relName) || !Diversicons.hasInverse(relName)){
+                actualRelnames.add(relName);
+            } else {                
+                actualRelnames.add(Diversicons.getInverse(relName));                
+            }
+        }*/
+
         checkArgument(depth >= -1, "Depth must be >= -1 , found instead: " + depth);
 
-        if (depth == 0){
+        if (depth == 0) {
             return new ArrayList<Synset>().iterator();
         }
-        
+
         String depthConstraint;
-        if (depth == -1){
+        if (depth == -1) {
             depthConstraint = "";
         } else {
-            depthConstraint =  " AND   SR.depth <= " + depth;
+            depthConstraint = " AND   SR.depth <= " + depth;
         }
-        
+
         String relNameConstraint;
-        if (relNames.length == 0){
+        if (relNames.length == 0) {
             relNameConstraint = "";
         } else {
-            relNameConstraint =   " AND SR.relName IN " + makeSqlList(relNames);
+            relNameConstraint = " AND SR.relName IN " + makeSqlList(relNames);
         }
-        
-        
+
         String queryString = "  SELECT DISTINCT SR.target"
-                + "             FROM SynsetRelation SR"               
+                + "             FROM SynsetRelation SR"
                 + "             WHERE      SR.source.id = :synsetId"
                 + relNameConstraint
                 + depthConstraint;
@@ -127,8 +137,9 @@ public class Diversicon extends Uby {
         
         Query query = session.createQuery(queryString);
         query
-        .setParameter("synsetId", synsetId);  // if we put synsetId string hibernate complains!        
-        
+             .setParameter("synsetId", synsetId); // if we put synsetId string
+                                                  // hibernate complains!
+
         return query.iterate();
     }
 
@@ -176,7 +187,7 @@ public class Diversicon extends Uby {
     private static String makeSqlList(String[] iterable) {
         return makeSqlList(Arrays.asList(iterable));
     }
-    
+
     private static String makeSqlList(Iterable<String> iterable) {
         StringBuilder retb = new StringBuilder("(");
 
@@ -418,7 +429,7 @@ public class Diversicon extends Uby {
      */
     public static String getProvenanceId() {
         return Diversicon.class.getPackage()
-                            .getName();
+                               .getName();
     }
 
     /**
