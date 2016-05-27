@@ -16,7 +16,7 @@ import it.unitn.disi.diversicon.Diversicons;
  * 
  * Utility toolbox for Diversicon internal usage.
  * 
- * DO NOT USE THIS CLASS OUTSIDE OF WORDBAG PROJECT. THANKS.
+ * DO NOT USE THIS CLASS OUTSIDE OF DIVERSICON PROJECT. THANKS.
  *
  */
 public final class Internals {

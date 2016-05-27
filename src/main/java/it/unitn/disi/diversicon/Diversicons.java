@@ -286,8 +286,9 @@ public final class Diversicons {
             Resource[] resources = new PathMatchingResourcePatternResolver(Diversicons.class.getClassLoader())
                                                                                                            .getResources(
                                                                                                                    "hybernatemap/access/**/*.hbm.xml");
-            for (Resource r : resources) {
+            for (Resource r : resources) {                
                 ret.addURL(r.getURL());
+                LOG.info("  Loaded " + r.getURL());
             }
 
         } catch (Exception ex) {

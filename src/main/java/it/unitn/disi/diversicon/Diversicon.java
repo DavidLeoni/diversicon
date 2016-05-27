@@ -81,19 +81,22 @@ public class Diversicon extends Uby {
      * (see {@link Diversicons#getCanonicalRelations()}).
      * 
      * @param synsetId
-     * @param relName
+     * @param relNames if none is provided all reachable parent synsets are returned.
      * @param depth
      *            if -1 all parents until the root are retrieved. If zero nothing is returned.
      * @param lexicon
      * @return
      */
     public Iterator<Synset> getSynsetParents(
-            String synsetId,
-            String relName,
-            int depth) {
+            String synsetId,            
+            int depth,
+            String... relNames) {
         
         checkNotEmpty(synsetId, "Invalid synset id!");
-        checkNotEmpty(relName, "Invalid relation name!");
+        for (String relName : relNames){
+            checkNotEmpty(relName, "Found invalid relation name!");    
+        }
+        
         checkArgument(depth >= -1, "Depth must be >= -1 , found instead: " + depth);
 
         if (depth == 0){
@@ -107,17 +110,24 @@ public class Diversicon extends Uby {
             depthConstraint =  " AND   SR.depth <= " + depth;
         }
         
-        String queryString = "  SELECT SR.target"
+        String relNameConstraint;
+        if (relNames.length == 0){
+            relNameConstraint = "";
+        } else {
+            relNameConstraint =   " AND SR.relName IN " + makeSqlList(relNames);
+        }
+        
+        
+        String queryString = "  SELECT DISTINCT SR.target"
                 + "             FROM SynsetRelation SR"               
                 + "             WHERE      SR.source.id = :synsetId"
-                + "                 AND    SR.relName = :relName"
+                + relNameConstraint
                 + depthConstraint;
         
         
         Query query = session.createQuery(queryString);
         query
-        .setParameter("synsetId", synsetId)  // if we put synsetId string hibernate complains!
-        .setParameter("relName", relName);
+        .setParameter("synsetId", synsetId);  // if we put synsetId string hibernate complains!        
         
         return query.iterate();
     }
@@ -163,6 +173,10 @@ public class Diversicon extends Uby {
         return "'" + s + "'";
     }
 
+    private static String makeSqlList(String[] iterable) {
+        return makeSqlList(Arrays.asList(iterable));
+    }
+    
     private static String makeSqlList(Iterable<String> iterable) {
         StringBuilder retb = new StringBuilder("(");
 

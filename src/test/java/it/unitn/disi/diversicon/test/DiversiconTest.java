@@ -1,6 +1,7 @@
 package it.unitn.disi.diversicon.test;
 
 import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
+
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
@@ -9,7 +10,6 @@ import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,28 +34,53 @@ public class DiversiconTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(DiversiconTest.class);
 
-
     /**
      * 2 verteces and 1 hypernym edge
      */
     private static LexicalResource GRAPH_1_HYPERNYM = lmf().lexicon()
-            .synset()
-            .synset()
-            .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-            .build();        
+                                                           .synset()
+                                                           .synset()
+                                                           .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                                           .build();
 
+    /**
+     * 4 verteces, last one is connected to others by respectively hypernym edge, holonym and 'hello' edge
+     */
+    private static LexicalResource GRAPH_4_HYP_HOL_HELLO = lmf().lexicon()
+                                                           .synset()
+                                                           .synset()
+                                                           .synset()
+                                                           .synset()                                                           
+                                                           .synsetRelation(ERelNameSemantics.HYPERNYM, 1)                                                           
+                                                           .synsetRelation(ERelNameSemantics.HOLONYM, 2)
+                                                           .synsetRelation("hello", 3)
+                                                           .build();
+    
+    
     /**
      * A full DAG, 3 verteces and 3 hypernyms
      */
     private static final LexicalResource DAG_3_HYPERNYM = lmf().lexicon()
-                .synset()
-                .synset()
-                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                .synset()
-                .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
-                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)                
-                .build();      
+                                                               .synset()
+                                                               .synset()
+                                                               .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                                               .synset()
+                                                               .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
+                                                               .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                                               .build();
+
+    /**
+     *  2 verteces, second connected to first with two relations.  
+     */
+    private static final LexicalResource DAG_2_MULTI_REL = lmf().lexicon()
+                                                               .synset()                                   
+                                                               .synset()
+                                                               .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                                               .synsetRelation(ERelNameSemantics.HOLONYM, 1)
+                                                               .build();
+ 
     
+
     private DBConfig dbConfig;
 
     @Before
@@ -66,7 +91,7 @@ public class DiversiconTest {
     @After
     public void afterMethod() {
         dbConfig = null;
-    }   
+    }
 
     /**
      * Tests db tables are automatically created.
@@ -76,10 +101,10 @@ public class DiversiconTest {
     @Test
     public void testAutoCreate() {
         Diversicon uby = Diversicon.create(dbConfig);
-        uby.getSession().close();
+        uby.getSession()
+           .close();
     }
-    
-    
+
     /**
      * Checks our extended model of uby with is actually returned by Hibernate
      * 
@@ -112,7 +137,7 @@ public class DiversiconTest {
         synset.getSynsetRelations()
               .add(synsetRelation);
 
-        Diversicons.saveLexicalResourceToDb(dbConfig, lexicalResource, "lexical resource 1");       
+        Diversicons.saveLexicalResourceToDb(dbConfig, lexicalResource, "lexical resource 1");
 
         Diversicon uby = Diversicon.create(dbConfig);
 
@@ -143,34 +168,38 @@ public class DiversiconTest {
 
         assertEquals(3, WbRel.getDepth());
         assertEquals("a", WbRel.getProvenance());
-        
-        uby.getSession().close();
+
+        uby.getSession()
+           .close();
     };
-    
+
     /**
-     * Saves provided {@code lexicalResource} to database, normalizes and augments database 
-     * with transitive closure, and tests database actually matches {@code expectedLexicalResource}   
+     * Saves provided {@code lexicalResource} to database, normalizes and
+     * augments database
+     * with transitive closure, and tests database actually matches
+     * {@code expectedLexicalResource}
+     * 
      * @param lexicalResource
      * @param expectedLexicalResource
      * @since 0.1
-     */    
+     */
     public void assertAugmentation(
-                LexicalResource lexicalResource,
-                LexicalResource expectedLexicalResource                
-            ){
-        
+            LexicalResource lexicalResource,
+            LexicalResource expectedLexicalResource) {
+
         Diversicons.dropCreateTables(dbConfig);
 
         Diversicons.saveLexicalResourceToDb(dbConfig, lexicalResource, "lexical resource 1");
-        
+
         Diversicon uby = Diversicon.create(dbConfig);
 
         uby.augmentGraph();
-           
+
         checkDb(expectedLexicalResource, uby);
-        
-        uby.getSession().close();
-                
+
+        uby.getSession()
+           .close();
+
     };
 
     /**
@@ -180,119 +209,120 @@ public class DiversiconTest {
     public void testNormalizeNonCanonicalEdge() {
 
         assertAugmentation(
-                
+
                 lmf().lexicon()
-                .synset()
-                .synset()
-                .synsetRelation(ERelNameSemantics.HYPONYM, 1)
-                .build(),                 
-                
+                     .synset()
+                     .synset()
+                     .synsetRelation(ERelNameSemantics.HYPONYM, 1)
+                     .build(),
+
                 lmf().lexicon()
-                .synset()
-                .synset()
-                .synsetRelation(ERelNameSemantics.HYPONYM, 1)
-                .synsetRelation(ERelNameSemantics.HYPERNYM, 1,2)
-                .build());        
+                     .synset()
+                     .synset()
+                     .synsetRelation(ERelNameSemantics.HYPONYM, 1)
+                     .synsetRelation(ERelNameSemantics.HYPERNYM, 1, 2)
+                     .build());
     }
 
     /**
      * @since 0.1
      */
     @Test
-    public void testNormalizeCanonicalEdge() {        
-        assertAugmentation(GRAPH_1_HYPERNYM, GRAPH_1_HYPERNYM);               
+    public void testNormalizeCanonicalEdge() {
+        assertAugmentation(GRAPH_1_HYPERNYM, GRAPH_1_HYPERNYM);
     }
-    
+
     /**
      * @since 0.1
      */
     @Test
-    public void testNormalizeUnknownEdge() {              
+    public void testNormalizeUnknownEdge() {
 
         LexicalResource lexicalResource = lmf().lexicon()
                                                .synset()
                                                .synset()
                                                .synsetRelation("hello", 1)
                                                .build();
-        
-        assertAugmentation(lexicalResource, lexicalResource);               
+
+        assertAugmentation(lexicalResource, lexicalResource);
     }
-    
+
     /**
-     * @since 0.1    
+     * @since 0.1
      */
     @Test
     public void testTransitiveClosureDepth_2() {
 
         assertAugmentation(lmf().lexicon()
-                               .synset()
-                               .synset()
-                               .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                               .synset()
-                               .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
-                               .build(),
-                               
-                               DAG_3_HYPERNYM);
+                                .synset()
+                                .synset()
+                                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                .synset()
+                                .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
+                                .build(),
+
+                DAG_3_HYPERNYM);
     }
-    
+
     /**
-     * @since 0.1    
-     */    
+     * @since 0.1
+     */
     @Test
     public void testTransitiveClosureDepth_3() {
 
         assertAugmentation(lmf().lexicon()
-                               .synset()
-                               .synset()
-                               .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                               .synset()
-                               .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
-                               .synset()
-                               .synsetRelation(ERelNameSemantics.HYPERNYM, 3)
-                               
-                               .build(),
-                               
-                               lmf().lexicon()
                                 .synset()
                                 .synset()
                                 .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
                                 .synset()
                                 .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
-                                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
                                 .synset()
                                 .synsetRelation(ERelNameSemantics.HYPERNYM, 3)
-                                .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
-                                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                                .build());              
-    }
-    
-    
-    /**
-     * @since 0.1    
-     */    
-    @Test
-    public void testTransitiveClosureNoDuplicates() {
-        
-        assertNoAugmentation(DAG_3_HYPERNYM);              
-    }
-    
-    /**
-     * @since 0.1    
-     */    
-    @Test
-    public void testTransitiveClosureIgnoreNonCanonical() {
-        
-        assertNoAugmentation(lmf().lexicon()
-                .synset()
-                .synset()
-                .synsetRelation("a", 1)
-                .synset()                
-                .synsetRelation("a", 2)                              
-                .build());              
+
+                                .build(),
+
+                lmf().lexicon()
+                     .synset()
+                     .synset()
+                     .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                     .synset()
+                     .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
+                     .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                     .synset()
+                     .synsetRelation(ERelNameSemantics.HYPERNYM, 3)
+                     .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
+                     .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                     .build());
     }
 
     /**
-     * Asserts the provided lexical resource doesn't provoke any augmentation in the database.
+     * @since 0.1
+     */
+    @Test
+    public void testTransitiveClosureNoDuplicates() {
+
+        assertNoAugmentation(DAG_3_HYPERNYM);
+    }
+
+    /**
+     * @since 0.1
+     */
+    @Test
+    public void testTransitiveClosureIgnoreNonCanonical() {
+
+        assertNoAugmentation(lmf().lexicon()
+                                  .synset()
+                                  .synset()
+                                  .synsetRelation("a", 1)
+                                  .synset()
+                                  .synsetRelation("a", 2)
+                                  .build());
+    }
+
+    /**
+     * Asserts the provided lexical resource doesn't provoke any augmentation in
+     * the database.
+     * 
      * @since 0.1
      */
     private void assertNoAugmentation(LexicalResource lr) {
@@ -300,106 +330,148 @@ public class DiversiconTest {
     }
 
     /**
-     * Checks sequence indicated by provided provided iterator contains all the 
-     * synsets of given ids. 
+     * Checks sequence indicated by provided provided iterator contains all the
+     * synsets of given ids.
      * 
      * @throws DivNotFoundException
      */
-    private static void checkContains(Iterator<Synset> iter, String... ids){               
+    private static void checkContainsAll(Iterator<Synset> iter, String... ids) {
+
+        List<String> synsetIds = new ArrayList();
+        while (iter.hasNext()) {
+            synsetIds.add(iter.next().getId());
+        }
+                
+        List<String> listIds = new ArrayList();
         
-        List<Synset> synsets = new ArrayList();
-        while (iter.hasNext()){
-            synsets.add(iter.next());
+        for (String id : ids) {
+            listIds.add(id);
         }
         
-        for (String id : ids ){
-            
-            boolean found = false;
-            for (Synset syn : synsets){
-                if (id.equals(syn.getId())){
-                    found = true;
-                    break;                  
-                }
-            }
-            if (!found){
-                throw new DivNotFoundException("Couldn't find synset with id " + id 
-                        + " while checking " + synsets.size() + " synsets.");
-            }
-        }                                        
+        assertEquals(listIds, synsetIds);
     }
-    
-    
+
     /**
      * Test on simple graph
+     * 
      * @since 0.1
      */
     @Test
-    public void testGetSynsetParents_Graph_1_Hypernym(){
-        
-        
-            Diversicons.dropCreateTables(dbConfig);
-            
-            Diversicons.saveLexicalResourceToDb(dbConfig, GRAPH_1_HYPERNYM, "lexical resource 1");
-            
-            Diversicon wb = Diversicon.create(dbConfig);            
-            
-            assertFalse(wb.getSynsetParents(
-                    "synset 2", 
-                    ERelNameSemantics.HYPERNYM, 
-                    0).hasNext());
+    public void testGetSynsetParents_Graph_1_Hypernym() {
 
-            
-            
-            
-            checkContains(  wb.getSynsetParents(
-                                "synset 2", 
-                                ERelNameSemantics.HYPERNYM, 
-                                1),
-                            "synset 1");
-            
-            
-            checkContains(  wb.getSynsetParents(
-                                "synset 2", 
-                                "hello", 
-                                1));                                 
-           
-            wb.getSession().close();
-        
-    }    
+        Diversicons.dropCreateTables(dbConfig);
+
+        Diversicons.saveLexicalResourceToDb(dbConfig, GRAPH_1_HYPERNYM, "lexical resource 1");
+
+        Diversicon wb = Diversicon.create(dbConfig);
+
+        assertFalse(wb.getSynsetParents(
+                "synset 2",
+                0,
+                ERelNameSemantics.HYPERNYM)
+                      .hasNext());
+
+        checkContainsAll(wb.getSynsetParents(
+                "synset 2",
+                1,
+                ERelNameSemantics.HYPERNYM),
+                "synset 1");
+
+        checkContainsAll(wb.getSynsetParents(
+                "synset 2",
+                1,
+                "hello"));
+
+        wb.getSession()
+          .close();
+
+    }
 
     /**
      * @since 0.1
      */
     @Test
-    public void testGetSynsetParents_Dag_3_Hypernym(){
+    public void testGetSynsetParents_Dag_3_Hypernym() {
 
         Diversicons.dropCreateTables(dbConfig);
-        
+
         Diversicons.saveLexicalResourceToDb(dbConfig, DAG_3_HYPERNYM, "lexical resource 1");
-        
-        Diversicon wb = Diversicon.create(dbConfig);        
 
-        checkContains(wb.getSynsetParents(
-                            "synset 2", 
-                            ERelNameSemantics.HYPERNYM, 
-                            1),
+        Diversicon wb = Diversicon.create(dbConfig);
+
+        checkContainsAll(wb.getSynsetParents(
+                "synset 2",
+                1,
+                ERelNameSemantics.HYPERNYM),
                 "synset 1");
-        
-        checkContains(wb.getSynsetParents(
-                "synset 3", 
-                ERelNameSemantics.HYPERNYM, 
-                1),
-                "synset 2");        
 
-        checkContains(wb.getSynsetParents(
-                "synset 3", 
-                ERelNameSemantics.HYPERNYM, 
-                2),
-                "synset 1", "synset 2");        
-        
-        wb.getSession().close();
-        
-    }    
+        checkContainsAll(wb.getSynsetParents(
+                "synset 3",
+                1,
+                ERelNameSemantics.HYPERNYM),
+                "synset 2");
+
+        checkContainsAll(wb.getSynsetParents(
+                "synset 3",
+                2,
+                ERelNameSemantics.HYPERNYM),
+                "synset 1", "synset 2");
+
+        wb.getSession()
+          .close();
+
+    }
+    
+    /**
+     * @since 0.1
+     */
+    @Test
+    public void testGetSynsetParentsMultiRelNames() {
+
+        Diversicons.dropCreateTables(dbConfig);
+
+        Diversicons.saveLexicalResourceToDb(dbConfig, GRAPH_4_HYP_HOL_HELLO, "lexical resource 1");
+
+        Diversicon wb = Diversicon.create(dbConfig);
+
+        checkContainsAll(wb.getSynsetParents(
+                "synset 4",
+                1,
+                ERelNameSemantics.HYPERNYM,
+                ERelNameSemantics.HOLONYM),
+                "synset 1",
+                "synset 2");
+
+        wb.getSession()
+          .close();
+
+    }
+
+    /**
+     * @since 0.1
+     */
+    @Test
+    public void testGetSynsetParentsNoDups() {
+
+        Diversicons.dropCreateTables(dbConfig);
+
+        Diversicons.saveLexicalResourceToDb(dbConfig, DAG_2_MULTI_REL, "lexical resource 1");
+
+        Diversicon wb = Diversicon.create(dbConfig);
+
+        checkContainsAll(wb.getSynsetParents(
+                "synset 2",
+                1,
+                ERelNameSemantics.HYPERNYM,
+                ERelNameSemantics.HOLONYM),
+                "synset 1");
+
+        wb.getSession()
+          .close();
+
+    }
+
+    
     
     /**
      * 
@@ -498,7 +570,8 @@ public class DiversiconTest {
                                     }
                                 }
                             } catch (Error ex) {
-                                throw new DivException("Error while checking synset relation: " + Diversicons.synsetRelationToString(sr),
+                                throw new DivException("Error while checking synset relation: "
+                                        + Diversicons.synsetRelationToString(sr),
                                         ex);
                             }
 
@@ -516,8 +589,7 @@ public class DiversiconTest {
         }
     }
 
-    
-    public static DBConfig createDbConfig(){
+    public static DBConfig createDbConfig() {
         return new DBConfig("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1", "org.h2.Driver",
                 UBYH2Dialect.class.getName(), "root", "pass", true);
     }
