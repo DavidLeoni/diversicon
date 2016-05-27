@@ -1,9 +1,9 @@
 package it.unitn.disi.wordbag.test;
 
-import static org.junit.Assert.assertEquals;
 import static it.unitn.disi.wordbag.test.LmfBuilder.lmf;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -14,7 +14,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import de.tudarmstadt.ukp.lmf.api.Uby;
 import de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalEntry;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
@@ -35,31 +34,39 @@ public class WordbagTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(WordbagTest.class);
 
+
+    /**
+     * 2 verteces and 1 hypernym edge
+     */
+    private static LexicalResource GRAPH_1_HYPERNYM = lmf().lexicon()
+            .synset()
+            .synset()
+            .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+            .build();        
+
+    /**
+     * A full DAG, 3 verteces and 3 hypernyms
+     */
+    private static final LexicalResource DAG_3_HYPERNYM = lmf().lexicon()
+                .synset()
+                .synset()
+                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                .synset()
+                .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
+                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)                
+                .build();      
+    
     private DBConfig dbConfig;
 
     @Before
     public void beforeMethod() {
-        dbConfig = new DBConfig("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1", "org.h2.Driver",
-                UBYH2Dialect.class.getName(), "root", "pass", true);
+        dbConfig = createDbConfig();
     }
 
     @After
     public void afterMethod() {
         dbConfig = null;
-    }
-
-
-    
-
-    /**
-     * todo this seems a uby bug, it always return null !
-     * @since 0.1
-     */
-    @Test
-    @Ignore
-    public void todo() {
-        // Synset syn = uby.getSynsetIterator(null).next();
-    }
+    }   
 
     /**
      * Tests db tables are automatically created.
@@ -154,7 +161,6 @@ public class WordbagTest {
         
         Wordbags.dropCreateTables(dbConfig);
 
-
         Wordbags.saveLexicalResourceToDb(dbConfig, lexicalResource, "lexical resource 1");
         
         Wordbag uby = Wordbag.create(dbConfig);
@@ -193,15 +199,8 @@ public class WordbagTest {
      * @since 0.1
      */
     @Test
-    public void testNormalizeCanonicalEdge() {              
-
-        LexicalResource lexicalResource = lmf().lexicon()
-                                               .synset()
-                                               .synset()
-                                               .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                                               .build();
-        
-        assertAugmentation(lexicalResource, lexicalResource);               
+    public void testNormalizeCanonicalEdge() {        
+        assertAugmentation(GRAPH_1_HYPERNYM, GRAPH_1_HYPERNYM);               
     }
     
     /**
@@ -233,14 +232,7 @@ public class WordbagTest {
                                .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
                                .build(),
                                
-                               lmf().lexicon()
-                                .synset()
-                                .synset()
-                                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                                .synset()
-                                .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
-                                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                                .build());              
+                               DAG_3_HYPERNYM);
     }
     
     /**
@@ -281,14 +273,7 @@ public class WordbagTest {
     @Test
     public void testTransitiveClosureNoDuplicates() {
         
-        assertNoAugmentation(lmf().lexicon()
-                .synset()
-                .synset()
-                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                .synset()
-                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                .synsetRelation(ERelNameSemantics.HYPERNYM, 2)                              
-                .build());              
+        assertNoAugmentation(DAG_3_HYPERNYM);              
     }
     
     /**
@@ -315,6 +300,108 @@ public class WordbagTest {
     }
 
     /**
+     * Checks sequence indicated by provided provided iterator contains all the 
+     * synsets of given ids. 
+     * 
+     * @throws WbNotFoundException
+     */
+    private static void checkContains(Iterator<Synset> iter, String... ids){               
+        
+        List<Synset> synsets = new ArrayList();
+        while (iter.hasNext()){
+            synsets.add(iter.next());
+        }
+        
+        for (String id : ids ){
+            
+            boolean found = false;
+            for (Synset syn : synsets){
+                if (id.equals(syn.getId())){
+                    found = true;
+                    break;                  
+                }
+            }
+            if (!found){
+                throw new WbNotFoundException("Couldn't find synset with id " + id 
+                        + " while checking " + synsets.size() + " synsets.");
+            }
+        }                                        
+    }
+    
+    
+    /**
+     * Test on simple graph
+     * @since 0.1
+     */
+    @Test
+    public void testGetSynsetParents_Graph_1_Hypernym(){
+        
+        
+            Wordbags.dropCreateTables(dbConfig);
+            
+            Wordbags.saveLexicalResourceToDb(dbConfig, GRAPH_1_HYPERNYM, "lexical resource 1");
+            
+            Wordbag wb = Wordbag.create(dbConfig);            
+            
+            assertFalse(wb.getSynsetParents(
+                    "synset 2", 
+                    ERelNameSemantics.HYPERNYM, 
+                    0).hasNext());
+
+            
+            
+            
+            checkContains(  wb.getSynsetParents(
+                                "synset 2", 
+                                ERelNameSemantics.HYPERNYM, 
+                                1),
+                            "synset 1");
+            
+            
+            checkContains(  wb.getSynsetParents(
+                                "synset 2", 
+                                "hello", 
+                                1));                                 
+           
+            wb.getSession().close();
+        
+    }    
+
+    /**
+     * @since 0.1
+     */
+    @Test
+    public void testGetSynsetParents_Dag_3_Hypernym(){
+
+        Wordbags.dropCreateTables(dbConfig);
+        
+        Wordbags.saveLexicalResourceToDb(dbConfig, DAG_3_HYPERNYM, "lexical resource 1");
+        
+        Wordbag wb = Wordbag.create(dbConfig);        
+
+        checkContains(wb.getSynsetParents(
+                            "synset 2", 
+                            ERelNameSemantics.HYPERNYM, 
+                            1),
+                "synset 1");
+        
+        checkContains(wb.getSynsetParents(
+                "synset 3", 
+                ERelNameSemantics.HYPERNYM, 
+                1),
+                "synset 2");        
+
+        checkContains(wb.getSynsetParents(
+                "synset 3", 
+                ERelNameSemantics.HYPERNYM, 
+                2),
+                "synset 1", "synset 2");        
+        
+        wb.getSession().close();
+        
+    }    
+    
+    /**
      * 
      * Retrieves the synset with id 'synset ' + {@code idNum}
      * 
@@ -340,20 +427,20 @@ public class WordbagTest {
      * 
      * Checks provided lexical resource corresponds to current db.
      * 
-     * Checks only for elements we care about in S-Match Uby, and only for the
+     * Checks only for elements we care about in Wordbag, and only for the
      * ones which are not {@code null} in provided model.
      */
-    public static void checkDb(LexicalResource lr, Uby uby) {
+    public static void checkDb(LexicalResource lr, Wordbag wordbag) {
         Internals.checkNotNull(lr);
 
-        LexicalResource ulr = uby.getLexicalResource(lr.getName());
+        LexicalResource ulr = wordbag.getLexicalResource(lr.getName());
 
         assertEquals(lr.getName(), ulr.getName());
 
         for (Lexicon lex : lr.getLexicons()) {
 
             try {
-                Lexicon uLex = uby.getLexiconById(lex.getId());
+                Lexicon uLex = wordbag.getLexiconById(lex.getId());
                 assertEquals(lex.getId(), uLex.getId());
                 assertEquals(lex.getSynsets()
                                 .size(),
@@ -362,7 +449,7 @@ public class WordbagTest {
 
                 for (Synset syn : lex.getSynsets()) {
                     try {
-                        Synset uSyn = uby.getSynsetById(syn.getId());
+                        Synset uSyn = wordbag.getSynsetById(syn.getId());
                         assertEquals(syn.getId(), uSyn.getId());
 
                         assertEquals(syn.getSynsetRelations()
@@ -429,4 +516,9 @@ public class WordbagTest {
         }
     }
 
+    
+    public static DBConfig createDbConfig(){
+        return new DBConfig("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1", "org.h2.Driver",
+                UBYH2Dialect.class.getName(), "root", "pass", true);
+    }
 }
