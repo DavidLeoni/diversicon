@@ -14,6 +14,9 @@ import de.tudarmstadt.ukp.lmf.api.Uby;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import de.tudarmstadt.ukp.lmf.transform.LMFDBUtils;
+import static it.unitn.disi.diversicon.test.UtilsTest.checkDb;
+import static it.unitn.disi.diversicon.test.UtilsTest.createDbConfig;
+
 
 /**
  * Tests to show Uby corner cases or bugs to report.
@@ -27,7 +30,7 @@ public class UbyTest {
 
     @Before
     public void beforeMethod() {
-        dbConfig = DiversiconTest.createDbConfig();
+        dbConfig = createDbConfig();
     }
 
     @After

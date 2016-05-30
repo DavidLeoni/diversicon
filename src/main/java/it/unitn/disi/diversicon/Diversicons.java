@@ -300,34 +300,6 @@ public final class Diversicons {
         return ret;      
     }
     
-    /**
-     * 
-     * Saves a LexicalResource complete with all the lexicons, synsets, etc into
-     * a database. This method is suitable only for small lexical resources and
-     * generally for testing purposes. If you have a big resource, stream the
-     * loading by providing your implementation of <a href=
-     * "https://github.com/dkpro/dkpro-uby/blob/master/de.tudarmstadt.ukp.uby.persistence.transform-asl/src/main/java/de/tudarmstadt/ukp/lmf/transform/LMFDBTransformer.java"
-     * target="_blank"> LMFDBTransformer</a> and then call {@code transform()} on it
-     * instead.
-     * 
-     * @param lexicalResourceId
-     *            todo don't know well the meaning
-     * 
-     * @throws DivException
-     * @since 0.1
-     */
-    public static void saveLexicalResourceToDb(
-            DBConfig dbConfig,
-            LexicalResource lexicalResource,
-            String lexicalResourceId) {
-        LOG.info("Going to save lexical resource to database...");
-        try {
-            new JavaToDbTransformer(dbConfig, lexicalResource, lexicalResourceId).transform();
-        } catch (Exception ex) {
-            throw new DivException("Error when importing lexical resource " + lexicalResourceId + " !", ex);
-        }
-        LOG.info("Done saving.");
-    }
 
    
 

@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import de.tudarmstadt.ukp.lmf.api.CriteriaIterator;
 import de.tudarmstadt.ukp.lmf.api.Uby;
+import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
@@ -75,7 +76,8 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * Finds all of the synsets reachable from {@code synsetId} along paths of
+     * Returns the HQL query which finds all of the synsets reachable from
+     * {@code synsetId} along paths of
      * {@code relNames}
      * within given depth. In order to actually find them,
      * relations in {@code relNames} must be among the ones for which transitive
@@ -87,14 +89,12 @@ public class Diversicon extends Uby {
      *            if none is provided {@link IllegalArgumentException} is thrown
      * @param depth
      *            if -1 all parents until the root are retrieved. If zero
-     *            nothing is returned.
-     * @param lexicon
-     * @return
+     *            throws {@link IllegalArgumentException}.
      */
-    public Iterator<Synset> getTransitiveSynsets(
+    private String getTransitiveSynsetsQuery(
             String synsetId,
             int depth,
-            String... relNames) {
+            Iterable<String> relNames) {
 
         checkNotEmpty(synsetId, "Invalid synset id!");
         checkNotEmpty(relNames, "Invalid relation names!");
@@ -109,10 +109,6 @@ public class Diversicon extends Uby {
             } else {
                 inverseRelations.add(Diversicons.getInverse(relName));
             }
-        }
-
-        if (depth == 0) {
-            return new ArrayList<Synset>().iterator();
         }
 
         String directDepthConstraint;
@@ -130,39 +126,37 @@ public class Diversicon extends Uby {
             directHsql = "";
         } else {
             directHsql = "  S.id IN "
-            + "             ("
-            + "                 SELECT SRD.target.id"
-            + "                 FROM   SynsetRelation SRD"
-            + "                 WHERE  SRD.source.id = :synsetId"
-            + "                 AND SRD.relName IN " + makeSqlList(directRelations)
-            + directDepthConstraint
-            + "             )";                        
+                    + "             ("
+                    + "                 SELECT SRD.target.id"
+                    + "                 FROM   SynsetRelation SRD"
+                    + "                 WHERE  SRD.source.id = :synsetId"
+                    + "                 AND SRD.relName IN " + makeSqlList(directRelations)
+                    + directDepthConstraint
+                    + "             )";
         }
 
-        
-        
         String inverseHsql;
         if (inverseRelations.isEmpty()) {
             inverseHsql = "";
         } else {
             inverseHsql = " S.id IN"
-            + "             ("
-            + "                 SELECT SRR.source.id"
-            + "                 FROM   SynsetRelation SRR"
-            + "                 WHERE        SRR.target.id = :synsetId"
-            + "                          AND SRR.relName IN " + makeSqlList(inverseRelations)
-            + inverseDepthConstraint
-            + "              )";            
-             
+                    + "             ("
+                    + "                 SELECT SRR.source.id"
+                    + "                 FROM   SynsetRelation SRR"
+                    + "                 WHERE        SRR.target.id = :synsetId"
+                    + "                          AND SRR.relName IN " + makeSqlList(inverseRelations)
+                    + inverseDepthConstraint
+                    + "              )";
+
         }
-        
+
         String orHsql;
-        if (!directRelations.isEmpty() && !inverseRelations.isEmpty()){
+        if (!directRelations.isEmpty() && !inverseRelations.isEmpty()) {
             orHsql = " OR ";
         } else {
             orHsql = "";
         }
-       
+
         String queryString = " "
                 + "             FROM Synset S"
                 + "             WHERE "
@@ -170,11 +164,56 @@ public class Diversicon extends Uby {
                 + orHsql
                 + inverseHsql;
 
+        return queryString;
+    }
+
+    /**
+     * Finds all of the synsets reachable from {@code synsetId} along paths of
+     * {@code relNames}
+     * within given depth. In order
+     * to actually find them, relations in {@code relNames} must be among the
+     * ones for which transitive
+     * closure is computed (or their inverses).
+     * (see {@link Diversicons#getCanonicalRelations()}).
+     * 
+     * @param relNames
+     *            if none is provided an empty set iterator is returned.
+     * @param depth
+     *            if -1 all parents until the root are retrieved. If zero
+     *            an empty set iterator is returned.
+     */
+    public Iterator<Synset> getTransitiveSynsets(
+            String synsetId,
+            int depth,
+            Iterable<String> relNames) {
+
+        checkNotEmpty(synsetId, "Invalid synset id!");
+        checkNotNull(relNames, "Invalid relation names!");
+        checkArgument(depth >= -1, "Depth must be >= -1 , found instead: " + depth);
+
+        if (!relNames.iterator()
+                     .hasNext()
+                || depth == 0) {
+            return new ArrayList().iterator();
+        }
+
+        String queryString = getTransitiveSynsetsQuery(synsetId, depth, relNames);
+
         Query query = session.createQuery(queryString);
         query
-             .setParameter("synsetId", synsetId); 
+             .setParameter("synsetId", synsetId);
 
         return query.iterate();
+    }
+
+    /**
+     * See {{@link #getTransitiveSynsets(String, int, Iterable)}}
+     */
+    public Iterator<Synset> getTransitiveSynsets(
+            String synsetId,
+            int depth,
+            String... relNames) {
+        return getTransitiveSynsets(synsetId, depth, Arrays.asList(relNames));
     }
 
     /**
@@ -402,18 +441,18 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * See {@link #loadLexicalResources(Collection, Collection)}
+     * See {@link #importFiles(Collection, Collection)}
      */
-    public void loadLexicalResources(String filepath,
+    public void importFiles(String filepath,
             String lexicalResourceName) {
 
-        loadLexicalResources(Arrays.asList(filepath), Arrays.asList(lexicalResourceName));
+        importFiles(Arrays.asList(filepath), Arrays.asList(lexicalResourceName));
     }
 
     /**
-     * Loads provided resources and automatically augments graph with transitive
-     * closure at the
-     * end of the loading.
+     * imports provided resources into db and automatically augments graph with
+     * transitive
+     * closure at the end of the loading.
      * 
      * @param filepaths
      *            paths to lmf xml files
@@ -421,7 +460,7 @@ public class Diversicon extends Uby {
      *            todo meaning? name seems not be required to be in the xml
      */
     // todo think about .sql files
-    public void loadLexicalResources(Collection<String> filepaths,
+    public void importFiles(Collection<String> filepaths,
             Collection<String> lexicalResourceNames) {
 
         checkNotEmpty(filepaths, "invalid filepaths length!");
@@ -459,6 +498,35 @@ public class Diversicon extends Uby {
     }
 
     /**
+     * 
+     * Saves a LexicalResource complete with all the lexicons, synsets, etc into
+     * a database. This method is suitable only for small lexical resources,
+     * generally for testing purposes. If you have a big resource, stream the
+     * loading by providing your implementation of <a href=
+     * "https://github.com/dkpro/dkpro-uby/blob/master/de.tudarmstadt.ukp.uby.persistence.transform-asl/src/main/java/de/tudarmstadt/ukp/lmf/transform/LMFDBTransformer.java"
+     * target="_blank"> LMFDBTransformer</a> and then call {@code transform()}
+     * on it
+     * instead.
+     * 
+     * @param lexicalResourceId
+     *            todo don't know well the meaning
+     * 
+     * @throws DivException
+     * @since 0.1
+     */
+    public void importResource(
+            LexicalResource lexicalResource,
+            String lexicalResourceId) {
+        LOG.info("Going to save lexical resource to database...");
+        try {
+            new JavaToDbTransformer(dbConfig, lexicalResource, lexicalResourceId).transform();
+        } catch (Exception ex) {
+            throw new DivException("Error when importing lexical resource " + lexicalResourceId + " !", ex);
+        }
+        LOG.info("Done saving.");
+    }
+
+    /**
      * Returns the fully qualified package name.
      */
     public static String getProvenanceId() {
@@ -475,4 +543,76 @@ public class Diversicon extends Uby {
         Diversicon ret = new Diversicon(dbConfig);
         return ret;
     }
+
+    /**
+     * 
+     * Returns true if {@code targetSynset} is reachable from
+     * {@code sourceSynset} along some
+     * path of {@code relNames} within given depth. In order to actually find
+     * them,
+     * relations in {@code relNames} must be among the ones for which transitive
+     * closure is computed (or their inverses).
+     * (see {@link Diversicons#getCanonicalRelations()}).
+     * 
+     * @param sourceSynset
+     *            the source synset
+     * @param targetSynset
+     *            the target synset
+     * @param depth
+     *            the maximum number of edges explored along any path.
+     *            if {@code -1} full paths are explored. If {@code zero}
+     *            returns true only if source and target coincide.
+     * @param relNames
+     *            if none is provided returns true only if source and target
+     *            coincide.
+     * 
+     */
+    public boolean isReachable(Synset sourceSynset, Synset targetSynset,
+            int depth, List<String> relNames) {
+
+        checkNotNull(sourceSynset, "Invalid source synset!");
+        checkNotEmpty(sourceSynset.getId(), "Invalid source synset id!");
+        checkNotNull(targetSynset, "Invalid target synset!");
+        checkNotNull(relNames, "Invalid relation names!");
+
+        checkArgument(depth >= -1, "Depth must be >= -1 , found instead: " + depth);
+
+        if (sourceSynset.getId()
+                        .equals(targetSynset.getId())) {
+            return true;
+        }
+
+        if (relNames.isEmpty()) {
+            return false;
+        }
+
+        String queryString = "     SELECT 'TRUE'"
+                + "   FROM Synset"
+                + "   WHERE :targetSynset IN "
+                + "   ("
+                + getTransitiveSynsetsQuery(sourceSynset.getId(), depth, relNames)
+                + "   )";
+
+        /*
+         * this query compiles:
+         * String queryString =
+         * "     SELECT 'TRUE'"
+         * + "   FROM Synset"
+         * + "   WHERE :targetSynset IN "
+         * + "   (SELECT 'bastard'"
+         * + "    FROM Synset S"
+         * + "    WHERE S.id = :synsetId"
+         * // + getTransitiveSynsetsQuery(sourceSynset.getId(), depth, relNames)
+         * + "   )";
+         */
+
+        Query query = session.createQuery(queryString);
+        query
+             .setParameter("synsetId", sourceSynset.getId())
+             .setParameter("targetSynset", targetSynset);
+
+        return query.iterate()
+                    .hasNext();
+    }
+
 }

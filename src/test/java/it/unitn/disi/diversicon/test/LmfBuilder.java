@@ -1,7 +1,11 @@
 package it.unitn.disi.diversicon.test;
 
+import de.tudarmstadt.ukp.lmf.model.core.LexicalEntry;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
+import de.tudarmstadt.ukp.lmf.model.core.Sense;
+import de.tudarmstadt.ukp.lmf.model.morphology.FormRepresentation;
+import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import it.unitn.disi.diversicon.DivSynsetRelation;
@@ -9,6 +13,9 @@ import it.unitn.disi.diversicon.Diversicons;
 import it.unitn.disi.diversicon.internal.Internals;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
+
+import java.util.Arrays;
+import java.util.Collection;
 
 /**
  * 
@@ -37,7 +44,7 @@ public class LmfBuilder {
 	public LmfBuilder lexicon() {
 		checkBuilt();
 		Lexicon lexicon = new Lexicon();
-		lexicon.setId("lexicon " + (lexicalResource.getLexicons().size() + 1));
+		lexicon.setId(id("lexicon",lexicalResource.getLexicons()));
 		lexicalResource.addLexicon(lexicon);
 		return this;
 	}
@@ -52,12 +59,16 @@ public class LmfBuilder {
 		}
 		throw new IllegalStateException("Couldn't find a synset with id: 'synset " + idNum + "'");
 	}
+	
+	private static String id(String name, Collection c){
+	    return name + " " +  (c.size() + 1);
+	}
 
 	public LmfBuilder synset() {
 		checkBuilt();
 		Synset synset = new Synset();
 		Lexicon lexicon = getCurLexicon();
-		synset.setId("synset " + (lexicon.getSynsets().size() + 1));
+		synset.setId(id("synset",lexicon.getSynsets()));
 		lexicon.getSynsets().add(synset);
 		return this;
 	}
@@ -159,4 +170,36 @@ public class LmfBuilder {
 			throw new IllegalStateException("A LexicalResource was already built with this !");
 		}
 	}
+
+	/**
+	 * Automatically creates a Sense and Lemma with given {@code writtenForm} 
+	 * @param writtenForm
+	 * @param synsetId must exist
+	 */
+    public LmfBuilder lexicalEntry(String writtenForm, int synsetId) {
+        checkNotEmpty(writtenForm, "Invalid writtenForm!");
+        checkNotEmpty(writtenForm, "Invalid writtenForm!");
+                
+        checkBuilt();
+        LexicalEntry lexicalEntry = new LexicalEntry();                             
+        lexicalEntry.setId(id("lexicalEntry", getCurLexicon().getLexicalEntries()));
+        Lemma lemma = new Lemma();
+        
+        FormRepresentation formRepresentation = new FormRepresentation();
+        formRepresentation.setWrittenForm(writtenForm);
+        
+        lemma.setFormRepresentations(Arrays.asList(formRepresentation));
+        lemma.setLexicalEntry(lexicalEntry);
+        lexicalEntry.setLemma(lemma);
+        
+        Sense sense = new Sense();   
+        sense.setLexicalEntry(lexicalEntry);        
+        sense.setSynset(getSynset(synsetId));        
+        sense.setId("sense 1");        
+        lexicalEntry.setSenses(Arrays.asList(sense));
+        
+        getCurLexicon().addLexicalEntry(lexicalEntry);
+        return this;
+    }
+    
 }
