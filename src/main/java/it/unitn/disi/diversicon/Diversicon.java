@@ -51,7 +51,7 @@ public class Diversicon extends Uby {
      */
     private static final int BATCH_FLUSH_COUNT = 20;
 
-    private Diversicon(DBConfig dbConfig) {
+    protected Diversicon(DBConfig dbConfig) {
         super(); // so it doesn't open connections! Let's hope they don't delete
                  // it!
         checkNotNull(dbConfig, "database configuration is null");
@@ -79,12 +79,12 @@ public class Diversicon extends Uby {
      * {@code relNames}
      * within given depth. In order to actually find them,
      * relations in {@code relNames} must be among the ones for which transitive
-     * closure is computed.
+     * closure is computed (or their inverses).
      * (see {@link Diversicons#getCanonicalRelations()}).
      * 
      * @param synsetId
      * @param relNames
-     *            if none is provided all reachable parent synsets are returned.
+     *            if none is provided {@link IllegalArgumentException} is thrown
      * @param depth
      *            if -1 all parents until the root are retrieved. If zero
      *            nothing is returned.
@@ -94,51 +94,85 @@ public class Diversicon extends Uby {
     public Iterator<Synset> getTransitiveSynsets(
             String synsetId,
             int depth,
-            String... relNames) {       
-        
-        checkNotEmpty(synsetId, "Invalid synset id!");
-        
-        /*      
-         List<String> actualRelnames = new ArrayList();
-        for (String relName : relNames) {            
-            if (Diversicons.isCanonical(relName) || !Diversicons.hasInverse(relName)){
-                actualRelnames.add(relName);
-            } else {                
-                actualRelnames.add(Diversicons.getInverse(relName));                
-            }
-        }*/
+            String... relNames) {
 
+        checkNotEmpty(synsetId, "Invalid synset id!");
+        checkNotEmpty(relNames, "Invalid relation names!");
         checkArgument(depth >= -1, "Depth must be >= -1 , found instead: " + depth);
+
+        List<String> directRelations = new ArrayList();
+        List<String> inverseRelations = new ArrayList();
+
+        for (String relName : relNames) {
+            if (Diversicons.isCanonical(relName) || !Diversicons.hasInverse(relName)) {
+                directRelations.add(relName);
+            } else {
+                inverseRelations.add(Diversicons.getInverse(relName));
+            }
+        }
 
         if (depth == 0) {
             return new ArrayList<Synset>().iterator();
         }
 
-        String depthConstraint;
+        String directDepthConstraint;
+        String inverseDepthConstraint;
         if (depth == -1) {
-            depthConstraint = "";
+            directDepthConstraint = "";
+            inverseDepthConstraint = "";
         } else {
-            depthConstraint = " AND   SR.depth <= " + depth;
+            directDepthConstraint = " AND SRD.depth <= " + depth;
+            inverseDepthConstraint = " AND SRR.depth <= " + depth;
         }
 
-        String relNameConstraint;
-        if (relNames.length == 0) {
-            relNameConstraint = "";
+        String directHsql;
+        if (directRelations.isEmpty()) {
+            directHsql = "";
         } else {
-            relNameConstraint = " AND SR.relName IN " + makeSqlList(relNames);
+            directHsql = "  S.id IN "
+            + "             ("
+            + "                 SELECT SRD.target.id"
+            + "                 FROM   SynsetRelation SRD"
+            + "                 WHERE  SRD.source.id = :synsetId"
+            + "                 AND SRD.relName IN " + makeSqlList(directRelations)
+            + directDepthConstraint
+            + "             )";                        
         }
 
-        String queryString = "  SELECT DISTINCT SR.target"
-                + "             FROM SynsetRelation SR"
-                + "             WHERE      SR.source.id = :synsetId"
-                + relNameConstraint
-                + depthConstraint;
         
         
+        String inverseHsql;
+        if (inverseRelations.isEmpty()) {
+            inverseHsql = "";
+        } else {
+            inverseHsql = " S.id IN"
+            + "             ("
+            + "                 SELECT SRR.source.id"
+            + "                 FROM   SynsetRelation SRR"
+            + "                 WHERE        SRR.target.id = :synsetId"
+            + "                          AND SRR.relName IN " + makeSqlList(inverseRelations)
+            + inverseDepthConstraint
+            + "              )";            
+             
+        }
+        
+        String orHsql;
+        if (!directRelations.isEmpty() && !inverseRelations.isEmpty()){
+            orHsql = " OR ";
+        } else {
+            orHsql = "";
+        }
+       
+        String queryString = " "
+                + "             FROM Synset S"
+                + "             WHERE "
+                + directHsql
+                + orHsql
+                + inverseHsql;
+
         Query query = session.createQuery(queryString);
         query
-             .setParameter("synsetId", synsetId); // if we put synsetId string
-                                                  // hibernate complains!
+             .setParameter("synsetId", synsetId); 
 
         return query.iterate();
     }
@@ -188,7 +222,7 @@ public class Diversicon extends Uby {
         return makeSqlList(Arrays.asList(iterable));
     }
 
-    private static String makeSqlList(Iterable<String> iterable) {
+    protected static String makeSqlList(Iterable<String> iterable) {
         StringBuilder retb = new StringBuilder("(");
 
         boolean first = true;
@@ -409,7 +443,7 @@ public class Diversicon extends Uby {
             try {
                 trans.transform(new File(filepath), lexicalResourceName);
             } catch (Exception ex) {
-                throw new RuntimeException("Error while loading lmf xml " + filepath, ex);
+                throw new DivException("Error while loading lmf xml " + filepath, ex);
             }
 
             LOG.info("Done loading LMF : " + filepath + " with lexical resource name " + lexicalResourceName + " .");

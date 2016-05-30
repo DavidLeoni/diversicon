@@ -203,7 +203,7 @@ public final class Diversicons {
      */
     static void loadHibernateXml(Configuration hcfg, Resource xml) {
 
-        LOG.info("Loading config " + xml.getDescription() + " ...");
+        LOG.debug("Loading config " + xml.getDescription() + " ...");
 
         try {
 
@@ -217,7 +217,7 @@ public final class Diversicons {
             hcfg.addXML(s);
 
         } catch (Exception e) {
-            throw new RuntimeException("Error while reading file at path: " + xml.getDescription(), e);
+            throw new DivException("Error while reading file at path: " + xml.getDescription(), e);
         }
 
     }
@@ -275,7 +275,7 @@ public final class Diversicons {
             }
 
         } catch (IOException e) {
-            throw new RuntimeException("Error while loading hibernate mappings!", e);
+            throw new DivException("Error while loading hibernate mappings!", e);
         }
         LOG.info("Done loading default UBY hibernate mappings...");
 

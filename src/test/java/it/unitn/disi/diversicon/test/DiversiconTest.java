@@ -5,8 +5,10 @@ import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
@@ -69,6 +71,7 @@ public class DiversiconTest {
                                                                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
                                                                .depth(2)
                                                                .build();
+    
 
     /**
      *  2 verteces, second connected to first with two relations.  
@@ -261,7 +264,6 @@ public class DiversiconTest {
                                 .synset()
                                 .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
                                 .build(),
-
                 DAG_3_HYPERNYM);
     }
 
@@ -304,7 +306,6 @@ public class DiversiconTest {
      */
     @Test
     public void testTransitiveClosureNoDuplicates() {
-
         assertNoAugmentation(DAG_3_HYPERNYM);
     }
 
@@ -341,13 +342,13 @@ public class DiversiconTest {
      */
     private static void checkContainsAll(Iterator<Synset> iter, String... ids) {
 
-        List<String> synsetIds = new ArrayList();
+        Set<String> synsetIds = new HashSet();
         while (iter.hasNext()) {
             synsetIds.add(iter.next().getId());
         }
-                
-        List<String> listIds = new ArrayList();
         
+                
+        HashSet<String> listIds = new HashSet();        
         for (String id : ids) {
             listIds.add(id);
         }
@@ -410,16 +411,35 @@ public class DiversiconTest {
                 "synset 1");
 
         checkContainsAll(wb.getTransitiveSynsets(
+                "synset 1",
+                1,
+                ERelNameSemantics.HYPONYM),
+                "synset 2");
+        
+        checkContainsAll(wb.getTransitiveSynsets(
                 "synset 3",
                 1,
                 ERelNameSemantics.HYPERNYM),
                 "synset 2");
 
         checkContainsAll(wb.getTransitiveSynsets(
+                "synset 2",
+                1,
+                ERelNameSemantics.HYPONYM),
+                "synset 3");        
+        
+        checkContainsAll(wb.getTransitiveSynsets(
                 "synset 3",
                 2,
                 ERelNameSemantics.HYPERNYM),
                 "synset 1", "synset 2");
+        
+        checkContainsAll(wb.getTransitiveSynsets(
+                "synset 1",
+                2,
+                ERelNameSemantics.HYPONYM),
+                "synset 2", "synset 3");        
+        
         
         /*
         checkContainsAll(wb.getTransitiveSynsets(
@@ -453,6 +473,7 @@ public class DiversiconTest {
                 ERelNameSemantics.HOLONYM),
                 "synset 1",
                 "synset 2");
+               
 
         wb.getSession()
           .close();
