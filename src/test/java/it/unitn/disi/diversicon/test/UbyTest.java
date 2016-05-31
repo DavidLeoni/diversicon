@@ -14,8 +14,8 @@ import de.tudarmstadt.ukp.lmf.api.Uby;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import de.tudarmstadt.ukp.lmf.transform.LMFDBUtils;
-import static it.unitn.disi.diversicon.test.UtilsTest.checkDb;
-import static it.unitn.disi.diversicon.test.UtilsTest.createDbConfig;
+import static it.unitn.disi.diversicon.test.DivTester.checkDb;
+import static it.unitn.disi.diversicon.test.DivTester.createDbConfig;
 
 
 /**

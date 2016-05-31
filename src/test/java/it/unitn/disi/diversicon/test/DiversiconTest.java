@@ -1,7 +1,5 @@
 package it.unitn.disi.diversicon.test;
 
-import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
-
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
@@ -18,74 +16,27 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalEntry;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelTypeSemantics;
-import de.tudarmstadt.ukp.lmf.model.morphology.FormRepresentation;
-import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
-import it.unitn.disi.diversicon.DivException;
 import it.unitn.disi.diversicon.DivNotFoundException;
 import it.unitn.disi.diversicon.DivSynsetRelation;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
-import static it.unitn.disi.diversicon.test.UtilsTest.checkDb;
-import static it.unitn.disi.diversicon.test.UtilsTest.createDbConfig;
+
+import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
+import static it.unitn.disi.diversicon.test.DivTester.checkDb;
+import static it.unitn.disi.diversicon.test.DivTester.createDbConfig;
+import static it.unitn.disi.diversicon.test.DivTester.*;
 
 public class DiversiconTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(DiversiconTest.class);
-
-    /**
-     * 2 verteces and 1 hypernym edge
-     */
-    private static LexicalResource GRAPH_1_HYPERNYM = lmf().lexicon()
-                                                           .synset()
-                                                           .synset()
-                                                           .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                                                           .build();
-
-    /**
-     * 4 verteces, last one is connected to others by respectively hypernym
-     * edge, holonym and 'hello' edge
-     */
-    private static LexicalResource GRAPH_4_HYP_HOL_HELLO = lmf().lexicon()
-                                                                .synset()
-                                                                .synset()
-                                                                .synset()
-                                                                .synset()
-                                                                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                                                                .synsetRelation(ERelNameSemantics.HOLONYM, 2)
-                                                                .synsetRelation("hello", 3)
-                                                                .build();
-
-    /**
-     * A full DAG, 3 verteces and 3 hypernyms
-     */
-    private static final LexicalResource DAG_3_HYPERNYM = lmf().lexicon()
-                                                               .synset()
-                                                               .synset()
-                                                               .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                                                               .synset()
-                                                               .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
-                                                               .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                                                               .depth(2)
-                                                               .build();
-
-    /**
-     * 2 verteces, second connected to first with two relations.
-     */
-    private static final LexicalResource DAG_2_MULTI_REL = lmf().lexicon()
-                                                                .synset()
-                                                                .synset()
-                                                                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                                                                .synsetRelation(ERelNameSemantics.HOLONYM, 1)
-                                                                .build();
 
     private DBConfig dbConfig;
 

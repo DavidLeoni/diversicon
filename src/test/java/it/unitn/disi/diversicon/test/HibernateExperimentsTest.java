@@ -133,7 +133,7 @@ public class HibernateExperimentsTest {
          * relations in {@code relNames} must be among the ones for which
          * transitive
          * closure is computed.
-         * (see {@link Diversicons#getCanonicalRelations()}).
+         * (see {@link Diversicons#getKnownRelations()}).
          * 
          * @param synsetId
          * @param relNames
@@ -157,7 +157,7 @@ public class HibernateExperimentsTest {
             List<String> inverseRelations = new ArrayList();
 
             for (String relName : relNames) {
-                if (Diversicons.isCanonical(relName) || !Diversicons.hasInverse(relName)) {
+                if (Diversicons.isCanonicalRelation(relName) || !Diversicons.hasInverse(relName)) {
                     directRelations.add(relName);
                 } else {
                     inverseRelations.add(Diversicons.getInverse(relName));

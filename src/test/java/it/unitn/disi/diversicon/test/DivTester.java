@@ -1,6 +1,7 @@
 package it.unitn.disi.diversicon.test;
 
 
+import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -36,10 +37,56 @@ import it.unitn.disi.diversicon.internal.Internals;
 
 
 
-public class UtilsTest {
+public class DivTester {
+    
+    /**
+     * 2 verteces and 1 hypernym edge
+     */
+    public static LexicalResource GRAPH_1_HYPERNYM = lmf().lexicon()
+                                                           .synset()
+                                                           .synset()
+                                                           .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                                           .build();
+
+    /**
+     * 4 verteces, last one is connected to others by respectively hypernym
+     * edge, holonym and 'hello' edge
+     */
+    public static LexicalResource GRAPH_4_HYP_HOL_HELLO = lmf().lexicon()
+                                                                .synset()
+                                                                .synset()
+                                                                .synset()
+                                                                .synset()
+                                                                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                                                .synsetRelation(ERelNameSemantics.HOLONYM, 2)
+                                                                .synsetRelation("hello", 3)
+                                                                .build();
+
+    /**
+     * A full DAG, 3 verteces and 3 hypernyms
+     */
+    public static final LexicalResource DAG_3_HYPERNYM = lmf().lexicon()
+                                                               .synset()
+                                                               .synset()
+                                                               .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                                               .synset()
+                                                               .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
+                                                               .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                                               .depth(2)
+                                                               .build();
+
+    /**
+     * 2 verteces, second connected to first with two relations.
+     */
+    public static final LexicalResource DAG_2_MULTI_REL = lmf().lexicon()
+                                                                .synset()
+                                                                .synset()
+                                                                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                                                .synsetRelation(ERelNameSemantics.HOLONYM, 1)
+                                                                .build();
 
 		
-	private static final Logger log = LoggerFactory.getLogger(UtilsTest.class);
+	private static final Logger LOG = LoggerFactory.getLogger(DivTester.class);
 	
 	private DBConfig dbConfig;
 		
@@ -108,7 +155,7 @@ public class UtilsTest {
         LexicalResource lexicalResource = LmfBuilder.lmf()
                 .lexicon()
                 .synset()                                            
-                .lexicalEntry("abc", 1)
+                .lexicalEntry("abc")
                 .build();
 
         Diversicons.dropCreateTables(dbConfig);
@@ -237,7 +284,8 @@ public class UtilsTest {
 
                             assertEquals(le.getId(), dbLe.getId());
 
-                            assertEquals(le.getSenses()
+                            assertEquals(
+                                    le.getSenses()
                                            .size(),
                                     dbLe.getSenses()
                                         .size());

@@ -83,7 +83,7 @@ public class Diversicon extends Uby {
      * within given depth. In order to actually find them,
      * relations in {@code relNames} must be among the ones for which transitive
      * closure is computed (or their inverses).
-     * (see {@link Diversicons#getCanonicalRelations()}).
+     * (see {@link Diversicons#getKnownRelations()}).
      * 
      * @param synsetId
      * @param relNames
@@ -105,7 +105,7 @@ public class Diversicon extends Uby {
         List<String> inverseRelations = new ArrayList();
 
         for (String relName : relNames) {
-            if (Diversicons.isCanonical(relName) || !Diversicons.hasInverse(relName)) {
+            if (Diversicons.isCanonicalRelation(relName) || !Diversicons.hasInverse(relName)) {
                 directRelations.add(relName);
             } else {
                 inverseRelations.add(Diversicons.getInverse(relName));
@@ -175,7 +175,7 @@ public class Diversicon extends Uby {
      * to actually find them, relations in {@code relNames} must be among the
      * ones for which transitive
      * closure is computed (or their inverses).
-     * (see {@link Diversicons#getCanonicalRelations()}).
+     * (see {@link Diversicons#getKnownRelations()}).
      * 
      * @param relNames
      *            if none is provided an empty set iterator is returned.
@@ -219,7 +219,7 @@ public class Diversicon extends Uby {
 
     /**
      * Augments the synsetRelation graph with transitive closure of
-     * {@link Diversicons#getCanonicalRelations() canonical relations}
+     * {@link Diversicons#getKnownRelations() canonical relations}
      * and eventally adds needed symmetric relations.
      * 
      * @since 0.1
@@ -309,7 +309,8 @@ public class Diversicon extends Uby {
 
                 if (Diversicons.hasInverse(ssr.getRelName())) {
                     String inverseRelName = Diversicons.getInverse(ssr.getRelName());
-                    if (Diversicons.isCanonical(inverseRelName)
+                    if (Diversicons.isCanonicalRelation(inverseRelName)
+                            && Diversicons.isTransitive(inverseRelName)
                             && !containsRel(ssr.getTarget(),
                                     ssr.getSource(),
                                     inverseRelName)) {
@@ -318,7 +319,7 @@ public class Diversicon extends Uby {
                         newSsr.setDepth(1);
                         newSsr.setProvenance(Diversicon.getProvenanceId());
                         newSsr.setRelName(inverseRelName);
-                        newSsr.setRelType(Diversicons.getCanonicalRelationType(inverseRelName));
+                        newSsr.setRelType(Diversicons.getRelationType(inverseRelName));
                         newSsr.setSource(ssr.getTarget());
                         newSsr.setTarget(ssr.getSource());
 
@@ -370,7 +371,7 @@ public class Diversicon extends Uby {
         String hqlSelect = "    SELECT SR_A.source, SR_B.target,  SR_A.relName"
                 + "      FROM SynsetRelation SR_A, SynsetRelation SR_B"
                 + "      WHERE"
-                + "          SR_A.relName IN " + makeSqlList(Diversicons.getCanonicalRelations())
+                + "          SR_A.relName IN " + makeSqlList(Diversicons.getRelations())
                 + "      AND SR_A.depth = :depth"
                 + "      AND SR_B.depth = 1"
                 + "      AND SR_A.relName = SR_B.relName"
@@ -410,7 +411,7 @@ public class Diversicon extends Uby {
                 ssr.setDepth(depthToSearch + 1);
                 ssr.setProvenance(Diversicon.getProvenanceId());
                 ssr.setRelName(relName);
-                ssr.setRelType(Diversicons.getCanonicalRelationType(relName));
+                ssr.setRelType(Diversicons.getRelationType(relName));
                 ssr.setSource(source);
                 ssr.setTarget(target);
 
@@ -553,7 +554,7 @@ public class Diversicon extends Uby {
      * them,
      * relations in {@code relNames} must be among the ones for which transitive
      * closure is computed (or their inverses).
-     * (see {@link Diversicons#getCanonicalRelations()}).
+     * (see {@link Diversicons#getKnownRelations()}).
      * 
      * @param sourceSynset
      *            the source synset
@@ -592,7 +593,7 @@ public class Diversicon extends Uby {
         List<String> inverseRelations = new ArrayList();
 
         for (String relName : relNames) {
-            if (Diversicons.isCanonical(relName) || !Diversicons.hasInverse(relName)) {
+            if (Diversicons.isCanonicalRelation(relName) || !Diversicons.hasInverse(relName)) {
                 directRelations.add(relName);
             } else {
                 inverseRelations.add(Diversicons.getInverse(relName));
