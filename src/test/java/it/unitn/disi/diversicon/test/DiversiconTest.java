@@ -409,7 +409,7 @@ public class DiversiconTest {
      * @since 0.1
      */
     @Test
-    public void testIsReachable_Dag_3_Hypernym() {
+    public void testIsReachable() {
 
         Diversicons.dropCreateTables(dbConfig);
 
@@ -418,61 +418,95 @@ public class DiversiconTest {
         div.importResource(DAG_3_HYPERNYM, "lexical resource 1");
 
         assertTrue(div.isReachable(
-                div.getSynsetById("synset 1"),
-                div.getSynsetById("synset 1"),
+                "synset 1",
+                "synset 1",
                 1,
                 Arrays.asList(ERelNameSemantics.HYPERNYM)));
 
         assertTrue(div.isReachable(
-                div.getSynsetById("synset 1"),
-                div.getSynsetById("synset 1"),
+                "synset 1",
+                "synset 1",
                 0, new ArrayList()));
         
         
         assertFalse(div.isReachable(
-                div.getSynsetById("synset 2"),
-                div.getSynsetById("synset 1"),
+                "synset 2",
+                "synset 1",
                 0,
                 Arrays.asList(ERelNameSemantics.HYPERNYM)));
 
         
         assertTrue(div.isReachable(
-                div.getSynsetById("synset 2"),
-                div.getSynsetById("synset 1"),
+                "synset 2",
+                "synset 1",
                 1,
                 Arrays.asList(ERelNameSemantics.HYPERNYM)));
 
         assertTrue(div.isReachable(
-                div.getSynsetById("synset 2"),
-                div.getSynsetById("synset 1"),
+                "synset 2",
+                "synset 1",
                 -1,
                 Arrays.asList(ERelNameSemantics.HYPERNYM)));
         
         assertTrue(div.isReachable(
-                div.getSynsetById("synset 1"),
-                div.getSynsetById("synset 3"),
+                "synset 1",
+                "synset 3",
                 -1,
                 Arrays.asList(ERelNameSemantics.HYPONYM)));
         
         assertFalse(div.isReachable(
-                div.getSynsetById("synset 3"),
-                div.getSynsetById("synset 1"),
+                "synset 3",
+                "synset 1",
                 -1,
                 Arrays.asList(ERelNameSemantics.HYPONYM)));
         
         assertFalse(div.isReachable(
-                div.getSynsetById("synset 1"),
-                div.getSynsetById("synset 2"),
+                "synset 1",
+                "synset 2",
                 -1,
                 Arrays.asList(ERelNameSemantics.HYPERNYM)));
 
         assertTrue(div.isReachable(
-                div.getSynsetById("synset 1"),
-                div.getSynsetById("synset 1"),
+                "synset 1",
+                "synset 1",
                 -1,
                 Arrays.asList(ERelNameSemantics.HYPERNYM)));
         
-                   
+        try {
+            div.isReachable(
+                    "synset 1",
+                    "synset 1",
+                    -2,
+                    Arrays.asList(ERelNameSemantics.HYPERNYM));
+            Assert.fail("Shouldn't arrive here!");
+        } catch (IllegalArgumentException ex){
+            
+        }
+        
+        try {
+            div.isReachable(
+                    "",
+                    "synset 1",
+                    -1,
+                    new ArrayList()
+                    );
+            Assert.fail("Shouldn't arrive here!");
+        } catch (IllegalArgumentException ex){
+            
+        }
+
+        try {
+            div.isReachable(
+                    "synset 1",
+                    "",
+                    -1,
+                    new ArrayList()
+                    );
+            Assert.fail("Shouldn't arrive here!");
+        } catch (IllegalArgumentException ex){
+            
+        }
+        
         div.getSession().close();        
 
     }

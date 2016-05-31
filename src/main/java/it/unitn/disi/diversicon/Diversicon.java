@@ -75,6 +75,7 @@ public class Diversicon extends Uby {
 
     }
 
+   
     /**
      * Returns the HQL query which finds all of the synsets reachable from
      * {@code synsetId} along paths of
@@ -567,18 +568,19 @@ public class Diversicon extends Uby {
      *            coincide.
      * 
      */
-    public boolean isReachable(Synset sourceSynset, Synset targetSynset,
-            int depth, List<String> relNames) {
-
-        checkNotNull(sourceSynset, "Invalid source synset!");
-        checkNotEmpty(sourceSynset.getId(), "Invalid source synset id!");
-        checkNotNull(targetSynset, "Invalid target synset!");
+    public boolean isReachable(
+            String sourceSynsetId, 
+            String targetSynsetId,
+            int depth, 
+            List<String> relNames) {
+        
+        checkNotEmpty(sourceSynsetId, "Invalid source synset id!");
+        checkNotEmpty(targetSynsetId, "Invalid target synset id!");        
         checkNotNull(relNames, "Invalid relation names!");
 
         checkArgument(depth >= -1, "Depth must be >= -1 , found instead: " + depth);
 
-        if (sourceSynset.getId()
-                        .equals(targetSynset.getId())) {
+        if (sourceSynsetId.equals(targetSynsetId)) {
             return true;
         }
 
@@ -586,30 +588,70 @@ public class Diversicon extends Uby {
             return false;
         }
 
-        String queryString = "     SELECT 'TRUE'"
-                + "   FROM Synset"
-                + "   WHERE :targetSynset IN "
-                + "   ("
-                + getTransitiveSynsetsQuery(sourceSynset.getId(), depth, relNames)
-                + "   )";
+        List<String> directRelations = new ArrayList();
+        List<String> inverseRelations = new ArrayList();
 
-        /*
-         * this query compiles:
-         * String queryString =
-         * "     SELECT 'TRUE'"
-         * + "   FROM Synset"
-         * + "   WHERE :targetSynset IN "
-         * + "   (SELECT 'bastard'"
-         * + "    FROM Synset S"
-         * + "    WHERE S.id = :synsetId"
-         * // + getTransitiveSynsetsQuery(sourceSynset.getId(), depth, relNames)
-         * + "   )";
-         */
+        for (String relName : relNames) {
+            if (Diversicons.isCanonical(relName) || !Diversicons.hasInverse(relName)) {
+                directRelations.add(relName);
+            } else {
+                inverseRelations.add(Diversicons.getInverse(relName));
+            }
+        }
+
+        String depthConstraint;
+        if (depth == -1) {
+            depthConstraint = "";            
+        } else {
+            depthConstraint = " SR.depth <= " + depth + " AND ";            
+        }
+
+        String directHsql;
+        if (directRelations.isEmpty()) {
+            directHsql = "";
+        } else {
+            directHsql = " "
+                    + " ("
+                    + "     SR.source.id = :sourceSynsetId"
+                    + "     AND   SR.target.id = :targetSynsetId"
+                    + "     AND   SR.relName IN " + makeSqlList(directRelations)
+                    + " )";                                        
+        }
+
+        String inverseHsql;
+        if (inverseRelations.isEmpty()) {
+            inverseHsql = "";
+        } else {
+            inverseHsql = ""
+                    + "  ("   
+                    + "      SR.source.id = :targetSynsetId"
+                    + "      AND SR.target.id = :sourceSynsetId"                    
+                    + "      AND SR.relName IN " + makeSqlList(inverseRelations)
+                    + "  )";
+
+        }
+
+        String orHsql;
+        if (!directRelations.isEmpty() && !inverseRelations.isEmpty()) {
+            orHsql = " OR ";
+        } else {
+            orHsql = "";
+        }
+
+        String queryString = " SELECT 'TRUE'"
+                + " FROM SynsetRelation SR"
+                + " WHERE "
+                + depthConstraint
+                + "("
+                + directHsql
+                + orHsql
+                + inverseHsql
+                + ")";
 
         Query query = session.createQuery(queryString);
         query
-             .setParameter("synsetId", sourceSynset.getId())
-             .setParameter("targetSynset", targetSynset);
+             .setParameter("sourceSynsetId", sourceSynsetId)
+             .setParameter("targetSynsetId", targetSynsetId);
 
         return query.iterate()
                     .hasNext();
