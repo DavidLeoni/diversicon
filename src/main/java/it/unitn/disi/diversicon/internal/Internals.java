@@ -1,7 +1,9 @@
 package it.unitn.disi.diversicon.internal;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 
 import javax.annotation.Nullable;
 
@@ -484,6 +486,51 @@ public final class Internals {
      */
     public static <T> T deepCopy(T orig) {        
         return cloner.deepClone(orig);
+    }
+
+    
+    /**
+     * Returns a new ArrayList, filled with provided objects.
+     * 
+     * (Note {@code Arrays.asList(T...)} returns an {@code Arrays.ArrayList} instead)
+     * 
+     * @since 0.1
+     */
+    public static <T> ArrayList<T> newArrayList(T... objs) {
+        ArrayList<T> ret = new ArrayList();
+        
+        for (T obj : objs){
+            ret.add(obj);            
+        }
+        return ret;
+    }
+    
+    
+    
+    /**
+     * Returns a new HashSet, filled with provided objects.
+     * 
+     * @since 0.1
+     */
+    public static <T> HashSet<T> newHashSet(T... objs) {
+        HashSet<T> ret = new HashSet();
+        
+        for (T obj : objs){
+            ret.add(obj);            
+        }
+        return ret;
+    }    
+    
+
+    /**
+     * Checks provided depth.
+     *  
+     * @param depth must be >= -1, otherwise IllegalArgumentException is thrown.
+     */
+    public static void checkDepth(int depth) {
+        if (depth <-1){
+            throw new IllegalArgumentException("depth must be greater or equal to -1, found instead " + depth);
+        }
     }    
     
     

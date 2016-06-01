@@ -1,6 +1,5 @@
 package it.unitn.disi.diversicon.test;
 
-
 import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -19,9 +18,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect;
+import de.tudarmstadt.ukp.lmf.model.core.Definition;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalEntry;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
+import de.tudarmstadt.ukp.lmf.model.core.TextRepresentation;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.model.morphology.FormRepresentation;
 import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
@@ -35,139 +36,59 @@ import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
 import it.unitn.disi.diversicon.internal.Internals;
 
+public final class DivTester {
 
+    private DivTester() {
+    }
 
-public class DivTester {
-    
     /**
      * 2 verteces and 1 hypernym edge
      */
     public static LexicalResource GRAPH_1_HYPERNYM = lmf().lexicon()
-                                                           .synset()
-                                                           .synset()
-                                                           .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                                                           .build();
+                                                          .synset()
+                                                          .synset()
+                                                          .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                                          .build();
 
     /**
      * 4 verteces, last one is connected to others by respectively hypernym
      * edge, holonym and 'hello' edge
      */
     public static LexicalResource GRAPH_4_HYP_HOL_HELLO = lmf().lexicon()
-                                                                .synset()
-                                                                .synset()
-                                                                .synset()
-                                                                .synset()
-                                                                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                                                                .synsetRelation(ERelNameSemantics.HOLONYM, 2)
-                                                                .synsetRelation("hello", 3)
-                                                                .build();
+                                                               .synset()
+                                                               .synset()
+                                                               .synset()
+                                                               .synset()
+                                                               .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                                               .synsetRelation(ERelNameSemantics.HOLONYM, 2)
+                                                               .synsetRelation("hello", 3)
+                                                               .build();
 
     /**
      * A full DAG, 3 verteces and 3 hypernyms
      */
     public static final LexicalResource DAG_3_HYPERNYM = lmf().lexicon()
-                                                               .synset()
-                                                               .synset()
-                                                               .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                                                               .synset()
-                                                               .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
-                                                               .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                                                               .depth(2)
-                                                               .build();
+                                                              .synset()
+                                                              .synset()
+                                                              .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                                              .synset()
+                                                              .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
+                                                              .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                                              .depth(2)
+                                                              .build();
 
     /**
      * 2 verteces, second connected to first with two relations.
      */
     public static final LexicalResource DAG_2_MULTI_REL = lmf().lexicon()
-                                                                .synset()
-                                                                .synset()
-                                                                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                                                                .synsetRelation(ERelNameSemantics.HOLONYM, 1)
-                                                                .build();
+                                                               .synset()
+                                                               .synset()
+                                                               .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                                               .synsetRelation(ERelNameSemantics.HOLONYM, 1)
+                                                               .build();
 
-		
-	private static final Logger LOG = LoggerFactory.getLogger(DivTester.class);
-	
-	private DBConfig dbConfig;
-		
-	
-	@Before
-	public void beforeMethod(){
-		 dbConfig = new DBConfig("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1", "org.h2.Driver",
-				UBYH2Dialect.class.getName(), "root", "pass", true);		 		
-	}
-	
-	@After
-	public void afterMethod(){
-		dbConfig = null;
-	}
+    private static final Logger LOG = LoggerFactory.getLogger(DivTester.class);
 
-	@Test
-	public void testInverses(){
-		assertTrue(Diversicons.isInverse(ERelNameSemantics.HYPERNYM, ERelNameSemantics.HYPONYM));
-		assertTrue(Diversicons.isInverse(ERelNameSemantics.HYPONYM, ERelNameSemantics.HYPERNYM));
-		
-		assertFalse(Diversicons.isInverse("a", ERelNameSemantics.HYPERNYM));
-		
-		try {
-			Diversicons.getInverse("a");
-			Assert.fail("Shouldn't arrive here!");
-		} catch (DivNotFoundException ex){
-			
-		}
-	}	
-	
-	
-	@Test
-	public void testExistsDb(){
-	    
-	    assertFalse(Diversicons.exists(dbConfig));
-	    
-	    Diversicons.dropCreateTables(dbConfig);
-	    assertTrue(Diversicons.exists(dbConfig));
-	       
-	}
-	
-	
-	
-	@Test
-	public void testNewMap(){
-	    
-	    HashMap<String, Integer> m1 = Internals.newMap("a", 1);	    
-	    assertEquals(Integer.valueOf(1), m1.get("a"));
-	    
-        try {
-            Internals.newMap("a", "b", 3, "f");
-            Assert.fail("Shouldn't arrive here!");
-        } catch (IllegalArgumentException ex){
-            
-        }
-        HashMap<String, Integer> m2 = Internals.newMap("a", 1, "b", 2);     
-        assertEquals(Integer.valueOf(1),  m2.get("a"));
-        assertEquals(Integer.valueOf(2),  m2.get("b"));
-	    
-	}
-	
-    @Test
-    // todo make it more extensive
-    public void testBuilder(){
-                
-        LexicalResource lexicalResource = LmfBuilder.lmf()
-                .lexicon()
-                .synset()                                            
-                .lexicalEntry("abc")
-                .build();
-
-        Diversicons.dropCreateTables(dbConfig);
-
-        Diversicon div = Diversicon.create(dbConfig);
-
-        div.importResource(lexicalResource, "lexical resource 1");
-        
-        checkDb(lexicalResource, div);
-        
-    }
-    
     /**
      * 
      * Retrieves the synset with id 'synset ' + {@code idNum}
@@ -223,6 +144,29 @@ public class DivTester {
                                         .size(),
                                 dbSyn.getSynsetRelations()
                                      .size());
+
+                        assertEquals(syn.getDefinitions()
+                                        .size(),
+                                dbSyn.getDefinitions()
+                                     .size());
+                        
+                        Iterator<Definition> dbDefIter = syn.getDefinitions().iterator();
+                        for (Definition definition : syn.getDefinitions()){
+                            Definition dbDef = dbDefIter.next();
+                            List<TextRepresentation> textReprs = definition.getTextRepresentations();
+                            List<TextRepresentation> dbTextReprs = dbDef.getTextRepresentations();
+                            assertEquals(textReprs.size(), dbTextReprs.size());
+                            
+                            Iterator<TextRepresentation> dbTextReprIter = dbDef.getTextRepresentations().iterator();
+                            for (TextRepresentation tr : textReprs){
+                                TextRepresentation dbTextRepr = dbTextReprIter.next();
+                                
+                                if (tr.getWrittenText() != null){
+                                    assertEquals(tr.getWrittenText(), dbTextRepr.getWrittenText());    
+                                }
+                                
+                            }
+                        }
 
                         Iterator<SynsetRelation> iter = dbSyn.getSynsetRelations()
                                                              .iterator();
@@ -286,18 +230,15 @@ public class DivTester {
 
                             assertEquals(
                                     le.getSenses()
-                                           .size(),
+                                      .size(),
                                     dbLe.getSenses()
                                         .size());
 
                             if (le.getLemma() != null) {
                                 Lemma lemma = le.getLemma();
-
-                                for (FormRepresentation fr : lemma.getFormRepresentations()) {
-                                    assertEquals(fr.getWrittenForm(), dbLe.getLemmaForm());
-                                    break;
-                                }
-
+                                assertEquals(lemma.getFormRepresentations(),
+                                        dbLe.getLemma()
+                                            .getFormRepresentations());
                             }
 
                         } catch (Error err) {
@@ -315,6 +256,9 @@ public class DivTester {
         }
     }
 
+    /**
+     * Creates an in-memory H2 db.
+     */
     public static DBConfig createDbConfig() {
         return new DBConfig("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1", "org.h2.Driver",
                 UBYH2Dialect.class.getName(), "root", "pass", true);

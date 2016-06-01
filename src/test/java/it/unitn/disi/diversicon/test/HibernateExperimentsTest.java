@@ -145,7 +145,7 @@ public class HibernateExperimentsTest {
          * @param lexicon
          * @return
          */
-        public Iterator<Synset> getTransitiveSynsets(
+        public Iterator<Synset> getConnectedSynsets(
                 String synsetId,
                 int depth,
                 String... relNames) {

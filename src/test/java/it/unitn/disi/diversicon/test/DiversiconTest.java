@@ -21,6 +21,7 @@ import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelTypeSemantics;
+import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
@@ -28,6 +29,7 @@ import it.unitn.disi.diversicon.DivNotFoundException;
 import it.unitn.disi.diversicon.DivSynsetRelation;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
+import it.unitn.disi.diversicon.internal.Internals;
 
 import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
 import static it.unitn.disi.diversicon.test.DivTester.checkDb;
@@ -96,7 +98,7 @@ public class DiversiconTest {
 
         Diversicon diversicon = Diversicon.create(dbConfig);
 
-        diversicon.importResource(lexicalResource, "lexical resource 1");
+        diversicon.importResource(lexicalResource, "lexical resource 1", false);
 
         assertNotNull(diversicon.getLexicalResource("lexicalResource 1"));
         assertEquals(1, diversicon.getLexicons()
@@ -148,7 +150,7 @@ public class DiversiconTest {
 
         Diversicon diversicon = Diversicon.create(dbConfig);
 
-        diversicon.importResource(lexicalResource, "lexical resource 1");
+        diversicon.importResource(lexicalResource, "lexical resource 1", false);
 
         diversicon.augmentGraph();
 
@@ -316,37 +318,37 @@ public class DiversiconTest {
      * @since 0.1
      */
     @Test
-    public void testGetTransitiveSynsets_Graph_1_Hypernym() {
+    public void testGetConnectedSynsets_Graph_1_Hypernym() {
 
         Diversicons.dropCreateTables(dbConfig);
 
         Diversicon diversicon = Diversicon.create(dbConfig);
 
-        diversicon.importResource(GRAPH_1_HYPERNYM, "lexical resource 1");
+        diversicon.importResource(GRAPH_1_HYPERNYM, "lexical resource 1", false);
 
-        assertFalse(diversicon.getTransitiveSynsets(
+        assertFalse(diversicon.getConnectedSynsets(
                 "synset 2",
                 0,
                 ERelNameSemantics.HYPERNYM)
                               .hasNext());
         
-        assertFalse(diversicon.getTransitiveSynsets(
+        assertFalse(diversicon.getConnectedSynsets(
                 "synset 2",
                 -1).hasNext());
 
-        checkContainsAll(diversicon.getTransitiveSynsets(
+        checkContainsAll(diversicon.getConnectedSynsets(
                 "synset 2",
                 1,
                 ERelNameSemantics.HYPERNYM),
                 "synset 1");
 
-        checkContainsAll(diversicon.getTransitiveSynsets(
+        checkContainsAll(diversicon.getConnectedSynsets(
                 "synset 2",
                 -1,
                 ERelNameSemantics.HYPERNYM),
                 "synset 1");
 
-        checkContainsAll(diversicon.getTransitiveSynsets(
+        checkContainsAll(diversicon.getConnectedSynsets(
                 "synset 2",
                 1,
                 "hello"));
@@ -366,65 +368,65 @@ public class DiversiconTest {
 
         Diversicon div = Diversicon.create(dbConfig);
 
-        div.importResource(DAG_3_HYPERNYM, "lexical resource 1");
+        div.importResource(DAG_3_HYPERNYM, "lexical resource 1", false);
 
-        assertTrue(div.isReachable(
+        assertTrue(div.isConnected(
                 "synset 1",
                 "synset 1",
                 1,
                 Arrays.asList(ERelNameSemantics.HYPERNYM)));
 
-        assertTrue(div.isReachable(
+        assertTrue(div.isConnected(
                 "synset 1",
                 "synset 1",
                 0, new ArrayList()));
         
         
-        assertFalse(div.isReachable(
+        assertFalse(div.isConnected(
                 "synset 2",
                 "synset 1",
                 0,
                 Arrays.asList(ERelNameSemantics.HYPERNYM)));
 
         
-        assertTrue(div.isReachable(
+        assertTrue(div.isConnected(
                 "synset 2",
                 "synset 1",
                 1,
                 Arrays.asList(ERelNameSemantics.HYPERNYM)));
 
-        assertTrue(div.isReachable(
+        assertTrue(div.isConnected(
                 "synset 2",
                 "synset 1",
                 -1,
                 Arrays.asList(ERelNameSemantics.HYPERNYM)));
         
-        assertTrue(div.isReachable(
+        assertTrue(div.isConnected(
                 "synset 1",
                 "synset 3",
                 -1,
                 Arrays.asList(ERelNameSemantics.HYPONYM)));
         
-        assertFalse(div.isReachable(
+        assertFalse(div.isConnected(
                 "synset 3",
                 "synset 1",
                 -1,
                 Arrays.asList(ERelNameSemantics.HYPONYM)));
         
-        assertFalse(div.isReachable(
+        assertFalse(div.isConnected(
                 "synset 1",
                 "synset 2",
                 -1,
                 Arrays.asList(ERelNameSemantics.HYPERNYM)));
 
-        assertTrue(div.isReachable(
+        assertTrue(div.isConnected(
                 "synset 1",
                 "synset 1",
                 -1,
                 Arrays.asList(ERelNameSemantics.HYPERNYM)));
         
         try {
-            div.isReachable(
+            div.isConnected(
                     "synset 1",
                     "synset 1",
                     -2,
@@ -435,7 +437,7 @@ public class DiversiconTest {
         }
         
         try {
-            div.isReachable(
+            div.isConnected(
                     "",
                     "synset 1",
                     -1,
@@ -447,7 +449,7 @@ public class DiversiconTest {
         }
 
         try {
-            div.isReachable(
+            div.isConnected(
                     "synset 1",
                     "",
                     -1,
@@ -462,49 +464,73 @@ public class DiversiconTest {
 
     }
 
+    // todo improve, not so clear how lemmas work.
+    @Test
+    public void testGetLemmaByWrittenForm(){
+        Diversicons.dropCreateTables(dbConfig);
+
+        Diversicon div = Diversicon.create(dbConfig);
+
+        LexicalResource res = lmf().lexicon()
+                .synset()
+                .lexicalEntry("a")
+                .lexicalEntry("ab")
+                .synset()        
+                .lexicalEntry("c")
+                .build();
+        
+        div.importResource(res, "lexical resource 1", false);       
+        
+        assertEquals(Internals.newArrayList("a"), div.getLemmaStringsByWrittenForm("a"));
+        assertEquals(Internals.newArrayList("c"), div.getLemmaStringsByWrittenForm("c"));
+        assertEquals(Internals.newArrayList(), div.getLemmaStringsByWrittenForm("666"));
+        
+        div.getSession().close();
+    }
+    
     /**
      * @since 0.1
      */
     @Test
-    public void testGetTransitiveSynsets_Dag_3_Hypernym() {
+    public void testGetConnectedSynsets_Dag_3_Hypernym() {
 
         Diversicons.dropCreateTables(dbConfig);
 
         Diversicon div = Diversicon.create(dbConfig);
 
-        div.importResource(DAG_3_HYPERNYM, "lexical resource 1");
+        div.importResource(DAG_3_HYPERNYM, "lexical resource 1", false);
 
-        checkContainsAll(div.getTransitiveSynsets(
+        checkContainsAll(div.getConnectedSynsets(
                 "synset 2",
                 1,
                 ERelNameSemantics.HYPERNYM),
                 "synset 1");
 
-        checkContainsAll(div.getTransitiveSynsets(
+        checkContainsAll(div.getConnectedSynsets(
                 "synset 1",
                 1,
                 ERelNameSemantics.HYPONYM),
                 "synset 2");
 
-        checkContainsAll(div.getTransitiveSynsets(
+        checkContainsAll(div.getConnectedSynsets(
                 "synset 3",
                 1,
                 ERelNameSemantics.HYPERNYM),
                 "synset 2");
 
-        checkContainsAll(div.getTransitiveSynsets(
+        checkContainsAll(div.getConnectedSynsets(
                 "synset 2",
                 1,
                 ERelNameSemantics.HYPONYM),
                 "synset 3");
 
-        checkContainsAll(div.getTransitiveSynsets(
+        checkContainsAll(div.getConnectedSynsets(
                 "synset 3",
                 2,
                 ERelNameSemantics.HYPERNYM),
                 "synset 1", "synset 2");
 
-        checkContainsAll(div.getTransitiveSynsets(
+        checkContainsAll(div.getConnectedSynsets(
                 "synset 1",
                 2,
                 ERelNameSemantics.HYPONYM),
@@ -519,13 +545,13 @@ public class DiversiconTest {
      * @since 0.1
      */
     @Test
-    public void testGetTransitiveSynsetsMultiRelNames() {
+    public void testGetConnectedSynsetsMultiRelNames() {
 
         Diversicons.dropCreateTables(dbConfig);
 
         Diversicon diversicon = Diversicon.create(dbConfig);
-        diversicon.importResource(GRAPH_4_HYP_HOL_HELLO, "lexical resource 1");
-        checkContainsAll(diversicon.getTransitiveSynsets(
+        diversicon.importResource(GRAPH_4_HYP_HOL_HELLO, "lexical resource 1", false);
+        checkContainsAll(diversicon.getConnectedSynsets(
                 "synset 4",
                 1,
                 ERelNameSemantics.HYPERNYM,
@@ -541,15 +567,15 @@ public class DiversiconTest {
      * @since 0.1
      */
     @Test
-    public void testGetTransitiveSynsetsNoDups() {
+    public void testGetConnectedSynsetsNoDups() {
 
         Diversicons.dropCreateTables(dbConfig);
 
         Diversicon diversicon = Diversicon.create(dbConfig);
 
-        diversicon.importResource(DAG_2_MULTI_REL, "lexical resource 1");
+        diversicon.importResource(DAG_2_MULTI_REL, "lexical resource 1", false);
 
-        checkContainsAll(diversicon.getTransitiveSynsets(
+        checkContainsAll(diversicon.getConnectedSynsets(
                 "synset 2",
                 1,
                 ERelNameSemantics.HYPERNYM,

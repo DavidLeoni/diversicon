@@ -20,6 +20,7 @@ import org.hibernate.ScrollableResults;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.hibernate.criterion.DetachedCriteria;
+import org.hibernate.criterion.Projections;
 import org.hibernate.criterion.Restrictions;
 import org.hibernate.service.ServiceRegistryBuilder;
 import org.slf4j.Logger;
@@ -28,6 +29,9 @@ import org.slf4j.LoggerFactory;
 import de.tudarmstadt.ukp.lmf.api.CriteriaIterator;
 import de.tudarmstadt.ukp.lmf.api.Uby;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
+import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
+import de.tudarmstadt.ukp.lmf.model.morphology.FormRepresentation;
+import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
@@ -37,7 +41,10 @@ import it.unitn.disi.diversicon.internal.Internals;
 /**
  * Extension of {@link de.tudarmstadt.ukp.lmf.api.Uby Uby} LMF knowledge base
  * with some
- * additional fields in the db to speed up computations
+ * additional fields in the db to speed up computations. In particular, original
+ * {@link SynsetRelation}
+ * is extended by {@link DivSynsetRelation} by adding {@code depth} and
+ * {@code provenance} edges.
  * 
  * To create instances use {@link #create(DBConfig)} method
  *
@@ -58,8 +65,7 @@ public class Diversicon extends Uby {
         checkNotNull(dbConfig, "database configuration is null");
 
         this.dbConfig = dbConfig;
-
-        // note: here we are overwriting cfg and sessionFactory
+        
         if (Diversicons.exists(dbConfig)) {
             LOG.info("Reusing existing database at " + dbConfig.getJdbc_url());
             cfg = Diversicons.getHibernateConfig(dbConfig, true);
@@ -75,31 +81,76 @@ public class Diversicon extends Uby {
 
     }
 
-   
     /**
-     * Returns the HQL query which finds all of the synsets reachable from
-     * {@code synsetId} along paths of
-     * {@code relNames}
-     * within given depth. In order to actually find them,
-     * relations in {@code relNames} must be among the ones for which transitive
-     * closure is computed (or their inverses).
-     * (see {@link Diversicons#getKnownRelations()}).
-     * 
-     * @param synsetId
-     * @param relNames
-     *            if none is provided {@link IllegalArgumentException} is thrown
-     * @param depth
-     *            if -1 all parents until the root are retrieved. If zero
-     *            throws {@link IllegalArgumentException}.
+     * Note: search is done by exact match on {@code wirttenForm}
+     *  
+     * @since 0.1
      */
-    private String getTransitiveSynsetsQuery(
+    // todo not so clear how lemmas are supposed to work
+    public List<Lemma> getLemmasByWrittenForm(String writtenForm){                       
+        checkNotEmpty(writtenForm, "Invalid written form!");
+        
+        // searching only in lemmas because UBY wordnet only generates lemmas FormRepresentations
+        // and doesn't create any WordForm  (see https://github.com/dkpro/dkpro-uby/blob/5cab2846e3c27069c08ebd3bf91bd5a6f8ed02ca/de.tudarmstadt.ukp.uby.integration.wordnet-gpl/src/main/java/de/tudarmstadt/ukp/lmf/transform/wordnet/LexicalEntryGenerator.java#L271)  
+        
+        @SuppressWarnings("unchecked")
+        List<Lemma> lemmas = session.createCriteria(Lemma.class)                
+                .createCriteria("formRepresentations")
+                    .add(Restrictions.like("writtenForm", writtenForm) )
+                .list();
+        
+        return lemmas;
+    }
+
+    /**
+     * See {@link #getLemmasByWrittenForm(String)}.
+     * 
+     * @since 0.1
+     */
+    public List<String> getLemmaStringsByWrittenForm(String writtenForm){      
+        List<Lemma> lemmas = getLemmasByWrittenForm(writtenForm);
+        
+        List<String> ret = new ArrayList();
+        for (Lemma lemma : lemmas){
+            if (lemma.getFormRepresentations().isEmpty()){
+                LOG.error("Found a lemma with no form representation! Lemma's lexical entry is " + lemma.getLexicalEntry().getId());
+            } else {
+                ret.add(lemma.getFormRepresentations().get(0).getWrittenForm());
+            }
+        }
+        return ret;
+    }
+    
+    
+    /**
+     * Finds all of the synsets to which {@code synsetId} is connected with
+     * edges of
+     * {@code relNames}
+     * having depth less or equal the given one.
+     * 
+     * @param relNames
+     *            if none is provided an empty set iterator is returned.
+     * @param depth
+     *            the maximum depth edges can have. If -1 no depth limit is
+     *            applied.
+     *            If zero an empty set iterator is returned.
+     *            
+     * @since 0.1
+     */
+    public Iterator<Synset> getConnectedSynsets(
             String synsetId,
             int depth,
             Iterable<String> relNames) {
 
         checkNotEmpty(synsetId, "Invalid synset id!");
-        checkNotEmpty(relNames, "Invalid relation names!");
+        checkNotNull(relNames, "Invalid relation names!");
         checkArgument(depth >= -1, "Depth must be >= -1 , found instead: " + depth);
+
+        if (!relNames.iterator()
+                     .hasNext()
+                || depth == 0) {
+            return new ArrayList().iterator();
+        }
 
         List<String> directRelations = new ArrayList();
         List<String> inverseRelations = new ArrayList();
@@ -125,7 +176,7 @@ public class Diversicon extends Uby {
         String directHsql;
         if (directRelations.isEmpty()) {
             directHsql = "";
-        } else {
+        } else { // UNION doesn't work in hibernate
             directHsql = "  S.id IN "
                     + "             ("
                     + "                 SELECT SRD.target.id"
@@ -165,41 +216,6 @@ public class Diversicon extends Uby {
                 + orHsql
                 + inverseHsql;
 
-        return queryString;
-    }
-
-    /**
-     * Finds all of the synsets reachable from {@code synsetId} along paths of
-     * {@code relNames}
-     * within given depth. In order
-     * to actually find them, relations in {@code relNames} must be among the
-     * ones for which transitive
-     * closure is computed (or their inverses).
-     * (see {@link Diversicons#getKnownRelations()}).
-     * 
-     * @param relNames
-     *            if none is provided an empty set iterator is returned.
-     * @param depth
-     *            if -1 all parents until the root are retrieved. If zero
-     *            an empty set iterator is returned.
-     */
-    public Iterator<Synset> getTransitiveSynsets(
-            String synsetId,
-            int depth,
-            Iterable<String> relNames) {
-
-        checkNotEmpty(synsetId, "Invalid synset id!");
-        checkNotNull(relNames, "Invalid relation names!");
-        checkArgument(depth >= -1, "Depth must be >= -1 , found instead: " + depth);
-
-        if (!relNames.iterator()
-                     .hasNext()
-                || depth == 0) {
-            return new ArrayList().iterator();
-        }
-
-        String queryString = getTransitiveSynsetsQuery(synsetId, depth, relNames);
-
         Query query = session.createQuery(queryString);
         query
              .setParameter("synsetId", synsetId);
@@ -208,13 +224,15 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * See {{@link #getTransitiveSynsets(String, int, Iterable)}}
+     * See {{@link #getConnectedSynsets(String, int, Iterable)}}
+     * 
+     * @since 0.1
      */
-    public Iterator<Synset> getTransitiveSynsets(
+    public Iterator<Synset> getConnectedSynsets(
             String synsetId,
             int depth,
             String... relNames) {
-        return getTransitiveSynsets(synsetId, depth, Arrays.asList(relNames));
+        return getConnectedSynsets(synsetId, depth, Arrays.asList(relNames));
     }
 
     /**
@@ -452,7 +470,7 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * imports provided resources into db and automatically augments graph with
+     * Imports provided resources into db and automatically augments graph with
      * transitive
      * closure at the end of the loading.
      * 
@@ -512,13 +530,16 @@ public class Diversicon extends Uby {
      * 
      * @param lexicalResourceId
      *            todo don't know well the meaning
-     * 
+     * @param augmentGraph
+     *            if true after the import the graph is nomralized
+     *            and augmented with transitive losure.
      * @throws DivException
      * @since 0.1
      */
     public void importResource(
             LexicalResource lexicalResource,
-            String lexicalResourceId) {
+            String lexicalResourceId,
+            boolean augmentGraph) {
         LOG.info("Going to save lexical resource to database...");
         try {
             new JavaToDbTransformer(dbConfig, lexicalResource, lexicalResourceId).transform();
@@ -526,6 +547,10 @@ public class Diversicon extends Uby {
             throw new DivException("Error when importing lexical resource " + lexicalResourceId + " !", ex);
         }
         LOG.info("Done saving.");
+
+        if (augmentGraph) {
+            augmentGraph();
+        }
     }
 
     /**
@@ -547,36 +572,52 @@ public class Diversicon extends Uby {
     }
 
     /**
+     * See {@link #isConnected(String, String, int, List)}
+     *
+     * @since 0.1
+     */
+    public boolean isConnected(
+            String sourceSynsetId,
+            String targetSynsetId,
+            int depth,
+            String... relNames) {
+        return isConnected(sourceSynsetId, targetSynsetId, depth, Arrays.asList(relNames));
+    }
+
+    
+    /**
      * 
-     * Returns true if {@code targetSynset} is reachable from
-     * {@code sourceSynset} along some
-     * path of {@code relNames} within given depth. In order to actually find
-     * them,
-     * relations in {@code relNames} must be among the ones for which transitive
-     * closure is computed (or their inverses).
-     * (see {@link Diversicons#getKnownRelations()}).
+     * Returns true if {@code sourceSynset} is connected to {@code targetSynset}
+     * with some relation
+     * {@code relNames} within given {@code depth}. This function only looks for
+     * edges already
+     * present in the database, without calculating new ones (except for known
+     * inverses).
      * 
      * @param sourceSynset
      *            the source synset
      * @param targetSynset
      *            the target synset
      * @param depth
-     *            the maximum number of edges explored along any path.
-     *            if {@code -1} full paths are explored. If {@code zero}
+     *            the maximum edge depth for relations.
+     *            if {@code -1} no depth limit is applied. If {@code zero}
      *            returns true only if source and target coincide.
      * @param relNames
-     *            if none is provided returns true only if source and target
+     *            the relation names (in particular see
+     *            {@link ERelNameSemantics}). if none is provided returns true
+     *            only if source and target
      *            coincide.
      * 
+     * @since 0.1
      */
-    public boolean isReachable(
-            String sourceSynsetId, 
+    public boolean isConnected(
+            String sourceSynsetId,
             String targetSynsetId,
-            int depth, 
+            int depth,
             List<String> relNames) {
-        
+
         checkNotEmpty(sourceSynsetId, "Invalid source synset id!");
-        checkNotEmpty(targetSynsetId, "Invalid target synset id!");        
+        checkNotEmpty(targetSynsetId, "Invalid target synset id!");
         checkNotNull(relNames, "Invalid relation names!");
 
         checkArgument(depth >= -1, "Depth must be >= -1 , found instead: " + depth);
@@ -602,9 +643,9 @@ public class Diversicon extends Uby {
 
         String depthConstraint;
         if (depth == -1) {
-            depthConstraint = "";            
+            depthConstraint = "";
         } else {
-            depthConstraint = " SR.depth <= " + depth + " AND ";            
+            depthConstraint = " SR.depth <= " + depth + " AND ";
         }
 
         String directHsql;
@@ -616,7 +657,7 @@ public class Diversicon extends Uby {
                     + "     SR.source.id = :sourceSynsetId"
                     + "     AND   SR.target.id = :targetSynsetId"
                     + "     AND   SR.relName IN " + makeSqlList(directRelations)
-                    + " )";                                        
+                    + " )";
         }
 
         String inverseHsql;
@@ -624,9 +665,9 @@ public class Diversicon extends Uby {
             inverseHsql = "";
         } else {
             inverseHsql = ""
-                    + "  ("   
+                    + "  ("
                     + "      SR.source.id = :targetSynsetId"
-                    + "      AND SR.target.id = :sourceSynsetId"                    
+                    + "      AND SR.target.id = :sourceSynsetId"
                     + "      AND SR.relName IN " + makeSqlList(inverseRelations)
                     + "  )";
 

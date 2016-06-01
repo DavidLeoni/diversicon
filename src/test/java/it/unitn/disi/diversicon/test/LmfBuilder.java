@@ -1,9 +1,11 @@
 package it.unitn.disi.diversicon.test;
 
+import de.tudarmstadt.ukp.lmf.model.core.Definition;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalEntry;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
 import de.tudarmstadt.ukp.lmf.model.core.Sense;
+import de.tudarmstadt.ukp.lmf.model.core.TextRepresentation;
 import de.tudarmstadt.ukp.lmf.model.morphology.FormRepresentation;
 import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
@@ -12,6 +14,7 @@ import it.unitn.disi.diversicon.DivSynsetRelation;
 import it.unitn.disi.diversicon.internal.Internals;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
+import static it.unitn.disi.diversicon.internal.Internals.newArrayList;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -78,13 +81,29 @@ public class LmfBuilder {
         return name + " " + (c.size() + 1);
     }
 
+    
     public LmfBuilder synset() {
         checkBuilt();
         Synset synset = new Synset();
         Lexicon lexicon = getCurLexicon();
-        synset.setId(id("synset", lexicon.getSynsets()));
+        synset.setId(id("synset", lexicon.getSynsets()));        
+        
         lexicon.getSynsets()
                .add(synset);
+        return this;
+    }
+    
+    /**
+     * Creates a definition and attaches it to current synset
+     */
+    // todo what about sense definitions?
+    public LmfBuilder definition(String writtenText){
+        checkNotEmpty(writtenText, "Invalid written text!");
+        Definition def = new Definition();
+        TextRepresentation textRepr = new TextRepresentation();
+        textRepr.setWrittenText(writtenText);
+        def.setTextRepresentations(newArrayList(textRepr));
+        getCurSynset().getDefinitions().add(def);
         return this;
     }
 
@@ -219,6 +238,7 @@ public class LmfBuilder {
     public LmfBuilder lexicalEntry(String writtenForm) {
         return lexicalEntry(writtenForm, getCurSynset().getId());
     }
+    
     
     /**
      * Automatically creates a Sense and Lemma with given {@code writtenForm}

@@ -22,6 +22,7 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import javax.annotation.Nullable;
 
 import de.tudarmstadt.ukp.lmf.hibernate.HibernateConnect;
+import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 
@@ -65,7 +66,6 @@ public final class Diversicons {
     private static LinkedHashMap<String, String> customClassMappings;
 
     static {
-        putRelations(ANTONYM, ANTONYM, ERelTypeSemantics.complementary, false, false);
         putRelations(HYPERNYM, HYPONYM, ERelTypeSemantics.taxonomic, true, false);
         putRelations(HYPERNYMINSTANCE, HYPONYMINSTANCE, ERelTypeSemantics.taxonomic, true, false);
         putRelations(HOLONYM, MERONYM, ERelTypeSemantics.partWhole, true, true);
@@ -74,7 +74,9 @@ public final class Diversicons {
         putRelations(HOLONYMPART, MERONYMPART, ERelTypeSemantics.partWhole, true, true);
         putRelations(HOLONYMPORTION, MERONYMPORTION, ERelTypeSemantics.partWhole, true, true);
         putRelations(HOLONYMSUBSTANCE, MERONYMSUBSTANCE, ERelTypeSemantics.partWhole, true, true);
-        
+        putRelations(SYNONYM, SYNONYM, ERelTypeSemantics.association, false, false);
+        putRelations(SYNONYMNEAR, SYNONYMNEAR, ERelTypeSemantics.association, false, false);
+        putRelations(ANTONYM, ANTONYM, ERelTypeSemantics.complementary, false, false);        
 
         customClassMappings = new LinkedHashMap();
         customClassMappings.put(de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation.class.getCanonicalName(),
@@ -335,7 +337,7 @@ public final class Diversicons {
     
     /**
      * Returns true if provided relation is canonical, that is, is privileged wrt 
-     * the inverse it might have (Example: since hyperny is considered as canonical, transitive 
+     * the inverse it might have (example: since hypernymy is considered as canonical, transitive 
      * closure graph is computed only for hypernym, not hyponym)
      * 
      * @since 0.1
