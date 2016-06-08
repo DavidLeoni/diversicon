@@ -6,8 +6,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.slf4j.Logger;
-
 
 /**
  * Statistics about edge insertions into the SynsetRelation graph.

@@ -124,7 +124,7 @@ public class DivUtilsTest {
 
         Diversicon div = Diversicon.create(dbConfig);
 
-        div.importResource(lexicalResource1, "lexical resource 1", false);
+        div.importResource(lexicalResource1, "lexical resource 1", true);
         
         DivTester.checkDb(lexicalResource1, div);
         

@@ -7,13 +7,17 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
 
 import org.hibernate.CacheMode;
+import org.hibernate.Criteria;
 import org.hibernate.Query;
 import org.hibernate.ScrollMode;
 import org.hibernate.ScrollableResults;
@@ -35,6 +39,8 @@ import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
+import de.tudarmstadt.ukp.lmf.transform.LMFDBTransformer;
+import de.tudarmstadt.ukp.lmf.transform.UBYHibernateTransformer;
 import de.tudarmstadt.ukp.lmf.transform.XMLToDBTransformer;
 import it.unitn.disi.diversicon.internal.Internals;
 
@@ -52,20 +58,45 @@ import it.unitn.disi.diversicon.internal.Internals;
  */
 public class Diversicon extends Uby {
 
+    /**
+     * The version of the currently supported schema.
+     * 
+     * @since 0.1.0
+     */
+    public static final String DIVERSICON_SCHEMA_VERSION = "1.0";
+
     private static final Logger LOG = LoggerFactory.getLogger(Diversicon.class);
+
+    /**
+     * Maps a Diversicon Session hashcode to its Diversicon
+     */
+    private static final Map<Integer, Diversicon> INSTANCES = new HashMap();
 
     /**
      * Amount of items to flush when writing into db with Hibernate.
      */
     private static final int BATCH_FLUSH_COUNT = 20;
 
+    /**
+     * @since 0.1
+     */
+    public static final String DEFAULT_AUTHOR = "Default author";
+
+    /**
+     * The url protocol for lexical resources loaded from memory.
+     */
+    public static final String MEMORY_PROTOCOL = "memory";
+
+    /**
+     * @since 0.1
+     */
     protected Diversicon(DBConfig dbConfig) {
         super(); // so it doesn't open connections! Let's hope they don't delete
                  // it!
         checkNotNull(dbConfig, "database configuration is null");
 
         this.dbConfig = dbConfig;
-        
+
         if (Diversicons.exists(dbConfig)) {
             LOG.info("Reusing existing database at " + dbConfig.getJdbc_url());
             cfg = Diversicons.getHibernateConfig(dbConfig, true);
@@ -83,22 +114,24 @@ public class Diversicon extends Uby {
 
     /**
      * Note: search is done by exact match on {@code wirttenForm}
-     *  
+     * 
      * @since 0.1
      */
-    // todo not so clear how lemmas are supposed to work
-    public List<Lemma> getLemmasByWrittenForm(String writtenForm){                       
+    // todo review, not so clear how lemmas are supposed to work
+    public List<Lemma> getLemmasByWrittenForm(String writtenForm) {
         checkNotEmpty(writtenForm, "Invalid written form!");
-        
-        // searching only in lemmas because UBY wordnet only generates lemmas FormRepresentations
-        // and doesn't create any WordForm  (see https://github.com/dkpro/dkpro-uby/blob/5cab2846e3c27069c08ebd3bf91bd5a6f8ed02ca/de.tudarmstadt.ukp.uby.integration.wordnet-gpl/src/main/java/de/tudarmstadt/ukp/lmf/transform/wordnet/LexicalEntryGenerator.java#L271)  
-        
+
+        // searching only in lemmas because UBY wordnet only generates lemmas
+        // FormRepresentations
+        // and doesn't create any WordForm (see
+        // https://github.com/dkpro/dkpro-uby/blob/5cab2846e3c27069c08ebd3bf91bd5a6f8ed02ca/de.tudarmstadt.ukp.uby.integration.wordnet-gpl/src/main/java/de/tudarmstadt/ukp/lmf/transform/wordnet/LexicalEntryGenerator.java#L271)
+
         @SuppressWarnings("unchecked")
-        List<Lemma> lemmas = session.createCriteria(Lemma.class)                
-                .createCriteria("formRepresentations")
-                    .add(Restrictions.like("writtenForm", writtenForm) )
-                .list();
-        
+        List<Lemma> lemmas = session.createCriteria(Lemma.class)
+                                    .createCriteria("formRepresentations")
+                                    .add(Restrictions.like("writtenForm", writtenForm))
+                                    .list();
+
         return lemmas;
     }
 
@@ -107,21 +140,25 @@ public class Diversicon extends Uby {
      * 
      * @since 0.1
      */
-    public List<String> getLemmaStringsByWrittenForm(String writtenForm){      
+    public List<String> getLemmaStringsByWrittenForm(String writtenForm) {
         List<Lemma> lemmas = getLemmasByWrittenForm(writtenForm);
-        
+
         List<String> ret = new ArrayList();
-        for (Lemma lemma : lemmas){
-            if (lemma.getFormRepresentations().isEmpty()){
-                LOG.error("Found a lemma with no form representation! Lemma's lexical entry is " + lemma.getLexicalEntry().getId());
+        for (Lemma lemma : lemmas) {
+            if (lemma.getFormRepresentations()
+                     .isEmpty()) {
+                LOG.error(
+                        "Found a lemma with no form representation! Lemma's lexical entry is " + lemma.getLexicalEntry()
+                                                                                                      .getId());
             } else {
-                ret.add(lemma.getFormRepresentations().get(0).getWrittenForm());
+                ret.add(lemma.getFormRepresentations()
+                             .get(0)
+                             .getWrittenForm());
             }
         }
         return ret;
     }
-    
-    
+
     /**
      * Finds all of the synsets to which {@code synsetId} is connected with
      * edges of
@@ -134,7 +171,7 @@ public class Diversicon extends Uby {
      *            the maximum depth edges can have. If -1 no depth limit is
      *            applied.
      *            If zero an empty set iterator is returned.
-     *            
+     * 
      * @since 0.1
      */
     public Iterator<Synset> getConnectedSynsets(
@@ -236,19 +273,38 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * Augments the synsetRelation graph with transitive closure of
-     * {@link Diversicons#getKnownRelations() canonical relations}
-     * and eventally adds needed symmetric relations.
+     * Normalizes and augments the synsetRelation graph with edges to speed up
+     * searches.
      * 
      * @since 0.1
      */
     // todo what about provenance? todo instances?
-    public void augmentGraph() {
+    public void processGraph() {
 
         normalizeGraph();
 
         computeTransitiveClosure();
 
+    }
+
+    /**
+     * Returns the {@link DbInfo}
+     * 
+     * @throws DivNotFoundException
+     *             if dbInfo is not found
+     * @since 0.1
+     */
+    public DbInfo getDbInfo() {
+                
+        Criteria crit = session.createCriteria(DbInfo.class);
+        crit.setMaxResults(50);
+        DbInfo ret = (DbInfo) crit.uniqueResult();
+        
+        if (ret == null) {
+            throw new DivNotFoundException("Couldn't find DbInfo in the database!!");
+        } else {
+            return ret;
+        }
     }
 
     /**
@@ -298,148 +354,62 @@ public class Diversicon extends Uby {
 
     /*
      * Adds missing edges of depth 1 for relations we consider as canonical.
+     * 
+     * @throws DivException
      */
     private void normalizeGraph() {
         LOG.warn("TODO: SHOULD CHECK FOR LOOPS!");
 
-        Session session = sessionFactory.openSession();
-        Transaction tx = session.beginTransaction();
+        Transaction tx = null;
+        try {
+            tx = session.beginTransaction();
 
-        String hql = "FROM Synset";
-        Query query = session.createQuery(hql);
+            String hql = "FROM Synset";
+            Query query = session.createQuery(hql);
 
-        ScrollableResults synsets = query
-                                         .setCacheMode(CacheMode.IGNORE)
-                                         .scroll(ScrollMode.FORWARD_ONLY);
-        int count = 0;
-
-        InsertionStats relStats = new InsertionStats();
-
-        while (synsets.next()) {
-
-            Synset synset = (Synset) synsets.get(0);
-            LOG.info("Processing synset with id " + synset.getId() + " ...");
-
-            List<SynsetRelation> relations = synset.getSynsetRelations();
-
-            for (SynsetRelation sr : relations) {
-                DivSynsetRelation ssr = (DivSynsetRelation) sr;
-
-                if (Diversicons.hasInverse(ssr.getRelName())) {
-                    String inverseRelName = Diversicons.getInverse(ssr.getRelName());
-                    if (Diversicons.isCanonicalRelation(inverseRelName)
-                            && Diversicons.isTransitive(inverseRelName)
-                            && !containsRel(ssr.getTarget(),
-                                    ssr.getSource(),
-                                    inverseRelName)) {
-                        DivSynsetRelation newSsr = new DivSynsetRelation();
-
-                        newSsr.setDepth(1);
-                        newSsr.setProvenance(Diversicon.getProvenanceId());
-                        newSsr.setRelName(inverseRelName);
-                        newSsr.setRelType(Diversicons.getRelationType(inverseRelName));
-                        newSsr.setSource(ssr.getTarget());
-                        newSsr.setTarget(ssr.getSource());
-
-                        ssr.getTarget()
-                           .getSynsetRelations()
-                           .add(newSsr);
-                        session.save(newSsr);
-                        session.saveOrUpdate(ssr.getTarget());
-                        relStats.inc(inverseRelName);
-                    }
-                }
-
-            }
-
-            if (++count % BATCH_FLUSH_COUNT == 0) {
-                // flush a batch of updates and release memory:
-                session.flush();
-                session.clear();
-            }
-        }
-
-        tx.commit();
-
-        LOG.info("");
-        LOG.info("Done normalizing SynsetRelations:");
-        LOG.info("");
-        LOG.info(relStats.toString());
-    }
-
-    /**
-     * Before calling this, the graph has to be normalized by calling
-     * {@link #normalizeGraph()}
-     */
-    private void computeTransitiveClosure() {
-
-        LOG.info("Computing transitive closure for SynsetRelations ...");
-
-        Session session = sessionFactory.openSession();
-        Transaction tx = session.beginTransaction();
-
-        InsertionStats relStats = new InsertionStats();
-
-        int depthToSearch = 1;
-        int count = 0;
-
-        // As: the edges computed so far
-        // Bs: original edges
-
-        String hqlSelect = "    SELECT SR_A.source, SR_B.target,  SR_A.relName"
-                + "      FROM SynsetRelation SR_A, SynsetRelation SR_B"
-                + "      WHERE"
-                + "          SR_A.relName IN " + makeSqlList(Diversicons.getRelations())
-                + "      AND SR_A.depth = :depth"
-                + "      AND SR_B.depth = 1"
-                + "      AND SR_A.relName = SR_B.relName"
-                + "      AND SR_A.target = SR_B.source"
-                // don't want to add twice edges
-                + "      AND NOT EXISTS"
-                + "             ("
-                + "               "
-                + "               FROM SynsetRelation SR_C"
-                + "               WHERE "
-                + "                         SR_A.relName = SR_C.relName"
-                + "                    AND  SR_A.source=SR_C.source"
-                + "                    AND  SR_B.target=SR_C.target"
-                + "             )";
-
-        int processedRelationsInCurLevel = 0;
-
-        do {
-            processedRelationsInCurLevel = 0;
-
-            // log.info("Augmenting SynsetRelation graph with edges of depth " +
-            // (depthToSearch + 1) + " ...");
-
-            Query query = session.createQuery(hqlSelect);
-            query.setParameter("depth", depthToSearch);
-
-            ScrollableResults results = query
+            ScrollableResults synsets = query
                                              .setCacheMode(CacheMode.IGNORE)
                                              .scroll(ScrollMode.FORWARD_ONLY);
-            while (results.next()) {
+            int count = 0;
 
-                Synset source = (Synset) results.get(0);
-                Synset target = (Synset) results.get(1);
-                String relName = (String) results.get(2);
+            InsertionStats relStats = new InsertionStats();
 
-                DivSynsetRelation ssr = new DivSynsetRelation();
-                ssr.setDepth(depthToSearch + 1);
-                ssr.setProvenance(Diversicon.getProvenanceId());
-                ssr.setRelName(relName);
-                ssr.setRelType(Diversicons.getRelationType(relName));
-                ssr.setSource(source);
-                ssr.setTarget(target);
+            while (synsets.next()) {
 
-                source.getSynsetRelations()
-                      .add(ssr);
-                session.save(ssr);
-                session.saveOrUpdate(source);
-                // log.info("Inserted " + ssr.toString());
-                relStats.inc(relName);
-                processedRelationsInCurLevel += 1;
+                Synset synset = (Synset) synsets.get(0);
+                LOG.info("Processing synset with id " + synset.getId() + " ...");
+
+                List<SynsetRelation> relations = synset.getSynsetRelations();
+
+                for (SynsetRelation sr : relations) {
+                    DivSynsetRelation ssr = (DivSynsetRelation) sr;
+
+                    if (Diversicons.hasInverse(ssr.getRelName())) {
+                        String inverseRelName = Diversicons.getInverse(ssr.getRelName());
+                        if (Diversicons.isCanonicalRelation(inverseRelName)
+                                && Diversicons.isTransitive(inverseRelName)
+                                && !containsRel(ssr.getTarget(),
+                                        ssr.getSource(),
+                                        inverseRelName)) {
+                            DivSynsetRelation newSsr = new DivSynsetRelation();
+
+                            newSsr.setDepth(1);
+                            newSsr.setProvenance(Diversicon.getProvenanceId());
+                            newSsr.setRelName(inverseRelName);
+                            newSsr.setRelType(Diversicons.getRelationType(inverseRelName));
+                            newSsr.setSource(ssr.getTarget());
+                            newSsr.setTarget(ssr.getSource());
+
+                            ssr.getTarget()
+                               .getSynsetRelations()
+                               .add(newSsr);
+                            session.save(newSsr);
+                            session.saveOrUpdate(ssr.getTarget());
+                            relStats.inc(inverseRelName);
+                        }
+                    }
+
+                }
 
                 if (++count % BATCH_FLUSH_COUNT == 0) {
                     // flush a batch of updates and release memory:
@@ -448,54 +418,213 @@ public class Diversicon extends Uby {
                 }
             }
 
-            depthToSearch += 1;
+            DbInfo dbInfo = getDbInfo();
+            dbInfo.setToNormalize(false);
+            session.saveOrUpdate(dbInfo);
 
-        } while (processedRelationsInCurLevel > 0);
+            tx.commit();
 
-        tx.commit();
+            LOG.info("");
+            LOG.info("Done normalizing SynsetRelations:");
+            LOG.info("");
+            LOG.info(relStats.toString());
 
-        LOG.info("");
-        LOG.info("Done computing transitive closure for SynsetRelations:");
-        LOG.info("");
-        LOG.info(relStats.toString());
+        } catch (Exception ex) {
+            LOG.error("Error while normalizing graph! Rolling back!");
+            if (tx != null) {
+                tx.rollback();
+            }
+            throw new DivException("Error while computing normalizing graph!", ex);
+        }
     }
 
     /**
-     * See {@link #importFiles(Collection, Collection)}
+     * Computes the transitive closure of
+     * {@link Diversicons#getCanonicalTransitiveRelations() canonical relations}
+     * 
+     * Before calling this, the graph has to be normalized by calling
+     * {@link #normalizeGraph()}
+     * 
+     * @throws DivException
+     *             when transaction goes wrong it is automatically rolled back
+     *             and DivException is thrown
      */
-    public void importFiles(String filepath,
+    private void computeTransitiveClosure() {
+
+        LOG.info("Computing transitive closure for SynsetRelations ...");
+
+        Transaction tx = null;
+        try {
+            tx = session.beginTransaction();
+
+            InsertionStats relStats = new InsertionStats();
+
+            int depthToSearch = 1;
+            int count = 0;
+
+            // As: the edges computed so far
+            // Bs: original edges
+
+            String hqlSelect = "    SELECT SR_A.source, SR_B.target,  SR_A.relName"
+                    + "      FROM SynsetRelation SR_A, SynsetRelation SR_B"
+                    + "      WHERE"
+                    + "          SR_A.relName IN " + makeSqlList(Diversicons.getRelations())
+                    + "      AND SR_A.depth = :depth"
+                    + "      AND SR_B.depth = 1"
+                    + "      AND SR_A.relName = SR_B.relName"
+                    + "      AND SR_A.target = SR_B.source"
+                    // don't want to add twice edges
+                    + "      AND NOT EXISTS"
+                    + "             ("
+                    + "               "
+                    + "               FROM SynsetRelation SR_C"
+                    + "               WHERE "
+                    + "                         SR_A.relName = SR_C.relName"
+                    + "                    AND  SR_A.source=SR_C.source"
+                    + "                    AND  SR_B.target=SR_C.target"
+                    + "             )";
+
+            int processedRelationsInCurLevel = 0;
+
+            do {
+                processedRelationsInCurLevel = 0;
+
+                // log.info("Augmenting SynsetRelation graph with edges of depth
+                // " +
+                // (depthToSearch + 1) + " ...");
+
+                Query query = session.createQuery(hqlSelect);
+                query.setParameter("depth", depthToSearch);
+
+                ScrollableResults results = query
+                                                 .setCacheMode(CacheMode.IGNORE)
+                                                 .scroll(ScrollMode.FORWARD_ONLY);
+                while (results.next()) {
+
+                    Synset source = (Synset) results.get(0);
+                    Synset target = (Synset) results.get(1);
+                    String relName = (String) results.get(2);
+
+                    DivSynsetRelation ssr = new DivSynsetRelation();
+                    ssr.setDepth(depthToSearch + 1);
+                    ssr.setProvenance(Diversicon.getProvenanceId());
+                    ssr.setRelName(relName);
+                    ssr.setRelType(Diversicons.getRelationType(relName));
+                    ssr.setSource(source);
+                    ssr.setTarget(target);
+
+                    source.getSynsetRelations()
+                          .add(ssr);
+                    session.save(ssr);
+                    session.saveOrUpdate(source);
+                    // log.info("Inserted " + ssr.toString());
+                    relStats.inc(relName);
+                    processedRelationsInCurLevel += 1;
+
+                    if (++count % BATCH_FLUSH_COUNT == 0) {
+                        // flush a batch of updates and release memory:
+                        session.flush();
+                        session.clear();
+                    }
+                }
+
+                depthToSearch += 1;
+
+            } while (processedRelationsInCurLevel > 0);
+
+            DbInfo dbInfo = getDbInfo();
+            dbInfo.setToAugment(false);
+            session.saveOrUpdate(dbInfo);
+
+            tx.commit();
+
+            LOG.info("");
+            LOG.info("Done computing transitive closure for SynsetRelations:");
+            LOG.info("");
+            LOG.info(relStats.toString());
+        } catch (Exception ex) {
+            LOG.error("Error while computing transitive closure! Rolling back!");
+            if (tx != null) {
+                tx.rollback();
+            }
+            throw new DivException("Error while computing transitive closure!", ex);
+        }
+    }
+
+    /**
+     * See {@link #importFiles(ImportConfig)}
+     * 
+     * @since 0.1
+     */
+    public void importFile(String filepath,
             String lexicalResourceName) {
 
-        importFiles(Arrays.asList(filepath), Arrays.asList(lexicalResourceName));
+        ImportConfig config = new ImportConfig();
+
+        config.setAuthor(DEFAULT_AUTHOR);
+        config.setFileUrls(Arrays.asList(filepath));
+        config.setLexicalResourceNames(Arrays.asList(lexicalResourceName));
+
+        importFiles(config);
     }
 
     /**
-     * Imports provided resources into db and automatically augments graph with
-     * transitive
-     * closure at the end of the loading.
+     * Each imported file is going to be a separate transaction. In case one
+     * fails... TODO!
      * 
-     * @param filepaths
-     *            paths to lmf xml files
-     * @param lexicalResourceName
-     *            todo meaning? name seems not be required to be in the xml
+     * @since 0.1
      */
-    // todo think about .sql files
-    public void importFiles(Collection<String> filepaths,
-            Collection<String> lexicalResourceNames) {
+    public void importFiles(ImportConfig config) {
+        checkNotNull(config);
 
-        checkNotEmpty(filepaths, "invalid filepaths length!");
-        checkNotEmpty(lexicalResourceNames, "invalid lexicalResourceNames length!");
+        checkNotEmpty(config.getAuthor(), "Invalid ImportConfig author!");
+        checkNotEmpty(config.getFileUrls(), "Invalid ImportConfig filepaths!");
+        checkNotEmpty(config.getFileUrls(), "Invalid ImportConfig lexicalResourceNames!");
+        checkNotEmpty(config.getLexicalResourceNames(), "Invalid ImportConfig lexicalResourceNames!");
 
-        Internals.checkArgument(filepaths.size() == lexicalResourceNames.size(),
+        Internals.checkArgument(config.getFileUrls()
+                                      .size() == config.getLexicalResourceNames()
+                                                       .size(),
                 "Lexical resource names don't match with files! Found "
-                        + filepaths.size() + " filepaths and " + lexicalResourceNames.size() + " resource names");
+                        + config.getFileUrls()
+                                .size()
+                        + " filepaths and " + config.getLexicalResourceNames()
+                                                    .size()
+                        + " resource names");
 
-        Iterator<String> namesIter = lexicalResourceNames.iterator();
+        LOG.info("Going to import " + config.getFileUrls()
+                                            .size()
+                + " files by import author " + config.getAuthor() + "...");
 
-        for (String filepath : filepaths) {
+        Transaction tx = null;
+        try {
+
+            tx = session.beginTransaction();
+
+            DbInfo dbInfo = getDbInfo();
+            dbInfo.setToNormalize(true);
+            dbInfo.setToAugment(true);
+            session.saveOrUpdate(dbInfo);
+
+            tx.commit();
+        } catch (Exception ex) {
+            LOG.error("Error while setting normalize/augment flags in db, rolling back!");
+            if (tx != null) {
+                tx.rollback();
+            }
+
+            throw new DivException("Error while setting normalize flag in db", ex);
+        }
+
+        Iterator<String> namesIter = config.getLexicalResourceNames()
+                                           .iterator();
+
+        for (String filepath : config.getFileUrls()) {
             String lexicalResourceName = namesIter.next();
 
             LOG.info("Loading LMF : " + filepath + " with lexical resource name " + lexicalResourceName + " ...");
+
+            ImportJob job = startImportJob(config, filepath, lexicalResourceName);
 
             XMLToDBTransformer trans = new XMLToDBTransformer(dbConfig);
 
@@ -506,15 +635,76 @@ public class Diversicon extends Uby {
             }
 
             LOG.info("Done loading LMF : " + filepath + " with lexical resource name " + lexicalResourceName + " .");
+
+            endImportJob(job);
         }
 
         try {
-            augmentGraph();
+            if (config.isSkipAugment()) {
+                LOG.info("Skipping graph augmentation as requested by user.");
+            } else {
+                processGraph();
+
+            }
         } catch (Exception ex) {
             throw new DivException("Error while augmenting graph with computed edges!", ex);
         }
 
-        LOG.info("Done loading LMFs.");
+        LOG.info("Done importing " + config.getFileUrls()
+                                           .size()
+                + " LMFs by import author " + config.getAuthor() + ".");
+
+    }
+
+    private void endImportJob(ImportJob job) {
+        checkNotNull(job);
+
+        Transaction tx = null;
+        try {
+            tx = session.beginTransaction();
+            job.setEndDate(new Date());
+            session.saveOrUpdate(job);
+
+            tx.commit();
+
+        } catch (Exception ex) {
+            LOG.error("Error while ending import job in db, rolling back!");
+            if (tx != null) {
+                tx.rollback();
+            }
+
+            throw new DivException("Error while ending import job in db!", ex);
+        }
+
+    }
+
+    private ImportJob startImportJob(ImportConfig config, String filepath, String lexicalResourceName) {
+
+        Transaction tx = null;
+        try {
+            tx = session.beginTransaction();
+
+            ImportJob job = new ImportJob();
+
+            job.setAuthor(config.getAuthor());
+            job.setDescription(config.getDescription());
+            job.setStartDate(new Date());
+            job.setFileUrl(filepath);
+            job.setLexicalResourceName(lexicalResourceName);
+
+            session.saveOrUpdate(job);
+            
+            tx.commit();
+            return job;
+
+        } catch (Exception ex) {
+            LOG.error("Error while adding import job in db, rolling back!");
+            if (tx != null) {
+                tx.rollback();
+            }
+
+            throw new DivException("Error while adding import job in db!", ex);
+        }
     }
 
     /**
@@ -530,7 +720,7 @@ public class Diversicon extends Uby {
      * 
      * @param lexicalResourceId
      *            todo don't know well the meaning
-     * @param augmentGraph
+     * @param skipAugment
      *            if true after the import the graph is nomralized
      *            and augmented with transitive losure.
      * @throws DivException
@@ -539,17 +729,31 @@ public class Diversicon extends Uby {
     public void importResource(
             LexicalResource lexicalResource,
             String lexicalResourceId,
-            boolean augmentGraph) {
+            boolean skipAugment) {
         LOG.info("Going to save lexical resource to database...");
         try {
-            new JavaToDbTransformer(dbConfig, lexicalResource, lexicalResourceId).transform();
+            ImportConfig config = new ImportConfig();
+            config.setSkipAugment(skipAugment);
+            config.setAuthor(DEFAULT_AUTHOR);
+            
+            String fileUrl = MEMORY_PROTOCOL + ":" + lexicalResource.hashCode();
+
+            config.addLexicalResource(fileUrl, lexicalResourceId);
+
+            ImportJob job = startImportJob(config, fileUrl, lexicalResourceId);
+
+            new JavaToDbTransformer(dbConfig, lexicalResource, lexicalResourceId)
+                                                                                 .transform();
+
+            endImportJob(job);
+
         } catch (Exception ex) {
             throw new DivException("Error when importing lexical resource " + lexicalResourceId + " !", ex);
         }
         LOG.info("Done saving.");
 
-        if (augmentGraph) {
-            augmentGraph();
+        if (skipAugment) {
+            processGraph();
         }
     }
 
@@ -562,12 +766,23 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * Creates an instance of a Diversicon.
+     * Creates an instance of a Diversicon and opens a connection to the db. 
+     * If db doesn't exist it is created. If it already exists, present schema is validated against required one
+     * and if it doesn't match an exception is thrown. 
      * 
      * @param dbConfig
+     * @since 0.1
+     * @throws DivException
      */
     public static Diversicon create(DBConfig dbConfig) {
         Diversicon ret = new Diversicon(dbConfig);
+        int hashcode = ret.getSession()
+                          .hashCode();
+        if (INSTANCES.containsKey(hashcode)) {
+            throw new DivException("INTERNAL ERROR: Seems like there is some sort of duplicate Diversicon session!!");
+        }
+        INSTANCES.put(hashcode, ret);
+
         return ret;
     }
 
@@ -584,7 +799,6 @@ public class Diversicon extends Uby {
         return isConnected(sourceSynsetId, targetSynsetId, depth, Arrays.asList(relNames));
     }
 
-    
     /**
      * 
      * Returns true if {@code sourceSynset} is connected to {@code targetSynset}
@@ -699,4 +913,25 @@ public class Diversicon extends Uby {
                     .hasNext();
     }
 
+    /**
+     * Returns a nicely formatted import log
+     */
+    public String importLog() {
+        StringBuilder sb = new StringBuilder();
+        throw new UnsupportedOperationException("TODO implement me!");
+    }
+
+    /**
+     * A list of the imports performed so far. 
+     * 
+     * @since 0.1
+     *
+     */
+    public List<ImportJob> getImportJobs(){
+        Criteria crit = session.createCriteria(ImportJob.class);        
+        List<ImportJob> ret = crit.list();
+        return ret;        
+    }
+     
+    
 }

@@ -11,6 +11,7 @@ import java.util.Set;
 
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.service.ServiceRegistryBuilder;
 import org.hibernate.tool.hbm2ddl.SchemaExport;
@@ -20,6 +21,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
 import javax.annotation.Nullable;
+
 
 import de.tudarmstadt.ukp.lmf.hibernate.HibernateConnect;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
@@ -196,9 +198,21 @@ public final class Diversicons {
         SchemaExport se = new SchemaExport(hcfg);
         se.create(true, true);
 
-        DbInfo dbInfo = new DbInfo();
         Session session = openSession(dbConfig, false);
-        session.save(dbInfo);
+        Transaction tx = null;
+        try {
+            tx = session.beginTransaction();
+            DbInfo dbInfo = new DbInfo();                                    
+            session.save(dbInfo);          
+            tx.commit();
+        } catch (Exception ex) {
+            LOG.error("Error while saving DbInfo! Rolling back!");
+            if (tx != null) {
+                tx.rollback();
+            }
+            throw new DivException("Error while while saving DbInfo!", ex);
+        }
+        
         session.flush();
         session.close();
 
@@ -483,4 +497,5 @@ public final class Diversicons {
         checkNotEmpty(relName, "Invalid relation name!");
         return partOfRelations.contains(relName);
     }
+    
 }

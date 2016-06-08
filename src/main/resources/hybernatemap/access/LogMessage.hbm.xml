@@ -1,0 +1,22 @@
+<?xml version="1.0"?><!DOCTYPE hibernate-mapping PUBLIC
+ "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<hibernate-mapping >  
+<class name="it.unitn.disi.diversicon.LogMessage" 
+	   table="LogMessage" 
+	   node="LogMessage" 
+	   dynamic-insert="true">
+   
+    <id column="id" type="long">
+           <generator class="sequence"/>
+    </id>
+      
+   <property name="message" column="message" node="@message" type="string"/>
+   <property name="level" column="level" node="@level" type="string"/>            
+  			
+  <many-to-one name="importJob" class="it.unitn.disi.diversicon.ImportJob" fetch="select">
+            <column name="importJobId" not-null="true" />
+  </many-to-one>
+</class>
+
+</hibernate-mapping>

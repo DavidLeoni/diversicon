@@ -10,6 +10,7 @@ import java.util.List;
 import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,9 +24,9 @@ import it.unitn.disi.diversicon.Diversicons;
  * Experiments in Hibernate Hell.
  *
  */
-public class HibernateExperimentsTest {
+public class ExperimentsTest {
 
-    private static final Logger log = LoggerFactory.getLogger(HibernateExperimentsTest.class);
+    private static final Logger log = LoggerFactory.getLogger(ExperimentsTest.class);
 
     /**
      * Adds missing edges for relations we consider as canonical
@@ -37,8 +38,7 @@ public class HibernateExperimentsTest {
 
         log.info("Going to normalizing graph with canonical relations ...");
 
-        DBConfig dbConfig = new DBConfig("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1", "org.h2.Driver",
-                UBYH2Dialect.class.getName(), "root", "pass", true);
+        DBConfig dbConfig = DivTester.createDbConfig();
 
         Diversicon uby = Diversicon.create(dbConfig);
 
@@ -218,4 +218,12 @@ public class HibernateExperimentsTest {
         }
 
     }
+    
+    @Test
+    public void testLogger(){
+        Logger logger = LoggerFactory.getLogger(Diversicon.class);
+        
+        logger.info("zumzum");
+    }
+    
 }

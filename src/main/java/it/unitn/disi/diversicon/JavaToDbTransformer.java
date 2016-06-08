@@ -42,7 +42,7 @@ import it.unitn.disi.diversicon.internal.Internals;
  */
 class JavaToDbTransformer extends LMFDBTransformer {
 	
-	private static final Logger log = LoggerFactory.getLogger(JavaToDbTransformer.class);
+	private static final Logger LOG = LoggerFactory.getLogger(JavaToDbTransformer.class);
 
 	private LexicalResource lexicalResource;
 	private String lexicalResourceId;
@@ -65,7 +65,9 @@ class JavaToDbTransformer extends LMFDBTransformer {
 	 *            todo don't know well the meaning
 	 * @throws FileNotFoundException 
 	 */
-	public JavaToDbTransformer(DBConfig dbConfig, LexicalResource lexicalResource, String lexicalResourceId) throws FileNotFoundException {
+	public JavaToDbTransformer(DBConfig dbConfig, LexicalResource lexicalResource, String lexicalResourceId) 
+	        throws FileNotFoundException {
+	    
 		super(dbConfig);
 		
 		Configuration cfg = Diversicons.getHibernateConfig(dbConfig, false);
@@ -100,7 +102,7 @@ class JavaToDbTransformer extends LMFDBTransformer {
 		if (lexiconIter.hasNext()) {
 			Lexicon lexicon = lexiconIter.next();
 			
-			log.info("Creating Lexicon " + lexicon.getId());
+			LOG.info("Creating Lexicon " + lexicon.getId());
 			
 			subcategorizationFrameIter = lexicon.getSubcategorizationFrames().iterator();
 			lexicon.setSubcategorizationFrames(new ArrayList());
