@@ -14,7 +14,6 @@ import java.util.List;
  */
 public class ImportConfig {
     private List<String> fileUrls;
-    private List<String> lexicalResourceNames;
     private String author;
     private String description;
     private boolean skipAugment;
@@ -28,7 +27,6 @@ public class ImportConfig {
      */
     public ImportConfig() {
         this.fileUrls = new ArrayList();
-        this.lexicalResourceNames = new ArrayList();
         this.author = "";
         this.description = "";
         this.skipAugment = false;
@@ -85,7 +83,7 @@ public class ImportConfig {
     }
 
     /**
-     * see {}@link {@link #getDescription()}
+     * See {@link #getDescription()}
      * 
      * @since 0.1
      */
@@ -95,28 +93,9 @@ public class ImportConfig {
     }
 
     /**
-     * The names of the lexical resources to import.
      * 
-     * @since 0.1
-     */
-    // todo what about merge / delete?
-    public List<String> getLexicalResourceNames() {
-        return lexicalResourceNames;
-    }
-
-    /**
-     * See {@link #getLexicalResourceNames()}
-     * 
-     * @since 0.1
-     */
-    public void setLexicalResourceNames(List<String> lexicalResourceNames) {
-        checkNotNull(lexicalResourceNames);
-        this.lexicalResourceNames = lexicalResourceNames;
-    }
-
-    /**
-     * 
-     * Flag to skip graph augmentation after the import (i.e. to calculate transitive closures)
+     * Flag to skip graph augmentation after the import (i.e. to calculate
+     * transitive closures)
      * 
      * @since 0.1
      */
@@ -136,14 +115,10 @@ public class ImportConfig {
     /**
      * 
      * @since 0.1
-     */     
-    public void addLexicalResource(String fileUrl, String resourceName) {
-        checkNotEmpty(fileUrl, "Invalid lexical resource file URL!");
-        checkNotEmpty(resourceName, "Invalid lexical resource name!");
+     */
+    public void addLexicalResource(String fileUrl) {
+        checkNotEmpty(fileUrl, "Invalid lexical resource file URL!");       
         this.fileUrls.add(fileUrl);
-        this.lexicalResourceNames.add(resourceName);
     }
 
 }
-
-

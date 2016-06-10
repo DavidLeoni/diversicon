@@ -101,7 +101,7 @@ public class DiversiconTest {
 
         Diversicon diversicon = Diversicon.create(dbConfig);
 
-        diversicon.importResource(lexicalResource, "lexical resource 1", true);
+        diversicon.importResource(lexicalResource,  true);
 
         assertNotNull(diversicon.getLexicalResource("lexicalResource 1"));
         assertEquals(1, diversicon.getLexicons()
@@ -153,7 +153,7 @@ public class DiversiconTest {
 
         Diversicon diversicon = Diversicon.create(dbConfig);
 
-        diversicon.importResource(lexicalResource, "lexical resource 1", true);
+        diversicon.importResource(lexicalResource,  true);
 
         diversicon.processGraph();
 
@@ -327,7 +327,7 @@ public class DiversiconTest {
 
         Diversicon diversicon = Diversicon.create(dbConfig);
 
-        diversicon.importResource(GRAPH_1_HYPERNYM, "lexical resource 1", true);
+        diversicon.importResource(GRAPH_1_HYPERNYM,  true);
 
         assertFalse(diversicon.getConnectedSynsets(
                 "synset 2",
@@ -371,7 +371,7 @@ public class DiversiconTest {
 
         Diversicon div = Diversicon.create(dbConfig);
 
-        div.importResource(DAG_3_HYPERNYM, "lexical resource 1", true);
+        div.importResource(DAG_3_HYPERNYM,  true);
 
         assertTrue(div.isConnected(
                 "synset 1",
@@ -482,7 +482,7 @@ public class DiversiconTest {
                 .lexicalEntry("c")
                 .build();
         
-        div.importResource(res, "lexical resource 1", true);       
+        div.importResource(res,  true);       
         
         assertEquals(Internals.newArrayList("a"), div.getLemmaStringsByWrittenForm("a"));
         assertEquals(Internals.newArrayList("c"), div.getLemmaStringsByWrittenForm("c"));
@@ -501,7 +501,7 @@ public class DiversiconTest {
 
         Diversicon div = Diversicon.create(dbConfig);
 
-        div.importResource(DAG_3_HYPERNYM, "lexical resource 1", true);
+        div.importResource(DAG_3_HYPERNYM,  true);
 
         checkContainsAll(div.getConnectedSynsets(
                 "synset 2",
@@ -553,7 +553,7 @@ public class DiversiconTest {
         Diversicons.dropCreateTables(dbConfig);
 
         Diversicon diversicon = Diversicon.create(dbConfig);
-        diversicon.importResource(GRAPH_4_HYP_HOL_HELLO, "lexical resource 1", true);
+        diversicon.importResource(GRAPH_4_HYP_HOL_HELLO, true);
         checkContainsAll(diversicon.getConnectedSynsets(
                 "synset 4",
                 1,
@@ -576,7 +576,7 @@ public class DiversiconTest {
 
         Diversicon diversicon = Diversicon.create(dbConfig);
 
-        diversicon.importResource(DAG_2_MULTI_REL, "lexical resource 1", true);
+        diversicon.importResource(DAG_2_MULTI_REL,  true);
 
         checkContainsAll(diversicon.getConnectedSynsets(
                 "synset 2",
@@ -607,7 +607,7 @@ public class DiversiconTest {
         
         assertEquals(Diversicon.DIVERSICON_SCHEMA_VERSION, dbInfo1.getSchemaVersion());
 
-        div.importResource(GRAPH_4_HYP_HOL_HELLO, "res", true);               
+        div.importResource(GRAPH_4_HYP_HOL_HELLO,  true);               
         
         assertEquals(1, div.getImportJobs().size());
         
@@ -617,7 +617,7 @@ public class DiversiconTest {
         assertNotNull(job.getStartDate());
         assertNotNull(job.getEndDate());
         assertTrue(job.getEndDate().getTime() >= job.getStartDate().getTime());
-        assertEquals("res", job.getLexicalResourceName());
+        assertEquals("lexical resource 1", job.getLexicalResourceName());
         assertTrue(job.getFileUrl().startsWith(Diversicon.MEMORY_PROTOCOL + ":"));
         assertNotEquals(0, job.getId());        
         

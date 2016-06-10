@@ -15,6 +15,7 @@ import it.unitn.disi.diversicon.internal.Internals;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
 import static it.unitn.disi.diversicon.internal.Internals.newArrayList;
+import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -45,11 +46,14 @@ public class LmfBuilder {
 
     private LmfBuilder() {
         this.lexicalResource = new LexicalResource();
-        this.lexicalResource.setName("lexicalResource 1");
+        this.lexicalResource.setName("lexical resource 1");
         this.built = false;
         this.lastSenseId = 0;
     }
 
+    /**
+     * @since 0.1 
+     */
     public LmfBuilder lexicon() {
         checkBuilt();
         Lexicon lexicon = new Lexicon();
@@ -81,7 +85,9 @@ public class LmfBuilder {
         return name + " " + (c.size() + 1);
     }
 
-    
+    /**
+     * @since 0.1 
+     */
     public LmfBuilder synset() {
         checkBuilt();
         Synset synset = new Synset();
@@ -95,6 +101,8 @@ public class LmfBuilder {
     
     /**
      * Creates a definition and attaches it to current synset
+     * 
+     * @since 0.1 
      */
     // todo what about sense definitions?
     public LmfBuilder definition(String writtenText){
@@ -111,6 +119,7 @@ public class LmfBuilder {
      * 
      * @param targetIdNum
      *            must be > 0.
+     * @since 0.1            
      */
     public LmfBuilder synsetRelation(String relName, int targetIdNum) {
         checkBuilt();
@@ -128,6 +137,9 @@ public class LmfBuilder {
 
     }
 
+    /**
+     * @since 0.1 
+     */
     public LmfBuilder depth(int i) {
         SynsetRelation sr = getCurSynsetRelation();
 
@@ -147,6 +159,7 @@ public class LmfBuilder {
      * 
      * @param targetIdNum
      *            must be > 0.
+     * @since 0.1            
      */
     public LmfBuilder synsetRelation(String relName, int sourceIdNum, int targetIdNum) {
         checkBuilt();
@@ -164,6 +177,9 @@ public class LmfBuilder {
 
     }
 
+    /**
+     * @since 0.1 
+     */
     private SynsetRelation getCurSynsetRelation() {
         checkBuilt();
         Synset synset = getCurSynset();
@@ -177,6 +193,9 @@ public class LmfBuilder {
                      .get(size - 1);
     }
 
+    /**
+     * @since 0.1 
+     */
     private Synset getCurSynset() {
         checkBuilt();
         Lexicon lexicon = getCurLexicon();
@@ -189,6 +208,9 @@ public class LmfBuilder {
                       .get(size - 1);
     }
     
+    /**
+     * @since 0.1 
+     */
     private LexicalEntry getCurLexicalEntry() {
         checkBuilt();
         Lexicon lexicon = getCurLexicon();
@@ -201,6 +223,9 @@ public class LmfBuilder {
                       .get(size - 1);
     }
 
+    /**
+     * @since 0.1 
+     */
     public Lexicon getCurLexicon() {
         checkBuilt();
         int size = lexicalResource.getLexicons()
@@ -212,16 +237,35 @@ public class LmfBuilder {
                               .get(size - 1);
     }
 
+    /** 
+     * Start building a lexical resource
+     * @since 0.1  
+     */
     public static LmfBuilder lmf() {
         return new LmfBuilder();
     };
+    
+    /** 
+     * Builds a simple minimalistic LexicalResource
+     * @since 0.1
+     */
+    public static LexicalResource simpleLexicalResource(){
+        return lmf().lexicon().synset().lexicalEntry("a").build();
+    }
+    
 
+    /**
+     * @since 0.1     
+     */
     public LexicalResource build() {
         checkBuilt();
         built = true;
         return lexicalResource;
     }
 
+    /**
+     * @since 0.1     
+     */    
     private void checkBuilt() {
         if (built) {
             throw new IllegalStateException("A LexicalResource was already built with this !");
@@ -232,8 +276,8 @@ public class LmfBuilder {
     /**
      * Automatically creates a Sense and Lemma with given {@code writtenForm}
      * Sense is linked to current synset.
-     * 
-     * @param writtenForm
+     *      
+     * @since 0.1
      */
     public LmfBuilder lexicalEntry(String writtenForm) {
         return lexicalEntry(writtenForm, getCurSynset().getId());
@@ -243,9 +287,10 @@ public class LmfBuilder {
     /**
      * Automatically creates a Sense and Lemma with given {@code writtenForm}
      * 
-     * @param writtenForm
+    
      * @param synsetIdNum
      *            must exist
+     * @since 0.1
      */
     public LmfBuilder lexicalEntry(String writtenForm, String synsetId) {
         checkNotEmpty(writtenForm, "Invalid writtenForm!");
@@ -271,6 +316,11 @@ public class LmfBuilder {
         return this;
     }
 
+    /**
+     * Creates a new Sense within provided {@code lexicalEntry}
+     * 
+     * @since 0.1
+     */
     private Sense newSense(LexicalEntry lexicalEntry, String synsetId){
         Sense sense = new Sense();                             
         sense.setId("sense " + (lastSenseId + 1));

@@ -1,14 +1,23 @@
 package it.unitn.disi.diversicon;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.dom4j.Attribute;
+import org.dom4j.DocumentException;
+import org.dom4j.Element;
+import org.dom4j.ElementHandler;
+import org.dom4j.ElementPath;
+import org.dom4j.io.SAXReader;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
@@ -19,17 +28,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.xml.sax.EntityResolver;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 import javax.annotation.Nullable;
 
 
 import de.tudarmstadt.ukp.lmf.hibernate.HibernateConnect;
+import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 
 import static de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics.*;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
+import de.tudarmstadt.ukp.lmf.transform.StringUtils;
 import it.unitn.disi.diversicon.internal.Internals;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
 
@@ -58,6 +72,8 @@ public final class Diversicons {
 
     private static final LinkedHashSet<String> partOfRelations = new LinkedHashSet<String>();
     private static final LinkedHashSet<String> canonicalPartOfRelations = new LinkedHashSet<String>();
+
+
     
     private static Map<String, String> inverseRelations = new HashMap();
 
@@ -496,6 +512,85 @@ public final class Diversicons {
     public static boolean isPartOf(String relName){
         checkNotEmpty(relName, "Invalid relation name!");
         return partOfRelations.contains(relName);
+    }
+    
+    /**
+     * Extracts a lexical resource name from an xml file
+     * 
+     * @throws DivNotFoundException
+     */
+    // implementation is unholy
+    public static String extractNameFromLexicalResource(File xmlFile){
+        SAXReader reader = new SAXReader(false);
+        reader.setEntityResolver(new EntityResolver() {
+            @Override
+            public InputSource resolveEntity(String publicId, String systemId)
+                    throws SAXException, IOException {
+                if (systemId.endsWith(".dtd")) {
+                    return new InputSource(new StringReader(""));
+                }
+                return null;
+            }
+        });
+        reader.setDefaultHandler(new LexicalResourceNameHandler());
+        try {
+            reader.read(xmlFile);
+        } catch (DocumentException e) {
+            
+            if (e.getMessage().contains(LexicalResourceNameHandler.FOUND_NAME)){
+                
+                return e.getMessage().substring(0, e.getMessage().indexOf(LexicalResourceNameHandler.FOUND_NAME));
+            } else {
+                throw new DivException("Error while extracting lexical resource name from " 
+                        + xmlFile.getAbsolutePath() + "!", e);                
+            }
+        }
+        throw new DivNotFoundException("Couldn't find attribute name in lexical resource " 
+                + xmlFile.getAbsolutePath() + "  !");
+    }
+
+    
+    
+    /** 
+     * div dirty - What a horrible class 
+     */
+    private static class LexicalResourceNameHandler implements ElementHandler {
+        
+        private static final String FOUND_NAME = "<--FOUNDNAME";
+                        
+        @Override
+        public void onStart(ElementPath elementPath) {
+            Element el = elementPath.getCurrent();
+            String elName = el.getName();
+            
+            // Remove empty attributes and invalid characters.
+            Iterator<?> attrIter = el.attributeIterator();
+            while (attrIter.hasNext()) {
+                Attribute attr = (Attribute) attrIter.next();
+                if ("NULL".equals(attr.getStringValue())) {
+                    attrIter.remove();
+                }
+                else {
+                    attr.setValue(StringUtils.replaceNonUtf8(attr.getValue()));
+                }
+            }
+
+            if ("LexicalResource".equals(elName)) {
+                // I know this is horrible, can't find better method :P
+                String ret = el.attributeValue("name");
+                if (ret == null){
+                    throw new DivNotFoundException("Couldn't find attribute 'name' in lexical resource!");
+                } else {
+                    throw new RuntimeException(ret + FOUND_NAME);
+                }
+            }
+            
+        }
+
+        @Override
+        public void onEnd(ElementPath elementPath) {            
+        }
+        
     }
     
 }

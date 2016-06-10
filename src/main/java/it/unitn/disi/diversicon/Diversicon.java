@@ -3,6 +3,8 @@ package it.unitn.disi.diversicon;
 import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
+
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -295,11 +297,11 @@ public class Diversicon extends Uby {
      * @since 0.1
      */
     public DbInfo getDbInfo() {
-                
+
         Criteria crit = session.createCriteria(DbInfo.class);
         crit.setMaxResults(50);
         DbInfo ret = (DbInfo) crit.uniqueResult();
-        
+
         if (ret == null) {
             throw new DivNotFoundException("Couldn't find DbInfo in the database!!");
         } else {
@@ -359,6 +361,8 @@ public class Diversicon extends Uby {
      */
     private void normalizeGraph() {
         LOG.warn("TODO: SHOULD CHECK FOR LOOPS!");
+
+        LOG.info("Normalizing SynsetRelations...");
 
         Transaction tx = null;
         try {
@@ -425,7 +429,7 @@ public class Diversicon extends Uby {
             tx.commit();
 
             LOG.info("");
-            LOG.info("Done normalizing SynsetRelations:");
+            LOG.info("Done normalizing SynsetRelations.");
             LOG.info("");
             LOG.info(relStats.toString());
 
@@ -552,18 +556,26 @@ public class Diversicon extends Uby {
     }
 
     /**
+     * 
      * See {@link #importFiles(ImportConfig)}
+     * 
+     * @param lexicalResourceName
+     *            The name of an existing lexical resource into which merge.
+     *            If it doesn't exist, a new lexical resource will be created
+     *            using {@code name}
+     *            parameter found in the xml. (Not super clear, see
+     *            <a href="https://github.com/DavidLeoni/diversicon/issues/6"
+     *            target="_blank">related issue</a>.)
+     * 
      * 
      * @since 0.1
      */
-    public void importFile(String filepath,
-            String lexicalResourceName) {
+    public void importFile(String filepath) {
 
         ImportConfig config = new ImportConfig();
 
         config.setAuthor(DEFAULT_AUTHOR);
         config.setFileUrls(Arrays.asList(filepath));
-        config.setLexicalResourceNames(Arrays.asList(lexicalResourceName));
 
         importFiles(config);
     }
@@ -579,18 +591,12 @@ public class Diversicon extends Uby {
 
         checkNotEmpty(config.getAuthor(), "Invalid ImportConfig author!");
         checkNotEmpty(config.getFileUrls(), "Invalid ImportConfig filepaths!");
-        checkNotEmpty(config.getFileUrls(), "Invalid ImportConfig lexicalResourceNames!");
-        checkNotEmpty(config.getLexicalResourceNames(), "Invalid ImportConfig lexicalResourceNames!");
 
-        Internals.checkArgument(config.getFileUrls()
-                                      .size() == config.getLexicalResourceNames()
-                                                       .size(),
-                "Lexical resource names don't match with files! Found "
-                        + config.getFileUrls()
-                                .size()
-                        + " filepaths and " + config.getLexicalResourceNames()
-                                                    .size()
-                        + " resource names");
+        int i = 0;
+        for (String fileUrl : config.getFileUrls()) {
+            checkNotEmpty(fileUrl, "Invalid file url at position " + i + "!");
+            i++;
+        }
 
         LOG.info("Going to import " + config.getFileUrls()
                                             .size()
@@ -616,25 +622,23 @@ public class Diversicon extends Uby {
             throw new DivException("Error while setting normalize flag in db", ex);
         }
 
-        Iterator<String> namesIter = config.getLexicalResourceNames()
-                                           .iterator();
-
         for (String filepath : config.getFileUrls()) {
-            String lexicalResourceName = namesIter.next();
 
-            LOG.info("Loading LMF : " + filepath + " with lexical resource name " + lexicalResourceName + " ...");
+            LOG.info("Loading LMF : " + filepath + " ...");
 
+            String lexicalResourceName = Diversicons.extractNameFromLexicalResource(new File(filepath));
+            
             ImportJob job = startImportJob(config, filepath, lexicalResourceName);
 
             XMLToDBTransformer trans = new XMLToDBTransformer(dbConfig);
 
             try {
-                trans.transform(new File(filepath), lexicalResourceName);
+                trans.transform(new File(filepath), null);
             } catch (Exception ex) {
                 throw new DivException("Error while loading lmf xml " + filepath, ex);
             }
 
-            LOG.info("Done loading LMF : " + filepath + " with lexical resource name " + lexicalResourceName + " .");
+            LOG.info("Done loading LMF : " + filepath + " .");
 
             endImportJob(job);
         }
@@ -656,6 +660,9 @@ public class Diversicon extends Uby {
 
     }
 
+    /**
+     * @since 0.1.0
+     */
     private void endImportJob(ImportJob job) {
         checkNotNull(job);
 
@@ -678,8 +685,21 @@ public class Diversicon extends Uby {
 
     }
 
-    private ImportJob startImportJob(ImportConfig config, String filepath, String lexicalResourceName) {
-
+    /**
+     * !!!! IMPORTANT !!!!! You are supposed to know in advance the {@code lexicalResourceName },
+     *  which must match the {@code name} of the lexical resource inside the file!! 
+     * 
+     * @since 0.1.0
+     */
+    private ImportJob startImportJob(
+            ImportConfig config,
+            String filepath,
+            String lexicalResourceName) {
+        
+        checkNotNull(config);
+        checkNotEmpty(filepath, "Invalid filepath!");
+        checkNotEmpty(lexicalResourceName, "Invalid lexical resource name!");
+        
         Transaction tx = null;
         try {
             tx = session.beginTransaction();
@@ -693,7 +713,7 @@ public class Diversicon extends Uby {
             job.setLexicalResourceName(lexicalResourceName);
 
             session.saveOrUpdate(job);
-            
+
             tx.commit();
             return job;
 
@@ -728,27 +748,29 @@ public class Diversicon extends Uby {
      */
     public void importResource(
             LexicalResource lexicalResource,
-            String lexicalResourceId,
             boolean skipAugment) {
+        
+        checkNotNull(lexicalResource);
+        
         LOG.info("Going to save lexical resource to database...");
         try {
             ImportConfig config = new ImportConfig();
             config.setSkipAugment(skipAugment);
             config.setAuthor(DEFAULT_AUTHOR);
-            
+
             String fileUrl = MEMORY_PROTOCOL + ":" + lexicalResource.hashCode();
 
-            config.addLexicalResource(fileUrl, lexicalResourceId);
+            config.addLexicalResource(fileUrl);
 
-            ImportJob job = startImportJob(config, fileUrl, lexicalResourceId);
+            ImportJob job = startImportJob(config, fileUrl, lexicalResource.getName());
 
-            new JavaToDbTransformer(dbConfig, lexicalResource, lexicalResourceId)
-                                                                                 .transform();
+            new JavaToDbTransformer(dbConfig, lexicalResource).transform();
 
             endImportJob(job);
 
         } catch (Exception ex) {
-            throw new DivException("Error when importing lexical resource " + lexicalResourceId + " !", ex);
+            throw new DivException("Error when importing lexical resource "
+                    + lexicalResource.getName() + " !", ex);
         }
         LOG.info("Done saving.");
 
@@ -766,9 +788,10 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * Creates an instance of a Diversicon and opens a connection to the db. 
-     * If db doesn't exist it is created. If it already exists, present schema is validated against required one
-     * and if it doesn't match an exception is thrown. 
+     * Creates an instance of a Diversicon and opens a connection to the db.
+     * If db doesn't exist it is created. If it already exists, present schema
+     * is validated against required one
+     * and if it doesn't match an exception is thrown.
      * 
      * @param dbConfig
      * @since 0.1
@@ -922,16 +945,15 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * A list of the imports performed so far. 
+     * A list of the imports performed so far.
      * 
      * @since 0.1
      *
      */
-    public List<ImportJob> getImportJobs(){
-        Criteria crit = session.createCriteria(ImportJob.class);        
+    public List<ImportJob> getImportJobs() {
+        Criteria crit = session.createCriteria(ImportJob.class);
         List<ImportJob> ret = crit.list();
-        return ret;        
+        return ret;
     }
-     
-    
+
 }
