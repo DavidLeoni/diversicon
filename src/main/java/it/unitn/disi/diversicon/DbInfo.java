@@ -5,6 +5,8 @@ import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 
 /**
  * Information about database status and creation.
@@ -18,6 +20,9 @@ public class DbInfo {
     private boolean toAugment;
     private String description;
     private String version;
+    @Nullable
+    private ImportJob currentImportJob;
+
 
     /**
      * @since 0.1
@@ -30,6 +35,22 @@ public class DbInfo {
         this.description = "";
     }
 
+
+    /**
+     * @since 0.1
+     */
+    @Nullable
+    public ImportJob getCurrentImportJob() {
+        return currentImportJob;
+    }
+
+    /**
+     * @since 0.1
+     */    
+    public void setCurrentImportJob(@Nullable ImportJob currentImportJob) {
+        this.currentImportJob = currentImportJob;
+    }    
+    
     /**
      * Flag to state if database is yet to be normalized
      * @since 0.1

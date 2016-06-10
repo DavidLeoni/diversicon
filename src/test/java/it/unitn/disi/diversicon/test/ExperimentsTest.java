@@ -38,7 +38,7 @@ public class ExperimentsTest {
 
         log.info("Going to normalizing graph with canonical relations ...");
 
-        DBConfig dbConfig = DivTester.createDbConfig();
+        DBConfig dbConfig = DivTester.createNewDbConfig();
 
         Diversicon uby = Diversicon.create(dbConfig);
 

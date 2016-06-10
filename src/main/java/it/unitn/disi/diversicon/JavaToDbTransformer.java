@@ -93,7 +93,7 @@ class JavaToDbTransformer extends LMFDBTransformer {
             this.lexicalResource.setSenseAxes(new ArrayList());
         } else {
             LOG.info("Importing into existing lexical resource " + lexicalResource.getName());
-            this.lexicalResource = existingLexicalResource;
+            this.lexicalResource = existingLexicalResource;            
         }
 
         this.lexiconIter = lexicalResource.getLexicons()

@@ -6,9 +6,9 @@ import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 
 
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -25,26 +25,20 @@ import org.hibernate.ScrollMode;
 import org.hibernate.ScrollableResults;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
-import org.hibernate.criterion.DetachedCriteria;
-import org.hibernate.criterion.Projections;
+import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Restrictions;
 import org.hibernate.service.ServiceRegistryBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import de.tudarmstadt.ukp.lmf.api.CriteriaIterator;
 import de.tudarmstadt.ukp.lmf.api.Uby;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
-import de.tudarmstadt.ukp.lmf.model.morphology.FormRepresentation;
 import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
-import de.tudarmstadt.ukp.lmf.transform.LMFDBTransformer;
-import de.tudarmstadt.ukp.lmf.transform.UBYHibernateTransformer;
 import de.tudarmstadt.ukp.lmf.transform.XMLToDBTransformer;
-import it.unitn.disi.diversicon.internal.Internals;
 
 /**
  * Extension of {@link de.tudarmstadt.ukp.lmf.api.Uby Uby} LMF knowledge base
@@ -88,6 +82,9 @@ public class Diversicon extends Uby {
      * The url protocol for lexical resources loaded from memory.
      */
     public static final String MEMORY_PROTOCOL = "memory";
+    
+    
+    private ImportLogger importLogger;
 
     /**
      * @since 0.1
@@ -95,6 +92,7 @@ public class Diversicon extends Uby {
     protected Diversicon(DBConfig dbConfig) {
         super(); // so it doesn't open connections! Let's hope they don't delete
                  // it!
+        
         checkNotNull(dbConfig, "database configuration is null");
 
         this.dbConfig = dbConfig;
@@ -111,7 +109,6 @@ public class Diversicon extends Uby {
         ServiceRegistryBuilder serviceRegistryBuilder = new ServiceRegistryBuilder().applySettings(cfg.getProperties());
         sessionFactory = cfg.buildSessionFactory(serviceRegistryBuilder.buildServiceRegistry());
         session = sessionFactory.openSession();
-
     }
 
     /**
@@ -672,6 +669,10 @@ public class Diversicon extends Uby {
             job.setEndDate(new Date());
             session.saveOrUpdate(job);
 
+            DbInfo dbInfo = getDbInfo();            
+            dbInfo.setCurrentImportJob(null);
+            session.saveOrUpdate(dbInfo);
+                        
             tx.commit();
 
         } catch (Exception ex) {
@@ -712,7 +713,11 @@ public class Diversicon extends Uby {
             job.setFileUrl(filepath);
             job.setLexicalResourceName(lexicalResourceName);
 
-            session.saveOrUpdate(job);
+            session.saveOrUpdate(job);            
+
+            DbInfo dbInfo = getDbInfo();            
+            dbInfo.setCurrentImportJob(job);
+            session.saveOrUpdate(dbInfo);
 
             tx.commit();
             return job;
@@ -777,10 +782,12 @@ public class Diversicon extends Uby {
         if (skipAugment) {
             processGraph();
         }
-    }
-
+    }   
+    
     /**
      * Returns the fully qualified package name.
+     * 
+     * @since 0.1
      */
     public static String getProvenanceId() {
         return Diversicon.class.getPackage()
@@ -808,7 +815,7 @@ public class Diversicon extends Uby {
 
         return ret;
     }
-
+    
     /**
      * See {@link #isConnected(String, String, int, List)}
      *
@@ -936,12 +943,58 @@ public class Diversicon extends Uby {
                     .hasNext();
     }
 
+    
+    /**
+     * @since 0.1
+     */
+    private static String formatDate(@Nullable Date date){
+        SimpleDateFormat sdf = new SimpleDateFormat("EEE, MMM d, ''yy");
+        
+        if (date == null){
+            return "missing";
+        } else {
+            return sdf.format(date);
+        }
+    }
     /**
      * Returns a nicely formatted import log
      */
-    public String importLog() {
+    public String formatImportLog() {
         StringBuilder sb = new StringBuilder();
-        throw new UnsupportedOperationException("TODO implement me!");
+                
+        List<ImportJob> importJobs = session.createCriteria(ImportJob.class)                
+                .addOrder( Order.desc("startDate") )                
+                .setMaxResults(50)
+                .list();
+        
+        if (importJobs.isEmpty()){
+            sb.append("No imports were done.");
+        }
+        
+        for (ImportJob job : importJobs){
+            sb.append("import id: ");
+            sb.append(job.getId());
+            sb.append("  Start: ");
+            sb.append(formatDate(job.getStartDate()));
+            sb.append("  End: ");
+            sb.append(formatDate(job.getEndDate()));
+            sb.append("  Import author: ");
+            sb.append(job.getAuthor());
+
+            sb.append("  Lexical resource: ");
+            sb.append(job.getLexicalResourceName());            
+            if (job.getLogMessages().size() > 0){
+                sb.append("   THERE WHERE " + job.getLogMessages().size() + " WARNINGS/ERRORS");
+            }                  
+            sb.append("\n");            
+            sb.append("  From file: ");
+            sb.append(job.getFileUrl());
+            sb.append("\n");
+            sb.append("    ");
+            sb.append(job.getDescription());
+            sb.append("\n");            
+        }
+        return sb.toString();
     }
 
     /**
@@ -955,5 +1008,48 @@ public class Diversicon extends Uby {
         List<ImportJob> ret = crit.list();
         return ret;
     }
+
+    /**
+     * 
+     * @param shortProcessedInfo if true no distinction is made 
+     * between graph normalization and augmentation 
+     * 
+     * @since 0.1
+     */
+    public String formatGraphStatus(boolean shortProcessedInfo) {
+        StringBuilder sb = new StringBuilder();
+        DbInfo dbInfo = getDbInfo();
+        
+        sb.append(" Schema version: " + dbInfo.getSchemaVersion());
+        sb.append("   Data version: " + dbInfo.getVersion() + "\n");
+        sb.append("\n");
+        
+        if (shortProcessedInfo){
+            if (dbInfo.isToAugment() || dbInfo.isToNormalize() ){
+                sb.append("- Synset relation graph needs to be processed. \n");
+            }
+            
+        } else {
+            if (dbInfo.isToNormalize()){
+                sb.append("- Synset relation graph needs to be normalized.\n");
+            }
+
+            if (dbInfo.isToAugment()){
+                sb.append("- Synset relation graph needs to be augmented.\n");
+            }
+            
+        }
+                
+        ImportJob importJob = dbInfo.getCurrentImportJob();
+        
+        if (importJob != null){
+            sb.append("- There is an import job in progress for lexical resource " 
+                    + importJob.getLexicalResourceName() + " from file " + importJob.getFileUrl());
+        }
+        return sb.toString();
+        
+    }
+
+   
 
 }

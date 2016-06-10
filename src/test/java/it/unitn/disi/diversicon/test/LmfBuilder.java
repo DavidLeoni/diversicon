@@ -246,6 +246,14 @@ public class LmfBuilder {
     };
     
     /** 
+     * Start building a lexical resource. All ids will have provided prefix
+     * @since 0.1  
+     */
+    /*public static LmfBuilder lmf() {
+        return new LmfBuilder();
+    };*/
+    
+    /** 
      * Builds a simple minimalistic LexicalResource
      * @since 0.1
      */

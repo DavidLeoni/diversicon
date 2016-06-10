@@ -7,11 +7,11 @@
 	   node="ImportJob" 
 	   dynamic-insert="true">
    
-    <id column="id" type="long">
+    <id column="id" type="long" node="@id">
            <generator class="sequence"/>             
     </id>
     
-        
+                  
    <property name="author" column="author" node="@author" type="string"/>
    <property name="description" column="description" node="@description" type="string"/>   
    <property name="fileUrl" column="fileUrl" node="@fileUrl" type="string"/>

@@ -57,12 +57,12 @@ public class DivUtilsTest {
     
     @Before
     public void beforeMethod(){
-         dbConfig = DivTester.createDbConfig();                
+         dbConfig = DivTester.createNewDbConfig();                
     }
     
     @After
     public void afterMethod(){
-        dbConfig = null;
+        dbConfig = null;       
     }
 
     @Test
@@ -124,12 +124,12 @@ public class DivUtilsTest {
                 .lexicalEntry("b")
                 .build();
 
-     /*   LexicalResource lexicalResource2 = LmfBuilder.lmf()
+        LexicalResource lexicalResource2 = LmfBuilder.lmf()
                 .lexicon()
                 .synset()
                 .definition("uncool")
                 .build();                
-       */ 
+        
         Diversicons.dropCreateTables(dbConfig);
 
         Diversicon div = Diversicon.create(dbConfig);               
@@ -137,7 +137,7 @@ public class DivUtilsTest {
         div.importResource(lexicalResource1,  true);
         
         DivTester.checkDb(lexicalResource1, div);
-   /*     
+      
         try {
             DivTester.checkDb(lexicalResource2, div);
             Assert.fail("Shouldn't arrive here!");
@@ -146,13 +146,13 @@ public class DivUtilsTest {
         }
         
         div.getSession().close();
-     */   
+    
     }
     
     @Test
     public void testGetLexicalResourceName() throws SAXException, IOException{
 
-        File outFile = DivTester.makeXml(DivTester.GRAPH_1_HYPERNYM);
+        File outFile = DivTester.writeXml(DivTester.GRAPH_1_HYPERNYM);
         String name = Diversicons.extractNameFromLexicalResource(outFile);        
         assertEquals(DivTester.GRAPH_1_HYPERNYM.getName(), name);
 

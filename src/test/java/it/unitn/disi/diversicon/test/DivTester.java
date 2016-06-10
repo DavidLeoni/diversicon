@@ -1,5 +1,6 @@
 package it.unitn.disi.diversicon.test;
 
+import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
 import static org.junit.Assert.assertEquals;
@@ -49,6 +50,8 @@ public final class DivTester {
 
     private static final String TEST_RESOURCES_PATH = "it/unitn/disi/diversicon/test/";
 
+    private static int dbCounter = -1;
+    
     /**
      * 2 verteces and 1 hypernym edge
      */
@@ -322,21 +325,14 @@ public final class DivTester {
         }
     }
 
-    /**
-     * Creates an in-memory H2 db.
-     */
-    public static DBConfig createDbConfig() {
-        return new DBConfig("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1", "org.h2.Driver",
-                UBYH2Dialect.class.getName(), "root", "pass", true);
-    }
 
     /**
      * Creates an xml file out of the provided
      */
-    public static File makeXml(LexicalResource lexicalResource) {
+    public static File writeXml(LexicalResource lexicalResource) {
         checkNotNull(lexicalResource);
 
-        DBConfig dbConfig = createDbConfig();
+        DBConfig dbConfig = createNewDbConfig();
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.create(dbConfig);
         div.importResource(lexicalResource, true);
@@ -350,8 +346,36 @@ public final class DivTester {
             return outPath.toFile();
         } catch (IOException | SAXException ex) {
             throw new DivException("Error while making xml file!", ex);
+        } finally {
+            div.getSession().close();
         }
+        
+    }
 
+    
+    /**
+     * Creates a configuration for a new in-memory H2 datase
+     */
+    public static DBConfig createNewDbConfig() {
+        dbCounter += 1;
+        return createDbConfig(dbCounter);
+     }
+
+    /**
+     * 
+     * @param n the number to identify the db. 
+     * If -1 db name will be like default in-memory in uby.
+     */
+    private static DBConfig createDbConfig(int n) {
+        checkArgument(n >= -1, "Invalid n! Found " , n);
+        String s;
+        if (n == -1){
+            s = "";
+        } else {
+            s = Integer.toString(n);
+        }
+        return new DBConfig("jdbc:h2:mem:test" + s + ";DB_CLOSE_DELAY=-1", "org.h2.Driver",
+                UBYH2Dialect.class.getName(), "root", "pass", true);
     }
 
 }

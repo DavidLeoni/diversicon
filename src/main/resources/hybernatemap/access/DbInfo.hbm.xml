@@ -16,7 +16,8 @@
    <property name="toNormalize" column="toNormalize" node="@toNormalize" type="boolean"/>
    <property name="toAugment" column="toAugment" node="@toAugment" type="boolean"/>
       
-   
+	<one-to-one name="currentImportJob" class="it.unitn.disi.diversicon.ImportJob"
+			cascade="save-update"></one-to-one>   
   			
 </class>
 
