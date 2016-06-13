@@ -7,8 +7,9 @@
 	   node="ImportJob" 
 	   dynamic-insert="true">
    
-    <id column="id" type="long" node="@id">
-           <generator class="sequence"/>             
+   <id name="id" type="long" node="@id">
+    	<column name="id" />
+    	<generator class="sequence"/>
     </id>
     
                   

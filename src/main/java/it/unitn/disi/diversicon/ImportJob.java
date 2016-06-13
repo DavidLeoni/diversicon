@@ -206,6 +206,7 @@ public class ImportJob {
     }
 
     /**
+     * @param id Must be >= -1
      * @since 0.1
      */    
     public void setId(long id) {

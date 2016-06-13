@@ -692,6 +692,8 @@ public class DiversiconTest {
     @Test
     public void mergeTwoSeparateLexicalResources(){
 
+        String  prefix2 = "2nd-";
+        
         Diversicons.dropCreateTables(dbConfig);
 
         Diversicon div = Diversicon.create(dbConfig);
@@ -701,7 +703,7 @@ public class DiversiconTest {
         /**
          * 2 verteces and 1 hypernym edge
          */
-        LexicalResource lexRes2 = lmf("2nd-").lexicon()
+        LexicalResource lexRes2 = lmf(prefix2).lexicon()
                                                               .synset()
                                                               .synset()
                                                               .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
@@ -711,6 +713,17 @@ public class DiversiconTest {
         
         DivTester.checkDb(GRAPH_1_HYPERNYM, div);
         DivTester.checkDb(lexRes2, div);
+        
+        assertEquals(2, div.getImportJobs().size());
+        
+        ImportJob import0 = div.getImportJobs().get(0);
+        ImportJob import1 = div.getImportJobs().get(1);
+        
+        assertEquals("lexical resource 1", import0.getLexicalResourceName());
+        assertNotEquals(-1, import0.getId());
+        
+        assertEquals(prefix2 + "lexical resource 1", import1.getLexicalResourceName());
+        assertNotEquals(-1, import1.getId());
         
         div.getSession().close();
         
