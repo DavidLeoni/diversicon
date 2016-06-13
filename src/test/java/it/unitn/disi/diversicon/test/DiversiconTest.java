@@ -689,4 +689,31 @@ public class DiversiconTest {
         div.getSession().close();
     }
     
+    @Test
+    public void mergeTwoSeparateLexicalResources(){
+
+        Diversicons.dropCreateTables(dbConfig);
+
+        Diversicon div = Diversicon.create(dbConfig);
+
+        div.importResource(GRAPH_1_HYPERNYM, true);
+
+        /**
+         * 2 verteces and 1 hypernym edge
+         */
+        LexicalResource lexRes2 = lmf("2nd-").lexicon()
+                                                              .synset()
+                                                              .synset()
+                                                              .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                                              .build();        
+        
+        div.importResource(lexRes2, true);
+        
+        DivTester.checkDb(GRAPH_1_HYPERNYM, div);
+        DivTester.checkDb(lexRes2, div);
+        
+        div.getSession().close();
+        
+    }
+    
 }
