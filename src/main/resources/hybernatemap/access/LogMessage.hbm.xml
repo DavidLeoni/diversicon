@@ -11,7 +11,7 @@
            <generator class="sequence"/>
     </id>
       
-   <property name="message" column="message" node="@message" type="string"/>
+   <property name="message" column="message" node="@message" type="string" />
    <property name="level" column="level" node="@level" type="string"/>            
   			
   <many-to-one name="importJob" class="it.unitn.disi.diversicon.ImportJob" fetch="select">

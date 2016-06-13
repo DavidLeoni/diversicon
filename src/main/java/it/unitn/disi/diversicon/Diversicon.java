@@ -556,34 +556,29 @@ public class Diversicon extends Uby {
      * 
      * See {@link #importFiles(ImportConfig)}
      * 
-     * @param lexicalResourceName
-     *            The name of an existing lexical resource into which merge.
-     *            If it doesn't exist, a new lexical resource will be created
-     *            using {@code name}
-     *            parameter found in the xml. (Not super clear, see
-     *            <a href="https://github.com/DavidLeoni/diversicon/issues/6"
-     *            target="_blank">related issue</a>.)
-     * 
      * 
      * @since 0.1
      */
-    public void importFile(String filepath) {
+    public ImportJob importFile(String filepath) {
 
         ImportConfig config = new ImportConfig();
 
         config.setAuthor(DEFAULT_AUTHOR);
         config.setFileUrls(Arrays.asList(filepath));
 
-        importFiles(config);
+        return importFiles(config).get(0);
     }
 
     /**
-     * Each imported file is going to be a separate transaction. In case one
-     * fails... TODO!
+     * Imports files, and each file import is going to be a separate transaction. In case one
+     * fails... TODO! Call is synchronous, after finishing returns logs of each import.
      * 
      * @since 0.1
      */
-    public void importFiles(ImportConfig config) {
+    public List<ImportJob> importFiles(ImportConfig config) {
+        
+        List<ImportJob> ret = new ArrayList();
+        
         checkNotNull(config);
 
         checkNotEmpty(config.getAuthor(), "Invalid ImportConfig author!");
@@ -638,6 +633,8 @@ public class Diversicon extends Uby {
             LOG.info("Done loading LMF : " + filepath + " .");
 
             endImportJob(job);
+            
+            ret.add(job);
         }
 
         try {
@@ -654,7 +651,8 @@ public class Diversicon extends Uby {
         LOG.info("Done importing " + config.getFileUrls()
                                            .size()
                 + " LMFs by import author " + config.getAuthor() + ".");
-
+        
+        return ret;
     }
 
     /**
@@ -741,7 +739,7 @@ public class Diversicon extends Uby {
      * "https://github.com/dkpro/dkpro-uby/blob/master/de.tudarmstadt.ukp.uby.persistence.transform-asl/src/main/java/de/tudarmstadt/ukp/lmf/transform/LMFDBTransformer.java"
      * target="_blank"> LMFDBTransformer</a> and then call {@code transform()}
      * on it
-     * instead.
+     * instead. Call is synchronous, after finishing returns a log of the import.
      * 
      * @param lexicalResourceId
      *            todo don't know well the meaning
@@ -751,13 +749,16 @@ public class Diversicon extends Uby {
      * @throws DivException
      * @since 0.1
      */
-    public void importResource(
+    public ImportJob importResource(
             LexicalResource lexicalResource,
             boolean skipAugment) {
         
         checkNotNull(lexicalResource);
         
         LOG.info("Going to save lexical resource to database...");
+        
+        ImportJob job = null;
+        
         try {
             ImportConfig config = new ImportConfig();
             config.setSkipAugment(skipAugment);
@@ -767,7 +768,7 @@ public class Diversicon extends Uby {
 
             config.addLexicalResource(fileUrl);
 
-            ImportJob job = startImportJob(config, fileUrl, lexicalResource.getName());
+            job = startImportJob(config, fileUrl, lexicalResource.getName());
 
             new JavaToDbTransformer(dbConfig, lexicalResource).transform();
 
@@ -782,6 +783,8 @@ public class Diversicon extends Uby {
         if (skipAugment) {
             processGraph();
         }
+        
+        return job;
     }   
     
     /**
@@ -948,18 +951,80 @@ public class Diversicon extends Uby {
      * @since 0.1
      */
     private static String formatDate(@Nullable Date date){
-        SimpleDateFormat sdf = new SimpleDateFormat("EEE, MMM d, ''yy");
+        SimpleDateFormat sdf = new SimpleDateFormat("MMM d, yyyy");
         
         if (date == null){
             return "missing";
         } else {
             return sdf.format(date);
-        }
+        }     
     }
+    
+    /**
+     * Returns a nicely formatted import logc
+     * 
+     * @param fullLog includes full log in the output
+     * @throws DivNotFoundException
+     *
+     * @since 0.1
+     */    
+    public String formatImportJob(long importJobId, boolean fullLog) {
+        ImportJob job = getImportJob(importJobId);
+        return formatImportJob(job, fullLog);
+    }
+    
+    /**
+     * Returns a nicely formatted import logc
+     * 
+     * @param fullLog includes full log in the output
+     * @throws DivNotFoundException
+     * 
+     * @since 0.1
+     */
+    public String formatImportJob(ImportJob job, boolean fullLog) {
+        StringBuilder sb = new StringBuilder();
+        
+        sb.append("IMPORT ID: ");
+        sb.append(job.getId());
+        sb.append("   LEXICAL RESOURCE: ");
+        sb.append(job.getLexicalResourceName());        
+        sb.append("   IMPORT AUTHOR: ");
+        sb.append(job.getAuthor());
+
+        if (job.getLogMessages().size() > 0){
+            sb.append("   THERE WHERE " + job.getLogMessages().size() + " WARNINGS/ERRORS");
+        }                  
+        sb.append("\n");
+        sb.append("   STARTED: ");
+        sb.append(formatDate(job.getStartDate()));
+        sb.append("   ENDED: ");
+        sb.append(formatDate(job.getEndDate()));        
+        sb.append("FROM FILE: ");
+        sb.append(job.getFileUrl());
+        sb.append("\n");
+        sb.append("    ");
+        sb.append(job.getDescription());
+        sb.append("\n");
+        if (fullLog){
+            sb.append("\n");
+            sb.append("Import " + job.getId() + "full log:\n");
+            for (LogMessage msg : job.getLogMessages()){
+                sb.append(msg.getMessage() + "\n");               
+            }
+        }
+        sb.append("\n");        
+        return sb.toString();
+        
+    }
+    
     /**
      * Returns a nicely formatted import log
+     * 
+     * @param showFullLogs includes full logs in the output
+     * 
+     * @see #formatImportJob(ImportJob, boolean)
      */
-    public String formatImportLog() {
+    public String formatImportJobs(boolean showFullLogs) {
         StringBuilder sb = new StringBuilder();
                 
         List<ImportJob> importJobs = session.createCriteria(ImportJob.class)                
@@ -972,27 +1037,7 @@ public class Diversicon extends Uby {
         }
         
         for (ImportJob job : importJobs){
-            sb.append("import id: ");
-            sb.append(job.getId());
-            sb.append("  Start: ");
-            sb.append(formatDate(job.getStartDate()));
-            sb.append("  End: ");
-            sb.append(formatDate(job.getEndDate()));
-            sb.append("  Import author: ");
-            sb.append(job.getAuthor());
-
-            sb.append("  Lexical resource: ");
-            sb.append(job.getLexicalResourceName());            
-            if (job.getLogMessages().size() > 0){
-                sb.append("   THERE WHERE " + job.getLogMessages().size() + " WARNINGS/ERRORS");
-            }                  
-            sb.append("\n");            
-            sb.append("  From file: ");
-            sb.append(job.getFileUrl());
-            sb.append("\n");
-            sb.append("    ");
-            sb.append(job.getDescription());
-            sb.append("\n");            
+            sb.append(formatImportJob(job, showFullLogs));
         }
         return sb.toString();
     }
@@ -1010,13 +1055,14 @@ public class Diversicon extends Uby {
     }
 
     /**
+     * Returns a nicely formatted status of the database
      * 
      * @param shortProcessedInfo if true no distinction is made 
      * between graph normalization and augmentation 
      * 
      * @since 0.1
      */
-    public String formatGraphStatus(boolean shortProcessedInfo) {
+    public String formatDbStatus(boolean shortProcessedInfo) {
         StringBuilder sb = new StringBuilder();
         DbInfo dbInfo = getDbInfo();
         
@@ -1047,6 +1093,26 @@ public class Diversicon extends Uby {
                     + importJob.getLexicalResourceName() + " from file " + importJob.getFileUrl());
         }
         return sb.toString();
+        
+    }
+
+    /**
+     * 
+     * Returns an import job.
+     * 
+     * @param importId must be >= 0;
+     * 
+     * @since 0.1 
+     * @throws DivNotFoundException
+     */
+    public ImportJob getImportJob(long importId) {
+        
+        ImportJob ret = (ImportJob) session.get(ImportJob.class, importId);
+        if (ret == null){
+            throw new DivNotFoundException("Couldn't find import jod " + importId);    
+        } else {
+            return ret;
+        }
         
     }
 

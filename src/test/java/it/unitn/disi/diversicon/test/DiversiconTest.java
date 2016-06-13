@@ -2,6 +2,7 @@ package it.unitn.disi.diversicon.test;
 
 import static org.junit.Assert.*;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -52,7 +53,7 @@ public class DiversiconTest {
 
     @After
     public void afterMethod() {
-        dbConfig = null;        
+        dbConfig = null;
     }
 
     /**
@@ -628,21 +629,41 @@ public class DiversiconTest {
         assertEquals("lexical resource 1", job.getLexicalResourceName());
         assertTrue(job.getFileUrl()
                       .startsWith(Diversicon.MEMORY_PROTOCOL + ":"));
-/*
-        LexicalResource res2 = lmf().lexicon()
-                                    .synset()
-                                    .synset()
-                                    .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                                    .build();
-        res2.setName("lexical resource 1");
+        /*
+         * LexicalResource res2 = lmf().lexicon()
+         * .synset()
+         * .synset()
+         * .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+         * .build();
+         * res2.setName("lexical resource 1");
+         * 
+         * div.importResource(res2, true);
+         * assertEquals(2, div.getImportJobs()
+         * .size());
+         * ImportJob job2 = div.getImportJobs()
+         * .get(1);
+         * assertNotEquals(-1, job2.getId());
+         */
+    }
 
-        div.importResource(res2, true);
-        assertEquals(2, div.getImportJobs()
-                           .size());
-        ImportJob job2 = div.getImportJobs()
-                            .get(1);
-        assertNotEquals(-1, job2.getId());
-*/        
+    /**
+     * @since 0.1.0
+     * 
+     */
+    @Test
+    public void loadXmlTest() {
+
+        Diversicons.dropCreateTables(dbConfig);
+
+        Diversicon div = Diversicon.create(dbConfig);
+
+        assertFalse(div.formatImportJobs(true)
+                       .isEmpty());
+
+        File xml = DivTester.writeXml(GRAPH_4_HYP_HOL_HELLO);
+
+        div.importFile(xml.getAbsolutePath());
+        
     }
 
     /**
@@ -655,17 +676,34 @@ public class DiversiconTest {
 
         Diversicon div = Diversicon.create(dbConfig);
 
-        assertFalse(div.formatImportLog()
+        assertFalse(div.formatImportJobs(true)
                        .isEmpty());
-        div.importResource(GRAPH_4_HYP_HOL_HELLO, true);
 
-        LOG.debug(div.formatImportLog());
+        File xml = DivTester.writeXml(GRAPH_4_HYP_HOL_HELLO);
 
-        assertTrue(div.formatImportLog()
-                      .contains(GRAPH_4_HYP_HOL_HELLO.getName()));
+        ImportConfig config = new ImportConfig();
+
+        config.addLexicalResource(xml.getAbsolutePath());
+        config.setAuthor("Someone With A Very Long Name");
+        config.setDescription(
+                "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.");
+        config.setSkipAugment(true);
+
+        ImportJob job = div.importFiles(config)
+                           .get(0);
+
+        String output = div.formatImportJob(job, false);
+
+        LOG.debug("\n" + output);
+
+        assertTrue(output
+                         .contains(Long.toString(job.getId())));
+
+        assertTrue(output
+                         .contains(GRAPH_4_HYP_HOL_HELLO.getName()));
 
     }
-    
+
     /**
      * Test for https://github.com/DavidLeoni/diversicon/issues/8
      * See also {@link UbyTest#testCantMergeSameLexicon()}
@@ -674,8 +712,8 @@ public class DiversiconTest {
      */
     @Test
     @Ignore
-    public void testCantMergeSameLexicon(){
-        
+    public void testCantMergeSameLexicon() {
+
         Diversicons.dropCreateTables(dbConfig);
 
         Diversicon div = Diversicon.create(dbConfig);
@@ -683,17 +721,18 @@ public class DiversiconTest {
         div.importResource(GRAPH_1_HYPERNYM, true);
 
         div.importResource(GRAPH_1_HYPERNYM, true);
-        
-        DivTester.checkDb(GRAPH_1_HYPERNYM, div);
-        
-        div.getSession().close();
-    }
-    
-    @Test
-    public void mergeTwoSeparateLexicalResources(){
 
-        String  prefix2 = "2nd-";
-        
+        DivTester.checkDb(GRAPH_1_HYPERNYM, div);
+
+        div.getSession()
+           .close();
+    }
+
+    @Test
+    public void mergeTwoSeparateLexicalResources() {
+
+        String prefix2 = "2nd-";
+
         Diversicons.dropCreateTables(dbConfig);
 
         Diversicon div = Diversicon.create(dbConfig);
@@ -704,29 +743,33 @@ public class DiversiconTest {
          * 2 verteces and 1 hypernym edge
          */
         LexicalResource lexRes2 = lmf(prefix2).lexicon()
-                                                              .synset()
-                                                              .synset()
-                                                              .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                                                              .build();        
-        
+                                              .synset()
+                                              .synset()
+                                              .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                              .build();
+
         div.importResource(lexRes2, true);
-        
+
         DivTester.checkDb(GRAPH_1_HYPERNYM, div);
         DivTester.checkDb(lexRes2, div);
-        
-        assertEquals(2, div.getImportJobs().size());
-        
-        ImportJob import0 = div.getImportJobs().get(0);
-        ImportJob import1 = div.getImportJobs().get(1);
-        
+
+        assertEquals(2, div.getImportJobs()
+                           .size());
+
+        ImportJob import0 = div.getImportJobs()
+                               .get(0);
+        ImportJob import1 = div.getImportJobs()
+                               .get(1);
+
         assertEquals("lexical resource 1", import0.getLexicalResourceName());
         assertNotEquals(-1, import0.getId());
-        
+
         assertEquals(prefix2 + "lexical resource 1", import1.getLexicalResourceName());
         assertNotEquals(-1, import1.getId());
-        
-        div.getSession().close();
-        
+
+        div.getSession()
+           .close();
+
     }
-    
+
 }

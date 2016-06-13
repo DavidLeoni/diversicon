@@ -17,8 +17,13 @@
     </id>
     
     <!-- smuby start -->
-     <discriminator column="DTYPE" type="string"/>           
+     <!--  <discriminator  column="DTYPE"  type="string" /> -->
+     <discriminator    >
+   		<column  name="DTYPE"   default="'DivSynsetRelation'"/>   
+     </discriminator>
     <!-- smuby end -->
+    
+   
     
    <property name="relType" column="relType" node="@relType">    
     	<type name="de.tudarmstadt.ukp.lmf.hibernate.EnumUserType">

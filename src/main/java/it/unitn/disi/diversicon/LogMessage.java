@@ -9,7 +9,7 @@ public class LogMessage {
     private ImportJob importJob;
     
     private Level level;
-    private String message;
+    private String message;    
     
     
     public LogMessage(ImportJob importJob, Level level, String message){
