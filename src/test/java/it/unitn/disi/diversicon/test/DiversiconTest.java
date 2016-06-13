@@ -466,6 +466,9 @@ public class DiversiconTest {
 
     }
 
+    /**
+     * @since 0.1
+     */
     // todo improve, not so clear how lemmas work.
     @Test
     public void testGetLemmaByWrittenForm() {
@@ -647,6 +650,8 @@ public class DiversiconTest {
     }
 
     /**
+     * Was giving absurd problems for null discriminator in DivSynsetRelation.hbm.xml
+     * 
      * @since 0.1.0
      * 
      */
