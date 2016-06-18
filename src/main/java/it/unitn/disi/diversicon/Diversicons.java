@@ -80,7 +80,8 @@ public final class Diversicons {
      * 
      * @since 0.1
      */
-    public static final String[] SUPPORTED_COMPRESSION_FORMATS =   {"zip", "xz"};
+    public static final String[] SUPPORTED_COMPRESSION_FORMATS =   {"ar", "arj", "cpio", "dump", "tar", "7z", "zip", "lzma", "z", "snappy",
+            "bzip2",  "xz", "gzip", "tar"};
  
     
     private static final Logger LOG = LoggerFactory.getLogger(Diversicons.class);
@@ -325,9 +326,6 @@ public final class Diversicons {
         } else {
             ret.setProperty("hibernate.hbm2ddl.auto", "none");
         }
-
-        // todo !!!!
-        // ret.setProperty("hibernate.default_schema", "PUBLIC");
 
         LOG.info("Going to load UBY hibernate mappings...");
 
@@ -685,7 +683,8 @@ public final class Diversicons {
     }
 
     /**
-     * Restores an h2 database from a (possibly zipped) sql dump.
+     * Restores an h2 database from a sql dump 
+     * (possibly compressed in one of {@link #SUPPORTED_COMPRESSION_FORMATS}).
      * {@code dcConfig} MUST point to a non-existing database, otherwise
      * behaviour is unspecified.
      *
@@ -698,7 +697,7 @@ public final class Diversicons {
      * @since 0.1
      */
     public static void restoreH2Dump(String dumpUrl, DBConfig dbConfig) {
-        checkNotNull(dumpUrl, "invalid sql/zip resource path!");
+        Internals.checkNotBlank(dumpUrl, "invalid sql/archive resource path!");
         checkH2(dbConfig);
 
         Date start = new Date();
@@ -710,17 +709,7 @@ public final class Diversicons {
             throw new DivIoException("Error while loading h2 driver!", ex);
         }
         ExtractedStream extractedStream = Internals.readData(dumpUrl);
-
-       /* File outf = extractedStream.toFile();
-        LOG.debug("extracted file = " + outf.getAbsolutePath());
-        try {
-            LOG.debug("File content: ");
-            LOG.debug(FileUtils.readFileToString(outf));
-        } catch (IOException e1) {
-            // TODO Auto-generated catch block
-            throw new RuntimeException("Something went wrong!", e1);
-        }*/
-        
+               
         Connection conn = null;
         Statement stat = null;
         ResultSet rs = null;
@@ -757,7 +746,7 @@ public final class Diversicons {
             stat = conn.createStatement();
             stat.execute(saveVars);
             stat.execute(setFastOptions);
-            RunScript.execute(conn, new InputStreamReader(extractedStream.getInputStream()));
+            RunScript.execute(conn, new InputStreamReader(extractedStream.stream()));
             stat.execute(restoreSavedVars);
             conn.commit();
             Date end = new Date();

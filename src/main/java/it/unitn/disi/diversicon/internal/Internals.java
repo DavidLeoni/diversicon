@@ -22,16 +22,18 @@ import java.util.zip.ZipInputStream;
 
 import javax.annotation.Nullable;
 
+import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.ArchiveException;
+import org.apache.commons.compress.archivers.ArchiveInputStream;
+import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.tukaani.xz.XZInputStream;
 
 import com.rits.cloning.Cloner;
 
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import it.unitn.disi.diversicon.DivIoException;
-import it.unitn.disi.diversicon.DivNotFoundException;
 import it.unitn.disi.diversicon.Diversicons;
 
 /**
@@ -641,8 +643,11 @@ public final class Internals {
     }
 
     /**
-     * Gets input stream from a url pointing to data. If data is compressed it
-     * is uncompressed (if it only contains one file).
+     * Gets input stream from a url pointing to data. If data is compressed in
+     * one of
+     * {@link Diversicons#SUPPORTED_COMPRESSION_FORMATS} it is uncompressed, but
+     * no check is done to verify
+     * the archive contains only one file.
      * 
      * Supported compression formats are
      * 
@@ -658,6 +663,7 @@ public final class Internals {
      * 
      * @since 0.1
      */
+    // todo should check archives have only one file...
     public static ExtractedStream readData(String dataUrl) {
         checkNotNull(dataUrl, "Invalid resource path!");
 
@@ -686,27 +692,21 @@ public final class Internals {
         }
 
         if (isArchiveFormatSupported(dataUrl)) {
-                        
+
             try {
-                ExtractedStream ret = null;
-                
-                if (uri.getPath().endsWith(".zip")){
-                    ZipInputStream zin = new ZipInputStream(inputStream);
-                    for (ZipEntry e; (e = zin.getNextEntry()) != null;) {
-                        return new ExtractedStream(e.getName(), zin, dataUrl, true);                        
-                    }
-                    
-                } else if (dataUrl.endsWith(".xz")){                    
-                    XZInputStream xzIn = new XZInputStream(inputStream);
-                    String fname = uri.getPath().substring(0, uri.getPath().length()-3);
-                    return new ExtractedStream(fname, xzIn, dataUrl, true);
-                } else {
-                    throw new DivIoException("Internal error! Found unsupported compressed url: " + dataUrl);
+
+                ArchiveInputStream zin = new ArchiveStreamFactory()
+                                                                   .createArchiveInputStream(inputStream);
+
+                for (ArchiveEntry e; (e = zin.getNextEntry()) != null;) {
+                    return new ExtractedStream(e.getName(), zin, dataUrl, true);
                 }
-                
-            } catch (IOException e) { 
+
+            } catch (IOException | ArchiveException e) {
                 throw new DivIoException("Error while iterating through " + dataUrl.toString() + " !", e);
             }
+
+            throw new DivIoException("Found empty stream in archive " + dataUrl.toString() + " !");
 
         } else {
             return new ExtractedStream(uri.getPath(), inputStream, dataUrl, false);
@@ -778,7 +778,8 @@ public final class Internals {
 
         /**
          * 
-         * The stream of the possibly extracted file. Each call will produce a new stream. 
+         * The stream of the possibly extracted file. Each call will produce a
+         * new stream.
          * 
          * @throws DivIoException
          * 
@@ -786,7 +787,7 @@ public final class Internals {
          */
         public InputStream stream() {
             if (outFile == null) {
-                return inputStream;    
+                return inputStream;
             } else {
                 try {
                     return new FileInputStream(outFile);
@@ -794,7 +795,7 @@ public final class Internals {
                     throw new DivIoException("Error while creating stream!", ex);
                 }
             }
-            
+
         }
 
         /**
@@ -821,27 +822,26 @@ public final class Internals {
                     if (extracted) {
                         this.outFile = Files.createTempFile("diversicon", this.filepath)
                                             .toFile();
-                        FileUtils.copyInputStreamToFile(this.inputStream, outFile);                        
+                        FileUtils.copyInputStreamToFile(this.inputStream, outFile);
                     } else {
                         if (sourceUrl.startsWith("classpath:")) {
                             this.outFile = Files.createTempFile("diversicon", this.filepath)
                                                 .toFile();
                             FileUtils.copyInputStreamToFile(this.inputStream, outFile);
-                                                       
+
                         } else if (sourceUrl.startsWith("file:")) {
-                            this.outFile = new File(sourceUrl);                            
+                            this.outFile = new File(sourceUrl);
                         } else {
                             this.outFile = Files.createTempFile("diversicon", this.filepath)
                                                 .toFile();
                             FileUtils.copyURLToFile(new URL(sourceUrl), outFile, 20000, 10000);
                         }
-                        
+
                     }
                     LOG.debug("created tempfile is at " + outFile.getAbsolutePath());
-                } 
-                
+                }
+
                 return this.outFile;
-                
 
             } catch (IOException ex) {
                 throw new DivIoException("Error while creating file!", ex);
