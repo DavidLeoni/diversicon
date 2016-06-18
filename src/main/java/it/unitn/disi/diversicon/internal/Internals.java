@@ -1,17 +1,37 @@
 package it.unitn.disi.diversicon.internal;
 
+import java.io.BufferedInputStream;
+import java.io.EOFException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import javax.annotation.Nullable;
 
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.tukaani.xz.XZInputStream;
 
 import com.rits.cloning.Cloner;
 
+import de.tudarmstadt.ukp.lmf.transform.DBConfig;
+import it.unitn.disi.diversicon.DivIoException;
+import it.unitn.disi.diversicon.DivNotFoundException;
 import it.unitn.disi.diversicon.Diversicons;
 
 /**
@@ -22,11 +42,11 @@ import it.unitn.disi.diversicon.Diversicons;
  *
  */
 public final class Internals {
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(Diversicons.class);
 
     private static final @Nullable Cloner cloner = new Cloner();
-    
+
     private Internals() {
 
     }
@@ -67,6 +87,52 @@ public final class Internals {
         if (string.length() == 0) {
             throw new IllegalArgumentException(formattedMessage + " -- Reason: Found empty string.");
         }
+        return string;
+    }
+
+    /**
+     *
+     * Checks if provided string is non null and {@link #isBlank(String) non
+     * blank}.
+     *
+     * @param errorMessageTemplate
+     *            a template for the exception message should the check fail.
+     *            The message is formed by replacing each {@code %s} placeholder
+     *            in the template with an argument. These are matched by
+     *            position - the first {@code %s} gets {@code
+     *     errorMessageArgs[0]}, etc. Unmatched arguments will be appended to
+     *            the formatted message in square braces. Unmatched placeholders
+     *            will be left as-is.
+     * @param errorMessageArgs
+     *            the arguments to be substituted into the message template.
+     *            Arguments are converted to strings using
+     *            {@link String#valueOf(Object)}.
+     * @throws IllegalArgumentException
+     *             if {@code expression} is false
+     * @throws NullPointerException
+     *             if the check fails and either {@code errorMessageTemplate} or
+     *             {@code errorMessageArgs} is null (don't let this happen)
+     *
+     *
+     * @throws IllegalArgumentException
+     *             if provided string fails validation
+     *
+     * @return the non-blank string that was validated
+     * @since 0.1
+     */
+    public static String checkNotBlank(String string, @Nullable String errorMessageTemplate,
+            @Nullable Object... errorMessageArgs) {
+        String formattedMessage = format(errorMessageTemplate, errorMessageArgs);
+        checkArgument(string != null, "%s -- Reason: Found null string.", formattedMessage);
+        if (string.isEmpty()) {
+            throw new IllegalArgumentException(formattedMessage + " -- Reason: Found empty string.");
+        }
+
+        if (string.trim()
+                  .isEmpty()) {
+            throw new IllegalArgumentException(formattedMessage + " -- Reason: Found string with blank characters!");
+        }
+
         return string;
     }
 
@@ -427,7 +493,7 @@ public final class Internals {
         }
         return reference;
     }
-    
+
     /**
      * Creates a map from key value pairs
      * 
@@ -477,36 +543,34 @@ public final class Internals {
         }
 
         return result;
-    }    
+    }
 
     /**
      * Returns a deep copy of any object, including non-serializable ones.
      * 
      * @since 0.1
      */
-    public static <T> T deepCopy(T orig) {        
+    public static <T> T deepCopy(T orig) {
         return cloner.deepClone(orig);
     }
 
-    
     /**
      * Returns a new ArrayList, filled with provided objects.
      * 
-     * (Note {@code Arrays.asList(T...)} returns an {@code Arrays.ArrayList} instead)
+     * (Note {@code Arrays.asList(T...)} returns an {@code Arrays.ArrayList}
+     * instead)
      * 
      * @since 0.1
      */
     public static <T> ArrayList<T> newArrayList(T... objs) {
         ArrayList<T> ret = new ArrayList();
-        
-        for (T obj : objs){
-            ret.add(obj);            
+
+        for (T obj : objs) {
+            ret.add(obj);
         }
         return ret;
     }
-    
-    
-    
+
     /**
      * Returns a new HashSet, filled with provided objects.
      * 
@@ -514,24 +578,275 @@ public final class Internals {
      */
     public static <T> HashSet<T> newHashSet(T... objs) {
         HashSet<T> ret = new HashSet();
-        
-        for (T obj : objs){
-            ret.add(obj);            
+
+        for (T obj : objs) {
+            ret.add(obj);
         }
         return ret;
-    }    
-    
+    }
 
     /**
      * Checks provided depth.
-     *  
-     * @param depth must be >= -1, otherwise IllegalArgumentException is thrown.
+     * 
+     * @param depth
+     *            must be >= -1, otherwise IllegalArgumentException is thrown.
+     * 
+     * @since 0.1
      */
     public static void checkDepth(int depth) {
-        if (depth <-1){
+        if (depth < -1) {
             throw new IllegalArgumentException("depth must be greater or equal to -1, found instead " + depth);
         }
-    }    
-    
-    
+    }
+
+    /**
+     * Returns true if provided string is null or blank
+     * 
+     * @since 0.1
+     */
+    public static boolean isBlank(@Nullable String string) {
+        return string == null || (string != null && string.trim()
+                                                          .isEmpty());
+    }
+
+    /**
+     * Checks provided {@code dbConfig} points to an H2 database.
+     * 
+     * @throws IllegalArgumentException
+     * 
+     * @since 0.1
+     */
+    public static void checkH2(DBConfig dbConfig) {
+        checkNotNull(dbConfig);
+        if (!dbConfig.getJdbc_driver_class()
+                     .contains("h2")) {
+            throw new IllegalArgumentException("Only H2 database is supported for now! Found instead "
+                    + Diversicons.toString(dbConfig, false));
+        }
+    }
+
+    /**
+     * @since 0.1
+     */
+    private static boolean isArchiveFormatSupported(String filePath) {
+        checkNotEmpty(filePath, "Invalid filepath!");
+
+        for (String s : Diversicons.SUPPORTED_COMPRESSION_FORMATS) {
+            if (filePath.toLowerCase()
+                        .endsWith("." + s)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Gets input stream from a url pointing to data. If data is compressed it
+     * is uncompressed (if it only contains one file).
+     * 
+     * Supported compression formats are
+     * 
+     * @param dataUrl
+     *            can be like:
+     *            <ul>
+     *            <li>classpath:/my/package/name/data.zip</li
+     *            <li>file:/my/path/data.zip</li>
+     *            <li>http://... or whatever protocol..</li>
+     *            </ul>
+     * @throws DivIoException
+     *             on error.
+     * 
+     * @since 0.1
+     */
+    public static ExtractedStream readData(String dataUrl) {
+        checkNotNull(dataUrl, "Invalid resource path!");
+
+        @Nullable
+        InputStream inputStream = null;
+
+        URI uri;
+        try {
+            uri = new URI(dataUrl);
+        } catch (URISyntaxException ex) {
+            throw new IllegalArgumentException("Couldn't parse input url!", ex);
+        }
+
+        if ("classpath".equals(uri.getScheme())) {
+            String q = dataUrl.substring("classpath:".length());
+            inputStream = Diversicons.class.getResourceAsStream(q);
+            if (inputStream == null) {
+                throw new DivIoException("Couldn't find input stream: " + dataUrl.toString());
+            }
+        } else {
+            try {
+                inputStream = new URL(dataUrl).openStream();
+            } catch (IOException ex) {
+                throw new DivIoException("Error while opening lexical resource " + dataUrl + "  !!", ex);
+            }
+        }
+
+        if (isArchiveFormatSupported(dataUrl)) {
+                        
+            try {
+                ExtractedStream ret = null;
+                
+                if (uri.getPath().endsWith(".zip")){
+                    ZipInputStream zin = new ZipInputStream(inputStream);
+                    for (ZipEntry e; (e = zin.getNextEntry()) != null;) {
+                        return new ExtractedStream(e.getName(), zin, dataUrl, true);                        
+                    }
+                    
+                } else if (dataUrl.endsWith(".xz")){                    
+                    XZInputStream xzIn = new XZInputStream(inputStream);
+                    String fname = uri.getPath().substring(0, uri.getPath().length()-3);
+                    return new ExtractedStream(fname, xzIn, dataUrl, true);
+                } else {
+                    throw new DivIoException("Internal error! Found unsupported compressed url: " + dataUrl);
+                }
+                
+            } catch (IOException e) { 
+                throw new DivIoException("Error while iterating through " + dataUrl.toString() + " !", e);
+            }
+
+        } else {
+            return new ExtractedStream(uri.getPath(), inputStream, dataUrl, false);
+        }
+    }
+
+    /**
+     * A stream possibly extracted from a compressed {@code sourceUrl}
+     * 
+     * @since 0.1
+     *
+     */
+    public static class ExtractedStream {
+        private String filepath;
+        private InputStream inputStream;
+        private String sourceUrl;
+        private boolean extracted;
+        @Nullable
+        private File outFile;
+
+        /**
+         * @param sourceUrl
+         *            may have special {@code classpath} protocol
+         * 
+         * @since 0.1
+         */
+        public ExtractedStream(String filepath, InputStream inputStream, String sourceUrl, boolean extracted) {
+            super();
+            checkNotEmpty(filepath, "invalid filepath!");
+            checkNotNull(inputStream);
+            checkNotEmpty(sourceUrl, "Invalid sourceUrl!");
+            this.filepath = filepath;
+            this.inputStream = inputStream;
+            this.sourceUrl = sourceUrl;
+            this.extracted = extracted;
+        }
+
+        /**
+         * 
+         * Returns the name of item inside the compressed resource (which is not
+         * the path of {@link #toFile()}).
+         * 
+         * @since 0.1
+         */
+        public String getFilepath() {
+            return filepath;
+        }
+
+        /**
+         * The url of the original possibly compressed resource. May start with
+         * special {@code classpath:} protocol.
+         * 
+         * @since 0.1
+         */
+        public String getSourceUrl() {
+            return sourceUrl;
+        }
+
+        /**
+         * The stream of the possibly extracted file. Note the stream might
+         * already have been used, see {@link #stream()} for a checked version
+         * of this method.
+         * 
+         * @since 0.1
+         */
+        public InputStream getInputStream() {
+            return inputStream;
+        }
+
+        /**
+         * 
+         * The stream of the possibly extracted file. Each call will produce a new stream. 
+         * 
+         * @throws DivIoException
+         * 
+         * @since 0.1
+         */
+        public InputStream stream() {
+            if (outFile == null) {
+                return inputStream;    
+            } else {
+                try {
+                    return new FileInputStream(outFile);
+                } catch (FileNotFoundException ex) {
+                    throw new DivIoException("Error while creating stream!", ex);
+                }
+            }
+            
+        }
+
+        /**
+         * Returns true if the stream was extracted from another compressed
+         * file.
+         * 
+         * @since 0.1
+         */
+        public boolean isExtracted() {
+            return extracted;
+        }
+
+        /**
+         * Returns a file pointing to a physical location in the computer.
+         * Calling this method will consume the stream.
+         *
+         * @throws DivIoException
+         * 
+         * @since 0.1
+         */
+        public File toFile() {
+            try {
+                if (this.outFile == null) {
+                    if (extracted) {
+                        this.outFile = Files.createTempFile("diversicon", this.filepath)
+                                            .toFile();
+                        FileUtils.copyInputStreamToFile(this.inputStream, outFile);                        
+                    } else {
+                        if (sourceUrl.startsWith("classpath:")) {
+                            this.outFile = Files.createTempFile("diversicon", this.filepath)
+                                                .toFile();
+                            FileUtils.copyInputStreamToFile(this.inputStream, outFile);
+                                                       
+                        } else if (sourceUrl.startsWith("file:")) {
+                            this.outFile = new File(sourceUrl);                            
+                        } else {
+                            this.outFile = Files.createTempFile("diversicon", this.filepath)
+                                                .toFile();
+                            FileUtils.copyURLToFile(new URL(sourceUrl), outFile, 20000, 10000);
+                        }
+                        
+                    }
+                    LOG.debug("created tempfile is at " + outFile.getAbsolutePath());
+                } 
+                
+                return this.outFile;
+                
+
+            } catch (IOException ex) {
+                throw new DivIoException("Error while creating file!", ex);
+            }
+        }
+    }
+
 }

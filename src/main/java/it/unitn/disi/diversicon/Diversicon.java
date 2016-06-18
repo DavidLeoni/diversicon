@@ -1,11 +1,13 @@
 package it.unitn.disi.diversicon;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
+import static it.unitn.disi.diversicon.internal.Internals.checkH2;
+import static it.unitn.disi.diversicon.internal.Internals.checkNotBlank;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 
-
 import java.io.File;
+import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,12 +20,12 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import org.h2.tools.Script;
 import org.hibernate.CacheMode;
 import org.hibernate.Criteria;
 import org.hibernate.Query;
 import org.hibernate.ScrollMode;
 import org.hibernate.ScrollableResults;
-import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Restrictions;
@@ -39,6 +41,7 @@ import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import de.tudarmstadt.ukp.lmf.transform.XMLToDBTransformer;
+import it.unitn.disi.diversicon.internal.Internals;
 
 /**
  * Extension of {@link de.tudarmstadt.ukp.lmf.api.Uby Uby} LMF knowledge base
@@ -48,7 +51,7 @@ import de.tudarmstadt.ukp.lmf.transform.XMLToDBTransformer;
  * is extended by {@link DivSynsetRelation} by adding {@code depth} and
  * {@code provenance} edges.
  * 
- * To create instances use {@link #create(DBConfig)} method
+ * To create instances use {@link #connectToDb(DBConfig)} method
  *
  * @since 0.1
  */
@@ -82,33 +85,40 @@ public class Diversicon extends Uby {
      * The url protocol for lexical resources loaded from memory.
      */
     public static final String MEMORY_PROTOCOL = "memory";
-    
-    
+
     private ImportLogger importLogger;
 
     /**
+     * @throws DivIoException
+     * @throws InvalidSchemaException 
+     * 
      * @since 0.1
      */
     protected Diversicon(DBConfig dbConfig) {
         super(); // so it doesn't open connections! Let's hope they don't delete
                  // it!
-        
+
         checkNotNull(dbConfig, "database configuration is null");
 
         this.dbConfig = dbConfig;
 
-        if (Diversicons.exists(dbConfig)) {
+        if (Diversicons.isSchemaValid(dbConfig)) {
             LOG.info("Reusing existing database at " + dbConfig.getJdbc_url());
             cfg = Diversicons.getHibernateConfig(dbConfig, true);
         } else {
-            LOG.info("Database doesn't exist, going to create it");
-            Diversicons.dropCreateTables(dbConfig);
-            cfg = Diversicons.getHibernateConfig(dbConfig, false);
+            throw new InvalidSchemaException("Database schema is not valid! DbConfig is " + Diversicons.toString(dbConfig, false));
         }
 
         ServiceRegistryBuilder serviceRegistryBuilder = new ServiceRegistryBuilder().applySettings(cfg.getProperties());
         sessionFactory = cfg.buildSessionFactory(serviceRegistryBuilder.buildServiceRegistry());
         session = sessionFactory.openSession();
+        
+        int hashcode = session.hashCode();
+        if (INSTANCES.containsKey(hashcode)) {
+            throw new DivException("INTERNAL ERROR: Seems like there is some sort of duplicate Diversicon session!!");
+        }
+        INSTANCES.put(hashcode, this);
+
     }
 
     /**
@@ -570,15 +580,17 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * Imports files, and each file import is going to be a separate transaction. In case one
-     * fails... TODO! Call is synchronous, after finishing returns logs of each import.
+     * Imports files, and each file import is going to be a separate
+     * transaction. In case one
+     * fails... TODO! Call is synchronous, after finishing returns logs of each
+     * import.
      * 
      * @since 0.1
      */
     public List<ImportJob> importFiles(ImportConfig config) {
-        
+
         List<ImportJob> ret = new ArrayList();
-        
+
         checkNotNull(config);
 
         checkNotEmpty(config.getAuthor(), "Invalid ImportConfig author!");
@@ -619,13 +631,15 @@ public class Diversicon extends Uby {
             LOG.info("Loading LMF : " + filepath + " ...");
 
             String lexicalResourceName = Diversicons.extractNameFromLexicalResource(new File(filepath));
-            
+
             ImportJob job = startImportJob(config, filepath, lexicalResourceName);
 
+            File file = Internals.readData(filepath).toFile();
+            
             XMLToDBTransformer trans = new XMLToDBTransformer(dbConfig);
 
             try {
-                trans.transform(new File(filepath), null);
+                trans.transform(file, null);
             } catch (Exception ex) {
                 throw new DivException("Error while loading lmf xml " + filepath, ex);
             }
@@ -633,7 +647,7 @@ public class Diversicon extends Uby {
             LOG.info("Done loading LMF : " + filepath + " .");
 
             endImportJob(job);
-            
+
             ret.add(job);
         }
 
@@ -651,7 +665,7 @@ public class Diversicon extends Uby {
         LOG.info("Done importing " + config.getFileUrls()
                                            .size()
                 + " LMFs by import author " + config.getAuthor() + ".");
-        
+
         return ret;
     }
 
@@ -667,10 +681,10 @@ public class Diversicon extends Uby {
             job.setEndDate(new Date());
             session.saveOrUpdate(job);
 
-            DbInfo dbInfo = getDbInfo();            
+            DbInfo dbInfo = getDbInfo();
             dbInfo.setCurrentImportJob(null);
             session.saveOrUpdate(dbInfo);
-                        
+
             tx.commit();
 
         } catch (Exception ex) {
@@ -685,8 +699,10 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * !!!! IMPORTANT !!!!! You are supposed to know in advance the {@code lexicalResourceName },
-     *  which must match the {@code name} of the lexical resource inside the file!! 
+     * !!!! IMPORTANT !!!!! You are supposed to know in advance the
+     * {@code lexicalResourceName },
+     * which must match the {@code name} of the lexical resource inside the
+     * file!!
      * 
      * @since 0.1.0
      */
@@ -694,11 +710,11 @@ public class Diversicon extends Uby {
             ImportConfig config,
             String filepath,
             String lexicalResourceName) {
-        
+
         checkNotNull(config);
         checkNotEmpty(filepath, "Invalid filepath!");
         checkNotEmpty(lexicalResourceName, "Invalid lexical resource name!");
-        
+
         Transaction tx = null;
         try {
             tx = session.beginTransaction();
@@ -711,9 +727,9 @@ public class Diversicon extends Uby {
             job.setFileUrl(filepath);
             job.setLexicalResourceName(lexicalResourceName);
 
-            session.saveOrUpdate(job);            
+            session.saveOrUpdate(job);
 
-            DbInfo dbInfo = getDbInfo();            
+            DbInfo dbInfo = getDbInfo();
             dbInfo.setCurrentImportJob(job);
             session.saveOrUpdate(dbInfo);
 
@@ -739,7 +755,8 @@ public class Diversicon extends Uby {
      * "https://github.com/dkpro/dkpro-uby/blob/master/de.tudarmstadt.ukp.uby.persistence.transform-asl/src/main/java/de/tudarmstadt/ukp/lmf/transform/LMFDBTransformer.java"
      * target="_blank"> LMFDBTransformer</a> and then call {@code transform()}
      * on it
-     * instead. Call is synchronous, after finishing returns a log of the import.
+     * instead. Call is synchronous, after finishing returns a log of the
+     * import.
      * 
      * @param lexicalResourceId
      *            todo don't know well the meaning
@@ -752,13 +769,13 @@ public class Diversicon extends Uby {
     public ImportJob importResource(
             LexicalResource lexicalResource,
             boolean skipAugment) {
-        
+
         checkNotNull(lexicalResource);
-        
+
         LOG.info("Going to save lexical resource to database...");
-        
+
         ImportJob job = null;
-        
+
         try {
             ImportConfig config = new ImportConfig();
             config.setSkipAugment(skipAugment);
@@ -783,10 +800,10 @@ public class Diversicon extends Uby {
         if (skipAugment) {
             processGraph();
         }
-        
+
         return job;
-    }   
-    
+    }
+
     /**
      * Returns the fully qualified package name.
      * 
@@ -799,26 +816,73 @@ public class Diversicon extends Uby {
 
     /**
      * Creates an instance of a Diversicon and opens a connection to the db.
-     * If db doesn't exist it is created. If it already exists, present schema
-     * is validated against required one
-     * and if it doesn't match an exception is thrown.
+     * Db must already exists. Present schema will be validated against required one
+     * and if it doesn't match InvalidSchemaException will be thrown.
      * 
      * @param dbConfig
-     * @since 0.1
+     *
+     * @throws DivIoException
+     * @throws InvalidSchemaException 
      * @throws DivException
+     *  
+     * @since 0.1
      */
-    public static Diversicon create(DBConfig dbConfig) {
+    public static Diversicon connectToDb(DBConfig dbConfig) {
         Diversicon ret = new Diversicon(dbConfig);
-        int hashcode = ret.getSession()
-                          .hashCode();
-        if (INSTANCES.containsKey(hashcode)) {
-            throw new DivException("INTERNAL ERROR: Seems like there is some sort of duplicate Diversicon session!!");
-        }
-        INSTANCES.put(hashcode, ret);
-
         return ret;
     }
-    
+
+    /**
+     * Exports to a {@code .sql} file. Currently, only supported db is {@code H2}.
+     * 
+     * @param sqlPath a path to a file, which  is suggested to end with {@code .sql} or {@code .sql.zip}, if compressed.
+     *        If the path includes non-existing directories, they will be automatically created. 
+     * @param compress if true file is compressed to zip 
+     * @throws DivIoException if file in {@code sqlPath} already exists or there are write errors.
+     *  
+     * @since 0.1
+     */
+    public void backupToSql(String sqlPath, boolean compress){
+        
+        checkH2(dbConfig);
+        checkNotBlank(sqlPath,  "invalid sql path!");                
+        
+        File f = new File(sqlPath);
+        
+        if (f.exists()){
+            throw new DivIoException("Tried to export SQL to an already existing file: " 
+                                    + f.getAbsolutePath());
+        }
+        
+        LOG.info("Backing up database to " + sqlPath + "  ...");
+                
+        List<String> params = new ArrayList<>();
+         params.add("-url");
+         params.add(dbConfig.getJdbc_url());
+         params.add("-user");
+         params.add(dbConfig.getUser());
+         params.add("-password");
+         params.add(dbConfig.getPassword());
+         params.add("-script");
+         params.add(sqlPath);
+         
+         if (compress){
+             params.add("-options");
+             params.add("compression");
+             params.add("zip");             
+         }
+                
+        String[] bkp = (String[]) params.toArray(new String[0]);
+        try {
+            Script.main(bkp);
+        } catch (SQLException ex) {
+            throw new DivIoException("Error while exporting to sql to " + f.getAbsolutePath() + "  !", ex);
+        }
+        LOG.info("Done backing up database to " + f.getAbsolutePath());
+        
+    }
+           
+
     /**
      * See {@link #isConnected(String, String, int, List)}
      *
@@ -946,97 +1010,103 @@ public class Diversicon extends Uby {
                     .hasNext();
     }
 
-    
     /**
      * @since 0.1
      */
-    private static String formatDate(@Nullable Date date){
+    private static String formatDate(@Nullable Date date) {
         SimpleDateFormat sdf = new SimpleDateFormat("MMM d, yyyy");
-        
-        if (date == null){
+
+        if (date == null) {
             return "missing";
         } else {
             return sdf.format(date);
-        }     
+        }
     }
-    
+
     /**
      * Returns a nicely formatted import logc
      * 
-     * @param fullLog includes full log in the output
+     * @param fullLog
+     *            includes full log in the output
      * @throws DivNotFoundException
      *
      * @since 0.1
-     */    
+     */
     public String formatImportJob(long importJobId, boolean fullLog) {
         ImportJob job = getImportJob(importJobId);
         return formatImportJob(job, fullLog);
     }
-    
+
     /**
      * Returns a nicely formatted import logc
      * 
-     * @param fullLog includes full log in the output
+     * @param fullLog
+     *            includes full log in the output
      * @throws DivNotFoundException
      * 
      * @since 0.1
      */
     public String formatImportJob(ImportJob job, boolean fullLog) {
         StringBuilder sb = new StringBuilder();
-        
+
         sb.append("IMPORT ID: ");
         sb.append(job.getId());
         sb.append("   LEXICAL RESOURCE: ");
-        sb.append(job.getLexicalResourceName());        
+        sb.append(job.getLexicalResourceName());
         sb.append("   IMPORT AUTHOR: ");
         sb.append(job.getAuthor());
 
-        if (job.getLogMessages().size() > 0){
-            sb.append("   THERE WHERE " + job.getLogMessages().size() + " WARNINGS/ERRORS");
-        }                  
+        if (job.getLogMessages()
+               .size() > 0) {
+            sb.append("   THERE WHERE " + job.getLogMessages()
+                                             .size()
+                    + " WARNINGS/ERRORS");
+        }
         sb.append("\n");
-        sb.append("   STARTED: ");
+        sb.append("STARTED: ");
         sb.append(formatDate(job.getStartDate()));
         sb.append("   ENDED: ");
-        sb.append(formatDate(job.getEndDate()));        
-        sb.append("FROM FILE: ");
+        sb.append(formatDate(job.getEndDate()));
+        sb.append("   FROM FILE: ");
         sb.append(job.getFileUrl());
         sb.append("\n");
-        sb.append("    ");
         sb.append(job.getDescription());
         sb.append("\n");
-        if (fullLog){
+        if (fullLog) {
             sb.append("\n");
             sb.append("Import " + job.getId() + "full log:\n");
-            for (LogMessage msg : job.getLogMessages()){
-                sb.append(msg.getMessage() + "\n");               
+            for (LogMessage msg : job.getLogMessages()) {
+                sb.append(msg.getMessage() + "\n");
             }
         }
-        sb.append("\n");        
+        sb.append("\n");
         return sb.toString();
-        
+
     }
-    
+
     /**
      * Returns a nicely formatted import log
      * 
-     * @param showFullLogs includes full logs in the output
+     * @param showFullLogs
+     *            includes full logs in the output
      * 
      * @see #formatImportJob(ImportJob, boolean)
+     * 
+     * @since 0.1
      */
     public String formatImportJobs(boolean showFullLogs) {
         StringBuilder sb = new StringBuilder();
-                
-        List<ImportJob> importJobs = session.createCriteria(ImportJob.class)                
-                .addOrder( Order.desc("startDate") )                
-                .setMaxResults(50)
-                .list();
-        
-        if (importJobs.isEmpty()){
-            sb.append("No imports were done.");
+
+        List<ImportJob> importJobs = session.createCriteria(ImportJob.class)
+                                            .addOrder(Order.desc("startDate"))
+                                            .setMaxResults(50)
+                                            .list();
+
+        if (importJobs.isEmpty()) {
+            sb.append("No imports were done.\n");
         }
-        
-        for (ImportJob job : importJobs){
+
+        for (ImportJob job : importJobs) {
             sb.append(formatImportJob(job, showFullLogs));
         }
         return sb.toString();
@@ -1057,65 +1127,66 @@ public class Diversicon extends Uby {
     /**
      * Returns a nicely formatted status of the database
      * 
-     * @param shortProcessedInfo if true no distinction is made 
-     * between graph normalization and augmentation 
+     * @param shortProcessedInfo
+     *            if true no distinction is made
+     *            between graph normalization and augmentation
      * 
      * @since 0.1
      */
     public String formatDbStatus(boolean shortProcessedInfo) {
         StringBuilder sb = new StringBuilder();
         DbInfo dbInfo = getDbInfo();
-        
+
         sb.append(" Schema version: " + dbInfo.getSchemaVersion());
         sb.append("   Data version: " + dbInfo.getVersion() + "\n");
         sb.append("\n");
-        
-        if (shortProcessedInfo){
-            if (dbInfo.isToAugment() || dbInfo.isToNormalize() ){
+
+        if (shortProcessedInfo) {
+            if (dbInfo.isToAugment() || dbInfo.isToNormalize()) {
                 sb.append("- Synset relation graph needs to be processed. \n");
             }
-            
+
         } else {
-            if (dbInfo.isToNormalize()){
+            if (dbInfo.isToNormalize()) {
                 sb.append("- Synset relation graph needs to be normalized.\n");
             }
 
-            if (dbInfo.isToAugment()){
+            if (dbInfo.isToAugment()) {
                 sb.append("- Synset relation graph needs to be augmented.\n");
             }
-            
+
         }
-                
+
         ImportJob importJob = dbInfo.getCurrentImportJob();
-        
-        if (importJob != null){
-            sb.append("- There is an import job in progress for lexical resource " 
-                    + importJob.getLexicalResourceName() + " from file " + importJob.getFileUrl());
+
+        if (importJob != null) {
+            sb.append("- There is an import job in progress for lexical resource "
+                    + importJob.getLexicalResourceName() + " from file " + importJob.getFileUrl() + "\n");
         }
         return sb.toString();
-        
+
     }
 
     /**
      * 
      * Returns an import job.
      * 
-     * @param importId must be >= 0;
+     * @param importId
+     *            must be >= 0;
      * 
-     * @since 0.1 
      * @throws DivNotFoundException
+     * 
+     * @since 0.1
      */
     public ImportJob getImportJob(long importId) {
-        
+
         ImportJob ret = (ImportJob) session.get(ImportJob.class, importId);
-        if (ret == null){
-            throw new DivNotFoundException("Couldn't find import jod " + importId);    
+        if (ret == null) {
+            throw new DivNotFoundException("Couldn't find import jod " + importId);
         } else {
             return ret;
         }
-        
-    }
 
-   
+    }
 
 }

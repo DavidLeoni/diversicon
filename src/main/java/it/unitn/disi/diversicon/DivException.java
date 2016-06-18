@@ -4,7 +4,6 @@ package it.unitn.disi.diversicon;
 /**
  * A generic runtime exception. 
  * 
- * @author David Leoni <david.leoni@unitn.it>
  * @since 0.1
  */
 public class DivException extends RuntimeException {

@@ -281,7 +281,7 @@ public final class DivTester {
                                 }
                             } catch (Error ex) {
                                 throw new DivException("Error while checking synset relation: "
-                                        + Diversicons.synsetRelationToString(sr),
+                                        + Diversicons.toString(sr),
                                         ex);
                             }
 
@@ -334,7 +334,7 @@ public final class DivTester {
 
         DBConfig dbConfig = createNewDbConfig();
         Diversicons.dropCreateTables(dbConfig);
-        Diversicon div = Diversicon.create(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);
         div.importResource(lexicalResource, true);
         LexicalResource dbLe = div.getLexicalResource(lexicalResource.getName());
 
@@ -365,6 +365,8 @@ public final class DivTester {
      * 
      * @param n the number to identify the db. 
      * If -1 db name will be like default in-memory in uby.
+     * 
+     * @since 0.1
      */
     private static DBConfig createDbConfig(int n) {
         checkArgument(n >= -1, "Invalid n! Found " , n);
@@ -374,8 +376,8 @@ public final class DivTester {
         } else {
             s = Integer.toString(n);
         }
-        return new DBConfig("jdbc:h2:mem:test" + s + ";DB_CLOSE_DELAY=-1", "org.h2.Driver",
-                UBYH2Dialect.class.getName(), "root", "pass", true);
+        return Diversicons.makeDefaultH2InMemoryDbConfig("test" + s);
+        
     }
 
 }

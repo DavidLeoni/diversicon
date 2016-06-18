@@ -3,6 +3,11 @@ package it.unitn.disi.diversicon.test;
 import static org.junit.Assert.*;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -28,6 +33,7 @@ import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import it.unitn.disi.diversicon.DbInfo;
+import it.unitn.disi.diversicon.DivIoException;
 import it.unitn.disi.diversicon.DivNotFoundException;
 import it.unitn.disi.diversicon.DivSynsetRelation;
 import it.unitn.disi.diversicon.Diversicon;
@@ -37,7 +43,6 @@ import it.unitn.disi.diversicon.ImportJob;
 import it.unitn.disi.diversicon.internal.Internals;
 
 import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
-import static it.unitn.disi.diversicon.test.DivTester.checkDb;
 import static it.unitn.disi.diversicon.test.DivTester.*;
 
 public class DiversiconTest {
@@ -57,15 +62,19 @@ public class DiversiconTest {
     }
 
     /**
-     * Tests db tables are automatically created.
+     * Tests db tables are not automatically created.
      * 
      * @since 0.1
      */
     @Test
-    public void testAutoCreate() {
-        Diversicon uby = Diversicon.create(dbConfig);
-        uby.getSession()
-           .close();
+    public void testDontAutoCreate() {
+        
+        try {
+            Diversicon uby = Diversicon.connectToDb(dbConfig);
+            Assert.fail("Shouldn't be able to connect to non-existing db!");
+        } catch (DivIoException ex){
+            
+        }
     }
 
     /**
@@ -100,7 +109,7 @@ public class DiversiconTest {
         synset.getSynsetRelations()
               .add(synsetRelation);
 
-        Diversicon diversicon = Diversicon.create(dbConfig);
+        Diversicon diversicon = Diversicon.connectToDb(dbConfig);
 
         diversicon.importResource(lexicalResource, true);
 
@@ -152,7 +161,7 @@ public class DiversiconTest {
 
         Diversicons.dropCreateTables(dbConfig);
 
-        Diversicon diversicon = Diversicon.create(dbConfig);
+        Diversicon diversicon = Diversicon.connectToDb(dbConfig);
 
         diversicon.importResource(lexicalResource, true);
 
@@ -326,7 +335,7 @@ public class DiversiconTest {
 
         Diversicons.dropCreateTables(dbConfig);
 
-        Diversicon diversicon = Diversicon.create(dbConfig);
+        Diversicon diversicon = Diversicon.connectToDb(dbConfig);
 
         diversicon.importResource(GRAPH_1_HYPERNYM, true);
 
@@ -371,7 +380,7 @@ public class DiversiconTest {
 
         Diversicons.dropCreateTables(dbConfig);
 
-        Diversicon div = Diversicon.create(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);
 
         div.importResource(DAG_3_HYPERNYM, true);
 
@@ -474,7 +483,7 @@ public class DiversiconTest {
     public void testGetLemmaByWrittenForm() {
         Diversicons.dropCreateTables(dbConfig);
 
-        Diversicon div = Diversicon.create(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);
 
         LexicalResource res = lmf().lexicon()
                                    .synset()
@@ -502,7 +511,7 @@ public class DiversiconTest {
 
         Diversicons.dropCreateTables(dbConfig);
 
-        Diversicon div = Diversicon.create(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);
 
         div.importResource(DAG_3_HYPERNYM, true);
 
@@ -555,7 +564,7 @@ public class DiversiconTest {
 
         Diversicons.dropCreateTables(dbConfig);
 
-        Diversicon diversicon = Diversicon.create(dbConfig);
+        Diversicon diversicon = Diversicon.connectToDb(dbConfig);
         diversicon.importResource(GRAPH_4_HYP_HOL_HELLO, true);
         checkContainsAll(diversicon.getConnectedSynsets(
                 "synset 4",
@@ -577,7 +586,7 @@ public class DiversiconTest {
 
         Diversicons.dropCreateTables(dbConfig);
 
-        Diversicon diversicon = Diversicon.create(dbConfig);
+        Diversicon diversicon = Diversicon.connectToDb(dbConfig);
 
         diversicon.importResource(DAG_2_MULTI_REL, true);
 
@@ -601,7 +610,7 @@ public class DiversiconTest {
 
         Diversicons.dropCreateTables(dbConfig);
 
-        Diversicon div = Diversicon.create(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);
 
         DbInfo dbInfo1 = div.getDbInfo();
 
@@ -650,7 +659,8 @@ public class DiversiconTest {
     }
 
     /**
-     * Was giving absurd problems for null discriminator in DivSynsetRelation.hbm.xml
+     * Was giving absurd problems for null discriminator in
+     * DivSynsetRelation.hbm.xml
      * 
      * @since 0.1.0
      * 
@@ -660,7 +670,7 @@ public class DiversiconTest {
 
         Diversicons.dropCreateTables(dbConfig);
 
-        Diversicon div = Diversicon.create(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);
 
         assertFalse(div.formatImportJobs(true)
                        .isEmpty());
@@ -668,44 +678,66 @@ public class DiversiconTest {
         File xml = DivTester.writeXml(GRAPH_4_HYP_HOL_HELLO);
 
         div.importFile(xml.getAbsolutePath());
-        
+
     }
 
     /**
+     * Watch out for long texts when importing
+     * 
      * @since 0.1.0
      * 
      */
     @Test
     public void testFormatImports() {
+        
         Diversicons.dropCreateTables(dbConfig);
 
-        Diversicon div = Diversicon.create(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);
 
         assertFalse(div.formatImportJobs(true)
                        .isEmpty());
 
-        File xml = DivTester.writeXml(GRAPH_4_HYP_HOL_HELLO);
+        File xml1 = DivTester.writeXml(GRAPH_1_HYPERNYM);
+        File xml2 = DivTester.writeXml(lmf("2nd-").lexicon()
+                                                  .synset()
+                                                  .synset()
+                                                  .synset()
+                                                  .synset()
+                                                  .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                                  .synsetRelation(ERelNameSemantics.HOLONYM, 2)
+                                                  .synsetRelation("hello", 3)
+                                                  .build());
 
         ImportConfig config = new ImportConfig();
 
-        config.addLexicalResource(xml.getAbsolutePath());
+        config.addLexicalResource(xml1.getAbsolutePath());
+        config.addLexicalResource(xml2.getAbsolutePath());
+
         config.setAuthor("Someone With A Very Long Name");
         config.setDescription(
                 "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.");
         config.setSkipAugment(true);
 
-        ImportJob job = div.importFiles(config)
-                           .get(0);
+        ImportJob job1 = div.importFiles(config)
+                            .get(0);
 
-        String output = div.formatImportJob(job, false);
+        String output1 = div.formatImportJob(job1, false);
 
-        LOG.debug("\n" + output);
+        LOG.debug("\n\n" + output1);
 
-        assertTrue(output
-                         .contains(Long.toString(job.getId())));
+        assertTrue(output1
+                          .contains(Long.toString(job1.getId())));
 
-        assertTrue(output
-                         .contains(GRAPH_4_HYP_HOL_HELLO.getName()));
+        assertTrue(output1
+                          .contains(GRAPH_1_HYPERNYM.getName()));
+
+        String output2 = div.formatImportJobs(false);
+
+        LOG.debug("\n\n-----------------\n\n" + output2);
+
+        assertTrue(output2.contains(Long.toString(job1.getId())));
+        assertTrue(output2.contains(GRAPH_1_HYPERNYM.getName()));
+        assertTrue(output2.contains("2nd"));
 
     }
 
@@ -721,7 +753,7 @@ public class DiversiconTest {
 
         Diversicons.dropCreateTables(dbConfig);
 
-        Diversicon div = Diversicon.create(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);
 
         div.importResource(GRAPH_1_HYPERNYM, true);
 
@@ -733,6 +765,9 @@ public class DiversiconTest {
            .close();
     }
 
+    /**
+     * @since 0.1
+     */
     @Test
     public void mergeTwoSeparateLexicalResources() {
 
@@ -740,7 +775,7 @@ public class DiversiconTest {
 
         Diversicons.dropCreateTables(dbConfig);
 
-        Diversicon div = Diversicon.create(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);
 
         div.importResource(GRAPH_1_HYPERNYM, true);
 
@@ -776,5 +811,151 @@ public class DiversiconTest {
            .close();
 
     }
+    
+    /**
+     * Test for h2 version doesn't match hibernate
+     * https://github.com/DavidLeoni/diversicon/issues/9
+     * 
+     * @since 0.1
+     */
+    @Test
+    public void testBug9(){
+        DBConfig dbConfig = createNewDbConfig();
+        
+        LOG.info(Diversicons.toString(dbConfig, true));
+        
+        File xmlFile = DivTester.writeXml(DivTester.GRAPH_1_HYPERNYM);
 
+        ImportConfig config = new ImportConfig();
+        
+        config = new ImportConfig();
+        config.setAuthor("a");
+        config.setDescription("d");
+        config.addLexicalResource(xmlFile.getAbsolutePath());
+        
+        Diversicon div = Diversicon.connectToDb(dbConfig);
+        
+        div.importFiles(config);
+        
+        DivTester.checkDb(DivTester.GRAPH_1_HYPERNYM, div);
+        
+    }
+    
+    /**
+     * @since 0.1
+     */
+    @Test
+    public void testBackupRestore() throws IOException {
+        Diversicons.dropCreateTables(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);
+        div.importResource(GRAPH_1_HYPERNYM, true);
+        
+        Path dir = Files.createTempDirectory("diversicon-test");
+        File zip = new File(dir.toString() + "/output.sql.zip");
+        div.backupToSql(zip.getAbsolutePath(), true);
+        
+        assertTrue(zip.exists());
+        assertTrue(zip.length() > 0);
+        
+        DBConfig dbConfig2 = DivTester.createNewDbConfig();
+        //Diversicons.dropCreateTables(dbConfig2);
+        Diversicons.restoreH2Dump("file://" + zip.getAbsolutePath(), dbConfig2);
+        Diversicon div2 = Diversicon.connectToDb(dbConfig2);
+        checkDb(GRAPH_1_HYPERNYM, div2);
+    }
+
+    /**
+     * @since 0.1
+     */
+    @Test
+    public void testBackupToAlreadyExistingFile() throws IOException{
+        Diversicons.dropCreateTables(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);
+        div.importResource(GRAPH_1_HYPERNYM, true);
+        
+        Path dir = Files.createTempDirectory("diversicon-test");
+        File zip = new File(dir.toString() + "/output.sql.zip");
+        div.backupToSql(zip.getAbsolutePath(), true);
+        
+        try {
+            div.backupToSql(zip.getAbsolutePath(), true);
+            Assert.fail("Shouldn't arrive here!");
+        } catch (DivIoException ex){
+            
+        }        
+        
+    }
+
+    /**
+     * @since 0.1
+     */
+    @Test
+    public void testBackupWrongFile() throws IOException{
+        
+        Diversicons.dropCreateTables(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);
+        div.importResource(GRAPH_1_HYPERNYM, true);
+        
+        Path dir = Files.createTempDirectory("diversicon-test");
+        File zip = new File(dir.toString() + "/output.sql.zip");
+        
+        try {
+            div.backupToSql("", true);
+            Assert.fail("Shouldn't arrive here!");
+        } catch (IllegalArgumentException ex){
+            
+        }
+        
+        try {
+            div.backupToSql(" ", true);
+            Assert.fail("Shouldn't arrive here!");
+        } catch (IllegalArgumentException ex){
+            
+        }                
+
+        
+    }
+    
+    /**
+     * @since 0.1
+     */
+    @Test
+    public void testBackupToFileInNonExistingDir() throws IOException{
+        Diversicons.dropCreateTables(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);
+        div.importResource(GRAPH_1_HYPERNYM, true);
+        
+        Path dir = Files.createTempDirectory("diversicon-test");
+        File zip = new File(dir.toString() + "123/output.sql.zip");
+        
+        
+        div.backupToSql(zip.getAbsolutePath(), true);
+        
+        File newDir = new File(dir.toString() + "123");
+        assertTrue(newDir.exists());
+        assertTrue(newDir.isDirectory());
+        assertTrue(zip.exists());
+    }
+
+    /**
+     * @since 0.1
+     */
+    @Test
+    public void testRestoreWrongDump() throws IOException{
+        Path dir = Files.createTempDirectory("diversicon-test");
+        try {
+            Diversicons.restoreH2Dump("file:"+ dir.toString() +"/666" , dbConfig);
+            Assert.fail("Shouldn't arrive here!");
+        } catch (DivIoException ex){
+            
+        }
+        
+        try {
+            Diversicons.restoreH2Dump("classpath:/666" , dbConfig);
+            Assert.fail("Shouldn't arrive here!");
+        } catch (DivIoException ex){
+            
+        }
+    }
+    
 }

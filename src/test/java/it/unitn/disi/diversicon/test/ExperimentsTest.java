@@ -40,7 +40,7 @@ public class ExperimentsTest {
 
         DBConfig dbConfig = DivTester.createNewDbConfig();
 
-        Diversicon uby = Diversicon.create(dbConfig);
+        Diversicon uby = Diversicon.connectToDb(dbConfig);
 
         Session session = uby.getSession();
 

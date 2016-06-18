@@ -11,6 +11,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -84,10 +85,10 @@ public class DivUtilsTest {
     @Test
     public void testExistsDb(){
         
-        assertFalse(Diversicons.exists(dbConfig));
+        assertFalse(Diversicons.isSchemaValid(dbConfig));
         
         Diversicons.dropCreateTables(dbConfig);
-        assertTrue(Diversicons.exists(dbConfig));
+        assertTrue(Diversicons.isSchemaValid(dbConfig));
            
     }
     
@@ -132,7 +133,7 @@ public class DivUtilsTest {
         
         Diversicons.dropCreateTables(dbConfig);
 
-        Diversicon div = Diversicon.create(dbConfig);               
+        Diversicon div = Diversicon.connectToDb(dbConfig);               
         
         div.importResource(lexicalResource1,  true);
         
@@ -158,5 +159,9 @@ public class DivUtilsTest {
 
     }
 
-
+    @Test
+    public void testReadData(){
+        InputStream is = Internals.readData(Diversicons.WORDNET_RESOURCE_URI);
+        
+    }
 }
