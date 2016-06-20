@@ -104,6 +104,11 @@ public class Diversicon extends Uby {
      */
     public static final String MEMORY_PROTOCOL = "memory";
 
+    /**
+     * Time between progress reports in millisecs
+     */
+    private static final int LOG_DELAY = 5000;
+
     private ImportLogger importLogger;
 
     /**
@@ -402,6 +407,8 @@ public class Diversicon extends Uby {
         LOG.info("Normalizing SynsetRelations...");
 
         Transaction tx = null;
+        long checkpoint = new Date().getTime();
+        
         try {
             tx = session.beginTransaction();
 
@@ -460,8 +467,7 @@ public class Diversicon extends Uby {
                     // flush a batch of updates and release memory:
                     session.flush();
                     session.clear();
-                    LOG.info("Progress: " + String.format(Locale.ENGLISH, "%.2f", ((count * 100.0) / totalSynsets))
-                            + "%");
+                    reportLog(checkpoint, "", count, totalSynsets);
                 }
             }
 
@@ -486,6 +492,28 @@ public class Diversicon extends Uby {
     }
 
     /**
+     * 
+     * @param checkpoint last time in millisecs a message was displayed
+     * @param msg something like:  "SynsetRelations normalization"
+     * 
+     * @since 0.1
+     */
+    private void reportLog(long checkpoint, @Nullable String msg, long count, long total) {
+
+        checkArgument(checkpoint > 0);
+        checkArgument(total > 0);
+        checkArgument(count >= 0);
+        
+        long newTime = new Date().getTime();
+        if ((newTime-checkpoint) > LOG_DELAY){
+            checkpoint = newTime;
+            LOG.info(String.valueOf(msg) + ": "+ String.format(Locale.ENGLISH, "%.2f", ((count * 100.0) / total))
+            + "%");
+        }
+
+    }
+
+    /**
      * Computes the transitive closure of
      * {@link Diversicons#getCanonicalTransitiveRelations() canonical relations}
      * 
@@ -495,6 +523,8 @@ public class Diversicon extends Uby {
      * @throws DivException
      *             when transaction goes wrong it is automatically rolled back
      *             and DivException is thrown
+     *             
+     * @since 0.1
      */
     private void computeTransitiveClosure() {
 
@@ -538,6 +568,7 @@ public class Diversicon extends Uby {
             do {
                 long totalCurrentSynsetRelations = getSynsetRelationsCount();
                 processedRelationsInCurLevel = 0;
+                long checkpoint = new Date().getTime();
 
                 // log.info("Augmenting SynsetRelation graph with edges of depth
                 // " +
@@ -575,7 +606,8 @@ public class Diversicon extends Uby {
                         // flush a batch of updates and release memory:
                         session.flush();
                         session.clear();
-                        LOG.info("Progress: "
+                        reportLog(checkpoint, "SynsetRelation transitive closure depth level " + depthToSearch , processedRelationsInCurLevel, totalCurrentSynsetRelations);
+                        LOG.info(": "
                                 + String.format(Locale.ENGLISH, "%.2f", ((processedRelationsInCurLevel * 100.0) / totalCurrentSynsetRelations))
                                 + "% at depth level " + depthToSearch);
                     }

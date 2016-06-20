@@ -715,10 +715,8 @@ public final class Internals {
         } else {
             try {                
                 
-                Pattern p = Pattern.compile("^(\\w)+:(.*)");
-                Matcher m = p.matcher(dataUrl);
                 
-                if (m.matches()){
+                if (withProtocol(dataUrl)){
                     inputStream = new URL(dataUrl).openStream();                        
                 } else {
                     inputStream = new FileInputStream(dataUrl);
@@ -763,6 +761,17 @@ public final class Internals {
         } else {
             return new ExtractedStream(uri.getPath(), inputStream, dataUrl, false);
         }
+    }
+
+    /**
+     * @since 0.1
+     */
+    private static boolean withProtocol(String dataUrl) {
+        checkNotBlank(dataUrl, "Invalid data url!");
+        Pattern p = Pattern.compile("^(\\w)+:(.*)");
+        Matcher m = p.matcher(dataUrl);
+        
+        return m.matches();
     }
 
     /**
@@ -873,10 +882,14 @@ public final class Internals {
                         } else if (sourceUrl.startsWith("file:")) {
                             this.outFile = new File(sourceUrl);
                         } else {
-                            this.outFile = Files.createTempFile("diversicon", this.filepath)
-                                                .toFile();
-                            FileUtils.copyURLToFile(new URL(sourceUrl), outFile, 20000, 10000);
-                        }
+                            this.outFile = Files.createTempFile("diversicon", FilenameUtils.getExtension(this.filepath))
+                                    .toFile();
+                            if (withProtocol(sourceUrl)){
+                                FileUtils.copyURLToFile(new URL(sourceUrl), outFile, 20000, 10000);
+                            } else {
+                                FileUtils.copyFile(new File(sourceUrl), outFile);
+                            }
+                        }                           
 
                     }
                     LOG.debug("created tempfile at " + outFile.getAbsolutePath());
