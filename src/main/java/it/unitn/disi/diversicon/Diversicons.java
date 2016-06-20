@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.io.FileUtils;
 import org.dom4j.Attribute;
 import org.dom4j.DocumentException;
@@ -80,9 +81,27 @@ public final class Diversicons {
      * 
      * @since 0.1
      */
-    public static final String[] SUPPORTED_COMPRESSION_FORMATS =   {"ar", "arj", "cpio", "dump", "tar", "7z", "zip", "lzma", "z", "snappy",
+    public static final String[] SUPPORTED_COMPRESSION_FORMATS =   {
+            "ar", "arj", "cpio", 
+            "dump", "tar", "7z", "zip", "lzma", "z", "snappy",
             "bzip2",  "xz", "gzip", "tar"};
  
+    /**
+     * A subset of {@link #SUPPORTED_COMPRESSION_FORMATS} holding more information 
+     * about archive entries.
+     * 
+     * @since 0.1
+     */
+    public static final String[] SUPPORTED_ARCHIVE_FORMATS = {ArchiveStreamFactory.AR,
+            ArchiveStreamFactory.ARJ,
+            ArchiveStreamFactory.CPIO,
+            ArchiveStreamFactory.DUMP,
+            ArchiveStreamFactory.JAR,
+            ArchiveStreamFactory.SEVEN_Z,
+            ArchiveStreamFactory.TAR,
+            ArchiveStreamFactory.ZIP};
+
+    
     
     private static final Logger LOG = LoggerFactory.getLogger(Diversicons.class);
 
@@ -105,9 +124,16 @@ public final class Diversicons {
 
     private static final String DEFAULT_H2_DB_NAME = "default-db";
 
-    public static final String WORDNET_RESOURCE_URI = "classpath:/" + Diversicon.class.getName()
+    public static final String WORDNET_DB_RESOURCE_URI = "classpath:/" + Diversicon.class.getPackage()
+                                                                                      .getName()
                                                                                       .replace(".", "/")
-                                                                                      .concat("/data/wn30.zip");
+                                                                                      .concat("/data/wn30.sql.zip");
+
+
+    public static final String WORDNET_XML_RESOURCE_URI = "classpath:/" + Diversicon.class.getPackage()
+                                                                                      .getName()
+                                                                                      .replace(".", "/")
+                                                                                      .concat("/data/wn30.xml.xz");;
 
     private static Map<String, String> inverseRelations = new HashMap();
 

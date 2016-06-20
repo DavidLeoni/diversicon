@@ -7,6 +7,11 @@ import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -17,9 +22,18 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.zip.Deflater;
 
 import javax.annotation.Nullable;
 
+import org.apache.commons.compress.archivers.ArchiveOutputStream;
+import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
+import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
+import org.apache.commons.compress.compressors.CompressorException;
+import org.apache.commons.compress.compressors.CompressorOutputStream;
+import org.apache.commons.compress.compressors.CompressorStreamFactory;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
 import org.h2.tools.Script;
 import org.hibernate.CacheMode;
 import org.hibernate.Criteria;
@@ -32,6 +46,7 @@ import org.hibernate.criterion.Restrictions;
 import org.hibernate.service.ServiceRegistryBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xml.sax.SAXException;
 
 import de.tudarmstadt.ukp.lmf.api.Uby;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
@@ -40,6 +55,7 @@ import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
+import de.tudarmstadt.ukp.lmf.transform.DBToXMLTransformer;
 import de.tudarmstadt.ukp.lmf.transform.XMLToDBTransformer;
 import it.unitn.disi.diversicon.internal.Internals;
 
@@ -90,7 +106,7 @@ public class Diversicon extends Uby {
 
     /**
      * @throws DivIoException
-     * @throws InvalidSchemaException 
+     * @throws InvalidSchemaException
      * 
      * @since 0.1
      */
@@ -106,13 +122,14 @@ public class Diversicon extends Uby {
             LOG.info("Reusing existing database at " + dbConfig.getJdbc_url());
             cfg = Diversicons.getHibernateConfig(dbConfig, true);
         } else {
-            throw new InvalidSchemaException("Database schema is not valid! DbConfig is " + Diversicons.toString(dbConfig, false));
+            throw new InvalidSchemaException(
+                    "Database schema is not valid! DbConfig is " + Diversicons.toString(dbConfig, false));
         }
 
         ServiceRegistryBuilder serviceRegistryBuilder = new ServiceRegistryBuilder().applySettings(cfg.getProperties());
         sessionFactory = cfg.buildSessionFactory(serviceRegistryBuilder.buildServiceRegistry());
         session = sessionFactory.openSession();
-        
+
         int hashcode = session.hashCode();
         if (INSTANCES.containsKey(hashcode)) {
             throw new DivException("INTERNAL ERROR: Seems like there is some sort of duplicate Diversicon session!!");
@@ -593,12 +610,12 @@ public class Diversicon extends Uby {
 
         checkNotNull(config);
 
-        checkNotEmpty(config.getAuthor(), "Invalid ImportConfig author!");
+        checkNotBlank(config.getAuthor(), "Invalid ImportConfig author!");
         checkNotEmpty(config.getFileUrls(), "Invalid ImportConfig filepaths!");
 
         int i = 0;
         for (String fileUrl : config.getFileUrls()) {
-            checkNotEmpty(fileUrl, "Invalid file url at position " + i + "!");
+            checkNotBlank(fileUrl, "Invalid file url at position " + i + "!");
             i++;
         }
 
@@ -634,8 +651,9 @@ public class Diversicon extends Uby {
 
             ImportJob job = startImportJob(config, filepath, lexicalResourceName);
 
-            File file = Internals.readData(filepath).toFile();
-            
+            File file = Internals.readData(filepath)
+                                 .toFile();
+
             XMLToDBTransformer trans = new XMLToDBTransformer(dbConfig);
 
             try {
@@ -816,15 +834,16 @@ public class Diversicon extends Uby {
 
     /**
      * Creates an instance of a Diversicon and opens a connection to the db.
-     * Db must already exists. Present schema will be validated against required one
+     * Db must already exists. Present schema will be validated against required
+     * one
      * and if it doesn't match InvalidSchemaException will be thrown.
      * 
      * @param dbConfig
      *
      * @throws DivIoException
-     * @throws InvalidSchemaException 
+     * @throws InvalidSchemaException
      * @throws DivException
-     *  
+     * 
      * @since 0.1
      */
     public static Diversicon connectToDb(DBConfig dbConfig) {
@@ -833,45 +852,119 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * Exports to a {@code .sql} file. Currently, only supported db is {@code H2}.
+     * Simple export to a UBY-LMF {@code .xml} file.
      * 
-     * @param sqlPath a path to a file, which  is suggested to end with {@code .sql} or {@code .sql.zip}, if compressed.
-     *        If the path includes non-existing directories, they will be automatically created. 
-     * @param compress if true file is compressed to zip 
-     * @throws DivIoException if file in {@code sqlPath} already exists or there are write errors.
-     *  
+     * @param outPath
+     *            a path to a file, if compressed it is suggested to end with
+     *            {@code .xml.zip}.
+     *            If the path includes non-existing directories, they will be
+     *            automatically created.
+     * @param compress
+     *            if true file is compressed to zip
+     * @throws DivIoException
+     *             if file in {@code xmlPath} already exists or there are write
+     *             errors.
+     * 
      * @since 0.1
      */
-    public void backupToSql(String sqlPath, boolean compress){
+    public void exportToXml(String outPath, @Nullable String lexicalResourceName, boolean compress) {
+        checkNotBlank(outPath, "invalid sql path!");
+
+        File outFile = new File(outPath);
         
-        checkH2(dbConfig);
-        checkNotBlank(sqlPath,  "invalid sql path!");                
-        
-        File f = new File(sqlPath);
-        
-        if (f.exists()){
-            throw new DivIoException("Tried to export SQL to an already existing file: " 
-                                    + f.getAbsolutePath());
+        if (compress){
+            String ext = FilenameUtils.getExtension(outFile.getName());
+            checkArgument("zip".equals(ext), "Compression extension not supported: " + ext);
         }
         
+
+        if (outFile.exists()) {
+            throw new DivIoException("Tried to export xml to an already existing file: "
+                    + outFile.getAbsolutePath());
+        }
+
+        LOG.info("Exporting xml to " + outPath + "  ...");
+
+        LexicalResource dbLe = getLexicalResource(lexicalResourceName);
+
+        try {        
+            
+            if (compress){                                                              
+                Path tempOut = Files.createTempFile("diversicon", ".xml");
+                new DBToXMLTransformer(dbConfig, tempOut.toString(), null).transform(dbLe);
+                ZipArchiveOutputStream zar = new ZipArchiveOutputStream(outFile);
+                zar.setLevel(Deflater.BEST_COMPRESSION);
+
+                
+                String xmlEntryName = Internals.makeExtension(outPath, "xml");
+                
+                ZipArchiveEntry entry = new ZipArchiveEntry(xmlEntryName);
+                entry.setSize(tempOut.toFile()
+                                     .length());
+                zar.putArchiveEntry(entry);
+                IOUtils.copy(new FileInputStream(tempOut.toFile()), zar);
+                zar.closeArchiveEntry();                 
+                
+            } else {
+                new DBToXMLTransformer(dbConfig, outPath, null).transform(dbLe);    
+            }
+            
+                        
+        } catch (IOException | SAXException ex) {
+            throw new DivException("Error while making xml file " + outFile.getAbsolutePath(), ex);
+        } 
+        
+        LOG.info("Done exporting xml to " + outPath + "  ...");
+        
+    }
+
+    /**
+     * Exports to a {@code .sql} file. Currently, only supported db is
+     * {@code H2}.
+     * 
+     * @param sqlPath
+     *            a path to a file, which is suggested to end with {@code .sql}
+     *            or {@code .sql.zip}, if compressed.
+     *            If the path includes non-existing directories, they will be
+     *            automatically created.
+     * @param compress
+     *            if true file is compressed to zip
+     * @throws DivIoException
+     *             if file in {@code sqlPath} already exists or there are write
+     *             errors.
+     * 
+     * @since 0.1
+     */
+    public void exportToSql(String sqlPath, boolean compress) {
+
+        checkH2(dbConfig);
+        checkNotBlank(sqlPath, "invalid sql path!");
+
+        File f = new File(sqlPath);
+
+        if (f.exists()) {
+            throw new DivIoException("Tried to export SQL to an already existing file: "
+                    + f.getAbsolutePath());
+        }
+
         LOG.info("Backing up database to " + sqlPath + "  ...");
-                
+
         List<String> params = new ArrayList<>();
-         params.add("-url");
-         params.add(dbConfig.getJdbc_url());
-         params.add("-user");
-         params.add(dbConfig.getUser());
-         params.add("-password");
-         params.add(dbConfig.getPassword());
-         params.add("-script");
-         params.add(sqlPath);
-         
-         if (compress){
-             params.add("-options");
-             params.add("compression");
-             params.add("zip");             
-         }
-                
+        params.add("-url");
+        params.add(dbConfig.getJdbc_url());
+        params.add("-user");
+        params.add(dbConfig.getUser());
+        params.add("-password");
+        params.add(dbConfig.getPassword());
+        params.add("-script");
+        params.add(sqlPath);
+
+        if (compress) {
+            params.add("-options");
+            params.add("compression");
+            params.add("zip");
+        }
+
         String[] bkp = (String[]) params.toArray(new String[0]);
         try {
             Script.main(bkp);
@@ -879,9 +972,8 @@ public class Diversicon extends Uby {
             throw new DivIoException("Error while exporting to sql to " + f.getAbsolutePath() + "  !", ex);
         }
         LOG.info("Done backing up database to " + f.getAbsolutePath());
-        
+
     }
-           
 
     /**
      * See {@link #isConnected(String, String, int, List)}

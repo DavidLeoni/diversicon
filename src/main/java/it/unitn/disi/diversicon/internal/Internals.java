@@ -26,7 +26,11 @@ import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
+import org.apache.commons.compress.compressors.CompressorException;
+import org.apache.commons.compress.compressors.CompressorInputStream;
+import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -630,10 +634,11 @@ public final class Internals {
     /**
      * @since 0.1
      */
-    private static boolean isArchiveFormatSupported(String filePath) {
+    private static boolean isFormatSupported(String filePath,
+            String[] formats) {
         checkNotEmpty(filePath, "Invalid filepath!");
 
-        for (String s : Diversicons.SUPPORTED_COMPRESSION_FORMATS) {
+        for (String s : formats) {
             if (filePath.toLowerCase()
                         .endsWith("." + s)) {
                 return true;
@@ -677,32 +682,64 @@ public final class Internals {
             throw new IllegalArgumentException("Couldn't parse input url!", ex);
         }
 
+        LOG.trace("reading data from " + dataUrl + " ...");
+        
         if ("classpath".equals(uri.getScheme())) {
-            String q = dataUrl.substring("classpath:".length());
+            String q = dataUrl.substring("classpath:".length());          
+            
             inputStream = Diversicons.class.getResourceAsStream(q);
             if (inputStream == null) {
-                throw new DivIoException("Couldn't find input stream: " + dataUrl.toString());
+
+                try {
+                    
+                    String candidatePathTest = "src/test/resources" + q;
+                    LOG.trace("Searching data in " + candidatePathTest + " ...");
+                    inputStream = new FileInputStream(candidatePathTest);
+                    LOG.debug("Located data in " + candidatePathTest);
+                } catch (FileNotFoundException ex1) {
+                    try {
+                        String candidatePathMain = "src/main/resources" + q;
+                        LOG.trace("Searching data in " + candidatePathMain + " ...");
+                        inputStream = new FileInputStream(candidatePathMain);
+                        LOG.debug("Located data in " + candidatePathMain);
+                    } catch (FileNotFoundException ex2) {
+                        throw new DivIoException("Couldn't find input stream: " + dataUrl.toString());
+                    }
+                }
+
+            } else {
+                LOG.debug("Located data in " + dataUrl);
             }
         } else {
             try {
                 inputStream = new URL(dataUrl).openStream();
+                LOG.debug("Located data in " + dataUrl);
             } catch (IOException ex) {
                 throw new DivIoException("Error while opening lexical resource " + dataUrl + "  !!", ex);
             }
         }
 
-        if (isArchiveFormatSupported(dataUrl)) {
+        if (isFormatSupported(uri.getPath(), Diversicons.SUPPORTED_COMPRESSION_FORMATS)) {
 
             try {
+                                
+                if (isFormatSupported(uri.getPath(), Diversicons.SUPPORTED_ARCHIVE_FORMATS)){
+                    
+                    ArchiveInputStream zin = new ArchiveStreamFactory()
+                            .createArchiveInputStream(inputStream);
+                    for (ArchiveEntry e; (e = zin.getNextEntry()) != null;) {
+                        return new ExtractedStream(e.getName(), zin, dataUrl, true);
+                    }
+                       
+                } else {
+                    
+                    CompressorInputStream cin = new CompressorStreamFactory()
+                            .createCompressorInputStream(inputStream);
+                      String fname = FilenameUtils.getBaseName(uri.getPath());
+                      return new ExtractedStream(fname, cin, dataUrl, true);                                                             
+                }                              
 
-                ArchiveInputStream zin = new ArchiveStreamFactory()
-                                                                   .createArchiveInputStream(inputStream);
-
-                for (ArchiveEntry e; (e = zin.getNextEntry()) != null;) {
-                    return new ExtractedStream(e.getName(), zin, dataUrl, true);
-                }
-
-            } catch (IOException | ArchiveException e) {
+            } catch (IOException | ArchiveException | CompressorException e) {
                 throw new DivIoException("Error while iterating through " + dataUrl.toString() + " !", e);
             }
 
@@ -714,7 +751,8 @@ public final class Internals {
     }
 
     /**
-     * A stream possibly extracted from a compressed {@code sourceUrl}
+     * A stream possibly extracted from a compressed {@code sourceUrl}. Use
+     * {#stream()} to get streams.
      * 
      * @since 0.1
      *
@@ -746,8 +784,7 @@ public final class Internals {
 
         /**
          * 
-         * Returns the name of item inside the compressed resource (which is not
-         * the path of {@link #toFile()}).
+         * Returns the name of item as found inside the compressed resource.
          * 
          * @since 0.1
          */
@@ -763,17 +800,6 @@ public final class Internals {
          */
         public String getSourceUrl() {
             return sourceUrl;
-        }
-
-        /**
-         * The stream of the possibly extracted file. Note the stream might
-         * already have been used, see {@link #stream()} for a checked version
-         * of this method.
-         * 
-         * @since 0.1
-         */
-        public InputStream getInputStream() {
-            return inputStream;
         }
 
         /**
@@ -838,7 +864,7 @@ public final class Internals {
                         }
 
                     }
-                    LOG.debug("created tempfile is at " + outFile.getAbsolutePath());
+                    LOG.debug("created tempfile at " + outFile.getAbsolutePath());
                 }
 
                 return this.outFile;
@@ -846,6 +872,25 @@ public final class Internals {
             } catch (IOException ex) {
                 throw new DivIoException("Error while creating file!", ex);
             }
+        }
+    }
+
+    /**
+     * if outPath is something like a/b/c.sql.zip and ext is sql, it becomes c.sql 
+     * 
+     * If it is something like a/b/c.zip and ext is sql, it becomes c.sql
+     * 
+     * @since 0.1
+     */
+    public static String makeExtension(String path, String ext) {
+        checkNotBlank(path, "Invalid path!");
+        checkNotBlank(ext, "Invalid extension!");
+        
+        String entryName = FilenameUtils.getBaseName(path);
+        if (entryName.endsWith("." + ext)){
+            return entryName;            
+        } else {
+            return entryName.concat("." + ext);
         }
     }
 

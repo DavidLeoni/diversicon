@@ -29,7 +29,7 @@ public class DivUtilsIT {
 
     @Test
     public void testRestoreH2Dump(){
-        Diversicons.restoreH2Dump(Diversicons.WORDNET_RESOURCE_URI, dbConfig);
+        Diversicons.restoreH2Dump(Diversicons.WORDNET_DB_RESOURCE_URI, dbConfig);
         
         Diversicon div = Diversicon.connectToDb(dbConfig);
         

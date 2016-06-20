@@ -845,14 +845,14 @@ public class DiversiconTest {
      * @since 0.1
      */
     @Test
-    public void testBackupRestore() throws IOException {
+    public void testExportToSqlRestore() throws IOException {
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);
         div.importResource(GRAPH_1_HYPERNYM, true);
         
         Path dir = Files.createTempDirectory("diversicon-test");
         File zip = new File(dir.toString() + "/output.sql.zip");
-        div.backupToSql(zip.getAbsolutePath(), true);
+        div.exportToSql(zip.getAbsolutePath(), true);
         
         assertTrue(zip.exists());
         assertTrue(zip.length() > 0);
@@ -868,17 +868,17 @@ public class DiversiconTest {
      * @since 0.1
      */
     @Test
-    public void testBackupToAlreadyExistingFile() throws IOException{
+    public void testExportToSqlToAlreadyExistingFile() throws IOException{
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);
         div.importResource(GRAPH_1_HYPERNYM, true);
         
         Path dir = Files.createTempDirectory("diversicon-test");
         File zip = new File(dir.toString() + "/output.sql.zip");
-        div.backupToSql(zip.getAbsolutePath(), true);
+        div.exportToSql(zip.getAbsolutePath(), true);
         
         try {
-            div.backupToSql(zip.getAbsolutePath(), true);
+            div.exportToSql(zip.getAbsolutePath(), true);
             Assert.fail("Shouldn't arrive here!");
         } catch (DivIoException ex){
             
@@ -890,7 +890,7 @@ public class DiversiconTest {
      * @since 0.1
      */
     @Test
-    public void testBackupWrongFile() throws IOException{
+    public void testExportToSqlWrongFile() throws IOException{
         
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);
@@ -900,14 +900,14 @@ public class DiversiconTest {
         File zip = new File(dir.toString() + "/output.sql.zip");
         
         try {
-            div.backupToSql("", true);
+            div.exportToSql("", true);
             Assert.fail("Shouldn't arrive here!");
         } catch (IllegalArgumentException ex){
             
         }
         
         try {
-            div.backupToSql(" ", true);
+            div.exportToSql(" ", true);
             Assert.fail("Shouldn't arrive here!");
         } catch (IllegalArgumentException ex){
             
@@ -920,7 +920,7 @@ public class DiversiconTest {
      * @since 0.1
      */
     @Test
-    public void testBackupToFileInNonExistingDir() throws IOException{
+    public void testExportToSqlInNonExistingDir() throws IOException{
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);
         div.importResource(GRAPH_1_HYPERNYM, true);
@@ -929,7 +929,7 @@ public class DiversiconTest {
         File zip = new File(dir.toString() + "123/output.sql.zip");
         
         
-        div.backupToSql(zip.getAbsolutePath(), true);
+        div.exportToSql(zip.getAbsolutePath(), true);
         
         File newDir = new File(dir.toString() + "123");
         assertTrue(newDir.exists());
