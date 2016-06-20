@@ -12,7 +12,7 @@
 		   <!-- smuby: using "sequence" instead of "increment" to avoid 
            				org.hibernate.QueryException: Invalid identifier generator encountered for implicit id handling as part of bulk insertions [INSERT INTO SynsetRelation (source, target, relType, relName, depth, provenance)   SELECT SR.target, SR.source,  SR.relType, ':relName',  1, 'it.unitn.disi.diversicon'  FROM de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation SR]
                 <generator class="increment"/> -->                       
-           <generator class="sequence"/> 
+           <generator class="identity" /> 
             
     </id>
     

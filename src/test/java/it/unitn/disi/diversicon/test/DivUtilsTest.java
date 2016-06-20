@@ -155,7 +155,7 @@ public class DivUtilsTest {
     public void testGetLexicalResourceName() throws SAXException, IOException{
 
         File outFile = DivTester.writeXml(DivTester.GRAPH_1_HYPERNYM);
-        String name = Diversicons.extractNameFromLexicalResource(outFile);        
+        String name = Diversicons.extractNameFromLexicalResource(outFile.getAbsolutePath());        
         assertEquals(DivTester.GRAPH_1_HYPERNYM.getName(), name);
 
     }
@@ -183,5 +183,6 @@ public class DivUtilsTest {
         assertTrue(f.length() > 0);
                 
     }
+    
 
 }

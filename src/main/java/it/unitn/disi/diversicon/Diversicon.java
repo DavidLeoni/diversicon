@@ -20,6 +20,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.zip.Deflater;
@@ -42,6 +43,7 @@ import org.hibernate.ScrollMode;
 import org.hibernate.ScrollableResults;
 import org.hibernate.Transaction;
 import org.hibernate.criterion.Order;
+import org.hibernate.criterion.Projections;
 import org.hibernate.criterion.Restrictions;
 import org.hibernate.service.ServiceRegistryBuilder;
 import org.slf4j.Logger;
@@ -378,12 +380,23 @@ public class Diversicon extends Uby {
         return retb.toString();
     }
 
+    /**
+     * @since 0.1
+     */
+    public long getSynsetCount() {
+        return ((Number) session.createCriteria(Synset.class)
+                                .setProjection(Projections.rowCount())
+                                .uniqueResult()).longValue();
+
+    }
+
     /*
      * Adds missing edges of depth 1 for relations we consider as canonical.
      * 
      * @throws DivException
      */
     private void normalizeGraph() {
+
         LOG.warn("TODO: SHOULD CHECK FOR LOOPS!");
 
         LOG.info("Normalizing SynsetRelations...");
@@ -391,6 +404,8 @@ public class Diversicon extends Uby {
         Transaction tx = null;
         try {
             tx = session.beginTransaction();
+
+            long totalSynsets = getSynsetCount();
 
             String hql = "FROM Synset";
             Query query = session.createQuery(hql);
@@ -402,10 +417,12 @@ public class Diversicon extends Uby {
 
             InsertionStats relStats = new InsertionStats();
 
+            LOG.info("Going to process " + totalSynsets + " synsets...:\n");
+
             while (synsets.next()) {
 
                 Synset synset = (Synset) synsets.get(0);
-                LOG.info("Processing synset with id " + synset.getId() + " ...");
+                LOG.trace("Processing synset with id " + synset.getId() + " ...");                
 
                 List<SynsetRelation> relations = synset.getSynsetRelations();
 
@@ -443,6 +460,8 @@ public class Diversicon extends Uby {
                     // flush a batch of updates and release memory:
                     session.flush();
                     session.clear();
+                    LOG.info("Progress: " + String.format(Locale.ENGLISH, "%.2f", ((count * 100.0) / totalSynsets))
+                            + "%");
                 }
             }
 
@@ -485,6 +504,8 @@ public class Diversicon extends Uby {
         try {
             tx = session.beginTransaction();
 
+            
+
             InsertionStats relStats = new InsertionStats();
 
             int depthToSearch = 1;
@@ -515,6 +536,7 @@ public class Diversicon extends Uby {
             int processedRelationsInCurLevel = 0;
 
             do {
+                long totalCurrentSynsetRelations = getSynsetRelationsCount();
                 processedRelationsInCurLevel = 0;
 
                 // log.info("Augmenting SynsetRelation graph with edges of depth
@@ -544,7 +566,7 @@ public class Diversicon extends Uby {
                     source.getSynsetRelations()
                           .add(ssr);
                     session.save(ssr);
-                    session.saveOrUpdate(source);
+                    session.merge(source);
                     // log.info("Inserted " + ssr.toString());
                     relStats.inc(relName);
                     processedRelationsInCurLevel += 1;
@@ -553,6 +575,9 @@ public class Diversicon extends Uby {
                         // flush a batch of updates and release memory:
                         session.flush();
                         session.clear();
+                        LOG.info("Progress: "
+                                + String.format(Locale.ENGLISH, "%.2f", ((processedRelationsInCurLevel * 100.0) / totalCurrentSynsetRelations))
+                                + "% at depth level " + depthToSearch);
                     }
                 }
 
@@ -577,6 +602,16 @@ public class Diversicon extends Uby {
             }
             throw new DivException("Error while computing transitive closure!", ex);
         }
+    }
+
+    /**
+     * @since 0.1
+     */
+    public long getSynsetRelationsCount() {
+        return ((Number) session.createCriteria(DivSynsetRelation.class)
+                                .setProjection(Projections.rowCount())
+                                .uniqueResult()).longValue();
+
     }
 
     /**
@@ -643,15 +678,15 @@ public class Diversicon extends Uby {
             throw new DivException("Error while setting normalize flag in db", ex);
         }
 
-        for (String filepath : config.getFileUrls()) {
+        for (String fileUrl : config.getFileUrls()) {
 
-            LOG.info("Loading LMF : " + filepath + " ...");
+            LOG.info("Loading LMF : " + fileUrl + " ...");
 
-            String lexicalResourceName = Diversicons.extractNameFromLexicalResource(new File(filepath));
+            String lexicalResourceName = Diversicons.extractNameFromLexicalResource(fileUrl);
 
-            ImportJob job = startImportJob(config, filepath, lexicalResourceName);
+            ImportJob job = startImportJob(config, fileUrl, lexicalResourceName);
 
-            File file = Internals.readData(filepath)
+            File file = Internals.readData(fileUrl)
                                  .toFile();
 
             XMLToDBTransformer trans = new XMLToDBTransformer(dbConfig);
@@ -659,10 +694,10 @@ public class Diversicon extends Uby {
             try {
                 trans.transform(file, null);
             } catch (Exception ex) {
-                throw new DivException("Error while loading lmf xml " + filepath, ex);
+                throw new DivException("Error while loading lmf xml " + fileUrl, ex);
             }
 
-            LOG.info("Done loading LMF : " + filepath + " .");
+            LOG.info("Done loading LMF : " + fileUrl + " .");
 
             endImportJob(job);
 
@@ -871,12 +906,11 @@ public class Diversicon extends Uby {
         checkNotBlank(outPath, "invalid sql path!");
 
         File outFile = new File(outPath);
-        
-        if (compress){
+
+        if (compress) {
             String ext = FilenameUtils.getExtension(outFile.getName());
             checkArgument("zip".equals(ext), "Compression extension not supported: " + ext);
         }
-        
 
         if (outFile.exists()) {
             throw new DivIoException("Tried to export xml to an already existing file: "
@@ -887,35 +921,33 @@ public class Diversicon extends Uby {
 
         LexicalResource dbLe = getLexicalResource(lexicalResourceName);
 
-        try {        
-            
-            if (compress){                                                              
+        try {
+
+            if (compress) {
                 Path tempOut = Files.createTempFile("diversicon", ".xml");
                 new DBToXMLTransformer(dbConfig, tempOut.toString(), null).transform(dbLe);
                 ZipArchiveOutputStream zar = new ZipArchiveOutputStream(outFile);
                 zar.setLevel(Deflater.BEST_COMPRESSION);
 
-                
                 String xmlEntryName = Internals.makeExtension(outPath, "xml");
-                
+
                 ZipArchiveEntry entry = new ZipArchiveEntry(xmlEntryName);
                 entry.setSize(tempOut.toFile()
                                      .length());
                 zar.putArchiveEntry(entry);
                 IOUtils.copy(new FileInputStream(tempOut.toFile()), zar);
-                zar.closeArchiveEntry();                 
-                
+                zar.closeArchiveEntry();
+
             } else {
-                new DBToXMLTransformer(dbConfig, outPath, null).transform(dbLe);    
+                new DBToXMLTransformer(dbConfig, outPath, null).transform(dbLe);
             }
-            
-                        
+
         } catch (IOException | SAXException ex) {
             throw new DivException("Error while making xml file " + outFile.getAbsolutePath(), ex);
-        } 
-        
+        }
+
         LOG.info("Done exporting xml to " + outPath + "  ...");
-        
+
     }
 
     /**

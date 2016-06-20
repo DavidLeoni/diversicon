@@ -347,6 +347,11 @@ public final class Diversicons {
                                                        dbConfig.getDb_vendor(), dbConfig.getUser(),
                                                        dbConfig.getPassword(), dbConfig.isShowSQL()));
 
+        // to avoid   Caused by: org.hibernate.NonUniqueObjectException: a different object with the same identifier value was already associated with the session: [it.unitn.disi.diversicon.DivSynsetRelation#20]
+        // when computing transitive closure 
+        // See http://stackoverflow.com/a/32311508
+        ret.setProperty("hibernate.id.new_generator_mappings", "true");
+        
         if (validate) {
             ret.setProperty("hibernate.hbm2ddl.auto", "validate");
         } else {
@@ -597,8 +602,11 @@ public final class Diversicons {
      * @throws DivNotFoundException
      */
     // implementation is unholy
-    public static String extractNameFromLexicalResource(File xmlFile) {
+    public static String extractNameFromLexicalResource(final String  lexResUrl) {
         SAXReader reader = new SAXReader(false);
+        
+        ExtractedStream es = Internals.readData(lexResUrl);
+        
         reader.setEntityResolver(new EntityResolver() {
             @Override
             public InputSource resolveEntity(String publicId, String systemId)
@@ -611,7 +619,7 @@ public final class Diversicons {
         });
         reader.setDefaultHandler(new LexicalResourceNameHandler());
         try {
-            reader.read(xmlFile);
+            reader.read(es.stream());
         } catch (DocumentException e) {
 
             if (e.getMessage()
@@ -622,11 +630,11 @@ public final class Diversicons {
                                        .indexOf(LexicalResourceNameHandler.FOUND_NAME));
             } else {
                 throw new DivException("Error while extracting lexical resource name from "
-                        + xmlFile.getAbsolutePath() + "!", e);
+                        + lexResUrl + "!", e);
             }
         }
         throw new DivNotFoundException("Couldn't find attribute name in lexical resource "
-                + xmlFile.getAbsolutePath() + "  !");
+                + lexResUrl + "  !");
     }
 
     /**

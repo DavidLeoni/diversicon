@@ -17,6 +17,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -711,8 +713,17 @@ public final class Internals {
                 LOG.debug("Located data in " + dataUrl);
             }
         } else {
-            try {
-                inputStream = new URL(dataUrl).openStream();
+            try {                
+                
+                Pattern p = Pattern.compile("^(\\w)+:(.*)");
+                Matcher m = p.matcher(dataUrl);
+                
+                if (m.matches()){
+                    inputStream = new URL(dataUrl).openStream();                        
+                } else {
+                    inputStream = new FileInputStream(dataUrl);
+                }
+                
                 LOG.debug("Located data in " + dataUrl);
             } catch (IOException ex) {
                 throw new DivIoException("Error while opening lexical resource " + dataUrl + "  !!", ex);
@@ -722,11 +733,15 @@ public final class Internals {
         if (isFormatSupported(uri.getPath(), Diversicons.SUPPORTED_COMPRESSION_FORMATS)) {
 
             try {
-                                
+                  
+                BufferedInputStream buffered =  inputStream instanceof BufferedInputStream 
+                        ? (BufferedInputStream) inputStream 
+                                : new BufferedInputStream(inputStream);
+                
                 if (isFormatSupported(uri.getPath(), Diversicons.SUPPORTED_ARCHIVE_FORMATS)){
                     
                     ArchiveInputStream zin = new ArchiveStreamFactory()
-                            .createArchiveInputStream(inputStream);
+                            .createArchiveInputStream(buffered);
                     for (ArchiveEntry e; (e = zin.getNextEntry()) != null;) {
                         return new ExtractedStream(e.getName(), zin, dataUrl, true);
                     }
@@ -734,7 +749,7 @@ public final class Internals {
                 } else {
                     
                     CompressorInputStream cin = new CompressorStreamFactory()
-                            .createCompressorInputStream(inputStream);
+                            .createCompressorInputStream(buffered);
                       String fname = FilenameUtils.getBaseName(uri.getPath());
                       return new ExtractedStream(fname, cin, dataUrl, true);                                                             
                 }                              

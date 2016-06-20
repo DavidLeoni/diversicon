@@ -958,4 +958,18 @@ public class DiversiconTest {
         }
     }
     
+    @Test
+    public void testimportWordnetIT() throws IOException {
+        DBConfig dbConfig = Diversicons.makeDefaultH2InMemoryDbConfig("mydb");
+        Diversicons.dropCreateTables(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);
+        div.importFile(Diversicons.WORDNET_XML_RESOURCE_URI);
+        Path dir = Files.createTempDirectory("diversicon-test");
+        String zipFilePath = dir.toString() + "/div-wn30.sql.zip";
+        div.exportToSql(zipFilePath, true);
+        assertTrue(new File(zipFilePath).exists());
+        div.getSession().close();
+    }
+
+    
 }
