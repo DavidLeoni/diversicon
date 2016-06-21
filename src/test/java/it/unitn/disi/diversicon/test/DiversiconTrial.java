@@ -61,7 +61,7 @@ public class DiversiconTrial {
 
 
     @Test
-    public void testImportWordnet() throws IOException {
+    public void testImportWordnetInMemoryExportToSql() throws IOException {
         DBConfig dbConfig = Diversicons.makeDefaultH2InMemoryDbConfig("mydb");
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);
@@ -73,4 +73,19 @@ public class DiversiconTrial {
         assertTrue(new File(zipFilePath).exists());
         div.getSession().close();
     }
+    
+    @Test
+    public void testImportWordnetInFileDbExportToSql() throws IOException {
+        DBConfig dbConfig = Diversicons.makeDefaultH2FileDbConfig("target/div-wn30-" + new Date().getTime());
+        Diversicons.dropCreateTables(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);
+        //File xml = DivTester.writeXml(GRAPH_4_HYP_HOL_HELLO);
+        //div.importFile(xml.getAbsolutePath());
+        div.importFile(Diversicons.WORDNET_XML_RESOURCE_URI);
+        String zipFilePath = "target/div-wn30-" + new Date().getTime() + ".sql.zip";
+        div.exportToSql(zipFilePath, true);
+        assertTrue(new File(zipFilePath).exists());
+        div.getSession().close();
+    }
+
 }
