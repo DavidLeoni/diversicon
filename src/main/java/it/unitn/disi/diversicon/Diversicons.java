@@ -248,8 +248,7 @@ public final class Diversicons {
 
     /**
      * First drops all existing tables and then creates a
-     * database based on the hibernate mappings. Database is populated
-     * with script {@code fromDbPath}, if not null.
+     * database based on the hibernate mappings. 
      * 
      * (adapted from LMFDBUtils.createTables(dbConfig) )
      * 
@@ -285,6 +284,44 @@ public final class Diversicons {
 
     }
 
+    /**
+     * Creates a database based on the hibernate mappings. 
+     * 
+     * (adapted from LMFDBUtils.createTables(dbConfig) )
+     * 
+     * @since 0.1
+     */
+    public static void createTables(
+            DBConfig dbConfig) {
+
+        LOG.info("Creating database " + dbConfig.getJdbc_url() + " ...");
+
+        Configuration hcfg = getHibernateConfig(dbConfig, false);
+
+        Session session = openSession(dbConfig, false);
+        Transaction tx = null;
+
+        SchemaExport se = new SchemaExport(hcfg);
+        se.create(true, true);
+        try {
+            tx = session.beginTransaction();
+            DbInfo dbInfo = new DbInfo();
+            session.save(dbInfo);
+            tx.commit();
+        } catch (Exception ex) {
+            LOG.error("Error while saving DbInfo! Rolling back!");
+            if (tx != null) {
+                tx.rollback();
+            }
+            throw new DivException("Error while while saving DbInfo!", ex);
+        }
+        session.flush();
+        session.close();
+        LOG.info("Done creating database " + dbConfig.getJdbc_url() + "  .");
+
+    }
+    
+    
     static Session openSession(DBConfig dbConfig, boolean validate) {
         Configuration cfg = Diversicons.getHibernateConfig(dbConfig, validate);
 
@@ -712,7 +749,7 @@ public final class Diversicons {
         DBConfig ret = new DBConfig();
         ret.setDb_vendor("de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect");
         ret.setJdbc_driver_class("org.h2.Driver");
-        ret.setJdbc_url("jdbc:h2:" + mem  + ":" + dbName);
+        ret.setJdbc_url("jdbc:h2:" + mem  + ":" + dbName + ";DB_CLOSE_DELAY=-1");
         ret.setUser("root");
         ret.setPassword("pass");
         return ret;

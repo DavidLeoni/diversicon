@@ -41,6 +41,7 @@ import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
 import it.unitn.disi.diversicon.ImportConfig;
 import it.unitn.disi.diversicon.ImportJob;
+import it.unitn.disi.diversicon.InvalidSchemaException;
 import it.unitn.disi.diversicon.internal.Internals;
 
 import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
@@ -73,7 +74,7 @@ public class DiversiconTest {
         try {
             Diversicon uby = Diversicon.connectToDb(dbConfig);
             Assert.fail("Shouldn't be able to connect to non-existing db!");
-        } catch (DivIoException ex){
+        } catch (InvalidSchemaException ex){
             
         }
     }
@@ -821,7 +822,8 @@ public class DiversiconTest {
      */
     @Test
     public void testBug9(){
-        DBConfig dbConfig = createNewDbConfig();
+        DBConfig dbConfig = createNewDbConfig();        
+        Diversicons.dropCreateTables(dbConfig);
         
         LOG.info(Diversicons.toString(dbConfig, true));
         
