@@ -687,7 +687,7 @@ public final class Diversicons {
      */
     public static DBConfig makeDefaultH2FileDbConfig(String filePath) {
         checkNotEmpty(filePath, "Invalid file path!");
-        checkArgument(filePath.endsWith(".db"), "File path must end just with the databaset name, "
+        checkArgument(!filePath.endsWith(".db"), "File path must end just with the databaset name, "
                 + "without the '.h2.db'! Found instead: " + filePath);
 
         DBConfig ret = new DBConfig();
