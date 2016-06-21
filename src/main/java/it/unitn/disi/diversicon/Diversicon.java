@@ -534,8 +534,6 @@ public class Diversicon extends Uby {
         try {
             tx = session.beginTransaction();
 
-            
-
             InsertionStats relStats = new InsertionStats();
 
             int depthToSearch = 1;
@@ -653,7 +651,7 @@ public class Diversicon extends Uby {
      * 
      * @since 0.1
      */
-    public ImportJob importFile(String filepath) {
+    public ImportJob importXml(String filepath) {
 
         ImportConfig config = new ImportConfig();
 
@@ -926,6 +924,7 @@ public class Diversicon extends Uby {
      *            {@code .xml.zip}.
      *            If the path includes non-existing directories, they will be
      *            automatically created.
+     * @param lexicalResourceName the name of the lexical resource to export.
      * @param compress
      *            if true file is compressed to zip
      * @throws DivIoException
@@ -934,8 +933,10 @@ public class Diversicon extends Uby {
      * 
      * @since 0.1
      */
-    public void exportToXml(String outPath, @Nullable String lexicalResourceName, boolean compress) {
+    public void exportToXml(String outPath, String lexicalResourceName, boolean compress) {
+        
         checkNotBlank(outPath, "invalid sql path!");
+        checkNotBlank(lexicalResourceName, "invalid lexical resource name!");
 
         File outFile = new File(outPath);
 

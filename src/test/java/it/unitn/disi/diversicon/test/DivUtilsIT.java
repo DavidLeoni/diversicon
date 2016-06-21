@@ -1,5 +1,10 @@
 package it.unitn.disi.diversicon.test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.io.File;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -9,6 +14,8 @@ import org.slf4j.LoggerFactory;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
+import it.unitn.disi.diversicon.internal.Internals;
+import it.unitn.disi.diversicon.internal.Internals.ExtractedStream;
 
 public class DivUtilsIT {
     
@@ -36,4 +43,29 @@ public class DivUtilsIT {
         
         div.getSession().close();
     }
+    
+    @Test
+    public void testReadDataWordnetDb(){
+        ExtractedStream es = Internals.readData(Diversicons.WORDNET_DB_RESOURCE_URI);
+        assertTrue(es.isExtracted());
+        assertEquals("script.sql", es.getFilepath());
+        assertEquals(Diversicons.WORDNET_DB_RESOURCE_URI, es.getSourceUrl());
+        File f = es.toFile();
+        assertTrue(f.exists());
+        assertTrue(f.length() > 0);
+        
+    }
+    
+    @Test
+    public void testReadDataWordnetXml(){
+        ExtractedStream es = Internals.readData(Diversicons.WORDNET_XML_RESOURCE_URI);
+        assertTrue(es.isExtracted());
+        assertEquals("wn30.xml", es.getFilepath());
+        assertEquals(Diversicons.WORDNET_XML_RESOURCE_URI, es.getSourceUrl());
+        File f = es.toFile();
+        assertTrue(f.exists());
+        assertTrue(f.length() > 0);                
+    }
+    
+
 }

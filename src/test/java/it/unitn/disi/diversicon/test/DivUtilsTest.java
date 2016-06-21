@@ -39,6 +39,7 @@ import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import de.tudarmstadt.ukp.lmf.transform.DBToXMLTransformer;
 import it.unitn.disi.diversicon.DivException;
+import it.unitn.disi.diversicon.DivIoException;
 import it.unitn.disi.diversicon.DivNotFoundException;
 import it.unitn.disi.diversicon.DivSynsetRelation;
 import it.unitn.disi.diversicon.Diversicon;
@@ -160,29 +161,24 @@ public class DivUtilsTest {
 
     }
 
+    /**
+     * @since 0.1
+     */
     @Test
-    public void testReadDataWordnetDbIT(){
-        ExtractedStream es = Internals.readData(Diversicons.WORDNET_DB_RESOURCE_URI);
-        assertTrue(es.isExtracted());
-        assertEquals("script.sql", es.getFilepath());
-        assertEquals(Diversicons.WORDNET_DB_RESOURCE_URI, es.getSourceUrl());
-        File f = es.toFile();
-        assertTrue(f.exists());
-        assertTrue(f.length() > 0);
+    public void testRestoreWrongDump() throws IOException{
+        Path dir = Files.createTempDirectory("diversicon-test");
+        try {
+            Diversicons.restoreH2Dump("file:"+ dir.toString() +"/666" , dbConfig);
+            Assert.fail("Shouldn't arrive here!");
+        } catch (DivIoException ex){
+            
+        }
         
+        try {
+            Diversicons.restoreH2Dump("classpath:/666" , dbConfig);
+            Assert.fail("Shouldn't arrive here!");
+        } catch (DivIoException ex){
+            
+        }
     }
-    
-    @Test
-    public void testReadDataWordnetXmlIT(){
-        ExtractedStream es = Internals.readData(Diversicons.WORDNET_XML_RESOURCE_URI);
-        assertTrue(es.isExtracted());
-        assertEquals("wn30.xml", es.getFilepath());
-        assertEquals(Diversicons.WORDNET_XML_RESOURCE_URI, es.getSourceUrl());
-        File f = es.toFile();
-        assertTrue(f.exists());
-        assertTrue(f.length() > 0);
-                
-    }
-    
-
 }

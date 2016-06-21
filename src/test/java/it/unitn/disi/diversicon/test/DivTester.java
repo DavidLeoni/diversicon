@@ -376,7 +376,7 @@ public final class DivTester {
         } else {
             s = Integer.toString(n);
         }
-        return Diversicons.makeDefaultH2InMemoryDbConfig("test" + s);
+        return Diversicons.makeDefaultH2InMemoryDbConfig("test" + s, false);
         
     }
 

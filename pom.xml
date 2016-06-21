@@ -86,6 +86,35 @@
 	</dependencyManagement>
 
 
+	<profiles>
+		<profile>
+			<id>slowTests</id>
+			<build>
+				<plugins>
+
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-failsafe-plugin</artifactId>
+						<configuration>
+							<includes>
+								<include>**/*SlowTest*</include>
+							</includes>
+						</configuration>
+						<executions>
+							<execution>
+								<goals>
+									<goal>integration-test</goal>
+									<goal>verify</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+
 	<build>
 		<plugins>
 
@@ -139,14 +168,18 @@
 					<systemPropertyVariables>
 						<logback.configurationFile>${basedir}/conf/logback-test.xml</logback.configurationFile>
 					</systemPropertyVariables>
+
+					<excludes>
+						<exclude>**/*SlowTest*</exclude>
+					</excludes>
+
 				</configuration>
 			</plugin>
 
-     		<plugin>
+			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-failsafe-plugin</artifactId>
 			</plugin>
-
 
 		</plugins>
 	</build>
@@ -174,8 +207,8 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		
-		
+
+
 
 
 		<dependency>
@@ -192,10 +225,10 @@
 			</exclusions>
 		</dependency>
 
-		
+
 		<dependency>
-		    <groupId>org.slf4j</groupId>
-		    <artifactId>slf4j-api</artifactId>		   
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
 		</dependency>
 
 
@@ -236,9 +269,9 @@
 
 		<!-- not included by default by apache compress -->
 		<dependency>
-		    <groupId>org.tukaani</groupId>
-		    <artifactId>xz</artifactId>
-		    <version>1.5</version>
+			<groupId>org.tukaani</groupId>
+			<artifactId>xz</artifactId>
+			<version>1.5</version>
 		</dependency>
 
 

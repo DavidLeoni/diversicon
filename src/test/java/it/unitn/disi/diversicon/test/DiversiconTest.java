@@ -14,6 +14,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -376,7 +377,7 @@ public class DiversiconTest {
      * @since 0.1
      */
     @Test
-    public void testIsReachable() {
+    public void testIsConnected() {
 
         Diversicons.dropCreateTables(dbConfig);
 
@@ -666,7 +667,7 @@ public class DiversiconTest {
      * 
      */
     @Test
-    public void loadXmlTest() {
+    public void importXmlTest() {
 
         Diversicons.dropCreateTables(dbConfig);
 
@@ -677,7 +678,7 @@ public class DiversiconTest {
 
         File xml = DivTester.writeXml(GRAPH_4_HYP_HOL_HELLO);
 
-        div.importFile(xml.getAbsolutePath());
+        div.importXml(xml.getAbsolutePath());
 
     }
 
@@ -769,7 +770,7 @@ public class DiversiconTest {
      * @since 0.1
      */
     @Test
-    public void mergeTwoSeparateLexicalResources() {
+    public void testMergeTwoSeparateLexicalResources() {
 
         String prefix2 = "2nd-";
 
@@ -937,27 +938,15 @@ public class DiversiconTest {
         assertTrue(zip.exists());
     }
 
-    /**
-     * @since 0.1
-     */
+   
     @Test
-    public void testRestoreWrongDump() throws IOException{
-        Path dir = Files.createTempDirectory("diversicon-test");
-        try {
-            Diversicons.restoreH2Dump("file:"+ dir.toString() +"/666" , dbConfig);
-            Assert.fail("Shouldn't arrive here!");
-        } catch (DivIoException ex){
-            
-        }
-        
-        try {
-            Diversicons.restoreH2Dump("classpath:/666" , dbConfig);
-            Assert.fail("Shouldn't arrive here!");
-        } catch (DivIoException ex){
-            
-        }
+    @Ignore
+    public void testInMemoryCompressedH2(){
+        DBConfig dbConfig = Diversicons.makeDefaultH2InMemoryDbConfig("trial-" + UUID.randomUUID(), true);
+        Diversicons.dropCreateTables(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);
+        div.getSession().close();
     }
-    
 
 
     

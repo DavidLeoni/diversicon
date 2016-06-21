@@ -77,7 +77,7 @@ import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 public final class Diversicons {
 
     /**
-     * Supported compression formats for IO operations.
+     * Supported compression formats for IO operations. It's a superset of {@link #SUPPORTED_ARCHIVE_FORMATS}
      * 
      * @since 0.1
      */
@@ -124,16 +124,10 @@ public final class Diversicons {
 
     private static final String DEFAULT_H2_DB_NAME = "default-db";
 
-    public static final String WORDNET_DB_RESOURCE_URI = "classpath:/" + Diversicon.class.getPackage()
-                                                                                      .getName()
-                                                                                      .replace(".", "/")
-                                                                                      .concat("/data/wn30.sql.zip");
+    public static final String WORDNET_DB_RESOURCE_URI = "classpath:/it/unitn/disi/diversicon/data/wn30.sql.zip";
 
 
-    public static final String WORDNET_XML_RESOURCE_URI = "classpath:/" + Diversicon.class.getPackage()
-                                                                                      .getName()
-                                                                                      .replace(".", "/")
-                                                                                      .concat("/data/wn30.xml.xz");;
+    public static final String WORDNET_XML_RESOURCE_URI = "classpath:/it/unitn/disi/diversicon/data/wn30.xml.xz";
 
     private static Map<String, String> inverseRelations = new HashMap();
 
@@ -703,14 +697,22 @@ public final class Diversicons {
      * 
      * @param dbName
      *            Uniquely identifies the db among all in-memory dbs.
+     * @param if compressed db is compressed, so occupies less space but has slower access time
      */
-    public static DBConfig makeDefaultH2InMemoryDbConfig(String dbName) {
+    public static DBConfig makeDefaultH2InMemoryDbConfig(String dbName, boolean compressed) {
         checkNotEmpty(dbName, "Invalid db name!");
 
+        String mem;
+        if (compressed){
+            mem = "nioMemLZF";
+        } else {
+            mem = "mem";
+        }
+        
         DBConfig ret = new DBConfig();
         ret.setDb_vendor("de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect");
         ret.setJdbc_driver_class("org.h2.Driver");
-        ret.setJdbc_url("jdbc:h2:mem:" + dbName);
+        ret.setJdbc_url("jdbc:h2:" + mem  + ":" + dbName);
         ret.setUser("root");
         ret.setPassword("pass");
         return ret;
@@ -719,7 +721,7 @@ public final class Diversicons {
     /**
      * Restores an h2 database from a sql dump 
      * (possibly compressed in one of {@link #SUPPORTED_COMPRESSION_FORMATS}).
-     * {@code dcConfig} MUST point to a non-existing database, otherwise
+     * {@code dbConfig} MUST point to a non-existing database, otherwise
      * behaviour is unspecified.
      *
      * @param dumpUrl
