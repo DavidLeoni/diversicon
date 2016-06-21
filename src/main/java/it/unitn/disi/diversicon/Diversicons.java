@@ -83,7 +83,7 @@ public final class Diversicons {
      */
     public static final String[] SUPPORTED_COMPRESSION_FORMATS =   {
             "ar", "arj", "cpio", 
-            "dump", "tar", "7z", "zip", "lzma", "z", "snappy",
+            "dump", "tar",  "zip", "lzma", "z", "snappy",
             "bzip2",  "xz", "gzip", "tar"};
  
     /**
@@ -97,7 +97,7 @@ public final class Diversicons {
             ArchiveStreamFactory.CPIO,
             ArchiveStreamFactory.DUMP,
             ArchiveStreamFactory.JAR,
-            ArchiveStreamFactory.SEVEN_Z,
+            // ArchiveStreamFactory.SEVEN_Z, 
             ArchiveStreamFactory.TAR,
             ArchiveStreamFactory.ZIP};
 

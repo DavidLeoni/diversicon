@@ -813,36 +813,7 @@ public class DiversiconTest {
            .close();
 
     }
-    
-    /**
-     * Test for h2 version doesn't match hibernate
-     * https://github.com/DavidLeoni/diversicon/issues/9
-     * 
-     * @since 0.1
-     */
-    @Test
-    public void testBug9(){
-        DBConfig dbConfig = createNewDbConfig();        
-        Diversicons.dropCreateTables(dbConfig);
-        
-        LOG.info(Diversicons.toString(dbConfig, true));
-        
-        File xmlFile = DivTester.writeXml(DivTester.GRAPH_1_HYPERNYM);
-
-        ImportConfig config = new ImportConfig();
-        
-        config = new ImportConfig();
-        config.setAuthor("a");
-        config.setDescription("d");
-        config.addLexicalResource(xmlFile.getAbsolutePath());
-        
-        Diversicon div = Diversicon.connectToDb(dbConfig);
-        
-        div.importFiles(config);
-        
-        DivTester.checkDb(DivTester.GRAPH_1_HYPERNYM, div);
-        
-    }
+   
     
     /**
      * @since 0.1
