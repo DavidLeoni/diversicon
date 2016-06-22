@@ -31,6 +31,7 @@ import org.dom4j.ElementHandler;
 import org.dom4j.ElementPath;
 import org.dom4j.io.SAXReader;
 import org.h2.tools.RunScript;
+import org.hibernate.HibernateException;
 import org.hibernate.SQLQuery;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -65,7 +66,6 @@ import it.unitn.disi.diversicon.internal.Internals;
 import it.unitn.disi.diversicon.internal.Internals.ExtractedStream;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
-import static it.unitn.disi.diversicon.internal.Internals.checkH2;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 
@@ -320,8 +320,7 @@ public final class Diversicons {
         LOG.info("Done creating database " + dbConfig.getJdbc_url() + "  .");
 
     }
-    
-    
+       
     static Session openSession(DBConfig dbConfig, boolean validate) {
         Configuration cfg = Diversicons.getHibernateConfig(dbConfig, validate);
 
@@ -408,7 +407,7 @@ public final class Diversicons {
                     }
                 }
                 if (isCustomized) {
-                    LOG.info("Skipping class customized by Smatch Uby: " + mapping.getDescription());
+                    LOG.info("Skipping class customized by Diversicon: " + mapping.getDescription());
                 } else {
                     loadHibernateXml(ret, mapping);
 
@@ -533,6 +532,42 @@ public final class Diversicons {
     public static List<String> getRelations() {
         return new ArrayList(relationTypes.keySet());
     }
+        
+    /**
+     * 
+     * @param dbConfig
+     * 
+     * @throws InvalidSchemaException 
+     */
+    public static Configuration checkSchema(DBConfig dbConfig){
+        
+        Configuration cfg = Diversicons.getHibernateConfig(dbConfig, true);
+
+        ServiceRegistryBuilder serviceRegistryBuilder = new ServiceRegistryBuilder().applySettings(cfg.getProperties());
+        SessionFactory sessionFactory;
+        try {
+            sessionFactory = cfg.buildSessionFactory(serviceRegistryBuilder.buildServiceRegistry());
+        } catch (HibernateException ex){
+            throw new InvalidSchemaException("Failed validation by hibernate! DbConfig is " + Diversicons.toString(dbConfig, false), ex);
+        }
+        Session session = sessionFactory.openSession();
+
+        // dirty but might work
+        try {
+            session.get(DbInfo.class, 0L);                        
+        } catch (org.hibernate.exception.SQLGrammarException ex) {
+            throw new InvalidSchemaException("Couldn't find DBInfo record! DbConfig is " + Diversicons.toString(dbConfig, false), ex);
+        } finally {
+            try {
+                session.close();
+            } catch (Exception ex) {
+                LOG.error("Couldn't close session properly! DbConfig is " + Diversicons.toString(dbConfig, false), ex);
+            }
+        }
+        
+        return cfg;
+
+    }
 
     /**
      * Returns true if provided database configuration points to an
@@ -542,26 +577,13 @@ public final class Diversicons {
      */
     public static boolean isSchemaValid(DBConfig dbConfig) {
 
-        Configuration cfg = Diversicons.getHibernateConfig(dbConfig, false);
-
-        ServiceRegistryBuilder serviceRegistryBuilder = new ServiceRegistryBuilder().applySettings(cfg.getProperties());
-        SessionFactory sessionFactory = cfg.buildSessionFactory(serviceRegistryBuilder.buildServiceRegistry());
-        Session session = sessionFactory.openSession();
-
-        // dirty but might work
         try {
-            session.get(DbInfo.class, 0L);
-            return true;
-        } catch (org.hibernate.exception.SQLGrammarException ex) {
+           checkSchema(dbConfig);
+           return true;
+        } catch (InvalidSchemaException ex){
             return false;
-        } finally {
-            try {
-                session.close();
-            } catch (Exception ex) {
-                LOG.error("Couldn't close session properly!", ex);
-            }
         }
-
+        
     }
 
     /**
@@ -636,7 +658,7 @@ public final class Diversicons {
     public static String extractNameFromLexicalResource(final String  lexResUrl) {
         SAXReader reader = new SAXReader(false);
         
-        ExtractedStream es = Internals.readData(lexResUrl);
+        ExtractedStream es = Internals.readData(lexResUrl, true);
         
         reader.setEntityResolver(new EntityResolver() {
             @Override
@@ -771,7 +793,7 @@ public final class Diversicons {
      */
     public static void restoreH2Dump(String dumpUrl, DBConfig dbConfig) {
         Internals.checkNotBlank(dumpUrl, "invalid sql/archive resource path!");
-        checkH2(dbConfig);
+        checkH2Db(dbConfig);
 
         Date start = new Date();
 
@@ -781,7 +803,7 @@ public final class Diversicons {
         } catch (ClassNotFoundException ex) {
             throw new DivIoException("Error while loading h2 driver!", ex);
         }
-        ExtractedStream extractedStream = Internals.readData(dumpUrl);
+        ExtractedStream extractedStream = Internals.readData(dumpUrl, true);
                
         Connection conn = null;
         Statement stat = null;
@@ -876,5 +898,81 @@ public final class Diversicons {
                       .hasNext();
 
     }
+
+    /**
+     * 
+     * Checks if provided db configuration points to an empty database.
+     * @since 0.1
+     */
+    public static boolean isEmpty(DBConfig dbConfig){
+        checkH2Db(dbConfig);
+        
+        Connection conn = null;
+        try {
+            
+            conn = getH2Connection(dbConfig);
+            Statement stat = conn.createStatement();            
+            ResultSet rs = stat.executeQuery("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='PUBLIC' ");            
+            return !rs.next();
+            
+        } catch (SQLException ex) {            
+            throw new DivIoException("Something went wrong!", ex);
+        } finally{
+            if (conn != null){
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    LOG.error("Couldn't close connection, db config is " + toString(dbConfig, false), e);
+                }    
+            }
+                
+        }
+    }
+    
+    /**
+     * 
+
+     * @throws DivIoConnection
+     */
+    public static Connection getH2Connection(DBConfig dbConfig){
+        
+        try {
+            Class.forName("org.h2.Driver");
+               
+            Connection conn;
+
+            conn = DriverManager.getConnection(
+                    dbConfig.getJdbc_url(),
+                    dbConfig.getUser(),
+                    dbConfig.getPassword());
+            return conn;            
+        } catch (SQLException | ClassNotFoundException e) {            
+            throw new DivIoException("Error while connecting to H2 db! db config is " + toString(dbConfig, false), e);
+        }
+        
+
+    }
+    
+    public static boolean isH2Db(DBConfig dbConfig) {
+        checkNotNull(dbConfig);
+        return dbConfig.getJdbc_driver_class()
+                .contains("h2");
+    }
+    
+    /**
+     * Checks provided {@code dbConfig} points to an H2 database.
+     * 
+     * @throws IllegalArgumentException
+     * 
+     * @since 0.1
+     */
+    public static void checkH2Db(DBConfig dbConfig) {
+        checkNotNull(dbConfig);
+        if (!isH2Db(dbConfig)) {
+            throw new IllegalArgumentException("Only H2 database is supported for now! Found instead "
+                    + Diversicons.toString(dbConfig, false));
+        }
+    }
+
 
 }

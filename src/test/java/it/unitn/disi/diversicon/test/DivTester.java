@@ -184,14 +184,19 @@ public final class DivTester {
      * 
      * Checks provided lexical resource corresponds to current db.
      * 
+     * @param lr MUST have a non-null {@link LexicalResource#getName() name}
+     * 
      * Checks only for elements we care about in Diversicon, and only for the
      * ones which are not {@code null} in provided model.
      */
     public static void checkDb(LexicalResource lr, Diversicon diversicon) {
+        checkNotNull(diversicon);
         Internals.checkNotNull(lr);
-
+        checkNotNull(lr.getName());
+        
         LexicalResource dbLr = diversicon.getLexicalResource(lr.getName());
-
+        checkNotNull(dbLr);
+        
         assertEquals(lr.getName(), dbLr.getName());
 
         for (Lexicon lex : lr.getLexicons()) {

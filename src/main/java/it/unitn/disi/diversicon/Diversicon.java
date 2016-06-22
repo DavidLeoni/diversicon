@@ -1,14 +1,12 @@
 package it.unitn.disi.diversicon;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
-import static it.unitn.disi.diversicon.internal.Internals.checkH2;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotBlank;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -124,15 +122,11 @@ public class Diversicon extends Uby {
         checkNotNull(dbConfig, "database configuration is null");
 
         this.dbConfig = dbConfig;
-
-        if (Diversicons.isSchemaValid(dbConfig)) {
-            LOG.info("Reusing existing database at " + dbConfig.getJdbc_url());
-            cfg = Diversicons.getHibernateConfig(dbConfig, true);
-        } else {
-            throw new InvalidSchemaException(
-                    "Database schema is not valid! DbConfig is " + Diversicons.toString(dbConfig, false));
-        }
-
+               
+        cfg = Diversicons.checkSchema(dbConfig);
+        
+        LOG.info("Reusing existing database at " + dbConfig.getJdbc_url());
+        
         ServiceRegistryBuilder serviceRegistryBuilder = new ServiceRegistryBuilder().applySettings(cfg.getProperties());
         sessionFactory = cfg.buildSessionFactory(serviceRegistryBuilder.buildServiceRegistry());
         session = sessionFactory.openSession();
@@ -146,7 +140,7 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * Note: search is done by exact match on {@code wirttenForm}
+     * Note: search is done by exact match on {@code writtenForm}
      * 
      * @since 0.1
      */
@@ -467,7 +461,7 @@ public class Diversicon extends Uby {
                     // flush a batch of updates and release memory:
                     session.flush();
                     session.clear();
-                    reportLog(checkpoint, "", count, totalSynsets);
+                    checkpoint = reportLog(checkpoint, "", count, totalSynsets);
                 }
             }
 
@@ -498,17 +492,19 @@ public class Diversicon extends Uby {
      * 
      * @since 0.1
      */
-    private void reportLog(long checkpoint, @Nullable String msg, long count, long total) {
+    private long reportLog(long checkpoint, @Nullable String msg, long count, long total) {
 
         checkArgument(checkpoint > 0);
         checkArgument(total > 0);
         checkArgument(count >= 0);
         
         long newTime = new Date().getTime();
-        if ((newTime-checkpoint) > LOG_DELAY){
-            checkpoint = newTime;
+        if ((newTime-checkpoint) > LOG_DELAY){            
             LOG.info(String.valueOf(msg) + ": "+ String.format(Locale.ENGLISH, "%.2f", ((count * 100.0) / total))
             + "%");
+            return newTime;
+        } else {
+            return checkpoint;
         }
 
     }
@@ -604,7 +600,7 @@ public class Diversicon extends Uby {
                         // flush a batch of updates and release memory:
                         session.flush();
                         session.clear();
-                        reportLog(checkpoint, "SynsetRelation transitive closure depth level " + depthToSearch , processedRelationsInCurLevel, totalCurrentSynsetRelations);
+                        checkpoint = reportLog(checkpoint, "SynsetRelation transitive closure depth level " + depthToSearch , processedRelationsInCurLevel, totalCurrentSynsetRelations);
                         LOG.info(": "
                                 + String.format(Locale.ENGLISH, "%.2f", ((processedRelationsInCurLevel * 100.0) / totalCurrentSynsetRelations))
                                 + "% at depth level " + depthToSearch);
@@ -716,7 +712,7 @@ public class Diversicon extends Uby {
 
             ImportJob job = startImportJob(config, fileUrl, lexicalResourceName);
 
-            File file = Internals.readData(fileUrl)
+            File file = Internals.readData(fileUrl, true)
                                  .toFile();
 
             XMLToDBTransformer trans = new XMLToDBTransformer(dbConfig);
@@ -747,7 +743,7 @@ public class Diversicon extends Uby {
 
         LOG.info("Done importing " + config.getFileUrls()
                                            .size()
-                + " LMFs by import author " + config.getAuthor() + ".");
+                + " LMF(s) by import author " + config.getAuthor() + ".");
 
         return ret;
     }
@@ -1002,7 +998,7 @@ public class Diversicon extends Uby {
      */
     public void exportToSql(String sqlPath, boolean compress) {
 
-        checkH2(dbConfig);
+        Diversicons.checkH2Db(dbConfig);
         checkNotBlank(sqlPath, "invalid sql path!");
 
         File f = new File(sqlPath);

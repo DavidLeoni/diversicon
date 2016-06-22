@@ -46,7 +46,7 @@ public class DivUtilsIT {
     
     @Test
     public void testReadDataWordnetDb(){
-        ExtractedStream es = Internals.readData(Diversicons.WORDNET_DB_RESOURCE_URI);
+        ExtractedStream es = Internals.readData(Diversicons.WORDNET_DB_RESOURCE_URI, true);
         assertTrue(es.isExtracted());
         assertEquals("script.sql", es.getFilepath());
         assertEquals(Diversicons.WORDNET_DB_RESOURCE_URI, es.getSourceUrl());
@@ -58,7 +58,7 @@ public class DivUtilsIT {
     
     @Test
     public void testReadDataWordnetXml(){
-        ExtractedStream es = Internals.readData(Diversicons.WORDNET_XML_RESOURCE_URI);
+        ExtractedStream es = Internals.readData(Diversicons.WORDNET_XML_RESOURCE_URI, true);
         assertTrue(es.isExtracted());
         assertEquals("wn30.xml", es.getFilepath());
         assertEquals(Diversicons.WORDNET_XML_RESOURCE_URI, es.getSourceUrl());

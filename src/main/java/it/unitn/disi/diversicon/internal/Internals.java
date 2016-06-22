@@ -12,11 +12,14 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -33,12 +36,14 @@ import org.apache.commons.compress.compressors.CompressorInputStream;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.rits.cloning.Cloner;
 
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
+import it.unitn.disi.diversicon.DivException;
 import it.unitn.disi.diversicon.DivIoException;
 import it.unitn.disi.diversicon.Diversicons;
 
@@ -617,21 +622,7 @@ public final class Internals {
                                                           .isEmpty());
     }
 
-    /**
-     * Checks provided {@code dbConfig} points to an H2 database.
-     * 
-     * @throws IllegalArgumentException
-     * 
-     * @since 0.1
-     */
-    public static void checkH2(DBConfig dbConfig) {
-        checkNotNull(dbConfig);
-        if (!dbConfig.getJdbc_driver_class()
-                     .contains("h2")) {
-            throw new IllegalArgumentException("Only H2 database is supported for now! Found instead "
-                    + Diversicons.toString(dbConfig, false));
-        }
-    }
+  
 
     /**
      * @since 0.1
@@ -650,28 +641,29 @@ public final class Internals {
     }
 
     /**
-     * Gets input stream from a url pointing to data. If data is compressed in
-     * one of
-     * {@link Diversicons#SUPPORTED_COMPRESSION_FORMATS} it is uncompressed, but
-     * no check is done to verify
-     * the archive contains only one file.
-     * 
-     * Supported compression formats are
+     * Gets input stream from a url pointing to possibly compressed data.
      * 
      * @param dataUrl
      *            can be like:
      *            <ul>
-     *            <li>classpath:/my/package/name/data.zip</li
-     *            <li>file:/my/path/data.zip</li>
-     *            <li>http://... or whatever protocol..</li>
+     *            <li>{@code classpath:/my/package/name/data.zip}</li>
+     *            <li>{@code file:/my/path/data.zip}</li>
+     *            <li>{@code http://... }</li>
+     *            <li>whatever protocol.. </li>
      *            </ul>
+     * @param decompress
+     *            if true and data is actually compressed in one of
+     * {@link Diversicons#SUPPORTED_COMPRESSION_FORMATS} returns the
+     *            uncompressed stream (note no check is done to verify the archive contains only one file).
+     *             In all other cases data stream is returned verbatim. 
+     *  
      * @throws DivIoException
      *             on error.
      * 
      * @since 0.1
      */
     // todo should check archives have only one file...
-    public static ExtractedStream readData(String dataUrl) {
+    public static ExtractedStream readData(String dataUrl, boolean decompress) {
         checkNotNull(dataUrl, "Invalid resource path!");
 
         @Nullable
@@ -685,15 +677,15 @@ public final class Internals {
         }
 
         LOG.trace("reading data from " + dataUrl + " ...");
-        
+
         if ("classpath".equals(uri.getScheme())) {
-            String q = dataUrl.substring("classpath:".length());          
-            
+            String q = dataUrl.substring("classpath:".length());
+
             inputStream = Diversicons.class.getResourceAsStream(q);
             if (inputStream == null) {
 
                 try {
-                    
+
                     String candidatePathTest = "src/test/resources" + q;
                     LOG.trace("Searching data in " + candidatePathTest + " ...");
                     inputStream = new FileInputStream(candidatePathTest);
@@ -713,44 +705,43 @@ public final class Internals {
                 LOG.debug("Located data in " + dataUrl);
             }
         } else {
-            try {                
-                
-                
-                if (withProtocol(dataUrl)){
-                    inputStream = new URL(dataUrl).openStream();                        
+            try {
+
+                if (withProtocol(dataUrl)) {
+                    inputStream = new URL(dataUrl).openStream();
                 } else {
                     inputStream = new FileInputStream(dataUrl);
                 }
-                
+
                 LOG.debug("Located data in " + dataUrl);
             } catch (IOException ex) {
                 throw new DivIoException("Error while opening lexical resource " + dataUrl + "  !!", ex);
             }
         }
 
-        if (isFormatSupported(uri.getPath(), Diversicons.SUPPORTED_COMPRESSION_FORMATS)) {
+        if (decompress && isFormatSupported(uri.getPath(), Diversicons.SUPPORTED_COMPRESSION_FORMATS)) {
 
             try {
-                  
-                BufferedInputStream buffered =  inputStream instanceof BufferedInputStream 
-                        ? (BufferedInputStream) inputStream 
-                                : new BufferedInputStream(inputStream);
-                
-                if (isFormatSupported(uri.getPath(), Diversicons.SUPPORTED_ARCHIVE_FORMATS)){
-                    
+
+                BufferedInputStream buffered = inputStream instanceof BufferedInputStream
+                        ? (BufferedInputStream) inputStream
+                        : new BufferedInputStream(inputStream);
+
+                if (isFormatSupported(uri.getPath(), Diversicons.SUPPORTED_ARCHIVE_FORMATS)) {
+
                     ArchiveInputStream zin = new ArchiveStreamFactory()
-                            .createArchiveInputStream(buffered);
+                                                                       .createArchiveInputStream(buffered);
                     for (ArchiveEntry e; (e = zin.getNextEntry()) != null;) {
                         return new ExtractedStream(e.getName(), zin, dataUrl, true);
                     }
-                       
+
                 } else {
-                    
+
                     CompressorInputStream cin = new CompressorStreamFactory()
-                            .createCompressorInputStream(buffered);
-                      String fname = FilenameUtils.getBaseName(uri.getPath());
-                      return new ExtractedStream(fname, cin, dataUrl, true);                                                             
-                }                              
+                                                                             .createCompressorInputStream(buffered);
+                    String fname = FilenameUtils.getBaseName(uri.getPath());
+                    return new ExtractedStream(fname, cin, dataUrl, true);
+                }
 
             } catch (IOException | ArchiveException | CompressorException e) {
                 throw new DivIoException("Error while iterating through " + dataUrl.toString() + " !", e);
@@ -770,7 +761,7 @@ public final class Internals {
         checkNotBlank(dataUrl, "Invalid data url!");
         Pattern p = Pattern.compile("^(\\w)+:(.*)");
         Matcher m = p.matcher(dataUrl);
-        
+
         return m.matches();
     }
 
@@ -870,26 +861,28 @@ public final class Internals {
             try {
                 if (this.outFile == null) {
                     if (extracted) {
-                        this.outFile = Files.createTempFile("diversicon", this.filepath)
-                                            .toFile();
+                        Path tempDir = Files.createTempDirectory("diversicon");                                                       
+                        this.outFile = new File(tempDir.toFile(), FilenameUtils.getName(this.filepath));
+
                         FileUtils.copyInputStreamToFile(this.inputStream, outFile);
                     } else {
                         if (sourceUrl.startsWith("classpath:")) {
-                            this.outFile = Files.createTempFile("diversicon", this.filepath)
-                                                .toFile();
+                            Path tempDir = Files.createTempDirectory("diversicon");                                                       
+                            this.outFile = new File(tempDir.toFile(), FilenameUtils.getName(this.filepath));
                             FileUtils.copyInputStreamToFile(this.inputStream, outFile);
 
                         } else if (sourceUrl.startsWith("file:")) {
                             this.outFile = new File(sourceUrl);
                         } else {
-                            this.outFile = Files.createTempFile("diversicon", FilenameUtils.getExtension(this.filepath))
-                                    .toFile();
-                            if (withProtocol(sourceUrl)){
+                            Path tempDir = Files.createTempDirectory("diversicon");                                                       
+                            this.outFile = new File(tempDir.toFile(), FilenameUtils.getName(this.filepath));
+
+                            if (withProtocol(sourceUrl)) {
                                 FileUtils.copyURLToFile(new URL(sourceUrl), outFile, 20000, 10000);
                             } else {
                                 FileUtils.copyFile(new File(sourceUrl), outFile);
                             }
-                        }                           
+                        }
 
                     }
                     LOG.debug("created tempfile at " + outFile.getAbsolutePath());
@@ -904,7 +897,8 @@ public final class Internals {
     }
 
     /**
-     * if outPath is something like a/b/c.sql.zip and ext is sql, it becomes c.sql 
+     * if outPath is something like a/b/c.sql.zip and ext is sql, it becomes
+     * c.sql
      * 
      * If it is something like a/b/c.zip and ext is sql, it becomes c.sql
      * 
@@ -913,13 +907,138 @@ public final class Internals {
     public static String makeExtension(String path, String ext) {
         checkNotBlank(path, "Invalid path!");
         checkNotBlank(ext, "Invalid extension!");
-        
+
         String entryName = FilenameUtils.getBaseName(path);
-        if (entryName.endsWith("." + ext)){
-            return entryName;            
+        if (entryName.endsWith("." + ext)) {
+            return entryName;
         } else {
             return entryName.concat("." + ext);
         }
     }
 
+    /**
+     *
+     * Extracts the files starting with dirPath from {@code file} to
+     * {@code destDir}
+     *
+     * (copied from Josman)
+     *
+     * @param dirPath
+     *            the prefix used for filtering. If empty the whole jar
+     *            content is extracted.
+     *
+     * @throws DivIoException
+     * @since 0.1
+     */
+    public static void copyDirFromJar(File jarFile, File destDir, String dirPath) {
+        checkNotNull(jarFile);
+        checkNotNull(destDir);
+        checkNotNull(dirPath);
+
+        String normalizedDirPath;
+        if (dirPath.startsWith("/")) {
+            normalizedDirPath = dirPath.substring(1);
+        } else {
+            normalizedDirPath = dirPath;
+        }
+
+        try {
+            JarFile jar = new JarFile(jarFile);
+            java.util.Enumeration enumEntries = jar.entries();
+            while (enumEntries.hasMoreElements()) {
+                JarEntry jarEntry = (JarEntry) enumEntries.nextElement();
+                if (jarEntry.getName()
+                            .startsWith(normalizedDirPath)) {
+                    File f = new File(
+                            destDir
+                                    + File.separator
+                                    + jarEntry
+                                              .getName()
+                                              .substring(normalizedDirPath.length()));
+
+                    if (jarEntry.isDirectory()) { // if its a directory, create
+                                                  // it
+                        f.mkdirs();
+                        continue;
+                    } else {
+                        f.getParentFile()
+                         .mkdirs();
+                    }
+
+                    InputStream is = jar.getInputStream(jarEntry); // get the
+                                                                   // input
+                                                                   // stream
+                    FileOutputStream fos = new FileOutputStream(f);
+                    IOUtils.copy(is, fos);
+                    fos.close();
+                    is.close();
+                }
+
+            }
+        } catch (IOException ex) {
+            throw new DivIoException("Error while extracting jar file! Jar source: " + jarFile.getAbsolutePath()
+                    + " destDir = " + destDir.getAbsolutePath(), ex);
+        }
+    }
+
+    /**
+     * Extracts the directory at resource path to target directory. First
+     * directory is searched in local "src/test/resources" and
+     * "src/main/resources" so the thing also
+     * works when developing in the IDE. If not found then searches in jar file.
+     * 
+     * (adapted from Josman 0.7)
+     * 
+     * @throws DivIoException
+     * 
+     * @since 0.1
+     */
+    public static void copyDirFromResource(Class clazz, String sourceDirPath, File destDir) {
+        String sep = File.separator;
+        @Nullable
+        File sourceDirFile = null;
+
+        File testDir = new File("src" + sep + "test" + sep + "resources", sourceDirPath);
+        if (testDir.exists()) {
+            sourceDirFile = testDir;
+        } else {
+            File mainDir = new File("src" + sep + "main" + sep + "resources", sourceDirPath);
+            if (mainDir.exists()) {
+                sourceDirFile = mainDir;
+            }
+        }
+
+        if (sourceDirFile != null) {
+            LOG.debug("Copying directory from {0} to {1}  ...", sourceDirFile.getAbsolutePath(),
+                    destDir.getAbsolutePath());
+            try {
+                FileUtils.copyDirectory(sourceDirFile, destDir);
+                LOG.debug("Done copying directory");
+            } catch (IOException ex) {
+                throw new DivIoException("Couldn't copy the directory!", ex);
+            }
+        } else {
+
+            File jarFile = new File(clazz.getProtectionDomain()
+                                         .getCodeSource()
+                                         .getLocation()
+                                         .getPath());
+            if (jarFile.isDirectory() && jarFile.getAbsolutePath()
+                                                .endsWith("target" + File.separator + "classes")) {
+                LOG.info("Seems like you have sources, will take resources from there");
+                try {
+                    FileUtils.copyDirectory(
+                            new File(jarFile.getAbsolutePath() + "/../../src/main/resources", sourceDirPath), destDir);
+                    LOG.info("Done copying directory");
+                } catch (IOException ex) {
+                    throw new RuntimeException("Couldn't copy the directory!", ex);
+                }
+            } else {
+                LOG.info("Extracting jar {0} to {1}", jarFile.getAbsolutePath(), destDir.getAbsolutePath());
+                copyDirFromJar(jarFile, destDir, sourceDirPath);
+                LOG.debug("Done copying directory from JAR.");
+            }
+
+        }
+    }
 }
