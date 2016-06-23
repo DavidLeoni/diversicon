@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
+import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -122,11 +123,11 @@ public class Diversicon extends Uby {
         checkNotNull(dbConfig, "database configuration is null");
 
         this.dbConfig = dbConfig;
-               
+
         cfg = Diversicons.checkSchema(dbConfig);
-        
+
         LOG.info("Reusing existing database at " + dbConfig.getJdbc_url());
-        
+
         ServiceRegistryBuilder serviceRegistryBuilder = new ServiceRegistryBuilder().applySettings(cfg.getProperties());
         sessionFactory = cfg.buildSessionFactory(serviceRegistryBuilder.buildServiceRegistry());
         session = sessionFactory.openSession();
@@ -402,6 +403,8 @@ public class Diversicon extends Uby {
 
         Transaction tx = null;
         long checkpoint = new Date().getTime();
+
+        long startTime = checkpoint;
         
         try {
             tx = session.beginTransaction();
@@ -423,7 +426,7 @@ public class Diversicon extends Uby {
             while (synsets.next()) {
 
                 Synset synset = (Synset) synsets.get(0);
-                LOG.trace("Processing synset with id " + synset.getId() + " ...");                
+                LOG.trace("Processing synset with id " + synset.getId() + " ...");
 
                 List<SynsetRelation> relations = synset.getSynsetRelations();
 
@@ -461,7 +464,7 @@ public class Diversicon extends Uby {
                     // flush a batch of updates and release memory:
                     session.flush();
                     session.clear();
-                    checkpoint = reportLog(checkpoint, "", count, totalSynsets);
+                    checkpoint = reportLog(checkpoint, "", count);
                 }
             }
 
@@ -472,9 +475,10 @@ public class Diversicon extends Uby {
             tx.commit();
 
             LOG.info("");
-            LOG.info("Done normalizing SynsetRelations.");
+            LOG.info("Done normalizing SynsetRelations. Elapsed time: " + Internals.formatInterval(new Date().getTime()- startTime));
             LOG.info("");
             LOG.info(relStats.toString());
+
 
         } catch (Exception ex) {
             LOG.error("Error while normalizing graph! Rolling back!");
@@ -485,28 +489,33 @@ public class Diversicon extends Uby {
         }
     }
 
+
+    
     /**
      * 
-     * @param checkpoint last time in millisecs a message was displayed
-     * @param msg something like:  "SynsetRelations normalization"
+     * @param checkpoint
+     *            last time in millisecs a message was displayed
+     * @param msg
+     *            something like: "SynsetRelations normalization"
      * 
      * @since 0.1
      */
-    private long reportLog(long checkpoint, @Nullable String msg, long count, long total) {
+    private long reportLog(long checkpoint, @Nullable String msg, long count) {
+        try {
+            checkArgument(checkpoint > 0);
+            checkArgument(count >= 0);
+        } catch (IllegalArgumentException ex) {
+            LOG.error("Error while reporting counts!", ex);
+        }
 
-        checkArgument(checkpoint > 0);
-        checkArgument(total > 0);
-        checkArgument(count >= 0);
-        
         long newTime = new Date().getTime();
-        if ((newTime-checkpoint) > LOG_DELAY){            
-            LOG.info(String.valueOf(msg) + ": "+ String.format(Locale.ENGLISH, "%.2f", ((count * 100.0) / total))
-            + "%");
+        if ((newTime - checkpoint) > LOG_DELAY) {
+            NumberFormat nf = NumberFormat.getNumberInstance(Locale.US);
+            LOG.info(String.valueOf(msg) + ": " + nf.format(count) + " edges processed. ");
             return newTime;
         } else {
             return checkpoint;
         }
-
     }
 
     /**
@@ -519,11 +528,13 @@ public class Diversicon extends Uby {
      * @throws DivException
      *             when transaction goes wrong it is automatically rolled back
      *             and DivException is thrown
-     *             
+     * 
      * @since 0.1
      */
     private void computeTransitiveClosure() {
 
+        long startTime = new Date().getTime();
+        
         LOG.info("Computing transitive closure for SynsetRelations ...");
 
         Transaction tx = null;
@@ -532,6 +543,10 @@ public class Diversicon extends Uby {
 
             InsertionStats relStats = new InsertionStats();
 
+            relStats.setEdgesPriorTransitiveClosure(getSynsetRelationsCount());
+            
+            LOG.info("\nGoing to process " + relStats.getEdgesPriorTransitiveClosure() + " edges...\n");
+            
             int depthToSearch = 1;
             int count = 0;
 
@@ -560,13 +575,12 @@ public class Diversicon extends Uby {
             int processedRelationsInCurLevel = 0;
 
             do {
-                long totalCurrentSynsetRelations = getSynsetRelationsCount();
+
                 processedRelationsInCurLevel = 0;
                 long checkpoint = new Date().getTime();
 
-                // log.info("Augmenting SynsetRelation graph with edges of depth
-                // " +
-                // (depthToSearch + 1) + " ...");
+                // Augmenting SynsetRelation graph with edges of depth
+                // (depthToSearch + 1)
 
                 Query query = session.createQuery(hqlSelect);
                 query.setParameter("depth", depthToSearch);
@@ -592,18 +606,18 @@ public class Diversicon extends Uby {
                           .add(ssr);
                     session.save(ssr);
                     session.merge(source);
-                    // log.info("Inserted " + ssr.toString());
+
                     relStats.inc(relName);
                     processedRelationsInCurLevel += 1;
+                    relStats.setMaxLevel(depthToSearch);
 
                     if (++count % BATCH_FLUSH_COUNT == 0) {
                         // flush a batch of updates and release memory:
                         session.flush();
                         session.clear();
-                        checkpoint = reportLog(checkpoint, "SynsetRelation transitive closure depth level " + depthToSearch , processedRelationsInCurLevel, totalCurrentSynsetRelations);
-                        LOG.info(": "
-                                + String.format(Locale.ENGLISH, "%.2f", ((processedRelationsInCurLevel * 100.0) / totalCurrentSynsetRelations))
-                                + "% at depth level " + depthToSearch);
+                        checkpoint = reportLog(checkpoint,
+                                "SynsetRelation transitive closure depth level " + depthToSearch,
+                                processedRelationsInCurLevel);
                     }
                 }
 
@@ -618,9 +632,10 @@ public class Diversicon extends Uby {
             tx.commit();
 
             LOG.info("");
-            LOG.info("Done computing transitive closure for SynsetRelations:");
+            LOG.info("Done computing transitive closure for SynsetRelations. Elapsed time: " + Internals.formatInterval(new Date().getTime()- startTime));
             LOG.info("");
             LOG.info(relStats.toString());
+            
         } catch (Exception ex) {
             LOG.error("Error while computing transitive closure! Rolling back!");
             if (tx != null) {
@@ -643,7 +658,6 @@ public class Diversicon extends Uby {
     /**
      * 
      * See {@link #importFiles(ImportConfig)}
-     * 
      * 
      * @since 0.1
      */
@@ -741,10 +755,16 @@ public class Diversicon extends Uby {
             throw new DivException("Error while augmenting graph with computed edges!", ex);
         }
 
+        String plural = config.getFileUrls()
+                              .size() > 1 ? "s" : "";
+
         LOG.info("Done importing " + config.getFileUrls()
                                            .size()
-                + " LMF(s) by import author " + config.getAuthor() + ".");
+                + " LMF" + plural + " by import author " + config.getAuthor() + ". Imported resources: ");
 
+        for (ImportJob job : ret) {
+            LOG.info("  " + job.getLexicalResourceName() + " from " + job.getFileUrl());
+        }
         return ret;
     }
 
@@ -920,7 +940,8 @@ public class Diversicon extends Uby {
      *            {@code .xml.zip}.
      *            If the path includes non-existing directories, they will be
      *            automatically created.
-     * @param lexicalResourceName the name of the lexical resource to export.
+     * @param lexicalResourceName
+     *            the name of the lexical resource to export.
      * @param compress
      *            if true file is compressed to zip
      * @throws DivIoException
@@ -930,7 +951,7 @@ public class Diversicon extends Uby {
      * @since 0.1
      */
     public void exportToXml(String outPath, String lexicalResourceName, boolean compress) {
-        
+
         checkNotBlank(outPath, "invalid sql path!");
         checkNotBlank(lexicalResourceName, "invalid lexical resource name!");
 

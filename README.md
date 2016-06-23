@@ -11,7 +11,6 @@ RELEASE DOCS ARE ON THE <a href="http://davidleoni.github.io/diversicon/" target
 Simple Java library to provide a multilingual SQL knowledge base for lexicons and concepts, based upon <a href="https://github.com/dkpro/dkpro-uby" target="_blank">UBY</a>. 
 
 
-
 |**Usage**|**License**|**Roadmap**|**Contributing**|
 |-----------|---------|-----------|----------------|
 | See [docs](docs) |Business-friendly [Apache License v2.0](LICENSE.txt) | See [project milestones](../../milestones) | See [the wiki](../../wiki)|

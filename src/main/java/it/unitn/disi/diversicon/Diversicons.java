@@ -124,10 +124,10 @@ public final class Diversicons {
 
     private static final String DEFAULT_H2_DB_NAME = "default-db";
 
-    public static final String WORDNET_DB_RESOURCE_URI = "classpath:/it/unitn/disi/diversicon/data/wn30.sql.zip";
+    public static final String WORDNET_DIV_DB_RESOURCE_URI = "classpath:/it/unitn/disi/diversicon/data/div-wn30.sql.zip";
 
 
-    public static final String WORDNET_XML_RESOURCE_URI = "classpath:/it/unitn/disi/diversicon/data/wn30.xml.xz";
+    public static final String WORDNET_UBY_XML_RESOURCE_URI = "classpath:/it/unitn/disi/diversicon/data/uby-wn30.xml.xz";
 
     private static Map<String, String> inverseRelations = new HashMap();
 

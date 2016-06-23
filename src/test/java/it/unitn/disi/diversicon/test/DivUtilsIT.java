@@ -36,7 +36,7 @@ public class DivUtilsIT {
 
     @Test
     public void testRestoreH2Dump(){
-        Diversicons.restoreH2Dump(Diversicons.WORDNET_DB_RESOURCE_URI, dbConfig);
+        Diversicons.restoreH2Dump(Diversicons.WORDNET_DIV_DB_RESOURCE_URI, dbConfig);
         
         Diversicon div = Diversicon.connectToDb(dbConfig);
         
@@ -46,10 +46,10 @@ public class DivUtilsIT {
     
     @Test
     public void testReadDataWordnetDb(){
-        ExtractedStream es = Internals.readData(Diversicons.WORDNET_DB_RESOURCE_URI, true);
+        ExtractedStream es = Internals.readData(Diversicons.WORDNET_DIV_DB_RESOURCE_URI, true);
         assertTrue(es.isExtracted());
         assertEquals("script.sql", es.getFilepath());
-        assertEquals(Diversicons.WORDNET_DB_RESOURCE_URI, es.getSourceUrl());
+        assertEquals(Diversicons.WORDNET_DIV_DB_RESOURCE_URI, es.getSourceUrl());
         File f = es.toFile();
         assertTrue(f.exists());
         assertTrue(f.length() > 0);
@@ -58,10 +58,10 @@ public class DivUtilsIT {
     
     @Test
     public void testReadDataWordnetXml(){
-        ExtractedStream es = Internals.readData(Diversicons.WORDNET_XML_RESOURCE_URI, true);
+        ExtractedStream es = Internals.readData(Diversicons.WORDNET_UBY_XML_RESOURCE_URI, true);
         assertTrue(es.isExtracted());
-        assertEquals("wn30.xml", es.getFilepath());
-        assertEquals(Diversicons.WORDNET_XML_RESOURCE_URI, es.getSourceUrl());
+        assertEquals("uby-wn30.xml", es.getFilepath());
+        assertEquals(Diversicons.WORDNET_UBY_XML_RESOURCE_URI, es.getSourceUrl());
         File f = es.toFile();
         assertTrue(f.exists());
         assertTrue(f.length() > 0);                

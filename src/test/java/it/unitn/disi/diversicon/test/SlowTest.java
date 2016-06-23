@@ -43,9 +43,9 @@ import it.unitn.disi.diversicon.internal.Internals;
 import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
 import static it.unitn.disi.diversicon.test.DivTester.*;
 
-public class DiversiconSlowTest {
+public class SlowTest {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DiversiconSlowTest.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SlowTest.class);
 
     private DBConfig dbConfig;
 
@@ -65,7 +65,7 @@ public class DiversiconSlowTest {
         DBConfig dbConfig = Diversicons.makeDefaultH2InMemoryDbConfig("mydb", true);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);        
-        div.importXml(Diversicons.WORDNET_XML_RESOURCE_URI);
+        div.importXml(Diversicons.WORDNET_UBY_XML_RESOURCE_URI);
         String zipFilePath = "target/div-wn30-" + new Date().getTime() + ".sql.zip";
         div.exportToSql(zipFilePath, true);
         assertTrue(new File(zipFilePath).exists());
@@ -77,7 +77,7 @@ public class DiversiconSlowTest {
         DBConfig dbConfig = Diversicons.makeDefaultH2FileDbConfig("target/div-wn30-" + new Date().getTime());
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);
-        div.importXml(Diversicons.WORDNET_XML_RESOURCE_URI);
+        div.importXml(Diversicons.WORDNET_UBY_XML_RESOURCE_URI);
         String zipFilePath = "target/div-wn30-" + new Date().getTime() + ".sql.zip";
         div.exportToSql(zipFilePath, true);
         assertTrue(new File(zipFilePath).exists());
