@@ -35,14 +35,38 @@ public class DivUtilsIT {
     }
 
     @Test
-    public void testRestoreH2Dump(){
+    public void testRestoreAugmentedH2Sql(){
         Diversicons.restoreH2Dump(Diversicons.WORDNET_DIV_DB_RESOURCE_URI, dbConfig);
         
         Diversicon div = Diversicon.connectToDb(dbConfig);
-        
-        
+                
         div.getSession().close();
     }
+
+    // TODO
+    @Test
+    public void testRestoreNonAugmentedUncompressedUbyWordnetH2Sql(){
+        Diversicons.restoreH2Dump(DivTester.WORDNET_UBY_NON_AUGMENTED_DB_RESOURCE_URI_UNCOMPRESSED, dbConfig);        
+        Diversicon div = Diversicon.connectToDb(dbConfig);                
+        div.getSession().close();
+    }
+
+    // TODO
+    @Test
+    public void testRestoreNonAugmentedUncompressedNonResourceUbyWordnetH2Sql(){
+        Diversicons.restoreH2Dump(DivTester.WORDNET_UBY_NON_AUGMENTED_DB_NON_RESOURCE_URI_UNCOMPRESSED, dbConfig);        
+        Diversicon div = Diversicon.connectToDb(dbConfig);                
+        div.getSession().close();
+    }
+    
+ // TODO
+    @Test
+    public void testRestoreNonAugmentedNonResourceUbyWordnetH2Sql(){
+        Diversicons.restoreH2Dump(DivTester.WORDNET_UBY_NON_AUGMENTED_DB_NON_RESOURCE_URI, dbConfig);        
+        Diversicon div = Diversicon.connectToDb(dbConfig);                
+        div.getSession().close();
+    }
+    
     
     @Test
     public void testReadDataWordnetDb(){
@@ -66,6 +90,7 @@ public class DivUtilsIT {
         assertTrue(f.exists());
         assertTrue(f.length() > 0);                
     }
+    
     
 
 }

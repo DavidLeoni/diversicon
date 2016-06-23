@@ -820,7 +820,8 @@ public final class Diversicons {
                     + "  SET @DIV_SAVED_LOCK_MODE @LOCK_MODE;"
                     + "  SET @DIV_SAVED_UNDO_LOG @UNDO_LOG;";
 
-            String setFastOptions = "    SET @LOG 0;"
+            String setFastOptions = ""
+                    + "  SET @LOG 0;"
                     + "  SET @CACHE_SIZE 65536;"
                     + "  SET @LOCK_MODE 0;"
                     + "  SET @UNDO_LOG 0;";
@@ -846,7 +847,7 @@ public final class Diversicons {
             conn.commit();
             Date end = new Date();
             LOG.info("Done restoring database " + dbConfig.getJdbc_url());
-            LOG.info("Elapsed time: " + Math.ceil(((end.getTime() - start.getTime()) / 1000)) + "s");
+            LOG.info("Elapsed time: " + Internals.formatInterval(end.getTime() - start.getTime()) );
 
             // TODO: here it should automatically fix mixing schema parts...
             if (!Diversicons.isSchemaValid(dbConfig)) {

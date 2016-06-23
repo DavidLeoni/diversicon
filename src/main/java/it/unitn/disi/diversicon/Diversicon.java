@@ -1363,4 +1363,14 @@ public class Diversicon extends Uby {
 
     }
 
+    /**
+     * 
+     * Returns the free memory in KB (where 1024 bytes is a KB). This method returns an int.
+     * 
+     * @since 0.1
+     */
+    public int memoryUsed(){
+        Diversicons.checkH2Db(dbConfig);
+        return (int) getSession().createSQLQuery("SELECT MEMORY_FREE()").uniqueResult();
+    }
 }

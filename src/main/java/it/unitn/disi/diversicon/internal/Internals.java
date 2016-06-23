@@ -623,8 +623,6 @@ public final class Internals {
                                                           .isEmpty());
     }
 
-  
-
     /**
      * @since 0.1
      */
@@ -650,14 +648,15 @@ public final class Internals {
      *            <li>{@code classpath:/my/package/name/data.zip}</li>
      *            <li>{@code file:/my/path/data.zip}</li>
      *            <li>{@code http://... }</li>
-     *            <li>whatever protocol.. </li>
+     *            <li>whatever protocol..</li>
      *            </ul>
      * @param decompress
      *            if true and data is actually compressed in one of
-     * {@link Diversicons#SUPPORTED_COMPRESSION_FORMATS} returns the
-     *            uncompressed stream (note no check is done to verify the archive contains only one file).
-     *             In all other cases data stream is returned verbatim. 
-     *  
+     *            {@link Diversicons#SUPPORTED_COMPRESSION_FORMATS} returns the
+     *            uncompressed stream (note no check is done to verify the
+     *            archive contains only one file).
+     *            In all other cases data stream is returned verbatim.
+     * 
      * @throws DivIoException
      *             on error.
      * 
@@ -862,31 +861,31 @@ public final class Internals {
             try {
                 if (this.outFile == null) {
                     if (extracted) {
-                        Path tempDir = Files.createTempDirectory("diversicon");                                                       
+                        Path tempDir = Files.createTempDirectory("diversicon");
                         this.outFile = new File(tempDir.toFile(), FilenameUtils.getName(this.filepath));
-
+                        LOG.debug("Writing stream to " + outFile.getAbsolutePath() + " ...");
                         FileUtils.copyInputStreamToFile(this.inputStream, outFile);
+                        LOG.debug("Done writing stream to " + outFile.getAbsolutePath());
                     } else {
                         if (sourceUrl.startsWith("classpath:")) {
-                            Path tempDir = Files.createTempDirectory("diversicon");                                                       
+                            Path tempDir = Files.createTempDirectory("diversicon");
                             this.outFile = new File(tempDir.toFile(), FilenameUtils.getName(this.filepath));
+                            LOG.debug("Writing stream to " + outFile.getAbsolutePath() + " ...");
                             FileUtils.copyInputStreamToFile(this.inputStream, outFile);
 
-                        } else if (sourceUrl.startsWith("file:")) {
+                        } else if (sourceUrl.startsWith("file:") || !withProtocol(sourceUrl)) {
                             this.outFile = new File(sourceUrl);
                         } else {
-                            Path tempDir = Files.createTempDirectory("diversicon");                                                       
-                            this.outFile = new File(tempDir.toFile(), FilenameUtils.getName(this.filepath));
 
-                            if (withProtocol(sourceUrl)) {
-                                FileUtils.copyURLToFile(new URL(sourceUrl), outFile, 20000, 10000);
-                            } else {
-                                FileUtils.copyFile(new File(sourceUrl), outFile);
-                            }
+                            Path tempDir = Files.createTempDirectory("diversicon");
+                            this.outFile = new File(tempDir.toFile(), FilenameUtils.getName(this.filepath));
+                            LOG.debug("Writing url to " + outFile.getAbsolutePath() + " ...");
+                            FileUtils.copyURLToFile(new URL(sourceUrl), outFile, 20000, 10000);
+                            LOG.debug("Done writing url to " + outFile.getAbsolutePath());
                         }
 
                     }
-                    LOG.debug("created tempfile at " + outFile.getAbsolutePath());
+                    LOG.debug("Using file at " + outFile.getAbsolutePath());
                 }
 
                 return this.outFile;
@@ -1042,13 +1041,39 @@ public final class Internals {
 
         }
     }
-    
-    public static String formatInterval(final long l)
-    {
-        final long hr = TimeUnit.MILLISECONDS.toHours(l);
-        final long min = TimeUnit.MILLISECONDS.toMinutes(l - TimeUnit.HOURS.toMillis(hr));
-        final long sec = TimeUnit.MILLISECONDS.toSeconds(l - TimeUnit.HOURS.toMillis(hr) - TimeUnit.MINUTES.toMillis(min));
-        final long ms = TimeUnit.MILLISECONDS.toMillis(l - TimeUnit.HOURS.toMillis(hr) - TimeUnit.MINUTES.toMillis(min) - TimeUnit.SECONDS.toMillis(sec));
+
+    /**
+     * 
+     * @param millisecs
+     *            time interval expressed in number of milliseconds
+     * 
+     * @since 0.1
+     * 
+     */
+    public static String formatInterval(final long millisecs) {
+        final long hr = TimeUnit.MILLISECONDS.toHours(millisecs);
+        final long min = TimeUnit.MILLISECONDS.toMinutes(millisecs - TimeUnit.HOURS.toMillis(hr));
+        final long sec = TimeUnit.MILLISECONDS.toSeconds(
+                millisecs - TimeUnit.HOURS.toMillis(hr) - TimeUnit.MINUTES.toMillis(min));
+        final long ms = TimeUnit.MILLISECONDS.toMillis(millisecs - TimeUnit.HOURS.toMillis(hr)
+                - TimeUnit.MINUTES.toMillis(min) - TimeUnit.SECONDS.toMillis(sec));
         return String.format("%02dh:%02dm:%02ds.%03d", hr, min, sec, ms);
     }
+
+    /**
+     * 
+     * 
+     * @since 0.1
+     */
+    public static String humanByteCount(long bytes) {
+        boolean si = true;
+
+        int unit = si ? 1000 : 1024;
+        if (bytes < unit)
+            return bytes + " B";
+        int exp = (int) (Math.log(bytes) / Math.log(unit));
+        String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp - 1) + (si ? "" : "i");
+        return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
+    }
+
 }

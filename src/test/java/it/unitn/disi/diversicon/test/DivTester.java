@@ -49,7 +49,11 @@ import it.unitn.disi.diversicon.internal.Internals;
 public final class DivTester {
 
     private static final String TEST_RESOURCES_PATH = "it/unitn/disi/diversicon/test/";
-
+    public static final String WORDNET_UBY_NON_AUGMENTED_DB_RESOURCE_URI = "classpath:/" + TEST_RESOURCES_PATH + "uby-wn30.sql.zip";
+    public static final String WORDNET_UBY_NON_AUGMENTED_DB_RESOURCE_URI_UNCOMPRESSED = "classpath:/" + TEST_RESOURCES_PATH + "uby-wn30.sql";
+    public static final String WORDNET_UBY_NON_AUGMENTED_DB_NON_RESOURCE_URI_UNCOMPRESSED =  "src/test/resources/" + TEST_RESOURCES_PATH + "uby-wn30.sql";
+    public static final String WORDNET_UBY_NON_AUGMENTED_DB_NON_RESOURCE_URI = "src/test/resources/" + TEST_RESOURCES_PATH + "uby-wn30.sql.zip";
+    
     private static int dbCounter = -1;
     
     /**
@@ -99,6 +103,8 @@ public final class DivTester {
                                                                .build();
 
     private static final Logger LOG = LoggerFactory.getLogger(DivTester.class);
+
+
 
     private DivTester() {
     }
@@ -359,7 +365,7 @@ public final class DivTester {
 
     
     /**
-     * Creates a configuration for a new in-memory H2 datase
+     * Creates a configuration for a new in-memory H2 database
      */
     public static DBConfig createNewDbConfig() {
         dbCounter += 1;
