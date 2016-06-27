@@ -833,7 +833,7 @@ public class DiversiconTest {
         
         DBConfig dbConfig2 = DivTester.createNewDbConfig();
         //Diversicons.dropCreateTables(dbConfig2);
-        Diversicons.restoreH2Dump("file://" + zip.getAbsolutePath(), dbConfig2);
+        Diversicons.restoreH2Sql("file://" + zip.getAbsolutePath(), dbConfig2);
         Diversicon div2 = Diversicon.connectToDb(dbConfig2);
         checkDb(GRAPH_1_HYPERNYM, div2);
     }

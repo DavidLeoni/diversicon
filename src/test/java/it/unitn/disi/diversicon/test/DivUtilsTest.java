@@ -1,24 +1,15 @@
 package it.unitn.disi.diversicon.test;
 
 
-import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
-import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -27,25 +18,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
-import de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect;
-import de.tudarmstadt.ukp.lmf.model.core.LexicalEntry;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
-import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
-import de.tudarmstadt.ukp.lmf.model.morphology.FormRepresentation;
-import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
-import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
-import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
-import de.tudarmstadt.ukp.lmf.transform.DBToXMLTransformer;
-import it.unitn.disi.diversicon.DivException;
 import it.unitn.disi.diversicon.DivIoException;
 import it.unitn.disi.diversicon.DivNotFoundException;
-import it.unitn.disi.diversicon.DivSynsetRelation;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
 import it.unitn.disi.diversicon.internal.Internals;
-import it.unitn.disi.diversicon.internal.Internals.ExtractedStream;
 
 
 
@@ -168,17 +148,18 @@ public class DivUtilsTest {
     public void testRestoreWrongDump() throws IOException{
         Path dir = Files.createTempDirectory("diversicon-test");
         try {
-            Diversicons.restoreH2Dump("file:"+ dir.toString() +"/666" , dbConfig);
+            Diversicons.restoreH2Sql("file:"+ dir.toString() +"/666" , dbConfig);
             Assert.fail("Shouldn't arrive here!");
         } catch (DivIoException ex){
             
         }
         
         try {
-            Diversicons.restoreH2Dump("classpath:/666" , dbConfig);
+            Diversicons.restoreH2Sql("classpath:/666" , dbConfig);
             Assert.fail("Shouldn't arrive here!");
         } catch (DivIoException ex){
             
         }
     }
+
 }

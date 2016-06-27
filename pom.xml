@@ -208,11 +208,13 @@
 			</exclusions>
 		</dependency>
 
-
-
+		<dependency>
+			<groupId>it.unitn.disi</groupId>
+			<artifactId>diversicon-wordnet-3.0</artifactId>
+			<version>0.1.0-SNAPSHOT</version>
+		</dependency>
 
 		<dependency>
-
 			<groupId>org.hibernate.common</groupId>
 			<artifactId>hibernate-commons-annotations</artifactId>
 			<version>4.0.1.Final</version>
@@ -240,10 +242,13 @@
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
-			 <version>1.4.192</version>
+			    <!--  currently cannot restore .sql with this!
+			    	(the nice to have would be its compressed in-memory support)   
+			    	<version>1.4.192</version> 
+			     -->
+			    <version> 1.3.160 </version> 
 			<type>jar</type>
 			<scope>compile</scope>
-
 		</dependency>
 
 

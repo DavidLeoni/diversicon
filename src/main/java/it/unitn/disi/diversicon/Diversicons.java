@@ -2,11 +2,8 @@ package it.unitn.disi.diversicon;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -32,7 +29,6 @@ import org.dom4j.ElementPath;
 import org.dom4j.io.SAXReader;
 import org.h2.tools.RunScript;
 import org.hibernate.HibernateException;
-import org.hibernate.SQLQuery;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
@@ -50,20 +46,16 @@ import org.xml.sax.SAXException;
 import javax.annotation.Nullable;
 
 import de.tudarmstadt.ukp.lmf.hibernate.HibernateConnect;
-import de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect;
-import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
-import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 
 import static de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics.*;
 
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
-import de.tudarmstadt.ukp.lmf.transform.LMFDBUtils;
 //import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import de.tudarmstadt.ukp.lmf.transform.StringUtils;
 import it.unitn.disi.diversicon.internal.Internals;
-import it.unitn.disi.diversicon.internal.Internals.ExtractedStream;
+import it.unitn.disi.diversicon.internal.ExtractedStream;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
@@ -124,10 +116,6 @@ public final class Diversicons {
 
     private static final String DEFAULT_H2_DB_NAME = "default-db";
 
-    public static final String WORDNET_DIV_DB_RESOURCE_URI = "classpath:/it/unitn/disi/diversicon/data/div-wn30.sql.zip";
-
-
-    public static final String WORDNET_UBY_XML_RESOURCE_URI = "classpath:/it/unitn/disi/diversicon/data/uby-wn30.xml.xz";
 
     private static Map<String, String> inverseRelations = new HashMap();
 
@@ -785,13 +773,13 @@ public final class Diversicons {
      *
      * @param dumpUrl
      *            For Wordnet 3.0 packaged dump, you can use
-     *            {@link Diversicons#WORDNET_RESOURCE_URL}
+     *            {@link it.unitn.disi.diversicon.data.wn30.DivWn30#WORDNET_DIV_SQL_RESOURCE_URI}
      * @throws DivIoException
      *             if an IO error occurs
      * 
      * @since 0.1
      */
-    public static void restoreH2Dump(String dumpUrl, DBConfig dbConfig) {
+    public static void restoreH2Sql(String dumpUrl, DBConfig dbConfig) {
         Internals.checkNotBlank(dumpUrl, "invalid sql/archive resource path!");
         checkH2Db(dbConfig);
 
@@ -821,16 +809,16 @@ public final class Diversicons {
                     + "  SET @DIV_SAVED_UNDO_LOG @UNDO_LOG;";
 
             String setFastOptions = ""
-                    + "  SET @LOG 0;"
-                    + "  SET @CACHE_SIZE 65536;"
-                    + "  SET @LOCK_MODE 0;"
-                    + "  SET @UNDO_LOG 0;";
+                    + "  SET LOG 0;"
+                    + "  SET CACHE_SIZE 65536;"
+                    + "  SET LOCK_MODE 0;"
+                    + "  SET UNDO_LOG 0;";
 
             String restoreSavedVars = ""
-                    + "  SET @LOG @DIV_SAVED_LOG;"
-                    + "  SET @CACHE_SIZE @DIV_SAVED_CACHE_SIZE;"
-                    + "  SET @LOCK_MODE @DIV_SAVED_LOCK_MODE;"
-                    + "  SET @UNDO_LOG @DIV_SAVED_UNDO_LOG;";
+                    + "  SET LOG @DIV_SAVED_LOG;"
+                    + "  SET CACHE_SIZE @DIV_SAVED_CACHE_SIZE;"
+                    + "  SET LOCK_MODE @DIV_SAVED_LOCK_MODE;"
+                    + "  SET UNDO_LOG @DIV_SAVED_UNDO_LOG;";
 
             // todo need to improve connection with dbConfig params
 
@@ -845,9 +833,9 @@ public final class Diversicons {
             RunScript.execute(conn, new InputStreamReader(extractedStream.stream()));
             stat.execute(restoreSavedVars);
             conn.commit();
-            Date end = new Date();
+
             LOG.info("Done restoring database " + dbConfig.getJdbc_url());
-            LOG.info("Elapsed time: " + Internals.formatInterval(end.getTime() - start.getTime()) );
+            LOG.info("Elapsed time: " + Internals.formatInterval(start, new Date()) );
 
             // TODO: here it should automatically fix mixing schema parts...
             if (!Diversicons.isSchemaValid(dbConfig)) {
@@ -882,6 +870,49 @@ public final class Diversicons {
 
     }
 
+    /**
+     * Restores an h2 database from an h2 db dump 
+     * (possibly compressed in one of {@link #SUPPORTED_COMPRESSION_FORMATS}).
+     *
+     * @param dumpUrl
+     *            For Wordnet 3.0 packaged dump, you can use
+     *            {@link it.unitn.disi.diversicon.data.wn30.DivWn30#WORDNET_DIV_SQL_RESOURCE_URI}
+     * @throws DivIoException
+     *             if an IO error occurs
+     * 
+     * @since 0.1
+     */
+    public static void restoreH2Db(String dumpUrl, String targetPath) {
+        
+        Internals.checkNotBlank(dumpUrl, "invalid h2 db dump!");
+        if (targetPath.endsWith(".db")){
+            throw new DivIoException("Target path must NOT end with '.h2.db' ! Found instead " + targetPath);
+        }
+        
+        File target = new File(targetPath + ".h2.db");
+
+        if (target.exists()){
+            throw new DivIoException("Target path already exists: " + target.getAbsolutePath() + "  !");
+        }        
+        
+        Date start = new Date();
+
+        LOG.info("Restoring database from " + dumpUrl + " to " + target.getAbsolutePath() + "  ...");
+        
+        ExtractedStream extractedStream = Internals.readData(dumpUrl, true);              
+        
+        try {
+            FileUtils.copyInputStreamToFile(extractedStream.stream(), target);
+        } catch (IOException e) {
+            throw new DivIoException("Something went wrong!", e);
+        }
+        
+        LOG.info("Done restoring database " + dumpUrl + " to " + target.getAbsolutePath());
+        
+        LOG.info("Elapsed time: " + Internals.formatInterval(start, new Date()));
+    }    
+    
+    
     /**
      * @since 0.1
      */
@@ -953,12 +984,23 @@ public final class Diversicons {
         
 
     }
-    
+
+    /**
+     * @since 0.1
+     */    
     public static boolean isH2Db(DBConfig dbConfig) {
         checkNotNull(dbConfig);
         return dbConfig.getJdbc_driver_class()
                 .contains("h2");
     }
+    
+    /**
+     * @since 0.1
+     */
+    public static boolean isH2FileDb(DBConfig dbConfig) {
+        return isH2Db(dbConfig) && dbConfig.getJdbc_driver_class().contains(":file:");
+    }
+    
     
     /**
      * Checks provided {@code dbConfig} points to an H2 database.
@@ -973,6 +1015,39 @@ public final class Diversicons {
             throw new IllegalArgumentException("Only H2 database is supported for now! Found instead "
                     + Diversicons.toString(dbConfig, false));
         }
+    }
+
+    /**
+     * 
+     * @throws IllegalArgumentException
+     * 
+     * @since 0.1
+     */
+    public static String extractH2DbFilepath(DBConfig dbConfig) {
+        if (!isH2FileDb(dbConfig)){
+            throw new IllegalArgumentException("DBConfig doesn't appear to be an H2 File db: " + toString(dbConfig, false));
+        }
+        
+        String url = dbConfig.getJdbc_url();
+        
+        String filePrefix = "file:";
+        
+        int i = url.indexOf(filePrefix);
+        if (i == -1){
+            throw new IllegalArgumentException("DBConfig doesn't appear to be an H2 File db: " + toString(dbConfig, false)); 
+        }
+        
+        int j = url.indexOf(";", i+1);
+        
+        String filePath; 
+        if (j == -1){
+            filePath = url.substring(i+filePrefix.length());
+        } else {
+            filePath = url.substring(i+filePrefix.length(), j);
+        }
+
+        checkNotEmpty(filePath, "Found an invalid filepath!");
+        return filePath;
     }
 
 

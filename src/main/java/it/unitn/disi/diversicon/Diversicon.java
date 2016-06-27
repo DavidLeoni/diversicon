@@ -727,7 +727,7 @@ public class Diversicon extends Uby {
             ImportJob job = startImportJob(config, fileUrl, lexicalResourceName);
 
             File file = Internals.readData(fileUrl, true)
-                                 .toFile();
+                                 .toTempFile();
 
             XMLToDBTransformer trans = new XMLToDBTransformer(dbConfig);
 
@@ -760,11 +760,15 @@ public class Diversicon extends Uby {
 
         LOG.info("Done importing " + config.getFileUrls()
                                            .size()
-                + " LMF" + plural + " by import author " + config.getAuthor() + ". Imported resources: ");
+                + " LMF" + plural + " by import author " + config.getAuthor());
+        LOG.info("");
+        LOG.info("Imported lexical resources: ");
+        LOG.info("");
 
         for (ImportJob job : ret) {
-            LOG.info("  " + job.getLexicalResourceName() + " from " + job.getFileUrl());
+            LOG.info("    " + job.getLexicalResourceName() + "    from    " + job.getFileUrl());
         }
+        
         return ret;
     }
 
@@ -896,7 +900,7 @@ public class Diversicon extends Uby {
         }
         LOG.info("Done saving.");
 
-        if (skipAugment) {
+        if (!skipAugment) {
             processGraph();
         }
 
@@ -1248,10 +1252,16 @@ public class Diversicon extends Uby {
         sb.append("\n");
         if (fullLog) {
             sb.append("\n");
-            sb.append("Import " + job.getId() + "full log:\n");
-            for (LogMessage msg : job.getLogMessages()) {
-                sb.append(msg.getMessage() + "\n");
+            sb.append("Import " + job.getId() + " full log:\n");
+            List<LogMessage> msgs = job.getLogMessages();
+            if (msgs.isEmpty()){
+                sb.append("No logs to report.");
+            } else {
+                for (LogMessage msg : job.getLogMessages()) {
+                    sb.append(msg.getMessage() + "\n");
+                }    
             }
+            
         }
         sb.append("\n");
         return sb.toString();
@@ -1277,7 +1287,7 @@ public class Diversicon extends Uby {
                                             .list();
 
         if (importJobs.isEmpty()) {
-            sb.append("No imports were done.\n");
+            sb.append("There are no imports to show.\n");
         }
 
         for (ImportJob job : importJobs) {
@@ -1310,9 +1320,11 @@ public class Diversicon extends Uby {
     public String formatDbStatus(boolean shortProcessedInfo) {
         StringBuilder sb = new StringBuilder();
         DbInfo dbInfo = getDbInfo();
-
+        String dataVersion = dbInfo.getVersion().isEmpty() ? "-" : dbInfo.getVersion();
+        
+        
         sb.append(" Schema version: " + dbInfo.getSchemaVersion());
-        sb.append("   Data version: " + dbInfo.getVersion() + "\n");
+        sb.append("   Data version: " + dataVersion + "\n");
         sb.append("\n");
 
         if (shortProcessedInfo) {
@@ -1356,7 +1368,7 @@ public class Diversicon extends Uby {
 
         ImportJob ret = (ImportJob) session.get(ImportJob.class, importId);
         if (ret == null) {
-            throw new DivNotFoundException("Couldn't find import jod " + importId);
+            throw new DivNotFoundException("Couldn't find import job " + importId);
         } else {
             return ret;
         }

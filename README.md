@@ -36,7 +36,7 @@ Simple Java library to provide a multilingual SQL knowledge base for lexicons an
 * DKPRO <a href="https://github.com/dkpro/dkpro-uby" target="_blank">UBY</a>
 * Hibernate 
 * <a href="http://www.h2database.com/html/main.html" target="_blank">H2</a> database
-
+* Apache Commons IO and Compress, XZ Archiver
 
 #### Projects using Diversicon
 

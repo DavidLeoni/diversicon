@@ -4,8 +4,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
+import org.h2.tools.Restore;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -14,9 +19,14 @@ import org.slf4j.LoggerFactory;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
+import it.unitn.disi.diversicon.InvalidSchemaException;
+import it.unitn.disi.diversicon.data.wn30.DivWn30;
+import it.unitn.disi.diversicon.internal.ExtractedStream;
 import it.unitn.disi.diversicon.internal.Internals;
-import it.unitn.disi.diversicon.internal.Internals.ExtractedStream;
 
+/**
+ * @since 0.1 
+ */
 public class DivUtilsIT {
     
     private static final Logger LOG = LoggerFactory.getLogger(DivUtilsTest.class);
@@ -34,63 +44,119 @@ public class DivUtilsIT {
         dbConfig = null;       
     }
 
+    /**
+     * @since 0.1 
+     */
     @Test
-    public void testRestoreAugmentedH2Sql(){
-        Diversicons.restoreH2Dump(Diversicons.WORDNET_DIV_DB_RESOURCE_URI, dbConfig);
+    public void testRestoreAugmentedWordnetSqlToH2InMemory(){
+        Diversicons.restoreH2Sql(DivWn30.WORDNET_DIV_SQL_RESOURCE_URI, dbConfig);
         
         Diversicon div = Diversicon.connectToDb(dbConfig);
                 
         div.getSession().close();
+    
+    }
+    
+    /**
+     * @since 0.1 
+     */
+    @Test
+    public void testRestoreH2DbToFile() throws IOException {
+
+        Path dir = Files.createTempDirectory("diversicon-test");
+        
+        File target = new File(dir.toString() + "/test");
+        
+        Diversicons.restoreH2Db(DivWn30.WORDNET_DIV_H2_DB_RESOURCE_URI, target.getAbsolutePath() + ".h2.db");
+        
+        DBConfig dbCfg = Diversicons.makeDefaultH2FileDbConfig(target.getAbsolutePath()); 
+        
+        Diversicon div = Diversicon.connectToDb(dbCfg);
+        
+        div.getLexiconNames();
+                
+        div.getSession().close();
     }
 
-    // TODO
-    @Test
+    /**
+     * @since 0.1 
+     */
+    // @Test    
     public void testRestoreNonAugmentedUncompressedUbyWordnetH2Sql(){
-        Diversicons.restoreH2Dump(DivTester.WORDNET_UBY_NON_AUGMENTED_DB_RESOURCE_URI_UNCOMPRESSED, dbConfig);        
+        Diversicons.restoreH2Sql(DivTester.WORDNET_UBY_NON_AUGMENTED_DB_RESOURCE_URI_UNCOMPRESSED, dbConfig);        
         Diversicon div = Diversicon.connectToDb(dbConfig);                
         div.getSession().close();
     }
 
-    // TODO
-    @Test
+    /**
+     * @since 0.1 
+     */
+    // @Test
     public void testRestoreNonAugmentedUncompressedNonResourceUbyWordnetH2Sql(){
-        Diversicons.restoreH2Dump(DivTester.WORDNET_UBY_NON_AUGMENTED_DB_NON_RESOURCE_URI_UNCOMPRESSED, dbConfig);        
+        Diversicons.restoreH2Sql(DivTester.WORDNET_UBY_NON_AUGMENTED_DB_NON_RESOURCE_URI_UNCOMPRESSED, dbConfig);        
         Diversicon div = Diversicon.connectToDb(dbConfig);                
         div.getSession().close();
     }
     
- // TODO
-    @Test
-    public void testRestoreNonAugmentedNonResourceUbyWordnetH2Sql(){
-        Diversicons.restoreH2Dump(DivTester.WORDNET_UBY_NON_AUGMENTED_DB_NON_RESOURCE_URI, dbConfig);        
-        Diversicon div = Diversicon.connectToDb(dbConfig);                
-        div.getSession().close();
+    /** 
+     * For now it *should* break when reading UBY db  :-/
+     * 
+     * @since 0.1 
+     */
+    // @Test
+    public void testRestoreNonAugmentedNonResourceUbyWordnetH2SqlToMemory(){
+        try {
+            Diversicons.restoreH2Sql(DivTester.WORDNET_UBY_NON_AUGMENTED_DB_NON_RESOURCE_URI, dbConfig);
+            Assert.fail("Should'n arrive here!");
+            Diversicon div = Diversicon.connectToDb(dbConfig);                
+            div.getSession().close();
+
+        } catch (InvalidSchemaException ex){
+            
+        }
     }
     
     
+    /**
+     * @since 0.1
+     */
     @Test
-    public void testReadDataWordnetDb(){
-        ExtractedStream es = Internals.readData(Diversicons.WORDNET_DIV_DB_RESOURCE_URI, true);
+    public void testReadDataWordnetSql(){
+        ExtractedStream es = Internals.readData(DivWn30.WORDNET_DIV_SQL_RESOURCE_URI, true);
         assertTrue(es.isExtracted());
         assertEquals("script.sql", es.getFilepath());
-        assertEquals(Diversicons.WORDNET_DIV_DB_RESOURCE_URI, es.getSourceUrl());
-        File f = es.toFile();
+        assertEquals(DivWn30.WORDNET_DIV_SQL_RESOURCE_URI, es.getSourceUrl());
+        File f = es.toTempFile();
         assertTrue(f.exists());
         assertTrue(f.length() > 0);
         
     }
     
+    /**
+     * @since 0.1
+     */
     @Test
     public void testReadDataWordnetXml(){
-        ExtractedStream es = Internals.readData(Diversicons.WORDNET_UBY_XML_RESOURCE_URI, true);
+        ExtractedStream es = Internals.readData(DivWn30.WORDNET_UBY_XML_RESOURCE_URI, true);
         assertTrue(es.isExtracted());
         assertEquals("uby-wn30.xml", es.getFilepath());
-        assertEquals(Diversicons.WORDNET_UBY_XML_RESOURCE_URI, es.getSourceUrl());
-        File f = es.toFile();
+        assertEquals(DivWn30.WORDNET_UBY_XML_RESOURCE_URI, es.getSourceUrl());
+        File f = es.toTempFile();
         assertTrue(f.exists());
         assertTrue(f.length() > 0);                
     }
     
     
+    /**
+     * Pretty useless, H2 can only Restore  to a file
+     * 
+     * @since 0.1
+     */
+    // @Test
+    public void testRestoreNativeH2Db(){
+        Restore.execute("../../diversicon-wordnet-3.0/src/main/resources/it/unitn/disi/diversicon/data/wn30/div-wn30.h2.db.zip", "target/restored-wn30", "restored-db", false);
+    }
 
+
+    
 }

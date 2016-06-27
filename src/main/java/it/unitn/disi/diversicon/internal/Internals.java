@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.TimeUnit;
@@ -57,7 +58,7 @@ import it.unitn.disi.diversicon.Diversicons;
  */
 public final class Internals {
 
-    private static final Logger LOG = LoggerFactory.getLogger(Diversicons.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Internals.class);
 
     private static final @Nullable Cloner cloner = new Cloner();
 
@@ -757,7 +758,7 @@ public final class Internals {
     /**
      * @since 0.1
      */
-    private static boolean withProtocol(String dataUrl) {
+    static boolean withProtocol(String dataUrl) {
         checkNotBlank(dataUrl, "Invalid data url!");
         Pattern p = Pattern.compile("^(\\w)+:(.*)");
         Matcher m = p.matcher(dataUrl);
@@ -765,142 +766,13 @@ public final class Internals {
         return m.matches();
     }
 
-    /**
-     * A stream possibly extracted from a compressed {@code sourceUrl}. Use
-     * {#stream()} to get streams.
-     * 
-     * @since 0.1
-     *
-     */
-    public static class ExtractedStream {
-        private String filepath;
-        private InputStream inputStream;
-        private String sourceUrl;
-        private boolean extracted;
-        @Nullable
-        private File outFile;
-
-        /**
-         * @param sourceUrl
-         *            may have special {@code classpath} protocol
-         * 
-         * @since 0.1
-         */
-        public ExtractedStream(String filepath, InputStream inputStream, String sourceUrl, boolean extracted) {
-            super();
-            checkNotEmpty(filepath, "invalid filepath!");
-            checkNotNull(inputStream);
-            checkNotEmpty(sourceUrl, "Invalid sourceUrl!");
-            this.filepath = filepath;
-            this.inputStream = inputStream;
-            this.sourceUrl = sourceUrl;
-            this.extracted = extracted;
-        }
-
-        /**
-         * 
-         * Returns the name of item as found inside the compressed resource.
-         * 
-         * @since 0.1
-         */
-        public String getFilepath() {
-            return filepath;
-        }
-
-        /**
-         * The url of the original possibly compressed resource. May start with
-         * special {@code classpath:} protocol.
-         * 
-         * @since 0.1
-         */
-        public String getSourceUrl() {
-            return sourceUrl;
-        }
-
-        /**
-         * 
-         * The stream of the possibly extracted file. Each call will produce a
-         * new stream.
-         * 
-         * @throws DivIoException
-         * 
-         * @since 0.1
-         */
-        public InputStream stream() {
-            if (outFile == null) {
-                return inputStream;
-            } else {
-                try {
-                    return new FileInputStream(outFile);
-                } catch (FileNotFoundException ex) {
-                    throw new DivIoException("Error while creating stream!", ex);
-                }
-            }
-
-        }
-
-        /**
-         * Returns true if the stream was extracted from another compressed
-         * file.
-         * 
-         * @since 0.1
-         */
-        public boolean isExtracted() {
-            return extracted;
-        }
-
-        /**
-         * Returns a file pointing to a physical location in the computer.
-         * Calling this method will consume the stream.
-         *
-         * @throws DivIoException
-         * 
-         * @since 0.1
-         */
-        public File toFile() {
-            try {
-                if (this.outFile == null) {
-                    if (extracted) {
-                        Path tempDir = Files.createTempDirectory("diversicon");
-                        this.outFile = new File(tempDir.toFile(), FilenameUtils.getName(this.filepath));
-                        LOG.debug("Writing stream to " + outFile.getAbsolutePath() + " ...");
-                        FileUtils.copyInputStreamToFile(this.inputStream, outFile);
-                        LOG.debug("Done writing stream to " + outFile.getAbsolutePath());
-                    } else {
-                        if (sourceUrl.startsWith("classpath:")) {
-                            Path tempDir = Files.createTempDirectory("diversicon");
-                            this.outFile = new File(tempDir.toFile(), FilenameUtils.getName(this.filepath));
-                            LOG.debug("Writing stream to " + outFile.getAbsolutePath() + " ...");
-                            FileUtils.copyInputStreamToFile(this.inputStream, outFile);
-
-                        } else if (sourceUrl.startsWith("file:") || !withProtocol(sourceUrl)) {
-                            this.outFile = new File(sourceUrl);
-                        } else {
-
-                            Path tempDir = Files.createTempDirectory("diversicon");
-                            this.outFile = new File(tempDir.toFile(), FilenameUtils.getName(this.filepath));
-                            LOG.debug("Writing url to " + outFile.getAbsolutePath() + " ...");
-                            FileUtils.copyURLToFile(new URL(sourceUrl), outFile, 20000, 10000);
-                            LOG.debug("Done writing url to " + outFile.getAbsolutePath());
-                        }
-
-                    }
-                    LOG.debug("Using file at " + outFile.getAbsolutePath());
-                }
-
-                return this.outFile;
-
-            } catch (IOException ex) {
-                throw new DivIoException("Error while creating file!", ex);
-            }
-        }
-    }
+ 
 
     /**
-     * if outPath is something like a/b/c.sql.zip and ext is sql, it becomes
-     * c.sql
+     * if outPath is something like {@code a/b/c.sql.zi}p and {@code ext} is {@code sql}, it becomes
+     * {@code c.sql}
      * 
-     * If it is something like a/b/c.zip and ext is sql, it becomes c.sql
+     * If it is something like {@code a/b/c.zip} and {@code ext} is {@code sql}, it becomes {@code c.sql}
      * 
      * @since 0.1
      */
@@ -1009,8 +881,7 @@ public final class Internals {
         }
 
         if (sourceDirFile != null) {
-            LOG.debug("Copying directory from {0} to {1}  ...", sourceDirFile.getAbsolutePath(),
-                    destDir.getAbsolutePath());
+            LOG.debug("Copying directory from ", sourceDirFile.getAbsolutePath(), " to ", "...", destDir.getAbsolutePath());
             try {
                 FileUtils.copyDirectory(sourceDirFile, destDir);
                 LOG.debug("Done copying directory");
@@ -1034,7 +905,7 @@ public final class Internals {
                     throw new RuntimeException("Couldn't copy the directory!", ex);
                 }
             } else {
-                LOG.info("Extracting jar {0} to {1}", jarFile.getAbsolutePath(), destDir.getAbsolutePath());
+                LOG.info("Extracting jar ", jarFile.getAbsolutePath()," to ", destDir.getAbsolutePath());
                 copyDirFromJar(jarFile, destDir, sourceDirPath);
                 LOG.debug("Done copying directory from JAR.");
             }
@@ -1050,7 +921,22 @@ public final class Internals {
      * @since 0.1
      * 
      */
-    public static String formatInterval(final long millisecs) {
+    public static String formatInterval(Date start, Date end) {
+        checkNotNull(start);
+        checkNotNull(end);
+        
+        return formatInterval(end.getTime() - start.getTime());
+    }
+    
+    /**
+     * 
+     * @param millisecs
+     *            time interval expressed in number of millisecondsstart
+     * 
+     * @since 0.1
+     * 
+     */
+    public static String formatInterval(final long millisecs) {        
         final long hr = TimeUnit.MILLISECONDS.toHours(millisecs);
         final long min = TimeUnit.MILLISECONDS.toMinutes(millisecs - TimeUnit.HOURS.toMillis(hr));
         final long sec = TimeUnit.MILLISECONDS.toSeconds(

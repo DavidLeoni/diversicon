@@ -3,6 +3,8 @@
 /conf/*
 !/conf/README.txt
 
+*.sql
+
 ##### MAVEN
 
 target/*
