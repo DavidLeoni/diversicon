@@ -24,7 +24,8 @@ import it.unitn.disi.diversicon.Diversicons;
 
 /**
  * A stream possibly extracted from a compressed {@code sourceUrl}. Use
- * {#stream()} to get streams.
+ * {#stream()} to get the stream to consume. If you need to consume the stream several times, 
+ * call {@link #toTempFile()} first.
  * 
  * @since 0.1
  *
@@ -37,10 +38,12 @@ public class ExtractedStream {
     private InputStream inputStream;
     private String sourceUrl;
     private boolean extracted;
+
     @Nullable
     private File tempFile;
 
     /**
+     * @param inputStream must not be already consumed.
      * @param sourceUrl
      *            may have special {@code classpath} protocol
      * 
@@ -79,15 +82,16 @@ public class ExtractedStream {
 
     /**
      * 
-     * The stream of the possibly extracted file. Each call will produce a
-     * new stream.
+     * The stream of the possibly extracted file. If {@link #toTempFile()} was already called, 
+     * each call will produce a new stream.
      * 
      * @throws DivIoException
      * 
      * @since 0.1
      */
     public InputStream stream() {
-        if (tempFile == null) {
+        
+        if (tempFile == null) {            
             return inputStream;
         } else {
             try {
