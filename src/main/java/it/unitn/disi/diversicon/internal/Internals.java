@@ -688,22 +688,22 @@ public final class Internals {
                 try {
 
                     String candidatePathTest = "src/test/resources" + q;
-                    LOG.trace("Searching data in " + candidatePathTest + " ...");
+                    LOG.trace("    Searching data in " + candidatePathTest + " ...");
                     inputStream = new FileInputStream(candidatePathTest);
-                    LOG.debug("Located data in " + candidatePathTest);
+                    LOG.debug("    Located data in " + candidatePathTest);
                 } catch (FileNotFoundException ex1) {
                     try {
                         String candidatePathMain = "src/main/resources" + q;
-                        LOG.trace("Searching data in " + candidatePathMain + " ...");
+                        LOG.trace("    Searching data in " + candidatePathMain + " ...");
                         inputStream = new FileInputStream(candidatePathMain);
-                        LOG.debug("Located data in " + candidatePathMain);
+                        LOG.debug("    Located data in " + candidatePathMain);
                     } catch (FileNotFoundException ex2) {
                         throw new DivIoException("Couldn't find input stream: " + dataUrl.toString());
                     }
                 }
 
             } else {
-                LOG.debug("Located data in " + dataUrl);
+                LOG.debug("    Located data in " + dataUrl);
             }
         } else {
             try {
@@ -714,7 +714,7 @@ public final class Internals {
                     inputStream = new FileInputStream(dataUrl);
                 }
 
-                LOG.debug("Located data in " + dataUrl);
+                LOG.debug("    Located data in " + dataUrl);
             } catch (IOException ex) {
                 throw new DivIoException("Error while opening lexical resource " + dataUrl + "  !!", ex);
             }

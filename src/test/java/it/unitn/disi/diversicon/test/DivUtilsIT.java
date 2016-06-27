@@ -70,7 +70,7 @@ public class DivUtilsIT {
         
         File target = new File(dir.toString() + "/test");
         
-        Diversicons.restoreH2Db(DivWn30.WORDNET_DIV_H2_DB_RESOURCE_URI, target.getAbsolutePath() + ".h2.db");
+        Diversicons.restoreH2Db(DivWn30.WORDNET_DIV_H2_DB_RESOURCE_URI, target.getAbsolutePath());
         
         DBConfig dbCfg = Diversicons.makeDefaultH2FileDbConfig(target.getAbsolutePath()); 
         
@@ -127,12 +127,11 @@ public class DivUtilsIT {
     public void testReadDataWordnetSql(){
         ExtractedStream es = Internals.readData(DivWn30.WORDNET_DIV_SQL_RESOURCE_URI, true);
         assertTrue(es.isExtracted());
-        assertEquals("script.sql", es.getFilepath());
+        assertEquals("div-wn30.sql", es.getFilepath());
         assertEquals(DivWn30.WORDNET_DIV_SQL_RESOURCE_URI, es.getSourceUrl());
         File f = es.toTempFile();
         assertTrue(f.exists());
-        assertTrue(f.length() > 0);
-        
+        assertTrue(f.length() > 0);        
     }
     
     /**
