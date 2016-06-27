@@ -750,8 +750,9 @@ public final class Diversicons {
         checkNotEmpty(dbName, "Invalid db name!");
 
         String mem;
-        if (compressed){
-            mem = "nioMemLZF";
+        if (compressed){            
+            mem = "nioMemLZF";            
+            throw new UnsupportedOperationException("Compressed H2 db is currently not supported, see https://github.com/DavidLeoni/diversicon/issues/11");
         } else {
             mem = "mem";
         }

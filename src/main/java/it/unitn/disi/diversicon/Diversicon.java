@@ -951,6 +951,7 @@ public class Diversicon extends Uby {
      * @throws DivIoException
      *             if file in {@code xmlPath} already exists or there are write
      *             errors.
+     * @throws DivNotFoundException if {@code lexicalResourceName} does not exists.
      * 
      * @since 0.1
      */
@@ -975,6 +976,10 @@ public class Diversicon extends Uby {
 
         LexicalResource dbLe = getLexicalResource(lexicalResourceName);
 
+        if (dbLe == null){
+            throw new DivNotFoundException("Couldn't find lexical resource " + lexicalResourceName + "  !");
+        }
+        
         try {
 
             if (compress) {

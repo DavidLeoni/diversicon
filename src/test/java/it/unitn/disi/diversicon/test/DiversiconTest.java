@@ -911,18 +911,37 @@ public class DiversiconTest {
         assertTrue(zip.exists());
     }
 
-   
-    @Test    
+    
+    /**
+     * This is currently unsupported in H2 1.3.x we're using
+     * 
+     * See https://github.com/DavidLeoni/diversicon/issues/11
+     * 
+     * @since 0.1
+     */
+    @Test  
     public void testInMemoryCompressedH2(){
-        DBConfig dbConfig = Diversicons.makeDefaultH2InMemoryDbConfig("trial-" + UUID.randomUUID(), true);
-        Diversicons.dropCreateTables(dbConfig);
-        Diversicon div = Diversicon.connectToDb(dbConfig);
-        int mem = div.memoryUsed();
-        LOG.debug("Memory used for empty H2 compressed in-memory db is " + Internals.humanByteCount(mem * 1024));
+        try {
+            DBConfig dbConfig = Diversicons.makeDefaultH2InMemoryDbConfig("trial-" + UUID.randomUUID(), true);
+            Assert.fail("Shouldn't arrive here!");
+
+            Diversicons.dropCreateTables(dbConfig);
+            Diversicon div = Diversicon.connectToDb(dbConfig);
+            int mem = div.memoryUsed();
+            LOG.debug("Memory used for empty H2 compressed in-memory db is " + Internals.humanByteCount(mem * 1024));
+            
+            div.getSession().close();
+            
+        }
+        catch (UnsupportedOperationException ex){
+            
+        }
         
-        div.getSession().close();
     }
 
+    /**
+     * @since 0.1
+     */      
     @Test
     public void testMemoryUsed(){
         DBConfig dbConfig = Diversicons.makeDefaultH2InMemoryDbConfig("trial-" + UUID.randomUUID(), true);
