@@ -944,11 +944,12 @@ public class DiversiconTest {
      */      
     @Test
     public void testMemoryUsed(){
-        DBConfig dbConfig = Diversicons.makeDefaultH2InMemoryDbConfig("trial-" + UUID.randomUUID(), true);
+        DBConfig dbConfig = Diversicons.makeDefaultH2InMemoryDbConfig("trial-" + UUID.randomUUID()
+                                    , false);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);
         int mem = div.memoryUsed();
-        LOG.debug("Memory used for empty H2 in-memory db is " + Internals.humanByteCount(mem * 1024));
+        LOG.debug("Memory used for empty uncompressed H2 in-memory db is " + Internals.humanByteCount(mem * 1024));
         div.getSession().close();
     }
     
