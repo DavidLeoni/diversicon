@@ -1,11 +1,18 @@
 package it.unitn.disi.diversicon.test;
 
+import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
+import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -16,6 +23,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xml.sax.SAXException;
 
 import de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect;
 import de.tudarmstadt.ukp.lmf.model.core.Definition;
@@ -24,11 +32,13 @@ import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
 import de.tudarmstadt.ukp.lmf.model.core.TextRepresentation;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
+import de.tudarmstadt.ukp.lmf.model.interfaces.IHasID;
 import de.tudarmstadt.ukp.lmf.model.morphology.FormRepresentation;
 import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
+import de.tudarmstadt.ukp.lmf.transform.DBToXMLTransformer;
 import it.unitn.disi.diversicon.DivException;
 import it.unitn.disi.diversicon.DivNotFoundException;
 import it.unitn.disi.diversicon.DivSynsetRelation;
@@ -38,9 +48,14 @@ import it.unitn.disi.diversicon.internal.Internals;
 
 public final class DivTester {
 
-    private DivTester() {
-    }
-
+    private static final String TEST_RESOURCES_PATH = "it/unitn/disi/diversicon/test/";
+    public static final String WORDNET_UBY_NON_AUGMENTED_DB_RESOURCE_URI = "classpath:/" + TEST_RESOURCES_PATH + "uby-wn30.sql.zip";
+    public static final String WORDNET_UBY_NON_AUGMENTED_DB_RESOURCE_URI_UNCOMPRESSED = "classpath:/" + TEST_RESOURCES_PATH + "uby-wn30.sql";
+    public static final String WORDNET_UBY_NON_AUGMENTED_DB_NON_RESOURCE_URI_UNCOMPRESSED =  "src/test/resources/" + TEST_RESOURCES_PATH + "uby-wn30.sql";
+    public static final String WORDNET_UBY_NON_AUGMENTED_DB_NON_RESOURCE_URI = "src/test/resources/" + TEST_RESOURCES_PATH + "uby-wn30.sql.zip";
+    
+    private static int dbCounter = -1;
+    
     /**
      * 2 verteces and 1 hypernym edge
      */
@@ -89,6 +104,11 @@ public final class DivTester {
 
     private static final Logger LOG = LoggerFactory.getLogger(DivTester.class);
 
+
+
+    private DivTester() {
+    }
+
     /**
      * 
      * Retrieves the synset with id 'synset ' + {@code idNum}
@@ -111,29 +131,87 @@ public final class DivTester {
         throw new DivNotFoundException("Couldn't find synset with id 'synset " + idNum);
     }
 
+    public static <T extends IHasID> void checkEqualIds(Collection<T> col1, Collection<T> col2) {
+
+        if (col1 == null) {
+            throw new Error("First collection is null !" + reportIds(col1, col2));
+        }
+
+        if (col2 == null) {
+            throw new Error("Second collection is null !" + reportIds(col1, col2));
+        }
+
+        if (col1.size() != col2.size()) {
+            throw new Error("Collections size differs! First:" + col1.size() + " Second:" + col2.size() + reportIds(col1, col2));
+        }
+        
+        Iterator<T> iter = col2.iterator();
+        int i = 0;
+        for (IHasID hid1 : col1){            
+            T hid2 = iter.next();
+            if (!hid1.getId().equals(hid2.getId())){
+                throw new RuntimeException("Found different ids at position " + i 
+                        + "! id1 = " + hid1.getId() + "id2 = " + hid2.getId() + reportIds(col1, col2));
+            }
+            i++;
+        }
+
+    }
+
+    private static <T extends IHasID> String reportIds(Collection<T> col1, Collection<T> col2) {
+        StringBuilder sb = new StringBuilder("\n Full collections: \n");
+        sb.append("1st: [");
+        boolean first = true;
+        for (IHasID hd : col1){
+            if (first){
+                first = false;
+            } else {
+                sb.append(",");
+            }
+            sb.append(hd.getId());            
+        }
+        sb.append("]\n");
+        sb.append("2st: [");
+        first = true;
+        for (IHasID hd : col2){
+            if (first){
+                first = false;
+            } else {
+                sb.append(",");
+            }
+            sb.append(hd.getId());            
+        }
+        sb.append("]\n");
+        
+        return sb.toString();
+    }
+
     /**
      * 
      * Checks provided lexical resource corresponds to current db.
+     * 
+     * @param lr MUST have a non-null {@link LexicalResource#getName() name}
      * 
      * Checks only for elements we care about in Diversicon, and only for the
      * ones which are not {@code null} in provided model.
      */
     public static void checkDb(LexicalResource lr, Diversicon diversicon) {
+        checkNotNull(diversicon);
         Internals.checkNotNull(lr);
-
-        LexicalResource ulr = diversicon.getLexicalResource(lr.getName());
-
-        assertEquals(lr.getName(), ulr.getName());
+        checkNotNull(lr.getName());
+        
+        LexicalResource dbLr = diversicon.getLexicalResource(lr.getName());
+        checkNotNull(dbLr);
+        
+        assertEquals(lr.getName(), dbLr.getName());
 
         for (Lexicon lex : lr.getLexicons()) {
 
             try {
                 Lexicon dbLex = diversicon.getLexiconById(lex.getId());
                 assertEquals(lex.getId(), dbLex.getId());
-                assertEquals(lex.getSynsets()
-                                .size(),
-                        dbLex.getSynsets()
-                             .size());
+                checkEqualIds(lex.getSynsets(),
+                        dbLex.getSynsets());
 
                 for (Synset syn : lex.getSynsets()) {
                     try {
@@ -149,22 +227,24 @@ public final class DivTester {
                                         .size(),
                                 dbSyn.getDefinitions()
                                      .size());
-                        
-                        Iterator<Definition> dbDefIter = syn.getDefinitions().iterator();
-                        for (Definition definition : syn.getDefinitions()){
+
+                        Iterator<Definition> dbDefIter = syn.getDefinitions()
+                                                            .iterator();
+                        for (Definition definition : syn.getDefinitions()) {
                             Definition dbDef = dbDefIter.next();
                             List<TextRepresentation> textReprs = definition.getTextRepresentations();
                             List<TextRepresentation> dbTextReprs = dbDef.getTextRepresentations();
                             assertEquals(textReprs.size(), dbTextReprs.size());
-                            
-                            Iterator<TextRepresentation> dbTextReprIter = dbDef.getTextRepresentations().iterator();
-                            for (TextRepresentation tr : textReprs){
+
+                            Iterator<TextRepresentation> dbTextReprIter = dbDef.getTextRepresentations()
+                                                                               .iterator();
+                            for (TextRepresentation tr : textReprs) {
                                 TextRepresentation dbTextRepr = dbTextReprIter.next();
-                                
-                                if (tr.getWrittenText() != null){
-                                    assertEquals(tr.getWrittenText(), dbTextRepr.getWrittenText());    
+
+                                if (tr.getWrittenText() != null) {
+                                    assertEquals(tr.getWrittenText(), dbTextRepr.getWrittenText());
                                 }
-                                
+
                             }
                         }
 
@@ -212,7 +292,7 @@ public final class DivTester {
                                 }
                             } catch (Error ex) {
                                 throw new DivException("Error while checking synset relation: "
-                                        + Diversicons.synsetRelationToString(sr),
+                                        + Diversicons.toString(sr),
                                         ex);
                             }
 
@@ -256,12 +336,59 @@ public final class DivTester {
         }
     }
 
+
     /**
-     * Creates an in-memory H2 db.
+     * Creates an xml file out of the provided
      */
-    public static DBConfig createDbConfig() {
-        return new DBConfig("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1", "org.h2.Driver",
-                UBYH2Dialect.class.getName(), "root", "pass", true);
+    public static File writeXml(LexicalResource lexicalResource) {
+        checkNotNull(lexicalResource);
+
+        DBConfig dbConfig = createNewDbConfig();
+        Diversicons.dropCreateTables(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);
+        div.importResource(lexicalResource, true);
+        LexicalResource dbLe = div.getLexicalResource(lexicalResource.getName());
+
+        try {
+            Path outPath = Files.createTempFile("diversicon-test", "");
+
+            new DBToXMLTransformer(dbConfig, outPath.toString(), null)
+                                                                      .transform(dbLe);
+            return outPath.toFile();
+        } catch (IOException | SAXException ex) {
+            throw new DivException("Error while making xml file!", ex);
+        } finally {
+            div.getSession().close();
+        }
+        
+    }
+
+    
+    /**
+     * Creates a configuration for a new in-memory H2 database
+     */
+    public static DBConfig createNewDbConfig() {
+        dbCounter += 1;
+        return createDbConfig(dbCounter);
+     }
+
+    /**
+     * 
+     * @param n the number to identify the db. 
+     * If -1 db name will be like default in-memory in uby.
+     * 
+     * @since 0.1
+     */
+    private static DBConfig createDbConfig(int n) {
+        checkArgument(n >= -1, "Invalid n! Found " , n);
+        String s;
+        if (n == -1){
+            s = "";
+        } else {
+            s = Integer.toString(n);
+        }
+        return Diversicons.makeDefaultH2InMemoryDbConfig("test" + s, false);
+        
     }
 
 }

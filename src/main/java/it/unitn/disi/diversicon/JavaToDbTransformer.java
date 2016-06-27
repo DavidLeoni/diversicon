@@ -11,12 +11,10 @@ import java.util.Iterator;
 import javax.annotation.Nullable;
 
 import org.hibernate.cfg.Configuration;
-import org.hibernate.internal.util.SerializationHelper;
 import org.hibernate.service.ServiceRegistryBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import de.tudarmstadt.ukp.lmf.hibernate.HibernateConnect;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalEntry;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
@@ -34,159 +32,185 @@ import it.unitn.disi.diversicon.internal.Internals;
 
 /**
  * 
- * Simple transformer to directly put into the db a LexicalResource complete with all the
+ * Simple transformer to directly put into the db a LexicalResource complete
+ * with all the
  * lexicons, synsets, etc.
  * 
  * @since 0.1
  * @author David Leoni
  */
 class JavaToDbTransformer extends LMFDBTransformer {
-	
-	private static final Logger log = LoggerFactory.getLogger(JavaToDbTransformer.class);
 
-	private LexicalResource lexicalResource;
-	private String lexicalResourceId;
-	private Iterator<Lexicon> lexiconIter;
-	private Iterator<LexicalEntry> lexicalEntryIter;
-	private Iterator<SubcategorizationFrame> subcategorizationFrameIter;
-	private Iterator<SubcategorizationFrameSet> subcategorizationFrameSetIter;
-	private Iterator<SemanticPredicate> semanticPredicateIter;
-	private Iterator<SynSemCorrespondence> synSemCorrespondenceIter;
-	private Iterator<Synset> synsetIter;
-	private Iterator<SenseAxis> senseAxisIter;
-	private Iterator<ConstraintSet> constraintSetIter;
+    private static final Logger LOG = LoggerFactory.getLogger(JavaToDbTransformer.class);
 
-	/**
-	 *
-	 * 
-	 * @param resource
-	 *            a LexicalResource complete with all the lexicons, synsets, etc
-	 * @param lexicalResourceId
-	 *            todo don't know well the meaning
-	 * @throws FileNotFoundException 
-	 */
-	public JavaToDbTransformer(DBConfig dbConfig, LexicalResource lexicalResource, String lexicalResourceId) throws FileNotFoundException {
-		super(dbConfig);
-		
-		Configuration cfg = Diversicons.getHibernateConfig(dbConfig, false);
-		sessionFactory = cfg.buildSessionFactory(
-				new ServiceRegistryBuilder().applySettings(
-				cfg.getProperties()).buildServiceRegistry());		
-		
-		checkNotNull(lexicalResource);
-		checkNotEmpty(lexicalResourceId, "Invalid lexicalResourceId!");
+    private LexicalResource lexicalResource;
+    private Iterator<Lexicon> lexiconIter;
+    private Iterator<LexicalEntry> lexicalEntryIter;
+    private Iterator<SubcategorizationFrame> subcategorizationFrameIter;
+    private Iterator<SubcategorizationFrameSet> subcategorizationFrameSetIter;
+    private Iterator<SemanticPredicate> semanticPredicateIter;
+    private Iterator<SynSemCorrespondence> synSemCorrespondenceIter;
+    private Iterator<Synset> synsetIter;
+    private Iterator<SenseAxis> senseAxisIter;
+    private Iterator<ConstraintSet> constraintSetIter;
 
-		// copying to avoid double additions by LMFDBTransformer		
-		this.lexicalResource = Internals.deepCopy(lexicalResource);
-		
-		this.lexicalResourceId = lexicalResourceId;
+    /**
+     *
+     * 
+     * @param resource
+     *            a LexicalResource complete with all the lexicons, synsets,
+     *            etc.
+     *            MUST have a {@code name}
+     * @throws FileNotFoundException
+     */
+    public JavaToDbTransformer(DBConfig dbConfig,
+            LexicalResource lexicalResource)
+                    throws FileNotFoundException {
 
-		this.lexiconIter = this.lexicalResource.getLexicons().iterator();
-		this.lexicalResource.setLexicons(new ArrayList());
-		
-		this.senseAxisIter = lexicalResource.getSenseAxes().iterator();
-		this.lexicalResource.setSenseAxes(new ArrayList());
+        super(dbConfig);
 
-	}
+        checkNotNull(lexicalResource);
+        checkNotEmpty(lexicalResource.getName(), "Invalid lexicalResource name!");
 
-	@Override
-	protected LexicalResource createLexicalResource() {
-		return lexicalResource;
-	}
+        Configuration cfg = Diversicons.getHibernateConfig(dbConfig, false);
+        sessionFactory = cfg.buildSessionFactory(
+                new ServiceRegistryBuilder().applySettings(
+                        cfg.getProperties())
+                                            .buildServiceRegistry());
+                
+        session = sessionFactory.openSession();
+        
+        @Nullable
+        LexicalResource existingLexicalResource = (LexicalResource) session.get(LexicalResource.class,
+                lexicalResource.getName());
+        session.close();
+        
+        if (existingLexicalResource == null) {
+            /** copy to avoid double additions by LMFDBTransformer */
+            LexicalResource lexicalResourceCopy = Internals.deepCopy(lexicalResource);            
+            this.lexicalResource = lexicalResourceCopy;
+            this.lexicalResource.setLexicons(new ArrayList());
+            this.lexicalResource.setSenseAxes(new ArrayList());
+        } else {
+            LOG.info("Importing into existing lexical resource " + lexicalResource.getName());
+            this.lexicalResource = existingLexicalResource;            
+        }
 
-	@Override	
-	protected Lexicon createNextLexicon() {
-		// resetting lexicon array properties to avoid double additions by LMFDBTransformer
-		if (lexiconIter.hasNext()) {
-			Lexicon lexicon = lexiconIter.next();
-			
-			log.info("Creating Lexicon " + lexicon.getId());
-			
-			subcategorizationFrameIter = lexicon.getSubcategorizationFrames().iterator();
-			lexicon.setSubcategorizationFrames(new ArrayList());
-			subcategorizationFrameSetIter = lexicon.getSubcategorizationFrameSets().iterator();
-			lexicon.setSubcategorizationFrameSets(new ArrayList());
-			lexicalEntryIter = lexicon.getLexicalEntries().iterator();
-			lexicon.setLexicalEntries(new ArrayList());
-			semanticPredicateIter = lexicon.getSemanticPredicates().iterator();
-			lexicon.setSemanticPredicates(new ArrayList());
-			synSemCorrespondenceIter = lexicon.getSynSemCorrespondences().iterator();
-			lexicon.setSynSemCorrespondences(new ArrayList());
-			constraintSetIter = lexicon.getConstraintSets().iterator();
-			lexicon.setConstraintSets(new ArrayList());
-			return lexicon;
-		} else {
-			return null;
-		}
+        this.lexiconIter = lexicalResource.getLexicons()
+                                          .iterator();
+        this.senseAxisIter = lexicalResource.getSenseAxes()
+                                            .iterator();       
+        
 
-	}
+    }
 
-	@Override
-	protected LexicalEntry getNextLexicalEntry() {
-		if (lexicalEntryIter.hasNext()) {
-			LexicalEntry lexicalEntry = lexicalEntryIter.next();			
-			synsetIter = lexicalEntry.getSynsets().iterator();			
-			return lexicalEntry;
-		} else {
-			return null;
-		}
-	}
 
-	/**
-	 * Return the next element of the iterator or {@code null} if there is none
-	 */
-	@Nullable
-	private static <T> T next(Iterator<T> iter) {
-		if (iter != null && iter.hasNext()) {
-			return iter.next();
-		} else {
-			return null;
-		}
-	}
+    @Override
+    protected LexicalResource createLexicalResource() {
+        return lexicalResource;
+    }
 
-	@Override
-	protected SubcategorizationFrame getNextSubcategorizationFrame() {
-		return next(subcategorizationFrameIter);
-	}
+    @Override
+    protected Lexicon createNextLexicon() {
+        // resetting lexicon array properties to avoid double additions by
+        // LMFDBTransformer
+        if (lexiconIter.hasNext()) {
+            Lexicon lexicon = Internals.deepCopy(lexiconIter.next());
 
-	@Override
-	protected SubcategorizationFrameSet getNextSubcategorizationFrameSet() {
-		return next(subcategorizationFrameSetIter);
-	}
+            LOG.info("Creating Lexicon " + lexicon.getId());
 
-	@Override
-	protected SemanticPredicate getNextSemanticPredicate() {
-		return next(semanticPredicateIter);
-	}
+            subcategorizationFrameIter = lexicon.getSubcategorizationFrames()
+                                                .iterator();
+            lexicon.setSubcategorizationFrames(new ArrayList());
+            subcategorizationFrameSetIter = lexicon.getSubcategorizationFrameSets()
+                                                   .iterator();
+            lexicon.setSubcategorizationFrameSets(new ArrayList());
+            lexicalEntryIter = lexicon.getLexicalEntries()
+                                      .iterator();
+            lexicon.setLexicalEntries(new ArrayList());
+            semanticPredicateIter = lexicon.getSemanticPredicates()
+                                           .iterator();
+            lexicon.setSemanticPredicates(new ArrayList());
+            synSemCorrespondenceIter = lexicon.getSynSemCorrespondences()
+                                              .iterator();
+            lexicon.setSynSemCorrespondences(new ArrayList());
+            constraintSetIter = lexicon.getConstraintSets()
+                                       .iterator();
+            lexicon.setConstraintSets(new ArrayList());
+            return lexicon;
+        } else {
+            return null;
+        }
 
-	@Override
-	protected Synset getNextSynset() {
-		return next(synsetIter);
-	}
+    }
 
-	@Override
-	protected SynSemCorrespondence getNextSynSemCorrespondence() {
-		return next(synSemCorrespondenceIter);
-	}
+    @Override
+    protected LexicalEntry getNextLexicalEntry() {
+        if (lexicalEntryIter.hasNext()) {
+            LexicalEntry lexicalEntry = lexicalEntryIter.next();
+            synsetIter = lexicalEntry.getSynsets()
+                                     .iterator();
+            return lexicalEntry;
+        } else {
+            return null;
+        }
+    }
 
-	@Override
-	protected ConstraintSet getNextConstraintSet() {
-		return next(constraintSetIter);
-	}
+    /**
+     * Return the next element of the iterator or {@code null} if there is none
+     */
+    @Nullable
+    private static <T> T next(Iterator<T> iter) {
+        if (iter != null && iter.hasNext()) {
+            return iter.next();
+        } else {
+            return null;
+        }
+    }
 
-	@Override
-	protected SenseAxis getNextSenseAxis() {
-		return next(senseAxisIter);
-	}
+    @Override
+    protected SubcategorizationFrame getNextSubcategorizationFrame() {
+        return next(subcategorizationFrameIter);
+    }
 
-	@Override
-	protected void finish() {
+    @Override
+    protected SubcategorizationFrameSet getNextSubcategorizationFrameSet() {
+        return next(subcategorizationFrameSetIter);
+    }
 
-	}
+    @Override
+    protected SemanticPredicate getNextSemanticPredicate() {
+        return next(semanticPredicateIter);
+    }
 
-	@Override
-	protected String getResourceAlias() {
-		return lexicalResourceId;
-	}
+    @Override
+    protected Synset getNextSynset() {
+        return next(synsetIter);
+    }
+
+    @Override
+    protected SynSemCorrespondence getNextSynSemCorrespondence() {
+        return next(synSemCorrespondenceIter);
+    }
+
+    @Override
+    protected ConstraintSet getNextConstraintSet() {
+        return next(constraintSetIter);
+    }
+
+    @Override
+    protected SenseAxis getNextSenseAxis() {
+        return next(senseAxisIter);
+    }
+
+    @Override
+    protected void finish() {
+
+    }
+
+    @Override
+    protected String getResourceAlias() {
+        return lexicalResource.getName();
+    }
 
 }

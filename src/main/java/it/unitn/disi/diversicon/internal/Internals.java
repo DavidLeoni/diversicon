@@ -1,17 +1,52 @@
 package it.unitn.disi.diversicon.internal;
 
+import java.io.BufferedInputStream;
+import java.io.EOFException;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.concurrent.TimeUnit;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import javax.annotation.Nullable;
 
+import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.ArchiveException;
+import org.apache.commons.compress.archivers.ArchiveInputStream;
+import org.apache.commons.compress.archivers.ArchiveStreamFactory;
+import org.apache.commons.compress.compressors.CompressorException;
+import org.apache.commons.compress.compressors.CompressorInputStream;
+import org.apache.commons.compress.compressors.CompressorStreamFactory;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.rits.cloning.Cloner;
 
+import de.tudarmstadt.ukp.lmf.transform.DBConfig;
+import it.unitn.disi.diversicon.DivException;
+import it.unitn.disi.diversicon.DivIoException;
 import it.unitn.disi.diversicon.Diversicons;
 
 /**
@@ -22,11 +57,11 @@ import it.unitn.disi.diversicon.Diversicons;
  *
  */
 public final class Internals {
-    
-    private static final Logger LOG = LoggerFactory.getLogger(Diversicons.class);
+
+    private static final Logger LOG = LoggerFactory.getLogger(Internals.class);
 
     private static final @Nullable Cloner cloner = new Cloner();
-    
+
     private Internals() {
 
     }
@@ -67,6 +102,52 @@ public final class Internals {
         if (string.length() == 0) {
             throw new IllegalArgumentException(formattedMessage + " -- Reason: Found empty string.");
         }
+        return string;
+    }
+
+    /**
+     *
+     * Checks if provided string is non null and {@link #isBlank(String) non
+     * blank}.
+     *
+     * @param errorMessageTemplate
+     *            a template for the exception message should the check fail.
+     *            The message is formed by replacing each {@code %s} placeholder
+     *            in the template with an argument. These are matched by
+     *            position - the first {@code %s} gets {@code
+     *     errorMessageArgs[0]}, etc. Unmatched arguments will be appended to
+     *            the formatted message in square braces. Unmatched placeholders
+     *            will be left as-is.
+     * @param errorMessageArgs
+     *            the arguments to be substituted into the message template.
+     *            Arguments are converted to strings using
+     *            {@link String#valueOf(Object)}.
+     * @throws IllegalArgumentException
+     *             if {@code expression} is false
+     * @throws NullPointerException
+     *             if the check fails and either {@code errorMessageTemplate} or
+     *             {@code errorMessageArgs} is null (don't let this happen)
+     *
+     *
+     * @throws IllegalArgumentException
+     *             if provided string fails validation
+     *
+     * @return the non-blank string that was validated
+     * @since 0.1
+     */
+    public static String checkNotBlank(String string, @Nullable String errorMessageTemplate,
+            @Nullable Object... errorMessageArgs) {
+        String formattedMessage = format(errorMessageTemplate, errorMessageArgs);
+        checkArgument(string != null, "%s -- Reason: Found null string.", formattedMessage);
+        if (string.isEmpty()) {
+            throw new IllegalArgumentException(formattedMessage + " -- Reason: Found empty string.");
+        }
+
+        if (string.trim()
+                  .isEmpty()) {
+            throw new IllegalArgumentException(formattedMessage + " -- Reason: Found string with blank characters!");
+        }
+
         return string;
     }
 
@@ -427,7 +508,7 @@ public final class Internals {
         }
         return reference;
     }
-    
+
     /**
      * Creates a map from key value pairs
      * 
@@ -477,36 +558,34 @@ public final class Internals {
         }
 
         return result;
-    }    
+    }
 
     /**
      * Returns a deep copy of any object, including non-serializable ones.
      * 
      * @since 0.1
      */
-    public static <T> T deepCopy(T orig) {        
+    public static <T> T deepCopy(T orig) {
         return cloner.deepClone(orig);
     }
 
-    
     /**
      * Returns a new ArrayList, filled with provided objects.
      * 
-     * (Note {@code Arrays.asList(T...)} returns an {@code Arrays.ArrayList} instead)
+     * (Note {@code Arrays.asList(T...)} returns an {@code Arrays.ArrayList}
+     * instead)
      * 
      * @since 0.1
      */
     public static <T> ArrayList<T> newArrayList(T... objs) {
         ArrayList<T> ret = new ArrayList();
-        
-        for (T obj : objs){
-            ret.add(obj);            
+
+        for (T obj : objs) {
+            ret.add(obj);
         }
         return ret;
     }
-    
-    
-    
+
     /**
      * Returns a new HashSet, filled with provided objects.
      * 
@@ -514,24 +593,373 @@ public final class Internals {
      */
     public static <T> HashSet<T> newHashSet(T... objs) {
         HashSet<T> ret = new HashSet();
-        
-        for (T obj : objs){
-            ret.add(obj);            
+
+        for (T obj : objs) {
+            ret.add(obj);
         }
         return ret;
-    }    
-    
+    }
 
     /**
      * Checks provided depth.
-     *  
-     * @param depth must be >= -1, otherwise IllegalArgumentException is thrown.
+     * 
+     * @param depth
+     *            must be >= -1, otherwise IllegalArgumentException is thrown.
+     * 
+     * @since 0.1
      */
     public static void checkDepth(int depth) {
-        if (depth <-1){
+        if (depth < -1) {
             throw new IllegalArgumentException("depth must be greater or equal to -1, found instead " + depth);
         }
-    }    
+    }
+
+    /**
+     * Returns true if provided string is null or blank
+     * 
+     * @since 0.1
+     */
+    public static boolean isBlank(@Nullable String string) {
+        return string == null || (string != null && string.trim()
+                                                          .isEmpty());
+    }
+
+    /**
+     * @since 0.1
+     */
+    private static boolean isFormatSupported(String filePath,
+            String[] formats) {
+        checkNotEmpty(filePath, "Invalid filepath!");
+
+        for (String s : formats) {
+            if (filePath.toLowerCase()
+                        .endsWith("." + s)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Gets input stream from a url pointing to possibly compressed data.
+     * 
+     * @param dataUrl
+     *            can be like:
+     *            <ul>
+     *            <li>{@code classpath:/my/package/name/data.zip}</li>
+     *            <li>{@code file:/my/path/data.zip}</li>
+     *            <li>{@code http://... }</li>
+     *            <li>whatever protocol..</li>
+     *            </ul>
+     * @param decompress
+     *            if true and data is actually compressed in one of
+     *            {@link Diversicons#SUPPORTED_COMPRESSION_FORMATS} returns the
+     *            uncompressed stream (note no check is done to verify the
+     *            archive contains only one file).
+     *            In all other cases data stream is returned verbatim.
+     * 
+     * @throws DivIoException
+     *             on error.
+     * 
+     * @since 0.1
+     */
+    // todo should check archives have only one file...
+    public static ExtractedStream readData(String dataUrl, boolean decompress) {
+        checkNotNull(dataUrl, "Invalid resource path!");
+
+        @Nullable
+        InputStream inputStream = null;
+
+        URI uri;
+        try {
+            uri = new URI(dataUrl);
+        } catch (URISyntaxException ex) {
+            throw new IllegalArgumentException("Couldn't parse input url!", ex);
+        }
+
+        LOG.trace("reading data from " + dataUrl + " ...");
+
+        if ("classpath".equals(uri.getScheme())) {
+            String q = dataUrl.substring("classpath:".length());
+
+            inputStream = Diversicons.class.getResourceAsStream(q);
+            if (inputStream == null) {
+
+                try {
+
+                    String candidatePathTest = "src/test/resources" + q;
+                    LOG.trace("    Searching data in " + candidatePathTest + " ...");
+                    inputStream = new FileInputStream(candidatePathTest);
+                    LOG.debug("    Located data in " + candidatePathTest);
+                } catch (FileNotFoundException ex1) {
+                    try {
+                        String candidatePathMain = "src/main/resources" + q;
+                        LOG.trace("    Searching data in " + candidatePathMain + " ...");
+                        inputStream = new FileInputStream(candidatePathMain);
+                        LOG.debug("    Located data in " + candidatePathMain);
+                    } catch (FileNotFoundException ex2) {
+                        throw new DivIoException("Couldn't find input stream: " + dataUrl.toString());
+                    }
+                }
+
+            } else {
+                LOG.debug("    Located data in " + dataUrl);
+            }
+        } else {
+            try {
+
+                if (withProtocol(dataUrl)) {
+                    inputStream = new URL(dataUrl).openStream();
+                } else {
+                    inputStream = new FileInputStream(dataUrl);
+                }
+
+                LOG.debug("    Located data in " + dataUrl);
+            } catch (IOException ex) {
+                throw new DivIoException("Error while opening lexical resource " + dataUrl + "  !!", ex);
+            }
+        }
+
+        if (decompress && isFormatSupported(uri.getPath(), Diversicons.SUPPORTED_COMPRESSION_FORMATS)) {
+
+            try {
+
+                BufferedInputStream buffered = inputStream instanceof BufferedInputStream
+                        ? (BufferedInputStream) inputStream
+                        : new BufferedInputStream(inputStream);
+
+                if (isFormatSupported(uri.getPath(), Diversicons.SUPPORTED_ARCHIVE_FORMATS)) {
+
+                    ArchiveInputStream zin = new ArchiveStreamFactory()
+                                                                       .createArchiveInputStream(buffered);
+                    for (ArchiveEntry e; (e = zin.getNextEntry()) != null;) {
+                        return new ExtractedStream(e.getName(), zin, dataUrl, true);
+                    }
+
+                } else {
+
+                    CompressorInputStream cin = new CompressorStreamFactory()
+                                                                             .createCompressorInputStream(buffered);
+                    String fname = FilenameUtils.getBaseName(uri.getPath());
+                    return new ExtractedStream(fname, cin, dataUrl, true);
+                }
+
+            } catch (IOException | ArchiveException | CompressorException e) {
+                throw new DivIoException("Error while iterating through " + dataUrl.toString() + " !", e);
+            }
+
+            throw new DivIoException("Found empty stream in archive " + dataUrl.toString() + " !");
+
+        } else {
+            return new ExtractedStream(uri.getPath(), inputStream, dataUrl, false);
+        }
+    }
+
+    /**
+     * @since 0.1
+     */
+    static boolean withProtocol(String dataUrl) {
+        checkNotBlank(dataUrl, "Invalid data url!");
+        Pattern p = Pattern.compile("^(\\w)+:(.*)");
+        Matcher m = p.matcher(dataUrl);
+
+        return m.matches();
+    }
+
+ 
+
+    /**
+     * if outPath is something like {@code a/b/c.sql.zi}p and {@code ext} is {@code sql}, it becomes
+     * {@code c.sql}
+     * 
+     * If it is something like {@code a/b/c.zip} and {@code ext} is {@code sql}, it becomes {@code c.sql}
+     * 
+     * @since 0.1
+     */
+    public static String makeExtension(String path, String ext) {
+        checkNotBlank(path, "Invalid path!");
+        checkNotBlank(ext, "Invalid extension!");
+
+        String entryName = FilenameUtils.getBaseName(path);
+        if (entryName.endsWith("." + ext)) {
+            return entryName;
+        } else {
+            return entryName.concat("." + ext);
+        }
+    }
+
+    /**
+     *
+     * Extracts the files starting with dirPath from {@code file} to
+     * {@code destDir}
+     *
+     * (copied from Josman)
+     *
+     * @param dirPath
+     *            the prefix used for filtering. If empty the whole jar
+     *            content is extracted.
+     *
+     * @throws DivIoException
+     * @since 0.1
+     */
+    public static void copyDirFromJar(File jarFile, File destDir, String dirPath) {
+        checkNotNull(jarFile);
+        checkNotNull(destDir);
+        checkNotNull(dirPath);
+
+        String normalizedDirPath;
+        if (dirPath.startsWith("/")) {
+            normalizedDirPath = dirPath.substring(1);
+        } else {
+            normalizedDirPath = dirPath;
+        }
+
+        try {
+            JarFile jar = new JarFile(jarFile);
+            java.util.Enumeration enumEntries = jar.entries();
+            while (enumEntries.hasMoreElements()) {
+                JarEntry jarEntry = (JarEntry) enumEntries.nextElement();
+                if (jarEntry.getName()
+                            .startsWith(normalizedDirPath)) {
+                    File f = new File(
+                            destDir
+                                    + File.separator
+                                    + jarEntry
+                                              .getName()
+                                              .substring(normalizedDirPath.length()));
+
+                    if (jarEntry.isDirectory()) { // if its a directory, create
+                                                  // it
+                        f.mkdirs();
+                        continue;
+                    } else {
+                        f.getParentFile()
+                         .mkdirs();
+                    }
+
+                    InputStream is = jar.getInputStream(jarEntry); // get the
+                                                                   // input
+                                                                   // stream
+                    FileOutputStream fos = new FileOutputStream(f);
+                    IOUtils.copy(is, fos);
+                    fos.close();
+                    is.close();
+                }
+
+            }
+        } catch (IOException ex) {
+            throw new DivIoException("Error while extracting jar file! Jar source: " + jarFile.getAbsolutePath()
+                    + " destDir = " + destDir.getAbsolutePath(), ex);
+        }
+    }
+
+    /**
+     * Extracts the directory at resource path to target directory. First
+     * directory is searched in local "src/test/resources" and
+     * "src/main/resources" so the thing also
+     * works when developing in the IDE. If not found then searches in jar file.
+     * 
+     * (adapted from Josman 0.7)
+     * 
+     * @throws DivIoException
+     * 
+     * @since 0.1
+     */
+    public static void copyDirFromResource(Class clazz, String sourceDirPath, File destDir) {
+        String sep = File.separator;
+        @Nullable
+        File sourceDirFile = null;
+
+        File testDir = new File("src" + sep + "test" + sep + "resources", sourceDirPath);
+        if (testDir.exists()) {
+            sourceDirFile = testDir;
+        } else {
+            File mainDir = new File("src" + sep + "main" + sep + "resources", sourceDirPath);
+            if (mainDir.exists()) {
+                sourceDirFile = mainDir;
+            }
+        }
+
+        if (sourceDirFile != null) {
+            LOG.debug("Copying directory from ", sourceDirFile.getAbsolutePath(), " to ", "...", destDir.getAbsolutePath());
+            try {
+                FileUtils.copyDirectory(sourceDirFile, destDir);
+                LOG.debug("Done copying directory");
+            } catch (IOException ex) {
+                throw new DivIoException("Couldn't copy the directory!", ex);
+            }
+        } else {
+
+            File jarFile = new File(clazz.getProtectionDomain()
+                                         .getCodeSource()
+                                         .getLocation()
+                                         .getPath());
+            if (jarFile.isDirectory() && jarFile.getAbsolutePath()
+                                                .endsWith("target" + File.separator + "classes")) {
+                LOG.info("Seems like you have sources, will take resources from there");
+                try {
+                    FileUtils.copyDirectory(
+                            new File(jarFile.getAbsolutePath() + "/../../src/main/resources", sourceDirPath), destDir);
+                    LOG.info("Done copying directory");
+                } catch (IOException ex) {
+                    throw new RuntimeException("Couldn't copy the directory!", ex);
+                }
+            } else {
+                LOG.info("Extracting jar ", jarFile.getAbsolutePath()," to ", destDir.getAbsolutePath());
+                copyDirFromJar(jarFile, destDir, sourceDirPath);
+                LOG.debug("Done copying directory from JAR.");
+            }
+
+        }
+    }
+
+    /**
+     * 
+     * @param millisecs
+     *            time interval expressed in number of milliseconds
+     * 
+     * @since 0.1
+     * 
+     */
+    public static String formatInterval(Date start, Date end) {
+        checkNotNull(start);
+        checkNotNull(end);
+        
+        return formatInterval(end.getTime() - start.getTime());
+    }
     
-    
+    /**
+     * 
+     * @param millisecs
+     *            time interval expressed in number of millisecondsstart
+     * 
+     * @since 0.1
+     * 
+     */
+    public static String formatInterval(final long millisecs) {        
+        final long hr = TimeUnit.MILLISECONDS.toHours(millisecs);
+        final long min = TimeUnit.MILLISECONDS.toMinutes(millisecs - TimeUnit.HOURS.toMillis(hr));
+        final long sec = TimeUnit.MILLISECONDS.toSeconds(
+                millisecs - TimeUnit.HOURS.toMillis(hr) - TimeUnit.MINUTES.toMillis(min));
+        final long ms = TimeUnit.MILLISECONDS.toMillis(millisecs - TimeUnit.HOURS.toMillis(hr)
+                - TimeUnit.MINUTES.toMillis(min) - TimeUnit.SECONDS.toMillis(sec));
+        return String.format("%02dh:%02dm:%02ds.%03d", hr, min, sec, ms);
+    }
+
+    /**
+     * 
+     * 
+     * @since 0.1
+     */
+    public static String humanByteCount(long bytes) {
+        boolean si = true;
+
+        int unit = si ? 1000 : 1024;
+        if (bytes < unit)
+            return bytes + " B";
+        int exp = (int) (Math.log(bytes) / Math.log(unit));
+        String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp - 1) + (si ? "" : "i");
+        return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
+    }
+
 }

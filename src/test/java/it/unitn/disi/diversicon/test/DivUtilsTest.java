@@ -1,36 +1,28 @@
 package it.unitn.disi.diversicon.test;
 
 
-import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xml.sax.SAXException;
 
-import de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect;
-import de.tudarmstadt.ukp.lmf.model.core.LexicalEntry;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
-import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
-import de.tudarmstadt.ukp.lmf.model.morphology.FormRepresentation;
-import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
-import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
-import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
-import it.unitn.disi.diversicon.DivException;
+import it.unitn.disi.diversicon.DivIoException;
 import it.unitn.disi.diversicon.DivNotFoundException;
-import it.unitn.disi.diversicon.DivSynsetRelation;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
 import it.unitn.disi.diversicon.internal.Internals;
@@ -39,6 +31,7 @@ import it.unitn.disi.diversicon.internal.Internals;
 
 public class DivUtilsTest {
    
+    
         
     private static final Logger LOG = LoggerFactory.getLogger(DivUtilsTest.class);
     
@@ -47,12 +40,12 @@ public class DivUtilsTest {
     
     @Before
     public void beforeMethod(){
-         dbConfig = DivTester.createDbConfig();                
+         dbConfig = DivTester.createNewDbConfig();                
     }
     
     @After
     public void afterMethod(){
-        dbConfig = null;
+        dbConfig = null;       
     }
 
     @Test
@@ -74,10 +67,10 @@ public class DivUtilsTest {
     @Test
     public void testExistsDb(){
         
-        assertFalse(Diversicons.exists(dbConfig));
+        assertFalse(Diversicons.isSchemaValid(dbConfig));
         
         Diversicons.dropCreateTables(dbConfig);
-        assertTrue(Diversicons.exists(dbConfig));
+        assertTrue(Diversicons.isSchemaValid(dbConfig));
            
     }
     
@@ -122,12 +115,12 @@ public class DivUtilsTest {
         
         Diversicons.dropCreateTables(dbConfig);
 
-        Diversicon div = Diversicon.create(dbConfig);
-
-        div.importResource(lexicalResource1, "lexical resource 1", false);
+        Diversicon div = Diversicon.connectToDb(dbConfig);               
+        
+        div.importResource(lexicalResource1,  true);
         
         DivTester.checkDb(lexicalResource1, div);
-        
+      
         try {
             DivTester.checkDb(lexicalResource2, div);
             Assert.fail("Shouldn't arrive here!");
@@ -136,9 +129,37 @@ public class DivUtilsTest {
         }
         
         div.getSession().close();
-        
+    
     }
     
-    
+    @Test
+    public void testGetLexicalResourceName() throws SAXException, IOException{
+
+        File outFile = DivTester.writeXml(DivTester.GRAPH_1_HYPERNYM);
+        String name = Diversicons.extractNameFromLexicalResource(outFile.getAbsolutePath());        
+        assertEquals(DivTester.GRAPH_1_HYPERNYM.getName(), name);
+
+    }
+
+    /**
+     * @since 0.1
+     */
+    @Test
+    public void testRestoreWrongDump() throws IOException{
+        Path dir = Files.createTempDirectory("diversicon-test");
+        try {
+            Diversicons.restoreH2Sql("file:"+ dir.toString() +"/666" , dbConfig);
+            Assert.fail("Shouldn't arrive here!");
+        } catch (DivIoException ex){
+            
+        }
+        
+        try {
+            Diversicons.restoreH2Sql("classpath:/666" , dbConfig);
+            Assert.fail("Shouldn't arrive here!");
+        } catch (DivIoException ex){
+            
+        }
+    }
 
 }
