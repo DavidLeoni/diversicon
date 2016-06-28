@@ -126,7 +126,7 @@ public class Diversicon extends Uby {
 
         cfg = Diversicons.checkSchema(dbConfig);
 
-        LOG.info("Reusing existing database at " + dbConfig.getJdbc_url());
+        LOG.info("Connecting to database   " + dbConfig.getJdbc_url() + "   ...");
 
         ServiceRegistryBuilder serviceRegistryBuilder = new ServiceRegistryBuilder().applySettings(cfg.getProperties());
         sessionFactory = cfg.buildSessionFactory(serviceRegistryBuilder.buildServiceRegistry());
