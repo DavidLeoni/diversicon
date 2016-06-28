@@ -247,13 +247,13 @@ public final class Diversicons {
 
         LOG.info("Creating database " + dbConfig.getJdbc_url() + " ...");
 
-        Configuration hcfg = getHibernateConfig(dbConfig, false);
-
+        Configuration hcfg = getHibernateConfig(dbConfig, false);       
+        
         Session session = openSession(dbConfig, false);
         Transaction tx = null;
 
         SchemaExport se = new SchemaExport(hcfg);
-        se.create(true, true);
+        se.create(false, true);
         try {
             tx = session.beginTransaction();
             DbInfo dbInfo = new DbInfo();
@@ -290,7 +290,7 @@ public final class Diversicons {
         Transaction tx = null;
 
         SchemaExport se = new SchemaExport(hcfg);
-        se.create(true, true);
+        se.create(false, true);
         try {
             tx = session.beginTransaction();
             DbInfo dbInfo = new DbInfo();
@@ -376,7 +376,7 @@ public final class Diversicons {
             ret.setProperty("hibernate.hbm2ddl.auto", "none");
         }
 
-        LOG.info("Going to load UBY hibernate mappings...");
+        LOG.debug("Going to load UBY hibernate mappings...");
 
         ClassLoader cl = HibernateConnect.class.getClassLoader();
         PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver(cl);
@@ -395,7 +395,7 @@ public final class Diversicons {
                     }
                 }
                 if (isCustomized) {
-                    LOG.info("Skipping class customized by Diversicon: " + mapping.getDescription());
+                    LOG.debug("Skipping class customized by Diversicon: " + mapping.getDescription());
                 } else {
                     loadHibernateXml(ret, mapping);
 
@@ -405,9 +405,9 @@ public final class Diversicons {
         } catch (IOException e) {
             throw new DivException("Error while loading hibernate mappings!", e);
         }
-        LOG.info("Done loading UBY hibernate mappings...");
+        LOG.debug("Done loading UBY hibernate mappings...");
 
-        LOG.info("Loading custom Diversicon hibernate mappings... ");
+        LOG.debug("Loading custom Diversicon hibernate mappings... ");
 
         try {
 
@@ -430,14 +430,14 @@ public final class Diversicons {
 
             for (Resource r : resources) {
                 ret.addURL(r.getURL());
-                LOG.info("  Loaded " + r.getURL());
+                LOG.debug("  Loaded " + r.getURL());
             }
 
         } catch (Exception ex) {
             throw new RuntimeException("Error while loading hibernate mappings!", ex);
         }
 
-        LOG.info("Done loading Diversicon custom mappings. ");
+        LOG.debug("Done loading Diversicon custom mappings. ");
 
         return ret;
     }

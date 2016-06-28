@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.logging.Level;
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -161,5 +163,30 @@ public class DivUtilsTest {
             
         }
     }
+
+
+    /**
+     * Tricky for logging!
+     * 
+     * @since 0.1
+     */
+    @Test
+    public void testDropCreateTables(){        
+        Diversicons.dropCreateTables(dbConfig);
+        
+        // todo improve test
+    }
+    
+    /**
+     * Tricky for logging!
+     * 
+     * @since 0.1
+     */
+    @Test
+    public void testCreateTables(){        
+        Diversicons.createTables(dbConfig);
+        // todo improve test
+    }
+
 
 }

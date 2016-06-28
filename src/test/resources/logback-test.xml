@@ -8,10 +8,13 @@
 			</Pattern>
   		</encoder>
 	</appender>
-
-	<logger name="org.hibernate" level="info">
-		<appender-ref ref="STDOUT" />
-	</logger>
+	
+	<!--
+		Notice it is not possible to set damned c3p0 logging from here, 
+	    see https://github.com/DavidLeoni/diversicon/issues/5	
+	     
+		<logger name="com.mchange.v2.c3p0" level="warn"></logger> 
+	 -->
 
 	<root level="all">
 		<appender-ref ref="STDOUT" />

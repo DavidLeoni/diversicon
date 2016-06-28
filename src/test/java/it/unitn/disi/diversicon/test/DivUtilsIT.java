@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.logging.Level;
 
 import org.h2.tools.Restore;
 import org.junit.After;
@@ -160,5 +161,4 @@ public class DivUtilsIT {
     }
 
 
-    
 }
