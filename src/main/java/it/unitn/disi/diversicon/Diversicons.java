@@ -64,14 +64,14 @@ import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 /**
  * Utility class for S-match Uby
  * 
- * @since 0.1
+ * @since 0.1.0
  */
 public final class Diversicons {
 
     /**
      * Supported compression formats for IO operations. It's a superset of {@link #SUPPORTED_ARCHIVE_FORMATS}
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static final String[] SUPPORTED_COMPRESSION_FORMATS =   {
             "ar", "arj", "cpio", 
@@ -82,7 +82,7 @@ public final class Diversicons {
      * A subset of {@link #SUPPORTED_COMPRESSION_FORMATS} holding more information 
      * about archive entries.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static final String[] SUPPORTED_ARCHIVE_FORMATS = {ArchiveStreamFactory.AR,
             ArchiveStreamFactory.ARJ,
@@ -187,7 +187,7 @@ public final class Diversicons {
     /**
      * @throws DivNotFoundException
      *             if {code relation} does not have an inverse
-     * @since 0.1
+     * @since 0.1.0
      */
     public static String getInverse(String relation) {
         checkNotEmpty(relation, "Invalid relation!");
@@ -203,7 +203,7 @@ public final class Diversicons {
      * Returns true if provided relation has a known inverse, otherwise returns
      * false.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static boolean hasInverse(String relation) {
         checkNotEmpty(relation, "Invalid relation!");
@@ -219,7 +219,7 @@ public final class Diversicons {
      * Note: if false is returned it means we <i> don't know </i> whether or not
      * the relations are actually inverses.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static boolean isInverse(String a, String b) {
         checkNotEmpty(a, "Invalid first relation!");
@@ -240,7 +240,7 @@ public final class Diversicons {
      * 
      * (adapted from LMFDBUtils.createTables(dbConfig) )
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static void dropCreateTables(
             DBConfig dbConfig) {
@@ -277,7 +277,7 @@ public final class Diversicons {
      * 
      * (adapted from LMFDBUtils.createTables(dbConfig) )
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static void createTables(
             DBConfig dbConfig) {
@@ -321,7 +321,7 @@ public final class Diversicons {
     /**
      * Loads a given {@code xml} hibernate configuration into {@code hcfg}
      *
-     * @since 0.1
+     * @since 0.1.0
      */
     static void loadHibernateXml(Configuration hcfg, Resource xml) {
 
@@ -355,7 +355,7 @@ public final class Diversicons {
      * @param validate
      *            if true database schema is validated upon first connection.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static Configuration getHibernateConfig(DBConfig dbConfig, boolean validate) {
 
@@ -449,7 +449,7 @@ public final class Diversicons {
      * canonical, transitive
      * closure graph is computed only for hypernym, not hyponym)
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static boolean isCanonicalRelation(String relName) {
         Internals.checkNotEmpty(relName, "Invalid relation name!");
@@ -460,7 +460,7 @@ public final class Diversicons {
      * Returns the type of the provided relation.
      * 
      * @throws DivNotFoundException
-     * @since 0.1
+     * @since 0.1.0
      */
     public static ERelTypeSemantics getRelationType(String relName) {
 
@@ -474,7 +474,7 @@ public final class Diversicons {
 
     /**
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static String toString(@Nullable SynsetRelation sr) {
 
@@ -504,7 +504,7 @@ public final class Diversicons {
      * canonical} relations
      * and not their inverses.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static List<String> getCanonicalRelations() {
         return new ArrayList(canonicalRelations);
@@ -515,7 +515,7 @@ public final class Diversicons {
      * {@link de.tudarmstadt.ukp.uby.lmf.model.ERelNameSemantics Uby format}
      * (including the inverses)
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static List<String> getRelations() {
         return new ArrayList(relationTypes.keySet());
@@ -561,7 +561,7 @@ public final class Diversicons {
      * Returns true if provided database configuration points to an
      * existing database with all needed tables.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static boolean isSchemaValid(DBConfig dbConfig) {
 
@@ -577,7 +577,7 @@ public final class Diversicons {
     /**
      * Returns a string description of provided {@code dbConfig}
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static String toString(DBConfig dbConfig, boolean showPassword) {
         checkNotNull(dbConfig);
@@ -778,7 +778,7 @@ public final class Diversicons {
      * @throws DivIoException
      *             if an IO error occurs
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static void restoreH2Sql(String dumpUrl, DBConfig dbConfig) {
         Internals.checkNotBlank(dumpUrl, "invalid sql/archive resource path!");
@@ -881,7 +881,7 @@ public final class Diversicons {
      * @throws DivIoException
      *             if an IO error occurs
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static void restoreH2Db(String dumpUrl, String targetPath) {
         
@@ -915,7 +915,7 @@ public final class Diversicons {
     
     
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     public static boolean exists(DBConfig dbConfig) {
 
@@ -935,7 +935,7 @@ public final class Diversicons {
     /**
      * 
      * Checks if provided db configuration points to an empty database.
-     * @since 0.1
+     * @since 0.1.0
      */
     public static boolean isEmpty(DBConfig dbConfig){
         checkH2Db(dbConfig);
@@ -987,7 +987,7 @@ public final class Diversicons {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */    
     public static boolean isH2Db(DBConfig dbConfig) {
         checkNotNull(dbConfig);
@@ -996,7 +996,7 @@ public final class Diversicons {
     }
     
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     public static boolean isH2FileDb(DBConfig dbConfig) {
         return isH2Db(dbConfig) && dbConfig.getJdbc_driver_class().contains(":file:");
@@ -1008,7 +1008,7 @@ public final class Diversicons {
      * 
      * @throws IllegalArgumentException
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static void checkH2Db(DBConfig dbConfig) {
         checkNotNull(dbConfig);
@@ -1022,7 +1022,7 @@ public final class Diversicons {
      * 
      * @throws IllegalArgumentException
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static String extractH2DbFilepath(DBConfig dbConfig) {
         if (!isH2FileDb(dbConfig)){

@@ -3,7 +3,7 @@ package it.unitn.disi.diversicon;
 /**
  * A runtime exception to raise when something is not found.
  * 
- * @since 0.1
+ * @since 0.1.0
  */
 public class DivNotFoundException extends DivException {
     

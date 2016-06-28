@@ -66,7 +66,7 @@ public class DiversiconTest {
     /**
      * Tests db tables are not automatically created.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     public void testDontAutoCreate() {
@@ -82,7 +82,7 @@ public class DiversiconTest {
     /**
      * Checks our extended model of uby with is actually returned by Hibernate
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     public void testHibernateExtraAttributes() {
@@ -155,7 +155,7 @@ public class DiversiconTest {
      * 
      * @param lexicalResource
      * @param expectedLexicalResource
-     * @since 0.1
+     * @since 0.1.0
      */
     public void assertAugmentation(
             LexicalResource lexicalResource,
@@ -177,7 +177,7 @@ public class DiversiconTest {
     };
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     public void testNormalizeNonCanonicalEdge() {
@@ -199,7 +199,7 @@ public class DiversiconTest {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     public void testNormalizeCanonicalEdge() {
@@ -207,7 +207,7 @@ public class DiversiconTest {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     public void testNormalizeUnknownEdge() {
@@ -222,7 +222,7 @@ public class DiversiconTest {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     public void testTransitiveClosureDepth_2() {
@@ -239,7 +239,7 @@ public class DiversiconTest {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     public void testTransitiveClosureDepth_3() {
@@ -273,7 +273,7 @@ public class DiversiconTest {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     public void testTransitiveClosureNoDuplicates() {
@@ -281,7 +281,7 @@ public class DiversiconTest {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     public void testTransitiveClosureIgnoreNonCanonical() {
@@ -299,7 +299,7 @@ public class DiversiconTest {
      * Asserts the provided lexical resource doesn't provoke any augmentation in
      * the database.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     private void assertNoAugmentation(LexicalResource lr) {
         assertAugmentation(lr, lr);
@@ -330,7 +330,7 @@ public class DiversiconTest {
     /**
      * Test on simple graph
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     public void testGetConnectedSynsets_Graph_1_Hypernym() {
@@ -375,7 +375,7 @@ public class DiversiconTest {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     public void testIsConnected() {
@@ -478,7 +478,7 @@ public class DiversiconTest {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     // todo improve, not so clear how lemmas work.
     @Test
@@ -506,7 +506,7 @@ public class DiversiconTest {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     public void testGetConnectedSynsets_Dag_3_Hypernym() {
@@ -559,7 +559,7 @@ public class DiversiconTest {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     public void testGetConnectedSynsetsMultiRelNames() {
@@ -581,7 +581,7 @@ public class DiversiconTest {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     public void testGetConnectedSynsetsNoDups() {
@@ -747,7 +747,7 @@ public class DiversiconTest {
      * Test for https://github.com/DavidLeoni/diversicon/issues/8
      * See also {@link UbyTest#testCantMergeSameLexicon()}
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     @Ignore
@@ -768,7 +768,7 @@ public class DiversiconTest {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     public void testMergeTwoSeparateLexicalResources() {
@@ -816,7 +816,7 @@ public class DiversiconTest {
    
     
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     public void testExportToSqlRestore() throws IOException {
@@ -839,7 +839,7 @@ public class DiversiconTest {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     public void testExportToSqlToAlreadyExistingFile() throws IOException{
@@ -861,7 +861,7 @@ public class DiversiconTest {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     public void testExportToSqlWrongFile() throws IOException{
@@ -891,7 +891,7 @@ public class DiversiconTest {
     }
     
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     public void testExportToSqlInNonExistingDir() throws IOException{
@@ -917,7 +917,7 @@ public class DiversiconTest {
      * 
      * See https://github.com/DavidLeoni/diversicon/issues/11
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test  
     public void testInMemoryCompressedH2(){
@@ -940,7 +940,7 @@ public class DiversiconTest {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */      
     @Test
     public void testMemoryUsed(){

@@ -377,7 +377,7 @@ public final class DivTester {
      * @param n the number to identify the db. 
      * If -1 db name will be like default in-memory in uby.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     private static DBConfig createDbConfig(int n) {
         checkArgument(n >= -1, "Invalid n! Found " , n);

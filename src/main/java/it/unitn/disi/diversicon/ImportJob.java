@@ -13,7 +13,7 @@ import javax.annotation.Nullable;
  * Log for an import of a single LexicalResource
  * 
  * @see ImportConfig
- * @since 0.1
+ * @since 0.1.0
  */
 public class ImportJob {
    
@@ -33,7 +33,7 @@ public class ImportJob {
     private List<LogMessage> logMessages;
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     public ImportJob() {
         this.id = -1;
@@ -50,7 +50,7 @@ public class ImportJob {
     /**
      * The name of the author of the import
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public String getAuthor() {
         return author;
@@ -59,7 +59,7 @@ public class ImportJob {
     /**
      * See {@link #getAuthor()}
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public void setAuthor(String author) {
         checkNotNull(author);
@@ -72,7 +72,7 @@ public class ImportJob {
      * Why you did the import? For which project was intended? Which problems
      * did you find during the import?
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public String getDescription() {
         return description;
@@ -81,7 +81,7 @@ public class ImportJob {
     /**
      * see {@link {@link #getDescription()}
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public void setDescription(String description) {
         checkNotNull(description);
@@ -93,7 +93,7 @@ public class ImportJob {
     /**
      * The url of the imported file. If 
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public String getFileUrl() {
         return fileUrl;
@@ -102,7 +102,7 @@ public class ImportJob {
 
     /**
      * @see {@link #getFileUrl()}
-     * @since 0.1 
+     * @since 0.1.0 
      */
     public void setFileUrl(String fileUrl) {
         checkNotNull(fileUrl);
@@ -113,7 +113,7 @@ public class ImportJob {
     /**
      * 
      * The name to assign to the lexical resource.
-     * @since 0.1
+     * @since 0.1.0
      */
     public String getLexicalResourceName() {
         return lexicalResourceName;
@@ -123,7 +123,7 @@ public class ImportJob {
     /**
      * See {@link #getLexicalResourceName()}
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public void setLexicalResourceName(String lexicalResourceName) {
         this.lexicalResourceName = lexicalResourceName;
@@ -135,7 +135,7 @@ public class ImportJob {
      * The time when the import started. Can be null if import has not started
      * yet.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     @Nullable
     public Date getStartDate() {
@@ -144,7 +144,7 @@ public class ImportJob {
 
     /**
      * See {@link #getStartDate()}
-     * @since 0.1 
+     * @since 0.1.0 
      */
     public void setStartDate(@Nullable Date startDate) {
         this.startDate = startDate;
@@ -153,7 +153,7 @@ public class ImportJob {
     /**
      * The time when the import ended. Can be null if import has not ended yet.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     @Nullable
     public Date getEndDate() {
@@ -162,7 +162,7 @@ public class ImportJob {
 
     /**
      * See {@link #getStartDate()}
-     * @since 0.1 
+     * @since 0.1.0 
      */
     public void setEndDate(@Nullable Date endDate) {
         this.endDate = endDate;
@@ -172,7 +172,7 @@ public class ImportJob {
      * The log occurred during the import - most of the times will be just
      * the output logs
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public List<LogMessage> getLogMessages() {
         return logMessages;
@@ -181,7 +181,7 @@ public class ImportJob {
     /**
      * See {@link #getLogMessages()}
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public void setLogMessages(List<LogMessage> logMessages) {
         checkNotNull(logMessages);
@@ -192,14 +192,14 @@ public class ImportJob {
     /**
      * Adds a log message.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public void addLogMessage(LogMessage logMessage){
         this.logMessages.add(logMessage);
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     public long getId() {
         return id;
@@ -207,7 +207,7 @@ public class ImportJob {
 
     /**
      * @param id Must be >= -1
-     * @since 0.1
+     * @since 0.1.0
      */    
     public void setId(long id) {
         checkArgument(id >= -1, "Invalid id, must be >= -1 Found instead " + id);

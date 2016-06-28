@@ -144,7 +144,7 @@ public class DivUtilsTest {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     public void testRestoreWrongDump() throws IOException{
@@ -168,7 +168,7 @@ public class DivUtilsTest {
     /**
      * Tricky for logging!
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     public void testDropCreateTables(){        
@@ -180,7 +180,7 @@ public class DivUtilsTest {
     /**
      * Tricky for logging!
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     public void testCreateTables(){        

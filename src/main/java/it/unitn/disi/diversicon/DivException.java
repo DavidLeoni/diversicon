@@ -4,7 +4,7 @@ package it.unitn.disi.diversicon;
 /**
  * A generic runtime exception. 
  * 
- * @since 0.1
+ * @since 0.1.0
  */
 public class DivException extends RuntimeException {
     

@@ -13,7 +13,7 @@ import java.util.Set;
 /**
  * Statistics about edge insertions into the SynsetRelation graph.
  * 
- * @since 0.1
+ * @since 0.1.0
  *
  */
 class InsertionStats {
@@ -24,7 +24,7 @@ class InsertionStats {
     
     
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     public InsertionStats(){
         this.setEdgesPriorTransitiveClosure(0);
@@ -35,7 +35,7 @@ class InsertionStats {
     /**
      * Increments provided relation name
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public void inc(String relName){
         checkNotEmpty(relName, "Invalid key!");
@@ -52,7 +52,7 @@ class InsertionStats {
     
     /**
      * The number of relations {@code relName}
-     * @since 0.1
+     * @since 0.1.0
      */    
     public long count(String relName){
         Long ret = map.get(relName);
@@ -66,7 +66,7 @@ class InsertionStats {
     /**
      * Returns total number of added edges. 
      * 
-     * @since 0.1
+     * @since 0.1.0
      */    
     public long totEdges() {
         long ret = 0;
@@ -79,7 +79,7 @@ class InsertionStats {
     /**
      * Returns a nice report of the insertions.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     @Override
     public String toString() {
@@ -105,7 +105,7 @@ class InsertionStats {
 
     /**
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public int getMaxLevel() {
         return maxLevel;
@@ -115,7 +115,7 @@ class InsertionStats {
      * 
      * @param maxLevel must be >= 0;
      * 
-     * @since 0.1 
+     * @since 0.1.0 
      */
     public void setMaxLevel(int maxLevel) {
         checkArgument(maxLevel >= 0, "Invalid level, must be >= 0, found instead ", maxLevel);
@@ -127,7 +127,7 @@ class InsertionStats {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     public void setEdgesPriorTransitiveClosure(long edgesPriorTransitiveClosure) {
         checkArgument(maxLevel >= 0, "Invalid number of edges prior closure, must be >= 0, found instead ", edgesPriorTransitiveClosure);

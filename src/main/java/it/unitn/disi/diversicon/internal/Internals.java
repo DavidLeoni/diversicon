@@ -93,7 +93,7 @@ public final class Internals {
      *             if provided string fails validation
      *
      * @return the non-empty string that was validated
-     * @since 0.1
+     * @since 0.1.0
      */
     public static String checkNotEmpty(String string, @Nullable String errorMessageTemplate,
             @Nullable Object... errorMessageArgs) {
@@ -133,7 +133,7 @@ public final class Internals {
      *             if provided string fails validation
      *
      * @return the non-blank string that was validated
-     * @since 0.1
+     * @since 0.1.0
      */
     public static String checkNotBlank(String string, @Nullable String errorMessageTemplate,
             @Nullable Object... errorMessageArgs) {
@@ -166,7 +166,7 @@ public final class Internals {
      *
      * @return a non-null non-empty iterable
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static <T> Iterable<T> checkNotEmpty(@Nullable Iterable<T> iterable,
             @Nullable Object prependedErrorMessage) {
@@ -193,7 +193,7 @@ public final class Internals {
      *
      * @return a non-null non-empty array
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static <T> T[] checkNotEmpty(@Nullable T[] array, @Nullable Object prependedErrorMessage) {
         checkArgument(array != null, "%s -- Reason: Found null array.", prependedErrorMessage);
@@ -234,7 +234,7 @@ public final class Internals {
      *
      * @return a non-null non-empty iterable
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static <T> Iterable<T> checkNotEmpty(@Nullable Iterable<T> iterable,
             @Nullable String errorMessageTemplate,
@@ -277,7 +277,7 @@ public final class Internals {
      *
      * @return a non-null non-empty array
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static <T> T[] checkNotEmpty(@Nullable T[] array,
             @Nullable String errorMessageTemplate,
@@ -304,7 +304,7 @@ public final class Internals {
      *
      * @return {@code true} if the iterable contains no elements
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static boolean isEmpty(Iterable<?> iterable) {
         if (iterable instanceof Collection) {
@@ -327,7 +327,7 @@ public final class Internals {
      *             if provided string fails validation
      *
      * @return the non-empty string that was validated
-     * @since 0.1
+     * @since 0.1.0
      */
     public static String checkNotEmpty(String string, @Nullable Object prependedErrorMessage) {
         checkArgument(string != null, "%s -- Reason: Found null string.", prependedErrorMessage);
@@ -358,7 +358,7 @@ public final class Internals {
      *            Arguments are converted to strings using
      *            {@link String#valueOf(Object)}. Arguments can be null.
      *
-     * @since 0.1
+     * @since 0.1.0
      */
     public static String format(String template, @Nullable Object... args) {
         if (template == null) {
@@ -405,7 +405,7 @@ public final class Internals {
      *            a boolean expression
      * @throws IllegalArgumentException
      *             if {@code expression} is false
-     * @since 0.1
+     * @since 0.1.0
      */
     public static void checkArgument(boolean expression) {
         if (!expression) {
@@ -426,7 +426,7 @@ public final class Internals {
      *            converted to a string using {@link String#valueOf(Object)}
      * @throws IllegalArgumentException
      *             if {@code expression} is false
-     * @since 0.1
+     * @since 0.1.0
      */
     public static void checkArgument(boolean expression, @Nullable Object errorMessage) {
         if (!expression) {
@@ -459,7 +459,7 @@ public final class Internals {
      * @throws NullPointerException
      *             if the check fails and either {@code errorMessageTemplate} or
      *             {@code errorMessageArgs} is null (don't let this happen)
-     * @since 0.1
+     * @since 0.1.0
      */
     public static void checkArgument(boolean expression, @Nullable String errorMessageTemplate,
             @Nullable Object... errorMessageArgs) {
@@ -477,7 +477,7 @@ public final class Internals {
      * @return the non-null reference that was validated
      * @throws NullPointerException
      *             if {@code reference} is null
-     * @since 0.1
+     * @since 0.1.0
      */
     public static <T> T checkNotNull(T reference) {
         if (reference == null) {
@@ -500,7 +500,7 @@ public final class Internals {
      * @return the non-null reference that was validated
      * @throws NullPointerException
      *             if {@code reference} is null
-     * @since 0.1
+     * @since 0.1.0
      */
     public static <T> T checkNotNull(T reference, @Nullable Object errorMessage) {
         if (reference == null) {
@@ -512,7 +512,7 @@ public final class Internals {
     /**
      * Creates a map from key value pairs
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static <V, W> HashMap<V, W> newMap(V v, W w, Object... data) {
         HashMap<V, W> result = new HashMap();
@@ -563,7 +563,7 @@ public final class Internals {
     /**
      * Returns a deep copy of any object, including non-serializable ones.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static <T> T deepCopy(T orig) {
         return cloner.deepClone(orig);
@@ -575,7 +575,7 @@ public final class Internals {
      * (Note {@code Arrays.asList(T...)} returns an {@code Arrays.ArrayList}
      * instead)
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static <T> ArrayList<T> newArrayList(T... objs) {
         ArrayList<T> ret = new ArrayList();
@@ -589,7 +589,7 @@ public final class Internals {
     /**
      * Returns a new HashSet, filled with provided objects.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static <T> HashSet<T> newHashSet(T... objs) {
         HashSet<T> ret = new HashSet();
@@ -606,7 +606,7 @@ public final class Internals {
      * @param depth
      *            must be >= -1, otherwise IllegalArgumentException is thrown.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static void checkDepth(int depth) {
         if (depth < -1) {
@@ -617,7 +617,7 @@ public final class Internals {
     /**
      * Returns true if provided string is null or blank
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static boolean isBlank(@Nullable String string) {
         return string == null || (string != null && string.trim()
@@ -625,7 +625,7 @@ public final class Internals {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     private static boolean isFormatSupported(String filePath,
             String[] formats) {
@@ -661,7 +661,7 @@ public final class Internals {
      * @throws DivIoException
      *             on error.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     // todo should check archives have only one file...
     public static ExtractedStream readData(String dataUrl, boolean decompress) {
@@ -756,7 +756,7 @@ public final class Internals {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     static boolean withProtocol(String dataUrl) {
         checkNotBlank(dataUrl, "Invalid data url!");
@@ -774,7 +774,7 @@ public final class Internals {
      * 
      * If it is something like {@code a/b/c.zip} and {@code ext} is {@code sql}, it becomes {@code c.sql}
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static String makeExtension(String path, String ext) {
         checkNotBlank(path, "Invalid path!");
@@ -800,7 +800,7 @@ public final class Internals {
      *            content is extracted.
      *
      * @throws DivIoException
-     * @since 0.1
+     * @since 0.1.0
      */
     public static void copyDirFromJar(File jarFile, File destDir, String dirPath) {
         checkNotNull(jarFile);
@@ -863,7 +863,7 @@ public final class Internals {
      * 
      * @throws DivIoException
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static void copyDirFromResource(Class clazz, String sourceDirPath, File destDir) {
         String sep = File.separator;
@@ -918,7 +918,7 @@ public final class Internals {
      * @param millisecs
      *            time interval expressed in number of milliseconds
      * 
-     * @since 0.1
+     * @since 0.1.0
      * 
      */
     public static String formatInterval(Date start, Date end) {
@@ -933,7 +933,7 @@ public final class Internals {
      * @param millisecs
      *            time interval expressed in number of millisecondsstart
      * 
-     * @since 0.1
+     * @since 0.1.0
      * 
      */
     public static String formatInterval(final long millisecs) {        
@@ -949,7 +949,7 @@ public final class Internals {
     /**
      * 
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static String humanByteCount(long bytes) {
         boolean si = true;

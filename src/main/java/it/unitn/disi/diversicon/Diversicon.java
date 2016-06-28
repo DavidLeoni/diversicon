@@ -70,7 +70,7 @@ import it.unitn.disi.diversicon.internal.Internals;
  * 
  * To create instances use {@link #connectToDb(DBConfig)} method
  *
- * @since 0.1
+ * @since 0.1.0
  */
 public class Diversicon extends Uby {
 
@@ -94,7 +94,7 @@ public class Diversicon extends Uby {
     private static final int BATCH_FLUSH_COUNT = 20;
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     public static final String DEFAULT_AUTHOR = "Default author";
 
@@ -114,7 +114,7 @@ public class Diversicon extends Uby {
      * @throws DivIoException
      * @throws InvalidSchemaException
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     protected Diversicon(DBConfig dbConfig) {
         super(); // so it doesn't open connections! Let's hope they don't delete
@@ -143,7 +143,7 @@ public class Diversicon extends Uby {
     /**
      * Note: search is done by exact match on {@code writtenForm}
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     // todo review, not so clear how lemmas are supposed to work
     public List<Lemma> getLemmasByWrittenForm(String writtenForm) {
@@ -166,7 +166,7 @@ public class Diversicon extends Uby {
     /**
      * See {@link #getLemmasByWrittenForm(String)}.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public List<String> getLemmaStringsByWrittenForm(String writtenForm) {
         List<Lemma> lemmas = getLemmasByWrittenForm(writtenForm);
@@ -200,7 +200,7 @@ public class Diversicon extends Uby {
      *            applied.
      *            If zero an empty set iterator is returned.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public Iterator<Synset> getConnectedSynsets(
             String synsetId,
@@ -291,7 +291,7 @@ public class Diversicon extends Uby {
     /**
      * See {{@link #getConnectedSynsets(String, int, Iterable)}}
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public Iterator<Synset> getConnectedSynsets(
             String synsetId,
@@ -304,7 +304,7 @@ public class Diversicon extends Uby {
      * Normalizes and augments the synsetRelation graph with edges to speed up
      * searches.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     // todo what about provenance? todo instances?
     public void processGraph() {
@@ -320,7 +320,7 @@ public class Diversicon extends Uby {
      * 
      * @throws DivNotFoundException
      *             if dbInfo is not found
-     * @since 0.1
+     * @since 0.1.0
      */
     public DbInfo getDbInfo() {
 
@@ -381,7 +381,7 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     public long getSynsetCount() {
         return ((Number) session.createCriteria(Synset.class)
@@ -498,7 +498,7 @@ public class Diversicon extends Uby {
      * @param msg
      *            something like: "SynsetRelations normalization"
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     private long reportLog(long checkpoint, @Nullable String msg, long count) {
         try {
@@ -529,7 +529,7 @@ public class Diversicon extends Uby {
      *             when transaction goes wrong it is automatically rolled back
      *             and DivException is thrown
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     private void computeTransitiveClosure() {
 
@@ -646,7 +646,7 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     public long getSynsetRelationsCount() {
         return ((Number) session.createCriteria(DivSynsetRelation.class)
@@ -659,7 +659,7 @@ public class Diversicon extends Uby {
      * 
      * See {@link #importFiles(ImportConfig)}
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public ImportJob importXml(String filepath) {
 
@@ -677,7 +677,7 @@ public class Diversicon extends Uby {
      * fails... TODO! Call is synchronous, after finishing returns logs of each
      * import.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public List<ImportJob> importFiles(ImportConfig config) {
 
@@ -867,7 +867,7 @@ public class Diversicon extends Uby {
      *            if true after the import the graph is nomralized
      *            and augmented with transitive losure.
      * @throws DivException
-     * @since 0.1
+     * @since 0.1.0
      */
     public ImportJob importResource(
             LexicalResource lexicalResource,
@@ -910,7 +910,7 @@ public class Diversicon extends Uby {
     /**
      * Returns the fully qualified package name.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static String getProvenanceId() {
         return Diversicon.class.getPackage()
@@ -929,7 +929,7 @@ public class Diversicon extends Uby {
      * @throws InvalidSchemaException
      * @throws DivException
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public static Diversicon connectToDb(DBConfig dbConfig) {
         Diversicon ret = new Diversicon(dbConfig);
@@ -953,7 +953,7 @@ public class Diversicon extends Uby {
      *             errors.
      * @throws DivNotFoundException if {@code lexicalResourceName} does not exists.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public void exportToXml(String outPath, String lexicalResourceName, boolean compress) {
 
@@ -1024,7 +1024,7 @@ public class Diversicon extends Uby {
      *             if file in {@code sqlPath} already exists or there are write
      *             errors.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public void exportToSql(String sqlPath, boolean compress) {
 
@@ -1069,7 +1069,7 @@ public class Diversicon extends Uby {
     /**
      * See {@link #isConnected(String, String, int, List)}
      *
-     * @since 0.1
+     * @since 0.1.0
      */
     public boolean isConnected(
             String sourceSynsetId,
@@ -1102,7 +1102,7 @@ public class Diversicon extends Uby {
      *            only if source and target
      *            coincide.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public boolean isConnected(
             String sourceSynsetId,
@@ -1194,7 +1194,7 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     private static String formatDate(@Nullable Date date) {
         SimpleDateFormat sdf = new SimpleDateFormat("MMM d, yyyy");
@@ -1213,7 +1213,7 @@ public class Diversicon extends Uby {
      *            includes full log in the output
      * @throws DivNotFoundException
      *
-     * @since 0.1
+     * @since 0.1.0
      */
     public String formatImportJob(long importJobId, boolean fullLog) {
         ImportJob job = getImportJob(importJobId);
@@ -1227,7 +1227,7 @@ public class Diversicon extends Uby {
      *            includes full log in the output
      * @throws DivNotFoundException
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public String formatImportJob(ImportJob job, boolean fullLog) {
         StringBuilder sb = new StringBuilder();
@@ -1281,7 +1281,7 @@ public class Diversicon extends Uby {
      * 
      * @see #formatImportJob(ImportJob, boolean)
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public String formatImportJobs(boolean showFullLogs) {
         StringBuilder sb = new StringBuilder();
@@ -1304,7 +1304,7 @@ public class Diversicon extends Uby {
     /**
      * A list of the imports performed so far.
      * 
-     * @since 0.1
+     * @since 0.1.0
      *
      */
     public List<ImportJob> getImportJobs() {
@@ -1320,7 +1320,7 @@ public class Diversicon extends Uby {
      *            if true no distinction is made
      *            between graph normalization and augmentation
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public String formatDbStatus(boolean shortProcessedInfo) {
         StringBuilder sb = new StringBuilder();
@@ -1367,7 +1367,7 @@ public class Diversicon extends Uby {
      * 
      * @throws DivNotFoundException
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public ImportJob getImportJob(long importId) {
 
@@ -1384,7 +1384,7 @@ public class Diversicon extends Uby {
      * 
      * Returns the free memory in KB (where 1024 bytes is a KB). This method returns an int.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public int memoryUsed(){
         Diversicons.checkH2Db(dbConfig);

@@ -99,7 +99,7 @@ public class UbyTest {
      * 
      * See also {@link DiversiconTest#testCantMergeSameLexicon()}
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     public void testCantMergeSameLexicon() throws FileNotFoundException, IllegalArgumentException, DocumentException {

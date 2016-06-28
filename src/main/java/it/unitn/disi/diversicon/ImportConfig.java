@@ -7,9 +7,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Configuration for a whole {@link ImportTodo} process.
+ * Configuration for a whole {@link ImportJob} process.
  * 
- * @since 0.1
+ * @since 0.1.0
  * @see ImportJob
  */
 public class ImportConfig {
@@ -23,7 +23,7 @@ public class ImportConfig {
      * 
      * By default augments graph after import.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public ImportConfig() {
         this.fileUrls = new ArrayList();
@@ -35,7 +35,7 @@ public class ImportConfig {
     /**
      * The URL of the file that was imported
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public List<String> getFileUrls() {
         return fileUrls;
@@ -44,7 +44,7 @@ public class ImportConfig {
     /**
      * See {@link #getFileUrls()}
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public void setFileUrls(List<String> fileUrls) {
         checkNotNull(fileUrls);
@@ -54,7 +54,7 @@ public class ImportConfig {
     /**
      * The name of the author of the import
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public String getAuthor() {
         return author;
@@ -63,7 +63,7 @@ public class ImportConfig {
     /**
      * See {@link #getAuthor()}
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public void setAuthor(String author) {
         checkNotNull(author);
@@ -76,7 +76,7 @@ public class ImportConfig {
      * Why you did the import? For which project was intended? Which problems
      * did you find during the import?
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public String getDescription() {
         return description;
@@ -85,7 +85,7 @@ public class ImportConfig {
     /**
      * See {@link #getDescription()}
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public void setDescription(String description) {
         checkNotNull(description);
@@ -97,7 +97,7 @@ public class ImportConfig {
      * Flag to skip graph augmentation after the import (i.e. to calculate
      * transitive closures)
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public boolean isSkipAugment() {
         return skipAugment;
@@ -106,7 +106,7 @@ public class ImportConfig {
     /**
      * See {@link #isSkipAugment()}
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public void setSkipAugment(boolean skipAugment) {
         this.skipAugment = skipAugment;
@@ -114,7 +114,7 @@ public class ImportConfig {
 
     /**
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public void addLexicalResource(String fileUrl) {
         checkNotEmpty(fileUrl, "Invalid lexical resource file URL!");       

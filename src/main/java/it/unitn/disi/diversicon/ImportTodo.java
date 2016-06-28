@@ -14,7 +14,7 @@ import java.util.List;
  * Class to describe an import process of a {@link LexicalResource} into the db.
  * 
  * @see ImportConfig
- * @since 0.1
+ * @since 0.1.0
  */
 public class ImportTodo {
 
@@ -22,7 +22,7 @@ public class ImportTodo {
     private List<ImportJob> singleImports;
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     public ImportTodo() {
         this.importConfig = new ImportConfig();
@@ -30,7 +30,7 @@ public class ImportTodo {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     public ImportConfig getImportConfig() {
         return importConfig;
@@ -38,7 +38,7 @@ public class ImportTodo {
 
     /**
      * @see {@link #getImportConfig()}
-     * @since 0.1
+     * @since 0.1.0
      */
     public void setImportConfig(ImportConfig importConfig) {
         checkNotNull(importConfig);
@@ -46,7 +46,7 @@ public class ImportTodo {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     public List<ImportJob> getSingleImports() {
         return singleImports;
@@ -54,7 +54,7 @@ public class ImportTodo {
 
     /**
      * @see {@link #getSingleImports()}
-     * @since 0.1
+     * @since 0.1.0
      */
     public void setSingleImports(List<ImportJob> singleImports) {
         checkNotNull(singleImports);

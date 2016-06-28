@@ -29,7 +29,7 @@ import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
  * "https://github.com/dkpro/dkpro-uby/blob/master/de.tudarmstadt.ukp.uby.lmf.model-asl/src/main/java/de/tudarmstadt/ukp/lmf/model/enums/ERelNameSemantics.java"
  * target="_blank"> ERelNameSemantics</a> for possible relation names.
  * 
- * @since 0.1
+ * @since 0.1.0
  */
 public class DivSynsetRelation extends SynsetRelation {
 

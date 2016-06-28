@@ -27,7 +27,7 @@ import it.unitn.disi.diversicon.internal.ExtractedStream;
 import it.unitn.disi.diversicon.internal.Internals;
 
 /**
- * @since 0.1 
+ * @since 0.1.0 
  */
 public class DivUtilsIT {
     
@@ -49,7 +49,7 @@ public class DivUtilsIT {
     /**
      * Ignored ,this makes my laptop hang....
      * 
-     * @since 0.1 
+     * @since 0.1.0 
      */
     // @Test
     public void testRestoreAugmentedWordnetSqlToH2InMemory(){
@@ -62,7 +62,7 @@ public class DivUtilsIT {
     }
     
     /**
-     * @since 0.1 
+     * @since 0.1.0 
      */
     @Test
     public void testRestoreH2DbToFile() throws IOException {
@@ -83,7 +83,7 @@ public class DivUtilsIT {
     }
 
     /**
-     * @since 0.1 
+     * @since 0.1.0 
      */
     // @Test    
     public void testRestoreNonAugmentedUncompressedUbyWordnetH2Sql(){
@@ -93,7 +93,7 @@ public class DivUtilsIT {
     }
 
     /**
-     * @since 0.1 
+     * @since 0.1.0 
      */
     // @Test
     public void testRestoreNonAugmentedUncompressedNonResourceUbyWordnetH2Sql(){
@@ -105,7 +105,7 @@ public class DivUtilsIT {
     /** 
      * For now it *should* break when reading UBY db  :-/
      * 
-     * @since 0.1 
+     * @since 0.1.0 
      */
     // @Test
     public void testRestoreNonAugmentedNonResourceUbyWordnetH2SqlToMemory(){
@@ -122,7 +122,7 @@ public class DivUtilsIT {
     
     
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     public void testReadDataWordnetSql(){
@@ -136,7 +136,7 @@ public class DivUtilsIT {
     }
     
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     @Test
     public void testReadDataWordnetXml(){
@@ -153,7 +153,7 @@ public class DivUtilsIT {
     /**
      * Pretty useless, H2 can only Restore  to a file
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     // @Test
     public void testRestoreNativeH2Db(){

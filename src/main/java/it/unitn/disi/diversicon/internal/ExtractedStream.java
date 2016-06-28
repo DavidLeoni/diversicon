@@ -27,7 +27,7 @@ import it.unitn.disi.diversicon.Diversicons;
  * {#stream()} to get the stream to consume. If you need to consume the stream several times, 
  * call {@link #toTempFile()} first.
  * 
- * @since 0.1
+ * @since 0.1.0
  *
  */
 public class ExtractedStream {
@@ -47,7 +47,7 @@ public class ExtractedStream {
      * @param sourceUrl
      *            may have special {@code classpath} protocol
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public ExtractedStream(String filepath, InputStream inputStream, String sourceUrl, boolean extracted) {
         super();
@@ -64,7 +64,7 @@ public class ExtractedStream {
      * 
      * Returns the name of item as found inside the compressed resource.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public String getFilepath() {
         return filepath;
@@ -74,7 +74,7 @@ public class ExtractedStream {
      * The url of the original possibly compressed resource. May start with
      * special {@code classpath:} protocol.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public String getSourceUrl() {
         return sourceUrl;
@@ -87,7 +87,7 @@ public class ExtractedStream {
      * 
      * @throws DivIoException
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public InputStream stream() {
         
@@ -107,7 +107,7 @@ public class ExtractedStream {
      * Returns true if the stream was extracted from another compressed
      * file.
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public boolean isExtracted() {
         return extracted;
@@ -119,7 +119,7 @@ public class ExtractedStream {
      *
      * @throws DivIoException
      * 
-     * @since 0.1
+     * @since 0.1.0
      */
     public File toTempFile() {
         try {

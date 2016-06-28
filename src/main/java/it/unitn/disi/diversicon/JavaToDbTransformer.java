@@ -36,7 +36,7 @@ import it.unitn.disi.diversicon.internal.Internals;
  * with all the
  * lexicons, synsets, etc.
  * 
- * @since 0.1
+ * @since 0.1.0
  * @author David Leoni
  */
 class JavaToDbTransformer extends LMFDBTransformer {
