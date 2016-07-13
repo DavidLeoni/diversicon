@@ -33,7 +33,7 @@ public class ImportConfig {
     }
 
     /**
-     * The URL of the file that was imported
+     * The URL of the files to import. URLs can have special {@code classpath:} protocol.
      * 
      * @since 0.1.0
      */

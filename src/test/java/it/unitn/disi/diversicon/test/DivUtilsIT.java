@@ -1,19 +1,18 @@
 package it.unitn.disi.diversicon.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.logging.Level;
-
+import java.nio.file.Paths;
 import org.h2.tools.Restore;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,8 +36,12 @@ public class DivUtilsIT {
         
     
     @Before
-    public void beforeMethod(){
-         dbConfig = DivTester.createNewDbConfig();                
+    public void beforeMethod() throws IOException {
+        // needed for testing caching
+        Path newHome = Files.createTempDirectory("diversicon-test-home");
+        System.setProperty("user.home", newHome.toString());
+        
+        dbConfig = DivTester.createNewDbConfig();                
     }
     
     @After
@@ -73,7 +76,7 @@ public class DivUtilsIT {
         
         Diversicons.restoreH2Db(DivWn30.WORDNET_DIV_H2_DB_RESOURCE_URI, target.getAbsolutePath());
         
-        DBConfig dbCfg = Diversicons.makeDefaultH2FileDbConfig(target.getAbsolutePath()); 
+        DBConfig dbCfg = Diversicons.makeDefaultH2FileDbConfig(target.getAbsolutePath(), false); 
         
         Diversicon div = Diversicon.connectToDb(dbCfg);
         
@@ -161,4 +164,54 @@ public class DivUtilsIT {
     }
 
 
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testFetchH2Db(){
+        
+        assertFalse(Diversicons.getCacheDir().exists());
+        Diversicons.fetchH2Db(DivWn30.ID, DivWn30.VERSION);        
+        assertTrue(Diversicons.getCachedH2DbDir(DivWn30.ID, DivWn30.VERSION).exists());
+        // should be faster ...
+        DBConfig config = Diversicons.fetchH2Db(DivWn30.ID, DivWn30.VERSION);
+        
+        // should allow multiple connections ...
+        
+        Diversicon div1 = null;
+        Diversicon div2 = null;
+
+        try {
+            div1 = Diversicon.connectToDb(config);
+            div2 = Diversicon.connectToDb(config);
+            
+            LOG.debug(div1.formatImportJobs(false));
+            LOG.debug(div2.formatImportJobs(false));            
+        } finally {
+            if (div1 != null){
+                div1.getSession().close();    
+            }
+            if (div2 != null){
+                div2.getSession().close();    
+            }    
+        }
+        
+        
+    }
+    
+    
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testCleanCache() throws IOException {
+        
+        assertFalse(Diversicons.getCacheDir().exists());
+        Files.createDirectories(Diversicons.getCacheDir().toPath());
+        Files.createFile(Paths.get(Diversicons.getCacheDir().getAbsolutePath(), "test.txt"));
+        assertTrue(Diversicons.getCacheDir().exists());
+        Diversicons.cleanCache();
+        assertFalse(Diversicons.getCacheDir().exists());        
+        
+    }
 }

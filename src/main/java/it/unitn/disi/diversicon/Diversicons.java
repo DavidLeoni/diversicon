@@ -55,46 +55,55 @@ import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 //import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import de.tudarmstadt.ukp.lmf.transform.StringUtils;
 import it.unitn.disi.diversicon.internal.Internals;
+import it.unitn.disi.diversicon.data.wn30.DivWn30;
 import it.unitn.disi.diversicon.internal.ExtractedStream;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
+import static it.unitn.disi.diversicon.internal.Internals.checkNotBlank;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 
 /**
- * Utility class for S-match Uby
+ * Utility class for {@link Diversicon}
  * 
  * @since 0.1.0
  */
 public final class Diversicons {
 
     /**
-     * Supported compression formats for IO operations. It's a superset of {@link #SUPPORTED_ARCHIVE_FORMATS}
+     * Path relative to user home of the file cache of Diverscon.
      * 
      * @since 0.1.0
      */
-    public static final String[] SUPPORTED_COMPRESSION_FORMATS =   {
-            "ar", "arj", "cpio", 
-            "dump", "tar",  "zip", "lzma", "z", "snappy",
-            "bzip2",  "xz", "gzip", "tar"};
- 
+    public static final String CACHE_PATH = ".config/diversicon/cache/";
+
     /**
-     * A subset of {@link #SUPPORTED_COMPRESSION_FORMATS} holding more information 
+     * Supported compression formats for I/O operations. It's a superset of
+     * {@link #SUPPORTED_ARCHIVE_FORMATS}
+     * 
+     * @since 0.1.0
+     */
+    public static final String[] SUPPORTED_COMPRESSION_FORMATS = {
+            "ar", "arj", "cpio",
+            "dump", "tar", "zip", "lzma", "z", "snappy",
+            "bzip2", "xz", "gzip", "tar" };
+
+    /**
+     * A subset of {@link #SUPPORTED_COMPRESSION_FORMATS} holding more
+     * information
      * about archive entries.
      * 
      * @since 0.1.0
      */
-    public static final String[] SUPPORTED_ARCHIVE_FORMATS = {ArchiveStreamFactory.AR,
+    public static final String[] SUPPORTED_ARCHIVE_FORMATS = { ArchiveStreamFactory.AR,
             ArchiveStreamFactory.ARJ,
             ArchiveStreamFactory.CPIO,
             ArchiveStreamFactory.DUMP,
             ArchiveStreamFactory.JAR,
-            // ArchiveStreamFactory.SEVEN_Z, 
+            // ArchiveStreamFactory.SEVEN_Z,
             ArchiveStreamFactory.TAR,
-            ArchiveStreamFactory.ZIP};
+            ArchiveStreamFactory.ZIP };
 
-    
-    
     private static final Logger LOG = LoggerFactory.getLogger(Diversicons.class);
 
     /**
@@ -115,7 +124,6 @@ public final class Diversicons {
     private static final LinkedHashSet<String> canonicalPartOfRelations = new LinkedHashSet<String>();
 
     private static final String DEFAULT_H2_DB_NAME = "default-db";
-
 
     private static Map<String, String> inverseRelations = new HashMap();
 
@@ -236,7 +244,7 @@ public final class Diversicons {
 
     /**
      * First drops all existing tables and then creates a
-     * database based on the hibernate mappings. 
+     * database based on the hibernate mappings.
      * 
      * (adapted from LMFDBUtils.createTables(dbConfig) )
      * 
@@ -247,8 +255,8 @@ public final class Diversicons {
 
         LOG.info("Creating database " + dbConfig.getJdbc_url() + " ...");
 
-        Configuration hcfg = getHibernateConfig(dbConfig, false);       
-        
+        Configuration hcfg = getHibernateConfig(dbConfig, false);
+
         Session session = openSession(dbConfig, false);
         Transaction tx = null;
 
@@ -273,7 +281,7 @@ public final class Diversicons {
     }
 
     /**
-     * Creates a database based on the hibernate mappings. 
+     * Creates a database based on the hibernate mappings.
      * 
      * (adapted from LMFDBUtils.createTables(dbConfig) )
      * 
@@ -308,7 +316,7 @@ public final class Diversicons {
         LOG.info("Done creating database " + dbConfig.getJdbc_url() + "  .");
 
     }
-       
+
     static Session openSession(DBConfig dbConfig, boolean validate) {
         Configuration cfg = Diversicons.getHibernateConfig(dbConfig, validate);
 
@@ -365,11 +373,14 @@ public final class Diversicons {
                                                        dbConfig.getDb_vendor(), dbConfig.getUser(),
                                                        dbConfig.getPassword(), dbConfig.isShowSQL()));
 
-        // to avoid   Caused by: org.hibernate.NonUniqueObjectException: a different object with the same identifier value was already associated with the session: [it.unitn.disi.diversicon.DivSynsetRelation#20]
-        // when computing transitive closure 
+        // to avoid Caused by: org.hibernate.NonUniqueObjectException: a
+        // different object with the same identifier value was already
+        // associated with the session:
+        // [it.unitn.disi.diversicon.DivSynsetRelation#20]
+        // when computing transitive closure
         // See http://stackoverflow.com/a/32311508
         ret.setProperty("hibernate.id.new_generator_mappings", "true");
-        
+
         if (validate) {
             ret.setProperty("hibernate.hbm2ddl.auto", "validate");
         } else {
@@ -520,31 +531,33 @@ public final class Diversicons {
     public static List<String> getRelations() {
         return new ArrayList(relationTypes.keySet());
     }
-        
+
     /**
      * 
      * @param dbConfig
      * 
-     * @throws InvalidSchemaException 
+     * @throws InvalidSchemaException
      */
-    public static Configuration checkSchema(DBConfig dbConfig){
-        
+    public static Configuration checkSchema(DBConfig dbConfig) {
+
         Configuration cfg = Diversicons.getHibernateConfig(dbConfig, true);
 
         ServiceRegistryBuilder serviceRegistryBuilder = new ServiceRegistryBuilder().applySettings(cfg.getProperties());
         SessionFactory sessionFactory;
         try {
             sessionFactory = cfg.buildSessionFactory(serviceRegistryBuilder.buildServiceRegistry());
-        } catch (HibernateException ex){
-            throw new InvalidSchemaException("Failed validation by hibernate! DbConfig is " + Diversicons.toString(dbConfig, false), ex);
+        } catch (HibernateException ex) {
+            throw new InvalidSchemaException(
+                    "Failed validation by hibernate! DbConfig is " + Diversicons.toString(dbConfig, false), ex);
         }
         Session session = sessionFactory.openSession();
 
         // dirty but might work
         try {
-            session.get(DbInfo.class, 0L);                        
+            session.get(DbInfo.class, 0L);
         } catch (org.hibernate.exception.SQLGrammarException ex) {
-            throw new InvalidSchemaException("Couldn't find DBInfo record! DbConfig is " + Diversicons.toString(dbConfig, false), ex);
+            throw new InvalidSchemaException(
+                    "Couldn't find DBInfo record! DbConfig is " + Diversicons.toString(dbConfig, false), ex);
         } finally {
             try {
                 session.close();
@@ -552,7 +565,7 @@ public final class Diversicons {
                 LOG.error("Couldn't close session properly! DbConfig is " + Diversicons.toString(dbConfig, false), ex);
             }
         }
-        
+
         return cfg;
 
     }
@@ -566,12 +579,12 @@ public final class Diversicons {
     public static boolean isSchemaValid(DBConfig dbConfig) {
 
         try {
-           checkSchema(dbConfig);
-           return true;
-        } catch (InvalidSchemaException ex){
+            checkSchema(dbConfig);
+            return true;
+        } catch (InvalidSchemaException ex) {
             return false;
         }
-        
+
     }
 
     /**
@@ -643,11 +656,11 @@ public final class Diversicons {
      * @throws DivNotFoundException
      */
     // implementation is unholy
-    public static String extractNameFromLexicalResource(final String  lexResUrl) {
+    public static String extractNameFromLexicalResource(final String lexResUrl) {
         SAXReader reader = new SAXReader(false);
-        
+
         ExtractedStream es = Internals.readData(lexResUrl, true);
-        
+
         reader.setEntityResolver(new EntityResolver() {
             @Override
             public InputSource resolveEntity(String publicId, String systemId)
@@ -725,18 +738,29 @@ public final class Diversicons {
      *            the path to the database, which must end with just the
      *            database name
      *            (so without the {@code .h2.db})
+     *            
+     * @since 0.1.0
      */
-    public static DBConfig makeDefaultH2FileDbConfig(String filePath) {
+    public static DBConfig makeDefaultH2FileDbConfig(String filePath, boolean readOnly) {
         checkNotEmpty(filePath, "Invalid file path!");
         checkArgument(!filePath.endsWith(".db"), "File path must end just with the databaset name, "
                 + "without the '.h2.db'! Found instead: " + filePath);
 
+        String readOnlyString;
+        if (readOnly){
+            readOnlyString = ";ACCESS_MODE_DATA=r";
+        } else {
+            readOnlyString = "";
+        }
+        
         DBConfig ret = new DBConfig();
         ret.setDb_vendor("de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect");
         ret.setJdbc_driver_class("org.h2.Driver");
-        ret.setJdbc_url("jdbc:h2:file:" + filePath);
+        ret.setJdbc_url("jdbc:h2:file:" + filePath + readOnlyString);
         ret.setUser("root");
         ret.setPassword("pass");
+        
+        
         return ret;
     }
 
@@ -744,30 +768,33 @@ public final class Diversicons {
      * 
      * @param dbName
      *            Uniquely identifies the db among all in-memory dbs.
-     * @param if compressed db is compressed, so occupies less space but has slower access time
+     * @param if
+     *            compressed db is compressed, so occupies less space but has
+     *            slower access time
      */
     public static DBConfig makeDefaultH2InMemoryDbConfig(String dbName, boolean compressed) {
         checkNotEmpty(dbName, "Invalid db name!");
 
         String mem;
-        if (compressed){            
-            mem = "nioMemLZF";            
-            throw new UnsupportedOperationException("Compressed H2 db is currently not supported, see https://github.com/DavidLeoni/diversicon/issues/11");
+        if (compressed) {
+            mem = "nioMemLZF";
+            throw new UnsupportedOperationException(
+                    "Compressed H2 db is currently not supported, see https://github.com/DavidLeoni/diversicon/issues/11");
         } else {
             mem = "mem";
         }
-        
+
         DBConfig ret = new DBConfig();
         ret.setDb_vendor("de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect");
         ret.setJdbc_driver_class("org.h2.Driver");
-        ret.setJdbc_url("jdbc:h2:" + mem  + ":" + dbName + ";DB_CLOSE_DELAY=-1");
+        ret.setJdbc_url("jdbc:h2:" + mem + ":" + dbName + ";DB_CLOSE_DELAY=-1");
         ret.setUser("root");
         ret.setPassword("pass");
         return ret;
     }
 
     /**
-     * Restores an h2 database from a sql dump 
+     * Restores an h2 database from a sql dump
      * (possibly compressed in one of {@link #SUPPORTED_COMPRESSION_FORMATS}).
      * {@code dbConfig} MUST point to a non-existing database, otherwise
      * behaviour is unspecified.
@@ -793,7 +820,7 @@ public final class Diversicons {
             throw new DivIoException("Error while loading h2 driver!", ex);
         }
         ExtractedStream extractedStream = Internals.readData(dumpUrl, true);
-               
+
         Connection conn = null;
         Statement stat = null;
         ResultSet rs = null;
@@ -836,7 +863,7 @@ public final class Diversicons {
             conn.commit();
 
             LOG.info("Done restoring database " + dbConfig.getJdbc_url());
-            LOG.info("Elapsed time: " + Internals.formatInterval(start, new Date()) );
+            LOG.info("Elapsed time: " + Internals.formatInterval(start, new Date()));
 
             // TODO: here it should automatically fix mixing schema parts...
             if (!Diversicons.isSchemaValid(dbConfig)) {
@@ -872,48 +899,135 @@ public final class Diversicons {
     }
 
     /**
-     * Restores an h2 database from an h2 db dump 
+     * EXPERIMENTAL - IMPLEMENTATION MIGHT WILDLY CHANGE
+     * 
+     * Restores a packaged H2 db to file system in user's home under {@link #CACHE_PATH}. The database is intended
+     * to be accessed only in read-only mode. Database may be fetched from the internet or directly taken from a jar 
+     * if on the classpath.
+     *
+     * @param id the worldwide unique identifier for the resource, in a format like {@link it.unitn.disi.diversicon.data.wn30.DivWn30#ID} 
+     * @param version the version of the resource, in X.Y.Z-SOMETHING format a la Maven.
+     * @return The db configuration to access the DB in read-only mode.
+     * 
+     * @since 0.1.0
+     * 
+     */
+    // todo should throw if db is already accessed in non readonly mode
+    public static DBConfig fetchH2Db(String id, String version) {
+        checkNotBlank(id, "Invalid resource id!");
+        checkNotBlank(id, "Invalid version!");
+        checkArgument(DivWn30.ID.equals(id), "Currently only supported id is " 
+                 + DivWn30.ID + ", found instead " + id + "  !");
+        checkArgument(DivWn30.VERSION.replace("-SNAPSHOT", "").equals(version.replace("-SNAPSHOT", "")),
+                "Currently only supported version is " + DivWn30.VERSION + ", found instead " + version + "  !");
+        
+        String filepath = getCachedH2DbDir(id, version).getAbsolutePath() + File.separator
+                + extractFilenameFromDbPackageId(id);
+        
+        if (!new File(filepath + ".h2.db").exists()){
+             restoreH2Db(DivWn30.WORDNET_DIV_H2_DB_RESOURCE_URI, filepath);
+        }
+        return makeDefaultH2FileDbConfig(filepath, true);
+    }
+    
+    /**
+     * EXPERIMENTAL - IMPLEMENTATION MIGHT WILDLY CHANGE
+     * 
+     * Clean cache
+     * 
+     * @throws DivIoException
+     * 
+     * @since 0.1.0
+     * 
+     */
+    public static void cleanCache() {
+        File cacheDir = getCacheDir();
+        if (!cacheDir.getAbsolutePath().endsWith("cache")){
+            throw new IllegalStateException("Failed security check prior deleting Diversicon cache! System says it's located at " + cacheDir);
+        }
+        try {
+            if (cacheDir.exists()){
+                LOG.info("Cleaning Diversicon cache directory " + cacheDir.getAbsolutePath() + "  ...");
+                FileUtils.deleteDirectory(cacheDir);
+                LOG.info("Cleaning Diversicon cache: done");
+            } 
+        } catch (IOException ex) {        
+            throw new DivIoException("Error while deleting cache dir " + cacheDir.getAbsolutePath(), ex);
+        }
+    }
+    
+    private static String extractFilenameFromDbPackageId(String id){
+        String[] arr = id.split("\\.");
+        if (arr.length <= 1){
+            throw new IllegalArgumentException("Invalid id, no dots found inside: " + id);
+        }
+        return arr[arr.length - 1];
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    public static File getCacheDir(){
+        return new File(System.getProperty("user.home") + File.separator
+                + CACHE_PATH); 
+    }
+    
+    /**
+     * @since 0.1
+     */
+    public static File getCachedH2DbDir(String id, String version){
+        checkNotBlank(id, "Invalid id!");
+        checkNotBlank(version, "Invalid version!");
+        return new File(getCacheDir().getAbsolutePath() + File.separator +  id + File.separator + version);
+    }
+    
+    /**
+     * Restores an h2 database from an h2 db dump
      * (possibly compressed in one of {@link #SUPPORTED_COMPRESSION_FORMATS}).
      *
      * @param dumpUrl
      *            For Wordnet 3.0 packaged dump, you can use
      *            {@link it.unitn.disi.diversicon.data.wn30.DivWn30#WORDNET_DIV_SQL_RESOURCE_URI}
+     * @param targetPath the target path where to restore the db, ending with the db name. Must NOT end with .h2.db  
+
      * @throws DivIoException
      *             if an IO error occurs
      * 
      * @since 0.1.0
      */
     public static void restoreH2Db(String dumpUrl, String targetPath) {
-        
+
         Internals.checkNotBlank(dumpUrl, "invalid h2 db dump!");
-        if (targetPath.endsWith(".db")){
+        Internals.checkNotBlank(targetPath, "invalid h2 db target path!");
+        
+        if (targetPath.endsWith(".db")) {
             throw new DivIoException("Target path must NOT end with '.h2.db' ! Found instead " + targetPath);
         }
-        
+
         File target = new File(targetPath + ".h2.db");
 
-        if (target.exists()){
+        if (target.exists()) {
             throw new DivIoException("Target path already exists: " + target.getAbsolutePath() + "  !");
-        }        
-        
+        }
+
         Date start = new Date();
 
-        LOG.info("Restoring database from " + dumpUrl + " to " + target.getAbsolutePath() + "  ...");
-        
-        ExtractedStream extractedStream = Internals.readData(dumpUrl, true);              
-        
+        LOG.info("Restoring database:   " + dumpUrl);
+        LOG.info("    to   " + target.getAbsolutePath() + "  ...");
+
+        ExtractedStream extractedStream = Internals.readData(dumpUrl, true);
+
         try {
             FileUtils.copyInputStreamToFile(extractedStream.stream(), target);
         } catch (IOException e) {
             throw new DivIoException("Something went wrong!", e);
         }
-        
+
         LOG.info("Done restoring database " + dumpUrl + " to " + target.getAbsolutePath());
-        
+
         LOG.info("Elapsed time: " + Internals.formatInterval(start, new Date()));
-    }    
-    
-    
+    }
+
     /**
      * @since 0.1.0
      */
@@ -935,74 +1049,77 @@ public final class Diversicons {
     /**
      * 
      * Checks if provided db configuration points to an empty database.
+     * 
      * @since 0.1.0
      */
-    public static boolean isEmpty(DBConfig dbConfig){
+    public static boolean isEmpty(DBConfig dbConfig) {
         checkH2Db(dbConfig);
-        
+
         Connection conn = null;
         try {
-            
+
             conn = getH2Connection(dbConfig);
-            Statement stat = conn.createStatement();            
-            ResultSet rs = stat.executeQuery("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='PUBLIC' ");            
+            Statement stat = conn.createStatement();
+            ResultSet rs = stat.executeQuery(
+                    "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA='PUBLIC' ");
             return !rs.next();
-            
-        } catch (SQLException ex) {            
+
+        } catch (SQLException ex) {
             throw new DivIoException("Something went wrong!", ex);
-        } finally{
-            if (conn != null){
+        } finally {
+            if (conn != null) {
                 try {
                     conn.close();
                 } catch (SQLException e) {
                     LOG.error("Couldn't close connection, db config is " + toString(dbConfig, false), e);
-                }    
+                }
             }
-                
+
         }
     }
-    
+
     /**
      * 
-
+     * 
      * @throws DivIoConnection
+     * 
+     * @since 0.1.0
      */
-    public static Connection getH2Connection(DBConfig dbConfig){
-        
+    public static Connection getH2Connection(DBConfig dbConfig) {
+
         try {
             Class.forName("org.h2.Driver");
-               
+
             Connection conn;
 
             conn = DriverManager.getConnection(
                     dbConfig.getJdbc_url(),
                     dbConfig.getUser(),
                     dbConfig.getPassword());
-            return conn;            
-        } catch (SQLException | ClassNotFoundException e) {            
+            return conn;
+        } catch (SQLException | ClassNotFoundException e) {
             throw new DivIoException("Error while connecting to H2 db! db config is " + toString(dbConfig, false), e);
         }
-        
 
     }
 
     /**
      * @since 0.1.0
-     */    
+     */
     public static boolean isH2Db(DBConfig dbConfig) {
         checkNotNull(dbConfig);
         return dbConfig.getJdbc_driver_class()
-                .contains("h2");
+                       .contains("h2");
     }
-    
+
     /**
      * @since 0.1.0
      */
     public static boolean isH2FileDb(DBConfig dbConfig) {
-        return isH2Db(dbConfig) && dbConfig.getJdbc_driver_class().contains(":file:");
+        return isH2Db(dbConfig) && dbConfig.getJdbc_driver_class()
+                                           .contains(":file:");
     }
-    
-    
+
     /**
      * Checks provided {@code dbConfig} points to an H2 database.
      * 
@@ -1025,31 +1142,32 @@ public final class Diversicons {
      * @since 0.1.0
      */
     public static String extractH2DbFilepath(DBConfig dbConfig) {
-        if (!isH2FileDb(dbConfig)){
-            throw new IllegalArgumentException("DBConfig doesn't appear to be an H2 File db: " + toString(dbConfig, false));
+        if (!isH2FileDb(dbConfig)) {
+            throw new IllegalArgumentException(
+                    "DBConfig doesn't appear to be an H2 File db: " + toString(dbConfig, false));
         }
-        
+
         String url = dbConfig.getJdbc_url();
-        
+
         String filePrefix = "file:";
-        
+
         int i = url.indexOf(filePrefix);
-        if (i == -1){
-            throw new IllegalArgumentException("DBConfig doesn't appear to be an H2 File db: " + toString(dbConfig, false)); 
+        if (i == -1) {
+            throw new IllegalArgumentException(
+                    "DBConfig doesn't appear to be an H2 File db: " + toString(dbConfig, false));
         }
-        
-        int j = url.indexOf(";", i+1);
-        
-        String filePath; 
-        if (j == -1){
-            filePath = url.substring(i+filePrefix.length());
+
+        int j = url.indexOf(";", i + 1);
+
+        String filePath;
+        if (j == -1) {
+            filePath = url.substring(i + filePrefix.length());
         } else {
-            filePath = url.substring(i+filePrefix.length(), j);
+            filePath = url.substring(i + filePrefix.length(), j);
         }
 
         checkNotEmpty(filePath, "Found an invalid filepath!");
         return filePath;
     }
-
 
 }

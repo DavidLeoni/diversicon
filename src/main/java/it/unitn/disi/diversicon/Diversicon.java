@@ -864,8 +864,8 @@ public class Diversicon extends Uby {
      * @param lexicalResourceId
      *            todo don't know well the meaning
      * @param skipAugment
-     *            if true after the import the graph is nomralized
-     *            and augmented with transitive losure.
+     *            if false after the import the graph is normalized
+     *            and augmented with transitive closure.
      * @throws DivException
      * @since 0.1.0
      */

@@ -44,6 +44,11 @@ import it.unitn.disi.diversicon.internal.Internals;
 import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
 import static it.unitn.disi.diversicon.test.DivTester.*;
 
+/**
+ * Unbearably slow tests go here (they might even nearly choke your system ...)
+ *
+ * @since 0.1.0
+ */
 public class SlowTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(SlowTest.class);
@@ -75,7 +80,7 @@ public class SlowTest {
     
     @Test
     public void testImportWordnetInFileDbExportToSql() throws IOException {
-        DBConfig dbConfig = Diversicons.makeDefaultH2FileDbConfig("target/div-wn30-" + new Date().getTime());
+        DBConfig dbConfig = Diversicons.makeDefaultH2FileDbConfig("target/div-wn30-" + new Date().getTime(), false);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);
         div.importXml(DivWn30.WORDNET_UBY_XML_RESOURCE_URI);
