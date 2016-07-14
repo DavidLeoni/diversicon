@@ -46,7 +46,10 @@ import static it.unitn.disi.diversicon.test.DivTester.*;
 
 /**
  * Unbearably slow tests go here (they might even nearly choke your system ...)
- *
+ * 
+ * Normally they are skipped, both in regular and IT tests.
+ * To execute them as IT tests with Maven, use -PslowTests
+ * 
  * @since 0.1.0
  */
 public class SlowTest {
@@ -65,10 +68,34 @@ public class SlowTest {
         dbConfig = null;
     }
 
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testImportWordnetInMemoryDb() throws IOException {
+        DBConfig dbConfig = Diversicons.makeDefaultH2InMemoryDbConfig("mydb-" + new Date().getTime(), false);
+        Diversicons.dropCreateTables(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);        
+        div.importXml(DivWn30.WORDNET_UBY_XML_RESOURCE_URI);
+    }
 
+    /**
+     * @since 0.1.0
+     */    
+    @Test
+    public void testImportWordnetInFileDb() throws IOException {
+        DBConfig dbConfig = Diversicons.makeDefaultH2FileDbConfig("target/div-wn30-" + new Date().getTime(), false);
+        Diversicons.dropCreateTables(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);
+        div.importXml(DivWn30.WORDNET_UBY_XML_RESOURCE_URI);
+    }
+
+    /**
+     * @since 0.1.0
+     */    
     @Test
     public void testImportWordnetInMemoryExportToSql() throws IOException {
-        DBConfig dbConfig = Diversicons.makeDefaultH2InMemoryDbConfig("mydb", true);
+        DBConfig dbConfig = Diversicons.makeDefaultH2InMemoryDbConfig("mydb-" + new Date().getTime(), false);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);        
         div.importXml(DivWn30.WORDNET_UBY_XML_RESOURCE_URI);
@@ -78,6 +105,9 @@ public class SlowTest {
         div.getSession().close();
     }
     
+    /**
+     * @since 0.1.0
+     */    
     @Test
     public void testImportWordnetInFileDbExportToSql() throws IOException {
         DBConfig dbConfig = Diversicons.makeDefaultH2FileDbConfig("target/div-wn30-" + new Date().getTime(), false);
