@@ -753,14 +753,9 @@ public final class Diversicons {
             readOnlyString = "";
         }
         
-        DBConfig ret = new DBConfig();
-        ret.setDb_vendor("de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect");
-        ret.setJdbc_driver_class("org.h2.Driver");
-        ret.setJdbc_url("jdbc:h2:file:" + filePath + readOnlyString);
-        ret.setUser("root");
-        ret.setPassword("pass");
-        
-        
+        DBConfig ret = makeDefaultH2CommonDbConfig();
+        ret.setJdbc_url("jdbc:h2:file:" + filePath + readOnlyString);        
+                
         return ret;
     }
 
@@ -774,7 +769,7 @@ public final class Diversicons {
      */
     public static DBConfig makeDefaultH2InMemoryDbConfig(String dbName, boolean compressed) {
         checkNotEmpty(dbName, "Invalid db name!");
-
+        
         String mem;
         if (compressed) {
             mem = "nioMemLZF";
@@ -784,12 +779,23 @@ public final class Diversicons {
             mem = "mem";
         }
 
+        DBConfig ret = makeDefaultH2CommonDbConfig();
+        
+        ret.setJdbc_url("jdbc:h2:" + mem + ":" + dbName + ";DB_CLOSE_DELAY=-1");
+
+        return ret;
+    }
+    
+    /**
+     * @since 0.1.0
+     */
+    private static DBConfig makeDefaultH2CommonDbConfig() {
+
         DBConfig ret = new DBConfig();
         ret.setDb_vendor("de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect");
-        ret.setJdbc_driver_class("org.h2.Driver");
-        ret.setJdbc_url("jdbc:h2:" + mem + ":" + dbName + ";DB_CLOSE_DELAY=-1");
+        ret.setJdbc_driver_class("org.h2.Driver");        
         ret.setUser("root");
-        ret.setPassword("pass");
+        ret.setPassword("");  // UBY uses 'pass', but we don't require it.
         return ret;
     }
 
