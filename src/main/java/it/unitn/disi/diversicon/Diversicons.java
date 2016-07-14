@@ -135,13 +135,13 @@ public final class Diversicons {
 
     static {
         putRelations(HYPERNYM, HYPONYM, ERelTypeSemantics.taxonomic, true, false);
-        putRelations(HYPERNYMINSTANCE, HYPONYMINSTANCE, ERelTypeSemantics.taxonomic, true, false);
+        putRelations(HYPERNYMINSTANCE, HYPONYMINSTANCE, ERelTypeSemantics.taxonomic, false, false);
         putRelations(HOLONYM, MERONYM, ERelTypeSemantics.partWhole, true, true);
-        putRelations(HOLONYMCOMPONENT, MERONYMCOMPONENT, ERelTypeSemantics.partWhole, true, true);
-        putRelations(HOLONYMMEMBER, MERONYMMEMBER, ERelTypeSemantics.partWhole, true, true);
+        putRelations(HOLONYMCOMPONENT, MERONYMCOMPONENT, ERelTypeSemantics.partWhole, false, true); // todo is it transitive?
+        putRelations(HOLONYMMEMBER, MERONYMMEMBER, ERelTypeSemantics.partWhole, false, true);
         putRelations(HOLONYMPART, MERONYMPART, ERelTypeSemantics.partWhole, true, true);
-        putRelations(HOLONYMPORTION, MERONYMPORTION, ERelTypeSemantics.partWhole, true, true);
-        putRelations(HOLONYMSUBSTANCE, MERONYMSUBSTANCE, ERelTypeSemantics.partWhole, true, true);
+        putRelations(HOLONYMPORTION, MERONYMPORTION, ERelTypeSemantics.partWhole, false, true); // todo is it transitive?
+        putRelations(HOLONYMSUBSTANCE, MERONYMSUBSTANCE, ERelTypeSemantics.partWhole, false, true);
         putRelations(SYNONYM, SYNONYM, ERelTypeSemantics.association, false, false);
         putRelations(SYNONYMNEAR, SYNONYMNEAR, ERelTypeSemantics.association, false, false);
         putRelations(ANTONYM, ANTONYM, ERelTypeSemantics.complementary, false, false);
