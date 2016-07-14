@@ -668,7 +668,7 @@ public class DiversiconTest {
      * 
      */
     @Test
-    public void importXmlTest() {
+    public void testImportXml() {
 
         Diversicons.dropCreateTables(dbConfig);
 

@@ -9,6 +9,21 @@
   		</encoder>
 	</appender>
 	
+	
+	<!--  SchemaExport is way too chatty -->
+    <logger name="org.hibernate.tool.hbm2ddl.SchemaExport" level="off"/>
+	
+    <!--  so we don't see this: 
+    	2016-06-28 14:27:17 [main] WARN  org.hibernate.type.TypeFactory - HHH000233: Scoping types to session factory org.hibernate.internal.SessionFactoryImpl@17d53b9 after already scoped org.hibernate.internal.SessionFactoryImpl@103c181
+     -->
+    <logger name="org.hibernate.type.TypeFactory" level="error"/>
+
+	<logger name="org.hibernate" level="warn"/> 	 
+
+	<root level="info">
+		<appender-ref ref="STDOUT" />
+	</root>
+	
 	<!--
 		Notice it is not possible to set damned c3p0 logging from here, 
 	    see https://github.com/DavidLeoni/diversicon/issues/5	
@@ -16,8 +31,5 @@
 		<logger name="com.mchange.v2.c3p0" level="warn"></logger> 
 	 -->
 
-	<root level="all">
-		<appender-ref ref="STDOUT" />
-	</root>
 
 </configuration>
