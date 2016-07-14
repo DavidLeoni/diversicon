@@ -6,7 +6,7 @@
 	   table="SynsetRelation" 
 	   node="SynsetRelation" 
 	   dynamic-insert="true"
-	   discriminator-value="SynsetRelation">
+	   discriminator-value="false">
    
     <id column="synsetRelationId" type="long">
 		   <!-- Diversicon: 
@@ -19,12 +19,13 @@
             
     </id>
     
-    <!-- smuby start -->
-     <!--  <discriminator  column="DTYPE"  type="string" /> -->
-     <discriminator    >
-   		<column  name="DTYPE"   default="'DivSynsetRelation'"/>   
-     </discriminator>
-    <!-- smuby end -->
+    <!-- diversicon start -->
+    <!--  if true we have a DivSynsetRelation -->
+       <discriminator  type="boolean"   >
+       		<column name="DivSynsetRelation" default="true" />
+       </discriminator>
+    <!-- diversicon end -->
+    
     
    
     
@@ -52,7 +53,7 @@
 	<!-- Smuby: added to have our customized SmySynsetRelation  mapped to same SynsetRelation table -->				
 	<subclass name="it.unitn.disi.diversicon.DivSynsetRelation" 
        		  extends="de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation" 
-       		  discriminator-value="DivSynsetRelation">
+       		  discriminator-value="true">
    		<property name="depth"  node="@depth" type="int" >
    		 	<column name="depth" not-null="true" default="1" />
    		</property> 	 
