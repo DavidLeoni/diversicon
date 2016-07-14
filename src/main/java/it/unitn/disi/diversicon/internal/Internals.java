@@ -13,6 +13,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -766,13 +767,13 @@ public final class Internals {
         return m.matches();
     }
 
- 
-
     /**
-     * if outPath is something like {@code a/b/c.sql.zi}p and {@code ext} is {@code sql}, it becomes
+     * if outPath is something like {@code a/b/c.sql.zi}p and {@code ext} is
+     * {@code sql}, it becomes
      * {@code c.sql}
      * 
-     * If it is something like {@code a/b/c.zip} and {@code ext} is {@code sql}, it becomes {@code c.sql}
+     * If it is something like {@code a/b/c.zip} and {@code ext} is {@code sql},
+     * it becomes {@code c.sql}
      * 
      * @since 0.1.0
      */
@@ -881,7 +882,8 @@ public final class Internals {
         }
 
         if (sourceDirFile != null) {
-            LOG.debug("Copying directory from ", sourceDirFile.getAbsolutePath(), " to ", "...", destDir.getAbsolutePath());
+            LOG.debug("Copying directory from ", sourceDirFile.getAbsolutePath(), " to ", "...",
+                    destDir.getAbsolutePath());
             try {
                 FileUtils.copyDirectory(sourceDirFile, destDir);
                 LOG.debug("Done copying directory");
@@ -905,7 +907,7 @@ public final class Internals {
                     throw new RuntimeException("Couldn't copy the directory!", ex);
                 }
             } else {
-                LOG.info("Extracting jar ", jarFile.getAbsolutePath()," to ", destDir.getAbsolutePath());
+                LOG.info("Extracting jar ", jarFile.getAbsolutePath(), " to ", destDir.getAbsolutePath());
                 copyDirFromJar(jarFile, destDir, sourceDirPath);
                 LOG.debug("Done copying directory from JAR.");
             }
@@ -924,26 +926,69 @@ public final class Internals {
     public static String formatInterval(Date start, Date end) {
         checkNotNull(start);
         checkNotNull(end);
-        
+
         return formatInterval(end.getTime() - start.getTime());
+    }
+
+    /**
+     * Tries to return a correct eventually plural form 
+     * of {@code str} according to {@code quantity}
+     * 
+     * @since 0.1.0
+     */
+    private static String pluralize(String str, long quantity){
+        return (quantity > 1 ? str + "s" : str);
     }
     
     /**
      * 
      * @param millisecs
-     *            time interval expressed in number of millisecondsstart
+     *            time interval expressed in number of milliseconds
      * 
      * @since 0.1.0
      * 
      */
-    public static String formatInterval(final long millisecs) {        
-        final long hr = TimeUnit.MILLISECONDS.toHours(millisecs);
-        final long min = TimeUnit.MILLISECONDS.toMinutes(millisecs - TimeUnit.HOURS.toMillis(hr));
-        final long sec = TimeUnit.MILLISECONDS.toSeconds(
-                millisecs - TimeUnit.HOURS.toMillis(hr) - TimeUnit.MINUTES.toMillis(min));
-        final long ms = TimeUnit.MILLISECONDS.toMillis(millisecs - TimeUnit.HOURS.toMillis(hr)
-                - TimeUnit.MINUTES.toMillis(min) - TimeUnit.SECONDS.toMillis(sec));
-        return String.format("%02dh:%02dm:%02ds.%03d", hr, min, sec, ms);
+    public static String formatInterval(final long millis) {
+        int seconds = (int) (millis / 1000) % 60;
+        int minutes = (int) ((millis / (1000 * 60)) % 60);
+        int hours = (int) ((millis / (1000 * 60 * 60)) % 24);
+        int days = (int) ((millis / (1000 * 60 * 60 * 24)) % 365);
+        int years = (int) (millis / 1000 * 60 * 60 * 24 * 365);
+
+        ArrayList<String> timeArray = new ArrayList<String>();
+
+        if (years > 0) {
+            timeArray.add(String.valueOf(years) + pluralize("year", years));
+        }
+
+        if (days > 0) {
+            timeArray.add(String.valueOf(days) + pluralize("day", days) );
+        }
+
+        if (hours > 0) {
+            
+            timeArray.add(String.valueOf(hours) + pluralize("hour", hours));
+        }
+
+        if (minutes > 0) {
+            timeArray.add(String.valueOf(minutes) + pluralize("min", minutes));
+        }
+
+        if (seconds > 0) {
+            timeArray.add(String.valueOf(seconds) + pluralize("sec", seconds));
+        }
+
+        String time = "";
+        for (int i = 0; i < timeArray.size(); i++) {
+            time = time + timeArray.get(i);
+            if (i != timeArray.size() - 1)
+                time = time + ", ";
+        }
+
+        if (time == ""){
+            time = "0 secs";
+        }
+        return time;
     }
 
     /**
@@ -961,5 +1006,16 @@ public final class Internals {
         String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp - 1) + (si ? "" : "i");
         return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
+
+    /**
+     * Formats a date in human readable format.
+     * 
+     * @since 0.1.0
+     */
+    public static String formatDate(Date date) {
+        SimpleDateFormat dt = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+        return dt.format(date);
+    }
+
 
 }

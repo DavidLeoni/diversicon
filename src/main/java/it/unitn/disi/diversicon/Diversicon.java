@@ -395,9 +395,9 @@ public class Diversicon extends Uby {
      * 
      * @throws DivException
      */
+    // TODO: should check for loops!
     private void normalizeGraph() {
 
-        LOG.warn("TODO: SHOULD CHECK FOR LOOPS!");
 
         LOG.info("Normalizing SynsetRelations...");
 
@@ -681,6 +681,8 @@ public class Diversicon extends Uby {
      */
     public List<ImportJob> importFiles(ImportConfig config) {
 
+        Date start = new Date();
+        
         List<ImportJob> ret = new ArrayList();
 
         checkNotNull(config);
@@ -696,8 +698,8 @@ public class Diversicon extends Uby {
 
         LOG.info("Going to import " + config.getFileUrls()
                                             .size()
-                + " files by import author " + config.getAuthor() + "...");
-
+                + " files by import author " + config.getAuthor() + "...");        
+        
         Transaction tx = null;
         try {
 
@@ -758,6 +760,13 @@ public class Diversicon extends Uby {
         String plural = config.getFileUrls()
                               .size() > 1 ? "s" : "";
 
+        Date end = new Date();
+        
+        LOG.info("Elapsed time: " + Internals.formatInterval(start, end) + "   Started: " + Internals.formatDate(start)
+                 + "   Ended: " + Internals.formatDate(end));                 
+        LOG.info("");
+        LOG.info("");
+        LOG.info("");
         LOG.info("Done importing " + config.getFileUrls()
                                            .size()
                 + " LMF" + plural + " by import author " + config.getAuthor());
