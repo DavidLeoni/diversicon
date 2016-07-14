@@ -54,6 +54,11 @@ public final class DivTester {
     public static final String WORDNET_UBY_NON_AUGMENTED_DB_NON_RESOURCE_URI_UNCOMPRESSED =  "src/test/resources/" + TEST_RESOURCES_PATH + "uby-wn30.sql";
     public static final String WORDNET_UBY_NON_AUGMENTED_DB_NON_RESOURCE_URI = "src/test/resources/" + TEST_RESOURCES_PATH + "uby-wn30.sql.zip";
     
+    /**
+     * Max amount of time for connection problems during tests, in millisecs.
+     */
+    public static final long MAX_TEST_DELAY = 20000;
+    
     private static int dbCounter = -1;
     
     /**

@@ -10,12 +10,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import org.hibernate.exception.GenericJDBCException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -951,6 +953,37 @@ public class DiversiconTest {
         int mem = div.memoryUsed();
         LOG.debug("Memory used for empty uncompressed H2 in-memory db is " + Internals.humanByteCount(mem * 1024));
         div.getSession().close();
+    }
+    
+    /**
+     * Test for https://github.com/DavidLeoni/diversicon/issues/13
+     * 
+     * @since 0.1.0
+     */
+    @Test
+    public void testConnectionTimeout(){
+        
+        Date start = new Date();
+        
+        DBConfig dbConfig = Diversicons.makeDefaultH2InMemoryDbConfig("trial-" + UUID.randomUUID()
+        , false);
+        Diversicons.dropCreateTables(dbConfig);
+        dbConfig.setPassword("666");
+        
+        try {
+            Diversicon div = Diversicon.connectToDb(dbConfig);
+            Assert.fail("Shouldn't arrive here!");
+        } catch (GenericJDBCException ex){
+                                   
+            Date end = new Date();
+            LOG.info("Elapsed time: " + Internals.formatInterval(start, end));
+            
+            long delay = end.getTime() - start.getTime();
+            assertTrue( "Exceeded max delay of " 
+                    + MAX_TEST_DELAY + "ms for connection problems. Got " + delay + "ms instead." , delay < MAX_TEST_DELAY);
+                                                  
+        }
+        
     }
     
 }

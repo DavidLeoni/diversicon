@@ -381,6 +381,9 @@ public final class Diversicons {
         // See http://stackoverflow.com/a/32311508
         ret.setProperty("hibernate.id.new_generator_mappings", "true");
 
+        // fix for https://github.com/DavidLeoni/diversicon/issues/13
+        ret.setProperty("acquireRetryAttempts", "1");
+        
         if (validate) {
             ret.setProperty("hibernate.hbm2ddl.auto", "validate");
         } else {

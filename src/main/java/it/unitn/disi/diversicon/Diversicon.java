@@ -124,9 +124,9 @@ public class Diversicon extends Uby {
 
         this.dbConfig = dbConfig;
 
-        cfg = Diversicons.checkSchema(dbConfig);
-
         LOG.info("Connecting to database   " + dbConfig.getJdbc_url() + "   ...");
+        
+        cfg = Diversicons.checkSchema(dbConfig);       
 
         ServiceRegistryBuilder serviceRegistryBuilder = new ServiceRegistryBuilder().applySettings(cfg.getProperties());
         sessionFactory = cfg.buildSessionFactory(serviceRegistryBuilder.buildServiceRegistry());
