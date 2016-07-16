@@ -26,12 +26,8 @@ import java.util.zip.Deflater;
 
 import javax.annotation.Nullable;
 
-import org.apache.commons.compress.archivers.ArchiveOutputStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
-import org.apache.commons.compress.compressors.CompressorException;
-import org.apache.commons.compress.compressors.CompressorOutputStream;
-import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.h2.tools.Script;
@@ -91,7 +87,7 @@ public class Diversicon extends Uby {
     /**
      * Amount of items to flush when writing into db with Hibernate.
      */
-    private static final int BATCH_FLUSH_COUNT = 20;
+    private static final int BATCH_FLUSH_COUNT = 1000; // same as UBYTransformer.COMMIT_STEP
 
     /**
      * @since 0.1.0
