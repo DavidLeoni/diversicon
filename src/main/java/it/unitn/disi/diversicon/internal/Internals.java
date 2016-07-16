@@ -867,6 +867,7 @@ public final class Internals {
      * @since 0.1.0
      */
     public static void copyDirFromResource(Class clazz, String sourceDirPath, File destDir) {
+        
         String sep = File.separator;
         @Nullable
         File sourceDirFile = null;
@@ -882,7 +883,7 @@ public final class Internals {
         }
 
         if (sourceDirFile != null) {
-            LOG.debug("Copying directory from ", sourceDirFile.getAbsolutePath(), " to ", "...",
+            LOG.debug("Copying directory from {} to {}", sourceDirFile.getAbsolutePath(), 
                     destDir.getAbsolutePath());
             try {
                 FileUtils.copyDirectory(sourceDirFile, destDir);
@@ -907,7 +908,7 @@ public final class Internals {
                     throw new RuntimeException("Couldn't copy the directory!", ex);
                 }
             } else {
-                LOG.info("Extracting jar ", jarFile.getAbsolutePath(), " to ", destDir.getAbsolutePath());
+                LOG.info("Extracting jar {} to {}", jarFile.getAbsolutePath(), destDir.getAbsolutePath());
                 copyDirFromJar(jarFile, destDir, sourceDirPath);
                 LOG.debug("Done copying directory from JAR.");
             }

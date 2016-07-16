@@ -137,10 +137,16 @@ public final class Diversicons {
         putRelations(HYPERNYM, HYPONYM, ERelTypeSemantics.taxonomic, true, false);
         putRelations(HYPERNYMINSTANCE, HYPONYMINSTANCE, ERelTypeSemantics.taxonomic, false, false);
         putRelations(HOLONYM, MERONYM, ERelTypeSemantics.partWhole, true, true);
-        putRelations(HOLONYMCOMPONENT, MERONYMCOMPONENT, ERelTypeSemantics.partWhole, false, true); // todo is it transitive?
+        putRelations(HOLONYMCOMPONENT, MERONYMCOMPONENT, ERelTypeSemantics.partWhole, false, true); // todo
+                                                                                                    // is
+                                                                                                    // it
+                                                                                                    // transitive?
         putRelations(HOLONYMMEMBER, MERONYMMEMBER, ERelTypeSemantics.partWhole, false, true);
         putRelations(HOLONYMPART, MERONYMPART, ERelTypeSemantics.partWhole, true, true);
-        putRelations(HOLONYMPORTION, MERONYMPORTION, ERelTypeSemantics.partWhole, false, true); // todo is it transitive?
+        putRelations(HOLONYMPORTION, MERONYMPORTION, ERelTypeSemantics.partWhole, false, true); // todo
+                                                                                                // is
+                                                                                                // it
+                                                                                                // transitive?
         putRelations(HOLONYMSUBSTANCE, MERONYMSUBSTANCE, ERelTypeSemantics.partWhole, false, true);
         putRelations(SYNONYM, SYNONYM, ERelTypeSemantics.association, false, false);
         putRelations(SYNONYMNEAR, SYNONYMNEAR, ERelTypeSemantics.association, false, false);
@@ -246,12 +252,16 @@ public final class Diversicons {
      * First drops all existing tables and then creates a
      * database based on the hibernate mappings.
      * 
-     * (adapted from LMFDBUtils.createTables(dbConfig) )
+     * (adapted from
+     * {@link de.tudarmstadt.ukp.lmf.transform.LMFDBUtils#createTables(DBConfig)
+     * LMFDBUtils.createTables} )
      * 
+     * If database doesn't exist no exception is thrown.
+     * 
+     * @throws DivException
      * @since 0.1.0
      */
-    public static void dropCreateTables(
-            DBConfig dbConfig) {
+    public static void dropCreateTables(DBConfig dbConfig) {
 
         LOG.info("Creating database " + dbConfig.getJdbc_url() + " ...");
 
@@ -283,12 +293,13 @@ public final class Diversicons {
     /**
      * Creates a database based on the hibernate mappings.
      * 
-     * (adapted from LMFDBUtils.createTables(dbConfig) )
+     * (adapted from
+     * {@link de.tudarmstadt.ukp.lmf.transform.LMFDBUtils#createTables(DBConfig)
+     * LMFDBUtils.createTables} )
      * 
      * @since 0.1.0
      */
-    public static void createTables(
-            DBConfig dbConfig) {
+    public static void createTables(DBConfig dbConfig) {
 
         LOG.info("Creating database " + dbConfig.getJdbc_url() + " ...");
 
@@ -383,7 +394,7 @@ public final class Diversicons {
 
         // fix for https://github.com/DavidLeoni/diversicon/issues/13
         ret.setProperty("acquireRetryAttempts", "1");
-        
+
         if (validate) {
             ret.setProperty("hibernate.hbm2ddl.auto", "validate");
         } else {
@@ -741,7 +752,7 @@ public final class Diversicons {
      *            the path to the database, which must end with just the
      *            database name
      *            (so without the {@code .h2.db})
-     *            
+     * 
      * @since 0.1.0
      */
     public static DBConfig makeDefaultH2FileDbConfig(String filePath, boolean readOnly) {
@@ -750,15 +761,15 @@ public final class Diversicons {
                 + "without the '.h2.db'! Found instead: " + filePath);
 
         String readOnlyString;
-        if (readOnly){
+        if (readOnly) {
             readOnlyString = ";ACCESS_MODE_DATA=r";
         } else {
             readOnlyString = "";
         }
-        
+
         DBConfig ret = makeDefaultH2CommonDbConfig();
-        ret.setJdbc_url("jdbc:h2:file:" + filePath + readOnlyString);        
-                
+        ret.setJdbc_url("jdbc:h2:file:" + filePath + readOnlyString);
+
         return ret;
     }
 
@@ -772,7 +783,7 @@ public final class Diversicons {
      */
     public static DBConfig makeDefaultH2InMemoryDbConfig(String dbName, boolean compressed) {
         checkNotEmpty(dbName, "Invalid db name!");
-        
+
         String mem;
         if (compressed) {
             mem = "nioMemLZF";
@@ -783,12 +794,12 @@ public final class Diversicons {
         }
 
         DBConfig ret = makeDefaultH2CommonDbConfig();
-        
+
         ret.setJdbc_url("jdbc:h2:" + mem + ":" + dbName + ";DB_CLOSE_DELAY=-1");
 
         return ret;
     }
-    
+
     /**
      * @since 0.1.0
      */
@@ -796,9 +807,9 @@ public final class Diversicons {
 
         DBConfig ret = new DBConfig();
         ret.setDb_vendor("de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect");
-        ret.setJdbc_driver_class("org.h2.Driver");        
+        ret.setJdbc_driver_class("org.h2.Driver");
         ret.setUser("root");
-        ret.setPassword("");  // UBY uses 'pass', but we don't require it.
+        ret.setPassword(""); // UBY uses 'pass', but we don't require it.
         return ret;
     }
 
@@ -910,12 +921,18 @@ public final class Diversicons {
     /**
      * EXPERIMENTAL - IMPLEMENTATION MIGHT WILDLY CHANGE
      * 
-     * Restores a packaged H2 db to file system in user's home under {@link #CACHE_PATH}. The database is intended
-     * to be accessed only in read-only mode. Database may be fetched from the internet or directly taken from a jar 
+     * Restores a packaged H2 db to file system in user's home under
+     * {@link #CACHE_PATH}. The database is intended
+     * to be accessed only in read-only mode. Database may be fetched from the
+     * internet or directly taken from a jar
      * if on the classpath.
      *
-     * @param id the worldwide unique identifier for the resource, in a format like {@link it.unitn.disi.diversicon.data.wn30.DivWn30#ID} 
-     * @param version the version of the resource, in X.Y.Z-SOMETHING format a la Maven.
+     * @param id
+     *            the worldwide unique identifier for the resource, in a format
+     *            like {@link it.unitn.disi.diversicon.data.wn30.DivWn30#ID}
+     * @param version
+     *            the version of the resource, in X.Y.Z-SOMETHING format a la
+     *            Maven.
      * @return The db configuration to access the DB in read-only mode.
      * 
      * @since 0.1.0
@@ -925,20 +942,21 @@ public final class Diversicons {
     public static DBConfig fetchH2Db(String id, String version) {
         checkNotBlank(id, "Invalid resource id!");
         checkNotBlank(id, "Invalid version!");
-        checkArgument(DivWn30.ID.equals(id), "Currently only supported id is " 
-                 + DivWn30.ID + ", found instead " + id + "  !");
-        checkArgument(DivWn30.VERSION.replace("-SNAPSHOT", "").equals(version.replace("-SNAPSHOT", "")),
+        checkArgument(DivWn30.ID.equals(id), "Currently only supported id is "
+                + DivWn30.ID + ", found instead " + id + "  !");
+        checkArgument(DivWn30.VERSION.replace("-SNAPSHOT", "")
+                                     .equals(version.replace("-SNAPSHOT", "")),
                 "Currently only supported version is " + DivWn30.VERSION + ", found instead " + version + "  !");
-        
+
         String filepath = getCachedH2DbDir(id, version).getAbsolutePath() + File.separator
                 + extractFilenameFromDbPackageId(id);
-        
-        if (!new File(filepath + ".h2.db").exists()){
-             restoreH2Db(DivWn30.WORDNET_DIV_H2_DB_RESOURCE_URI, filepath);
+
+        if (!new File(filepath + ".h2.db").exists()) {
+            restoreH2Db(DivWn30.WORDNET_DIV_H2_DB_RESOURCE_URI, filepath);
         }
         return makeDefaultH2FileDbConfig(filepath, true);
     }
-    
+
     /**
      * EXPERIMENTAL - IMPLEMENTATION MIGHT WILDLY CHANGE
      * 
@@ -951,23 +969,25 @@ public final class Diversicons {
      */
     public static void cleanCache() {
         File cacheDir = getCacheDir();
-        if (!cacheDir.getAbsolutePath().endsWith("cache")){
-            throw new IllegalStateException("Failed security check prior deleting Diversicon cache! System says it's located at " + cacheDir);
+        if (!cacheDir.getAbsolutePath()
+                     .endsWith("cache")) {
+            throw new IllegalStateException(
+                    "Failed security check prior deleting Diversicon cache! System says it's located at " + cacheDir);
         }
         try {
-            if (cacheDir.exists()){
+            if (cacheDir.exists()) {
                 LOG.info("Cleaning Diversicon cache directory " + cacheDir.getAbsolutePath() + "  ...");
                 FileUtils.deleteDirectory(cacheDir);
                 LOG.info("Cleaning Diversicon cache: done");
-            } 
-        } catch (IOException ex) {        
+            }
+        } catch (IOException ex) {
             throw new DivIoException("Error while deleting cache dir " + cacheDir.getAbsolutePath(), ex);
         }
     }
-    
-    private static String extractFilenameFromDbPackageId(String id){
+
+    private static String extractFilenameFromDbPackageId(String id) {
         String[] arr = id.split("\\.");
-        if (arr.length <= 1){
+        if (arr.length <= 1) {
             throw new IllegalArgumentException("Invalid id, no dots found inside: " + id);
         }
         return arr[arr.length - 1];
@@ -976,20 +996,20 @@ public final class Diversicons {
     /**
      * @since 0.1.0
      */
-    public static File getCacheDir(){
+    public static File getCacheDir() {
         return new File(System.getProperty("user.home") + File.separator
-                + CACHE_PATH); 
+                + CACHE_PATH);
     }
-    
+
     /**
      * @since 0.1
      */
-    public static File getCachedH2DbDir(String id, String version){
+    public static File getCachedH2DbDir(String id, String version) {
         checkNotBlank(id, "Invalid id!");
         checkNotBlank(version, "Invalid version!");
-        return new File(getCacheDir().getAbsolutePath() + File.separator +  id + File.separator + version);
+        return new File(getCacheDir().getAbsolutePath() + File.separator + id + File.separator + version);
     }
-    
+
     /**
      * Restores an h2 database from an h2 db dump
      * (possibly compressed in one of {@link #SUPPORTED_COMPRESSION_FORMATS}).
@@ -997,8 +1017,10 @@ public final class Diversicons {
      * @param dumpUrl
      *            For Wordnet 3.0 packaged dump, you can use
      *            {@link it.unitn.disi.diversicon.data.wn30.DivWn30#WORDNET_DIV_SQL_RESOURCE_URI}
-     * @param targetPath the target path where to restore the db, ending with the db name. Must NOT end with .h2.db  
-
+     * @param targetPath
+     *            the target path where to restore the db, ending with the db
+     *            name. Must NOT end with .h2.db
+     * 
      * @throws DivIoException
      *             if an IO error occurs
      * 
@@ -1008,7 +1030,7 @@ public final class Diversicons {
 
         Internals.checkNotBlank(dumpUrl, "invalid h2 db dump!");
         Internals.checkNotBlank(targetPath, "invalid h2 db target path!");
-        
+
         if (targetPath.endsWith(".db")) {
             throw new DivIoException("Target path must NOT end with '.h2.db' ! Found instead " + targetPath);
         }
