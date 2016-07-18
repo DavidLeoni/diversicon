@@ -115,8 +115,7 @@ public class Diversicon extends Uby {
     /**
      * Amount of items to flush when writing into db with Hibernate.
      */
-    // todo fix comment!
-    private int commitStep = 10000;  // same as UBYTransformer.COMMIT_STEP
+    private static int COMMIT_STEP = 10000;  // same as UBYTransformer.COMMIT_STEP
     
     
     private ImportLogger importLogger;
@@ -405,6 +404,8 @@ public class Diversicon extends Uby {
      * Adds missing edges of depth 1 for relations we consider as canonical.
      * 
      * @throws DivException
+     *
+     * @since 0.1.0
      */
     // TODO: should check for loops!
     private void normalizeGraph() {
@@ -473,11 +474,11 @@ public class Diversicon extends Uby {
 
                 }
 
-                if (++count % commitStep == 0) {
+                if (++count % COMMIT_STEP == 0) {
                     // flush a batch of updates and release memory:
                     session.flush();
                     session.clear();
-                    checkpoint = reportLog(checkpoint, "", count);
+                    checkpoint = reportLog(checkpoint, "SynsetRelation normalization", count, "synsets processed.");
                 }
             }
 
@@ -509,10 +510,11 @@ public class Diversicon extends Uby {
      *            last time in millisecs a message was displayed
      * @param msg
      *            something like: "SynsetRelations normalization"
+     * @param itemsName i.e. 'edges' or 'synsets'
      * 
      * @since 0.1.0
      */
-    private long reportLog(long checkpoint, @Nullable String msg, long count) {
+    private long reportLog(long checkpoint, @Nullable String msg, long count, String itemsName) {
         try {
             checkArgument(checkpoint > 0);
             checkArgument(count >= 0);
@@ -523,7 +525,7 @@ public class Diversicon extends Uby {
         long newTime = new Date().getTime();
         if ((newTime - checkpoint) > LOG_DELAY) {
             NumberFormat nf = NumberFormat.getNumberInstance(Locale.US);
-            LOG.info(String.valueOf(msg) + ": " + nf.format(count) + " edges processed. ");
+            LOG.info(String.valueOf(msg) + ": " + nf.format(count) +  itemsName + " processed. ");
             return newTime;
         } else {
             return checkpoint;
@@ -625,7 +627,7 @@ public class Diversicon extends Uby {
                     processedRelationsInCurLevel += 1;
                     relStats.setMaxLevel(depthToSearch);
 
-                    if (++count % commitStep == 0) {
+                    if (++count % COMMIT_STEP == 0) {
                         // flush a batch of updates and release memory:
                         session.flush();
                         session.clear();
@@ -1414,24 +1416,5 @@ public class Diversicon extends Uby {
         Diversicons.checkH2Db(dbConfig);
         return (int) getSession().createSQLQuery("SELECT MEMORY_FREE()").uniqueResult();
     }
-    
-    /**
-     * The number of operations that will be done in each batch during commit. 
-     * Higher numbers improve writing speed, at the price of possibly running into memory issues.
-     * 
-     * @since 0.1.0
-     */
-    public int getCommitStep(){
-        return commitStep;
-    }
-    
-    /**
-     * See {@link #getCommitStep()}.
-     * 
-     * @since 0.1.0
-     */
-    public void setCommitStep(int commitStep){
-        checkArgument(commitStep > 0, "Commit step must be greater than zero, found instead " + commitStep);
-        this.commitStep = commitStep;
-    }
+       
 }

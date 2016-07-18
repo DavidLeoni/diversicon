@@ -813,7 +813,9 @@ public final class Diversicons {
         return ret;
     }
 
-    // TODO in progress    
+    /**
+     * @deprecated TODO in progress    
+     */
     public static void turnH2InsertionModeOn(DBConfig dbConfig){
 
         /**
@@ -850,17 +852,20 @@ public final class Diversicons {
         } catch (SQLException ex){
             throw new DivIoException("Error while turning h2 insertion mode on !", ex);
         }
-
+        throw new UnsupportedOperationException("Developer forgot to implement method!");
     }
     
-    // TODO in progress
+    /**
+     * @deprecated     // TODO in progress
+     */
+
     public static void turnH2InsertionModOff(){
         String restoreSavedVars = ""
                 + "  SET LOG @DIV_SAVED_LOG;"
                 + "  SET CACHE_SIZE @DIV_SAVED_CACHE_SIZE;"
                 + "  SET LOCK_MODE @DIV_SAVED_LOCK_MODE;"
                 + "  SET UNDO_LOG @DIV_SAVED_UNDO_LOG;";        
-        
+        throw new UnsupportedOperationException("Developer forgot to implement method!");
         
     }
     
