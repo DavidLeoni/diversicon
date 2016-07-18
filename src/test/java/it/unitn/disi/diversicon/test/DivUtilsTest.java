@@ -7,11 +7,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.logging.Level;
-
 import javax.annotation.Nullable;
 
 import org.junit.After;
@@ -45,14 +42,14 @@ public class DivUtilsTest {
     
     @Before
     public void beforeMethod(){
-         savedKeepTempFiles = System.getProperty(Diversicon.DEBUG_KEEP_TEMP_FILES);
+         savedKeepTempFiles = System.getProperty(Diversicon.PROPERTY_DEBUG_KEEP_TEMP_FILES);
          dbConfig = DivTester.createNewDbConfig();                
     }
     
     @After
     public void afterMethod(){
         if (savedKeepTempFiles != null){
-            System.setProperty(Diversicon.DEBUG_KEEP_TEMP_FILES, savedKeepTempFiles);    
+            System.setProperty(Diversicon.PROPERTY_DEBUG_KEEP_TEMP_FILES, savedKeepTempFiles);    
         }
         
         dbConfig = null;
@@ -201,9 +198,9 @@ public class DivUtilsTest {
      */
     @Test
     public void testTempFilesDeletion(){        
-        System.setProperty(Diversicon.DEBUG_KEEP_TEMP_FILES, Boolean.toString(true));        
+        System.setProperty(Diversicon.PROPERTY_DEBUG_KEEP_TEMP_FILES, Boolean.toString(true));        
         Internals.createTempDivDir("will-survive-");
-        System.setProperty(Diversicon.DEBUG_KEEP_TEMP_FILES, Boolean.toString(false));
+        System.setProperty(Diversicon.PROPERTY_DEBUG_KEEP_TEMP_FILES, Boolean.toString(false));
         Internals.createTempDivDir("wont-survive-");               
     }
 

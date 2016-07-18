@@ -1024,10 +1024,10 @@ public final class Internals {
 
     /**
      * Returns a temporary file which is deleted on exit.
-     * (to prevent deletion, set system property {@link Diversicon#DEBUG_KEEP_TEMP_FILES} to true).
+     * (to prevent deletion, set system property {@link Diversicon#PROPERTY_DEBUG_KEEP_TEMP_FILES} to true).
      *  
-     * @since 0.1.0
      * @throws DivIoException
+     * @since 0.1.0
      */
     public static Path createTempFile(Path dir, String prefix, String suffix){
         checkNotNull(dir);
@@ -1053,9 +1053,11 @@ public final class Internals {
     
     /**
      * Returns a temporary file which is deleted on exit 
-     * (to prevent deletion, set system property {@link Diversicon#DEBUG_KEEP_TEMP_FILES} to true).
-     * @since 0.1.0
+     * (to prevent deletion, set system property {@link Diversicon#PROPERTY_DEBUG_KEEP_TEMP_FILES} to true).
+     * 
      * @throws DivIoException
+     * @since 0.1.0
+     * 
      */
     public static Path createTempFile(String prefix, String suffix){
         checkNotNull(prefix);
@@ -1075,7 +1077,7 @@ public final class Internals {
     
     /**
      * Quietly deletes the path at the end of the program 
-     * (to prevent deletion, set system property {@link Diversicon#DEBUG_KEEP_TEMP_FILES} to true).
+     * (to prevent deletion, set system property {@link Diversicon#PROPERTY_DEBUG_KEEP_TEMP_FILES} to true).
      *
      * @since 0.1.0
      */
@@ -1083,7 +1085,7 @@ public final class Internals {
         checkNotNull(path);
         
         @Nullable
-        String prop = System.getProperty(Diversicon.DEBUG_KEEP_TEMP_FILES);        
+        String prop = System.getProperty(Diversicon.PROPERTY_DEBUG_KEEP_TEMP_FILES);        
         boolean keepTempFiles = Boolean.parseBoolean(prop);
 
         if (!(keepTempFiles)){
@@ -1099,10 +1101,11 @@ public final class Internals {
     
     /**
      * Returns a temporary directory which is deleted on exit
-     * (to prevent deletion, set system property {@link Diversicon#DEBUG_KEEP_TEMP_FILES} to true).
+     * (to prevent deletion, set system property {@link Diversicon#PROPERTY_DEBUG_KEEP_TEMP_FILES} to true).
      * 
-     * @since 0.1.0
      * @throws DivIoException
+     * @since 0.1.0
+     * 
      */
     public static Path createTempDir(String prefix){
         checkNotNull(prefix);
@@ -1122,7 +1125,9 @@ public final class Internals {
     /**
      * Returns {@link #createTempDir(String) createTempDir("diversicon-" + prefix)}
      *
+     * @throws DivIoException
      * @since 0.1.0
+     * 
      */
     public static Path createTempDivDir(String prefix){
         return createTempDir("diversicon-" + prefix);

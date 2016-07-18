@@ -81,20 +81,23 @@ public class Diversicon extends Uby {
 
     /**
      * Maps a Diversicon Session hashcode to its Diversicon
+     * 
+     * @since 0.1.0
      */
     private static final Map<Integer, Diversicon> INSTANCES = new HashMap();
-
-    /**
-     * Amount of items to flush when writing into db with Hibernate.
-     */
-    private static final int BATCH_FLUSH_COUNT = 1000; // same as UBYTransformer.COMMIT_STEP
+   
 
     /**
      * If you set this system property, temporary files won't be deleted at JVM shutdown.
+     * 
+     * @since 0.1.0
      */
-    public static final String DEBUG_KEEP_TEMP_FILES = "diversicon.debug.keep-temp-files";
+    public static final String PROPERTY_DEBUG_KEEP_TEMP_FILES = "diversicon.debug.keep-temp-files";
+    
+   
     
     /**
+     * 
      * @since 0.1.0
      */
     public static final String DEFAULT_AUTHOR = "Default author";
@@ -109,6 +112,13 @@ public class Diversicon extends Uby {
      */
     private static final int LOG_DELAY = 5000;
 
+    /**
+     * Amount of items to flush when writing into db with Hibernate.
+     */
+    // todo fix comment!
+    private int commitStep = 100000;  // same as UBYTransformer.COMMIT_STEP
+    
+    
     private ImportLogger importLogger;
 
     /**
@@ -461,7 +471,7 @@ public class Diversicon extends Uby {
 
                 }
 
-                if (++count % BATCH_FLUSH_COUNT == 0) {
+                if (++count % commitStep == 0) {
                     // flush a batch of updates and release memory:
                     session.flush();
                     session.clear();
@@ -612,7 +622,7 @@ public class Diversicon extends Uby {
                     processedRelationsInCurLevel += 1;
                     relStats.setMaxLevel(depthToSearch);
 
-                    if (++count % BATCH_FLUSH_COUNT == 0) {
+                    if (++count % commitStep == 0) {
                         // flush a batch of updates and release memory:
                         session.flush();
                         session.clear();
@@ -1400,5 +1410,25 @@ public class Diversicon extends Uby {
     public int memoryUsed(){
         Diversicons.checkH2Db(dbConfig);
         return (int) getSession().createSQLQuery("SELECT MEMORY_FREE()").uniqueResult();
+    }
+    
+    /**
+     * The number of operations that will be done in each batch during commit. 
+     * Higher numbers improve writing speed, at the price of possibly running into memory issues.
+     * 
+     * @since 0.1.0
+     */
+    public int getCommitStep(){
+        return commitStep;
+    }
+    
+    /**
+     * See {@link #getCommitStep()}.
+     * 
+     * @since 0.1.0
+     */
+    public void setCommitStep(int commitStep){
+        checkArgument(commitStep > 0, "Commit step must be greater than zero, found instead " + commitStep);
+        this.commitStep = commitStep;
     }
 }
