@@ -572,8 +572,9 @@ public class Diversicon extends Uby {
                     + "      AND SR_A.depth = :depth"
                     + "      AND SR_B.depth = 1"
                     + "      AND SR_A.relName = SR_B.relName"
-                    + "      AND SR_A.target = SR_B.source"
-                    // don't want to add twice edges
+                    + "      AND SR_A.target = SR_B.source";
+                    /* TODO reenable this!
+                     // don't want to add twice edges
                     + "      AND NOT EXISTS"
                     + "             ("
                     + "               "
@@ -583,6 +584,7 @@ public class Diversicon extends Uby {
                     + "                    AND  SR_A.source=SR_C.source"
                     + "                    AND  SR_B.target=SR_C.target"
                     + "             )";
+                    */
 
             int processedRelationsInCurLevel = 0;
 
