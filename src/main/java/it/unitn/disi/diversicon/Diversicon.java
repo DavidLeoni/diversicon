@@ -116,7 +116,7 @@ public class Diversicon extends Uby {
      * Amount of items to flush when writing into db with Hibernate.
      */
     // todo fix comment!
-    private int commitStep = 100000;  // same as UBYTransformer.COMMIT_STEP
+    private int commitStep = 10000;  // same as UBYTransformer.COMMIT_STEP
     
     
     private ImportLogger importLogger;
