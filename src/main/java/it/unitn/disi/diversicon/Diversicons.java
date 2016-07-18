@@ -286,7 +286,7 @@ public final class Diversicons {
         }
         session.flush();
         session.close();
-        LOG.info("Done creating database " + dbConfig.getJdbc_url() + "  .");
+        LOG.info("Done creating database:  " + dbConfig.getJdbc_url());
 
     }
 
@@ -324,7 +324,7 @@ public final class Diversicons {
         }
         session.flush();
         session.close();
-        LOG.info("Done creating database " + dbConfig.getJdbc_url() + "  .");
+        LOG.info("Done creating database  " + dbConfig.getJdbc_url());
 
     }
 

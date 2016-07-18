@@ -38,7 +38,7 @@ public class DivUtilsIT {
     @Before
     public void beforeMethod() throws IOException {
         // needed for testing caching
-        Path newHome = Files.createTempDirectory("diversicon-test-home");
+        Path newHome = Internals.createTempDir(DivTester.DIVERSICON_TEST_STRING + "-home");
         System.setProperty("user.home", newHome.toString());
         
         dbConfig = DivTester.createNewDbConfig();                
@@ -70,7 +70,7 @@ public class DivUtilsIT {
     @Test
     public void testRestoreH2DbToFile() throws IOException {
 
-        Path dir = Files.createTempDirectory("diversicon-test");
+        Path dir = DivTester.createTestDir();
         
         File target = new File(dir.toString() + "/test");
         

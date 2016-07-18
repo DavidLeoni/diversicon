@@ -90,6 +90,11 @@ public class Diversicon extends Uby {
     private static final int BATCH_FLUSH_COUNT = 1000; // same as UBYTransformer.COMMIT_STEP
 
     /**
+     * If you set this system property, temporary files won't be deleted at JVM shutdown.
+     */
+    public static final String DEBUG_KEEP_TEMP_FILES = "diversicon.debug.keep-temp-files";
+    
+    /**
      * @since 0.1.0
      */
     public static final String DEFAULT_AUTHOR = "Default author";
@@ -541,7 +546,7 @@ public class Diversicon extends Uby {
 
             relStats.setEdgesPriorTransitiveClosure(getSynsetRelationsCount());
             
-            LOG.info("\nGoing to process " + relStats.getEdgesPriorTransitiveClosure() + " edges...\n");
+            LOG.info("\nFound " + relStats.getEdgesPriorTransitiveClosure() + " synset relations.\n");
             
             int depthToSearch = 1;
             int count = 0;
@@ -988,7 +993,7 @@ public class Diversicon extends Uby {
         try {
 
             if (compress) {
-                Path tempOut = Files.createTempFile("diversicon", ".xml");
+                Path tempOut = Internals.createTempFile(Internals.DIVERSICON_STRING, ".xml");
                 new DBToXMLTransformer(dbConfig, tempOut.toString(), null).transform(dbLe);
                 ZipArchiveOutputStream zar = new ZipArchiveOutputStream(outFile);
                 zar.setLevel(Deflater.BEST_COMPRESSION);
@@ -1262,11 +1267,12 @@ public class Diversicon extends Uby {
         sb.append("\n");
         if (fullLog) {
             sb.append("\n");
-            sb.append("Import " + job.getId() + " full log:\n");
+            sb.append("Full log:");
             List<LogMessage> msgs = job.getLogMessages();
             if (msgs.isEmpty()){
-                sb.append("No logs to report.");
+                sb.append(" No logs to report.\n");
             } else {
+                sb.append("\n");
                 for (LogMessage msg : job.getLogMessages()) {
                     sb.append(msg.getMessage() + "\n");
                 }    
@@ -1339,16 +1345,16 @@ public class Diversicon extends Uby {
 
         if (shortProcessedInfo) {
             if (dbInfo.isToAugment() || dbInfo.isToNormalize()) {
-                sb.append("- Synset relation graph needs to be processed. \n");
+                sb.append(" * Synset relation graph needs to be processed. \n");
             }
 
         } else {
             if (dbInfo.isToNormalize()) {
-                sb.append("- Synset relation graph needs to be normalized.\n");
+                sb.append(" * Synset relation graph needs to be normalized.\n");
             }
 
             if (dbInfo.isToAugment()) {
-                sb.append("- Synset relation graph needs to be augmented.\n");
+                sb.append(" * Synset relation graph needs to be augmented.\n");
             }
 
         }

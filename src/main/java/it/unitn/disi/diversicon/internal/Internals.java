@@ -48,6 +48,7 @@ import com.rits.cloning.Cloner;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import it.unitn.disi.diversicon.DivException;
 import it.unitn.disi.diversicon.DivIoException;
+import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
 
 /**
@@ -59,6 +60,8 @@ import it.unitn.disi.diversicon.Diversicons;
  */
 public final class Internals {
 
+    public final static String DIVERSICON_STRING = "diversicon";
+    
     private static final Logger LOG = LoggerFactory.getLogger(Internals.class);
 
     private static final @Nullable Cloner cloner = new Cloner();
@@ -954,7 +957,7 @@ public final class Internals {
         int minutes = (int) ((millis / (1000 * 60)) % 60);
         int hours = (int) ((millis / (1000 * 60 * 60)) % 24);
         int days = (int) ((millis / (1000 * 60 * 60 * 24)) % 365);
-        int years = (int) (millis / 1000 * 60 * 60 * 24 * 365);
+        int years = (int) (millis / (1000 * 60 * 60 * 24 * 365));
 
         ArrayList<String> timeArray = new ArrayList<String>();
 
@@ -1018,5 +1021,113 @@ public final class Internals {
         return dt.format(date);
     }
 
+
+    /**
+     * Returns a temporary file which is deleted on exit.
+     * (to prevent deletion, set system property {@link Diversicon#DEBUG_KEEP_TEMP_FILES} to true).
+     *  
+     * @since 0.1.0
+     * @throws DivIoException
+     */
+    public static Path createTempFile(Path dir, String prefix, String suffix){
+        checkNotNull(dir);
+        checkNotNull(prefix);
+        checkNotNull(suffix);
+        
+        final Path ret;
+        try {
+            ret = Files.createTempFile(prefix, suffix);
+        } catch (IOException e) {            
+            throw new DivIoException("Couldn't create temporary directory!", e);
+        }
+        
+
+        addDeleteHook(ret);
+        
+        
+        return ret;
+        
+    }
+    
+
+    
+    /**
+     * Returns a temporary file which is deleted on exit 
+     * (to prevent deletion, set system property {@link Diversicon#DEBUG_KEEP_TEMP_FILES} to true).
+     * @since 0.1.0
+     * @throws DivIoException
+     */
+    public static Path createTempFile(String prefix, String suffix){
+        checkNotNull(prefix);
+        checkNotNull(suffix);
+        
+        final Path ret;
+        try {
+            ret = Files.createTempFile(prefix, suffix);
+        } catch (IOException e) {            
+            throw new DivIoException("Couldn't create temporary directory!", e);
+        }
+        
+        addDeleteHook(ret);
+        return ret;
+        
+    }    
+    
+    /**
+     * Quietly deletes the path at the end of the program 
+     * (to prevent deletion, set system property {@link Diversicon#DEBUG_KEEP_TEMP_FILES} to true).
+     *
+     * @since 0.1.0
+     */
+    private static void addDeleteHook(final Path path){
+        checkNotNull(path);
+        
+        @Nullable
+        String prop = System.getProperty(Diversicon.DEBUG_KEEP_TEMP_FILES);        
+        boolean keepTempFiles = Boolean.parseBoolean(prop);
+
+        if (!(keepTempFiles)){
+            Runtime.getRuntime().addShutdownHook(new Thread(){
+                @Override
+                public void run() {
+                    // According to this better solutions are problematic: http://stackoverflow.com/a/35212952
+                    FileUtils.deleteQuietly(path.toFile());
+                }
+            });
+        }
+    }
+    
+    /**
+     * Returns a temporary directory which is deleted on exit
+     * (to prevent deletion, set system property {@link Diversicon#DEBUG_KEEP_TEMP_FILES} to true).
+     * 
+     * @since 0.1.0
+     * @throws DivIoException
+     */
+    public static Path createTempDir(String prefix){
+        checkNotNull(prefix);
+        
+        final Path ret;
+        try {
+            ret = Files.createTempDirectory(prefix);
+        } catch (IOException e) {            
+            throw new DivIoException("Couldn't create temporary directory!", e);
+        }
+        
+        addDeleteHook(ret);
+        return ret;
+
+    }
+
+    /**
+     * Returns {@link #createTempDir(String) createTempDir("diversicon-" + prefix)}
+     *
+     * @since 0.1.0
+     */
+    public static Path createTempDivDir(String prefix){
+        return createTempDir("diversicon-" + prefix);
+    }
+    
+  
 
 }

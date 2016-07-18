@@ -826,7 +826,7 @@ public class DiversiconTest {
         Diversicon div = Diversicon.connectToDb(dbConfig);
         div.importResource(GRAPH_1_HYPERNYM, true);
         
-        Path dir = Files.createTempDirectory("diversicon-test");
+        Path dir = DivTester.createTestDir();
         File zip = new File(dir.toString() + "/output.sql.zip");
         div.exportToSql(zip.getAbsolutePath(), true);
         
@@ -849,7 +849,7 @@ public class DiversiconTest {
         Diversicon div = Diversicon.connectToDb(dbConfig);
         div.importResource(GRAPH_1_HYPERNYM, true);
         
-        Path dir = Files.createTempDirectory("diversicon-test");
+        Path dir = DivTester.createTestDir();
         File zip = new File(dir.toString() + "/output.sql.zip");
         div.exportToSql(zip.getAbsolutePath(), true);
         
@@ -872,7 +872,7 @@ public class DiversiconTest {
         Diversicon div = Diversicon.connectToDb(dbConfig);
         div.importResource(GRAPH_1_HYPERNYM, true);
         
-        Path dir = Files.createTempDirectory("diversicon-test");
+        Path dir = DivTester.createTestDir();
         File zip = new File(dir.toString() + "/output.sql.zip");
         
         try {
@@ -901,7 +901,7 @@ public class DiversiconTest {
         Diversicon div = Diversicon.connectToDb(dbConfig);
         div.importResource(GRAPH_1_HYPERNYM, true);
         
-        Path dir = Files.createTempDirectory("diversicon-test");
+        Path dir = DivTester.createTestDir();
         File zip = new File(dir.toString() + "123/output.sql.zip");
         
         

@@ -54,6 +54,8 @@ public final class DivTester {
     public static final String WORDNET_UBY_NON_AUGMENTED_DB_NON_RESOURCE_URI_UNCOMPRESSED =  "src/test/resources/" + TEST_RESOURCES_PATH + "uby-wn30.sql";
     public static final String WORDNET_UBY_NON_AUGMENTED_DB_NON_RESOURCE_URI = "src/test/resources/" + TEST_RESOURCES_PATH + "uby-wn30.sql.zip";
     
+    static final String DIVERSICON_TEST_STRING = Internals.DIVERSICON_STRING + "-test"; 
+    
     /**
      * Max amount of time for connection problems during tests, in millisecs.
      */
@@ -355,7 +357,7 @@ public final class DivTester {
         LexicalResource dbLe = div.getLexicalResource(lexicalResource.getName());
 
         try {
-            Path outPath = Files.createTempFile("diversicon-test", "");
+            Path outPath = Files.createTempFile(DivTester.DIVERSICON_TEST_STRING, "");
 
             new DBToXMLTransformer(dbConfig, outPath.toString(), null)
                                                                       .transform(dbLe);
@@ -394,6 +396,10 @@ public final class DivTester {
         }
         return Diversicons.makeDefaultH2InMemoryDbConfig("test" + s, false);
         
+    }
+    
+    static Path createTestDir(){
+        return Internals.createTempDivDir("test");
     }
 
 }

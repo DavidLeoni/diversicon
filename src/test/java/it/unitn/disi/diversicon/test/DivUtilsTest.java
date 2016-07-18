@@ -12,6 +12,8 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -32,22 +34,28 @@ import it.unitn.disi.diversicon.internal.Internals;
 
 
 public class DivUtilsTest {
-   
-    
+       
         
     private static final Logger LOG = LoggerFactory.getLogger(DivUtilsTest.class);
     
     private DBConfig dbConfig;
         
+    @Nullable
+    private String savedKeepTempFiles ;
     
     @Before
     public void beforeMethod(){
+         savedKeepTempFiles = System.getProperty(Diversicon.DEBUG_KEEP_TEMP_FILES);
          dbConfig = DivTester.createNewDbConfig();                
     }
     
     @After
     public void afterMethod(){
-        dbConfig = null;       
+        if (savedKeepTempFiles != null){
+            System.setProperty(Diversicon.DEBUG_KEEP_TEMP_FILES, savedKeepTempFiles);    
+        }
+        
+        dbConfig = null;
     }
 
     @Test
@@ -148,7 +156,7 @@ public class DivUtilsTest {
      */
     @Test
     public void testRestoreWrongDump() throws IOException{
-        Path dir = Files.createTempDirectory("diversicon-test");
+        Path dir = DivTester.createTestDir();
         try {
             Diversicons.restoreH2Sql("file:"+ dir.toString() +"/666" , dbConfig);
             Assert.fail("Shouldn't arrive here!");
@@ -188,5 +196,15 @@ public class DivUtilsTest {
         // todo improve test
     }
 
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testTempFilesDeletion(){        
+        System.setProperty(Diversicon.DEBUG_KEEP_TEMP_FILES, Boolean.toString(true));        
+        Internals.createTempDivDir("will-survive-");
+        System.setProperty(Diversicon.DEBUG_KEEP_TEMP_FILES, Boolean.toString(false));
+        Internals.createTempDivDir("wont-survive-");               
+    }
 
 }

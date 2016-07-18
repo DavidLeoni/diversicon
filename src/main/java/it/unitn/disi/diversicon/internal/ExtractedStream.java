@@ -125,14 +125,14 @@ public class ExtractedStream {
         try {
             if (this.tempFile == null) {
                 if (extracted) {
-                    Path tempDir = Files.createTempDirectory("diversicon");
+                    Path tempDir = Internals.createTempDivDir("extracted");
                     this.tempFile = new File(tempDir.toFile(), FilenameUtils.getName(this.filepath));
                     LOG.debug("Writing stream to " + tempFile.getAbsolutePath() + " ...");
                     FileUtils.copyInputStreamToFile(this.inputStream, tempFile);
                     LOG.debug("Done writing stream to " + tempFile.getAbsolutePath());
                 } else {
                     if (sourceUrl.startsWith("classpath:")) {
-                        Path tempDir = Files.createTempDirectory("diversicon");
+                        Path tempDir = Files.createTempDirectory("extracted");
                         this.tempFile = new File(tempDir.toFile(), FilenameUtils.getName(this.filepath));
                         LOG.debug("Writing stream to " + tempFile.getAbsolutePath() + " ...");
                         FileUtils.copyInputStreamToFile(this.inputStream, tempFile);
@@ -141,7 +141,7 @@ public class ExtractedStream {
                         this.tempFile = new File(sourceUrl);
                     } else {
 
-                        Path tempDir = Files.createTempDirectory("diversicon");
+                        Path tempDir = Internals.createTempDivDir("extracted");
                         this.tempFile = new File(tempDir.toFile(), FilenameUtils.getName(this.filepath));
                         LOG.debug("Writing url to " + tempFile.getAbsolutePath() + " ...");
                         FileUtils.copyURLToFile(new URL(sourceUrl), tempFile, 20000, 10000);
