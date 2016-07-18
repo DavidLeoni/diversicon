@@ -18,7 +18,7 @@ import java.util.Set;
  */
 class InsertionStats {
     
-    private long edgesPriorTransitiveClosure;
+    private long edgesPriorInsertion;
     private int maxLevel;
     private Map<String, Long> map;
     
@@ -27,7 +27,7 @@ class InsertionStats {
      * @since 0.1.0
      */
     public InsertionStats(){
-        this.setEdgesPriorTransitiveClosure(0);
+        this.setEdgesPriorInsertion(0);
         this.setMaxLevel(0);
         this.map = new HashMap();
     }
@@ -46,6 +46,9 @@ class InsertionStats {
         }
     }
 
+    /**
+     * @since 0.1.0
+     */    
     public Set<String> relNames() {
         return map.keySet();
     }
@@ -88,11 +91,11 @@ class InsertionStats {
         NumberFormat nf = NumberFormat.getNumberInstance(Locale.US);
         long tot = totEdges();
         if (tot == 0){
-            sb.append("   No edges were added to the " + nf.format(edgesPriorTransitiveClosure) + " existing ones. \n");
+            sb.append("   No edges were added to the " + nf.format(edgesPriorInsertion) + " existing ones. \n");
         } else {
             
             sb.append("   Max level:      " + maxLevel + "\n");
-            sb.append("   Initial edges:  " + nf.format(edgesPriorTransitiveClosure) + "\n");
+            sb.append("   Initial edges:  " + nf.format(edgesPriorInsertion) + "\n");
             sb.append("   Inserted edges: " + nf.format(tot)+ "  . Details:\n");
             for (String relName : relNames()){
                 sb.append("        " + relName + ":   " + nf.format(count(relName)) + "\n");
@@ -122,16 +125,19 @@ class InsertionStats {
         this.maxLevel = maxLevel;
     }
 
-    public long getEdgesPriorTransitiveClosure() {
-        return edgesPriorTransitiveClosure;
+    /**
+     * @since 0.1.0
+     */    
+    public long getEdgesPriorInsertion() {
+        return edgesPriorInsertion;
     }
 
     /**
      * @since 0.1.0
      */
-    public void setEdgesPriorTransitiveClosure(long edgesPriorTransitiveClosure) {
+    public void setEdgesPriorInsertion(long edgesPriorTransitiveClosure) {
         checkArgument(maxLevel >= 0, "Invalid number of edges prior closure, must be >= 0, found instead ", edgesPriorTransitiveClosure);
-        this.edgesPriorTransitiveClosure = edgesPriorTransitiveClosure;
-    }    
+        this.edgesPriorInsertion = edgesPriorTransitiveClosure;
+    }   
     
 }

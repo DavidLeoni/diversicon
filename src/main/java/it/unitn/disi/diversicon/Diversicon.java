@@ -431,8 +431,10 @@ public class Diversicon extends Uby {
             int count = 0;
 
             InsertionStats relStats = new InsertionStats();
-
-            LOG.info("Going to process " + totalSynsets + " synsets...:\n");
+            
+            relStats.setEdgesPriorInsertion(getSynsetRelationsCount());
+            
+            LOG.info("\nFound " + totalSynsets + " synsets.\n");
 
             while (synsets.next()) {
 
@@ -489,7 +491,6 @@ public class Diversicon extends Uby {
             LOG.info("Done normalizing SynsetRelations. Elapsed time: " + Internals.formatInterval(new Date().getTime()- startTime));
             LOG.info("");
             LOG.info(relStats.toString());
-
 
         } catch (Exception ex) {
             LOG.error("Error while normalizing graph! Rolling back!");
@@ -554,9 +555,9 @@ public class Diversicon extends Uby {
 
             InsertionStats relStats = new InsertionStats();
 
-            relStats.setEdgesPriorTransitiveClosure(getSynsetRelationsCount());
+            relStats.setEdgesPriorInsertion(getSynsetRelationsCount());
             
-            LOG.info("\nFound " + relStats.getEdgesPriorTransitiveClosure() + " synset relations.\n");
+            LOG.info("\nFound " + relStats.getEdgesPriorInsertion() + " synset relations.\n");
             
             int depthToSearch = 1;
             int count = 0;
