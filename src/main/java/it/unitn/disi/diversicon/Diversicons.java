@@ -807,8 +807,8 @@ public final class Diversicons {
         DBConfig ret = new DBConfig();
         ret.setDb_vendor("de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect");
         ret.setJdbc_driver_class("org.h2.Driver");
-        ret.setUser("root");
-        ret.setPassword(""); // UBY uses 'pass', but we don't require it.
+        ret.setUser("root"); // same as UBY
+        ret.setPassword("pass"); // same as UBY
         return ret;
     }
 
