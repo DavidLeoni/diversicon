@@ -567,26 +567,26 @@ public class Diversicon extends Uby {
 
             // NOTE: THIS ONE IS FAST BUT STILL COMPUTES DUPLICATES !
             String sqlSelect = "  "
-                    + " WITH RECURSIVE SR_A(SYNSETID, RELNAME, TARGET, DEPTH) AS ("
+                    + " WITH RECURSIVE SR_A(synsetId, relName, target, depth) AS ("
                     + "    ("
-                    + "        SELECT SYNSETID, RELNAME, TARGET, DEPTH"
+                    + "        SELECT synsetId, relName, target, depth"
                     + "        FROM SynsetRelation"
-                    + "        WHERE DEPTH = 1"
-                    + "              AND RELNAME IN  " + makeSqlList(Diversicons.getCanonicalTransitiveRelations())
+                    + "        WHERE depth = 1"
+                    + "              AND relName IN  " + makeSqlList(Diversicons.getCanonicalTransitiveRelations())
                     + "    )"
                     + "    UNION ALL"
                     + "    ("
-                    + "        SELECT SR_A.SYNSETID, SR_A.RELNAME, SR_B.TARGET, (SR_A.DEPTH + 1)"
+                    + "        SELECT SR_A.synsetId, SR_A.relName, SR_B.target, (SR_A.depth + 1)"
                     + "        FROM SR_A, SynsetRelation SR_B"
                     + "        WHERE"
-                    + "            SR_A.RELNAME = SR_B.RELNAME"
-                    + "        AND SR_A.TARGET = SR_B.SYNSETID"
-                    + "        AND SR_B.DEPTH = 1  "
+                    + "            SR_A.relName = SR_B.relName"
+                    + "        AND SR_A.target = SR_B.synsetId"
+                    + "        AND SR_B.depth = 1  "
                     + "    )"
-                    + " ) ((SELECT SYNSETID, RELNAME, TARGET,  DEPTH"
+                    + " ) ((SELECT synsetId, relName, target,  depth"
                     + " FROM  SR_A)"
                     + " MINUS "   // doesn't remove all duplicates, but can be enough for now
-                    + " (SELECT SYNSETID, RELNAME, TARGET,  DEPTH"
+                    + " (SELECT synsetId, relName, target,  depth"
                     + " FROM SynsetRelation)"
                     + " )";
 
