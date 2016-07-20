@@ -114,7 +114,6 @@ public final class Diversicons {
     /**
      * List of known relations, (including the inverses)
      */
-
     private static final Map<String, ERelTypeSemantics> relationTypes = new LinkedHashMap<String, ERelTypeSemantics>();
 
     private static final LinkedHashSet<String> transitiveRelations = new LinkedHashSet<String>();
@@ -492,7 +491,7 @@ public final class Diversicons {
         ERelTypeSemantics ret = relationTypes.get(relName);
 
         if (ret == null) {
-            throw new DivNotFoundException("There is no reltaion type associated to relation " + relName);
+            throw new DivNotFoundException("There is no relation type associated to relation " + relName);
         }
         return ret;
     }

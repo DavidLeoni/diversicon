@@ -9,6 +9,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import it.unitn.disi.diversicon.internal.Internals;
+
 
 /**
  * Statistics about edge insertions into the SynsetRelation graph.
@@ -16,7 +18,7 @@ import java.util.Set;
  * @since 0.1.0
  *
  */
-class InsertionStats {
+public class InsertionStats {
     
     private long edgesPriorInsertion;
     private int maxLevel;
@@ -88,20 +90,19 @@ class InsertionStats {
     public String toString() {
         StringBuilder sb = new StringBuilder();
                 
-        NumberFormat nf = NumberFormat.getNumberInstance(Locale.US);
+        
         long tot = totEdges();
         if (tot == 0){
-            sb.append("   No edges were added to the " + nf.format(edgesPriorInsertion) + " existing ones. \n");
+            sb.append("   No edges were added to the " + Internals.formatInteger(edgesPriorInsertion) + " existing ones. \n");
         } else {
             
             sb.append("   Max level:      " + maxLevel + "\n");
-            sb.append("   Initial edges:  " + nf.format(edgesPriorInsertion) + "\n");
-            sb.append("   Inserted edges: " + nf.format(tot)+ "  . Details:\n");
+            sb.append("   Initial edges:  " + Internals.formatInteger(edgesPriorInsertion) + "\n");
+            sb.append("   Inserted edges: " + Internals.formatInteger(tot)+"\n");
             for (String relName : relNames()){
-                sb.append("        " + relName + ":   " + nf.format(count(relName)) + "\n");
+                sb.append("        " + relName + ":   " + Internals.formatInteger(count(relName)) + "\n");
             }
         }
-        sb.append("\n");
         
         return sb.toString();
     }

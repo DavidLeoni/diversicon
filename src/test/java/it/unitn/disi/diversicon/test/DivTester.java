@@ -4,28 +4,20 @@ import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import javax.annotation.Nullable;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
-import de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect;
 import de.tudarmstadt.ukp.lmf.model.core.Definition;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalEntry;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
@@ -33,7 +25,6 @@ import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
 import de.tudarmstadt.ukp.lmf.model.core.TextRepresentation;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.model.interfaces.IHasID;
-import de.tudarmstadt.ukp.lmf.model.morphology.FormRepresentation;
 import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
@@ -148,17 +139,15 @@ public final class DivTester {
             throw new Error("Second collection is null !" + reportIds(col1, col2));
         }
 
-        if (col1.size() != col2.size()) {
-            throw new Error("Collections size differs! First:" + col1.size() + " Second:" + col2.size() + reportIds(col1, col2));
-        }
+        checkEqualSize("Invalid id collections!", col1, col2);
         
         Iterator<T> iter = col2.iterator();
         int i = 0;
         for (IHasID hid1 : col1){            
             T hid2 = iter.next();
             if (!hid1.getId().equals(hid2.getId())){
-                throw new RuntimeException("Found different ids at position " + i 
-                        + "! id1 = " + hid1.getId() + "id2 = " + hid2.getId() + reportIds(col1, col2));
+                throw new DifferentCollectionError("Found different ids at position " + i 
+                        + "! id1 = " + hid1.getId() + "id2 = " + hid2.getId() + reportIds(col1, col2), col1, col2);
             }
             i++;
         }
@@ -178,7 +167,7 @@ public final class DivTester {
             sb.append(hd.getId());            
         }
         sb.append("]\n");
-        sb.append("2st: [");
+        sb.append("2nd: [");
         first = true;
         for (IHasID hd : col2){
             if (first){
@@ -225,15 +214,11 @@ public final class DivTester {
                         Synset dbSyn = diversicon.getSynsetById(syn.getId());
                         assertEquals(syn.getId(), dbSyn.getId());
 
-                        assertEquals(syn.getSynsetRelations()
-                                        .size(),
-                                dbSyn.getSynsetRelations()
-                                     .size());
+                        checkEqualSize("Invalid synset relations!", syn.getSynsetRelations(),
+                                dbSyn.getSynsetRelations());
 
-                        assertEquals(syn.getDefinitions()
-                                        .size(),
-                                dbSyn.getDefinitions()
-                                     .size());
+                        checkEqualSize("Invalid definitions!", syn.getDefinitions(),
+                                dbSyn.getDefinitions());
 
                         Iterator<Definition> dbDefIter = syn.getDefinitions()
                                                             .iterator();
@@ -241,7 +226,7 @@ public final class DivTester {
                             Definition dbDef = dbDefIter.next();
                             List<TextRepresentation> textReprs = definition.getTextRepresentations();
                             List<TextRepresentation> dbTextReprs = dbDef.getTextRepresentations();
-                            assertEquals(textReprs.size(), dbTextReprs.size());
+                            checkEqualSize("Invalid text representations!", textReprs, dbTextReprs);
 
                             Iterator<TextRepresentation> dbTextReprIter = dbDef.getTextRepresentations()
                                                                                .iterator();
@@ -315,11 +300,9 @@ public final class DivTester {
 
                             assertEquals(le.getId(), dbLe.getId());
 
-                            assertEquals(
-                                    le.getSenses()
-                                      .size(),
-                                    dbLe.getSenses()
-                                        .size());
+                            checkEqualSize("Invalid senses!",
+                                    le.getSenses(),
+                                    dbLe.getSenses());
 
                             if (le.getLemma() != null) {
                                 Lemma lemma = le.getLemma();
@@ -342,7 +325,19 @@ public final class DivTester {
             }
         }
     }
-
+    
+    private static <T> void checkEqualSize(@Nullable String msg, @Nullable Collection<T> col1, @Nullable Collection<T> col2) {
+        if (col1 == null ^ col2 == null ){
+            throw new DifferentCollectionError("One collection is null and the other isnt!", col1, col2);
+        }
+        
+        if (col1 != null){
+            if (col1.size() != col2.size()){
+                
+                throw new DifferentCollectionError(String.valueOf(msg) + " - Sizes are different ! col1.size = " + col1.size() + "  col2.size = " + col2.size(), col1, col2);
+            }
+        }
+    }
 
     /**
      * Creates an xml file out of the provided
