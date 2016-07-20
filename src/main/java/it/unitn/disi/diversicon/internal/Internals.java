@@ -13,6 +13,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,6 +21,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -61,7 +63,7 @@ import it.unitn.disi.diversicon.Diversicons;
 public final class Internals {
 
     public final static String DIVERSICON_STRING = "diversicon";
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(Internals.class);
 
     private static final @Nullable Cloner cloner = new Cloner();
@@ -870,7 +872,7 @@ public final class Internals {
      * @since 0.1.0
      */
     public static void copyDirFromResource(Class clazz, String sourceDirPath, File destDir) {
-        
+
         String sep = File.separator;
         @Nullable
         File sourceDirFile = null;
@@ -886,7 +888,7 @@ public final class Internals {
         }
 
         if (sourceDirFile != null) {
-            LOG.debug("Copying directory from {} to {}", sourceDirFile.getAbsolutePath(), 
+            LOG.debug("Copying directory from {} to {}", sourceDirFile.getAbsolutePath(),
                     destDir.getAbsolutePath());
             try {
                 FileUtils.copyDirectory(sourceDirFile, destDir);
@@ -935,15 +937,15 @@ public final class Internals {
     }
 
     /**
-     * Tries to return a correct eventually plural form 
+     * Tries to return a correct eventually plural form
      * of {@code str} according to {@code quantity}
      * 
      * @since 0.1.0
      */
-    private static String pluralize(String str, long quantity){
+    private static String pluralize(String str, long quantity) {
         return (quantity > 1 ? str + "s" : str);
     }
-    
+
     /**
      * 
      * @param millisecs
@@ -966,11 +968,11 @@ public final class Internals {
         }
 
         if (days > 0) {
-            timeArray.add(String.valueOf(days) + pluralize("day", days) );
+            timeArray.add(String.valueOf(days) + pluralize("day", days));
         }
 
         if (hours > 0) {
-            
+
             timeArray.add(String.valueOf(hours) + pluralize("hour", hours));
         }
 
@@ -989,7 +991,7 @@ public final class Internals {
                 time = time + ", ";
         }
 
-        if (time == ""){
+        if (time == "") {
             time = "0 secs";
         }
         return time;
@@ -1021,113 +1023,177 @@ public final class Internals {
         return dt.format(date);
     }
 
-
     /**
      * Returns a temporary file which is deleted on exit.
-     * (to prevent deletion, set system property {@link Diversicon#DEBUG_KEEP_TEMP_FILES} to true).
-     *  
-     * @since 0.1.0
+     * (to prevent deletion, set system property
+     * {@link Diversicon#PROPERTY_DEBUG_KEEP_TEMP_FILES} to true).
+     * 
      * @throws DivIoException
+     * @since 0.1.0
      */
-    public static Path createTempFile(Path dir, String prefix, String suffix){
+    public static Path createTempFile(Path dir, String prefix, String suffix) {
         checkNotNull(dir);
         checkNotNull(prefix);
         checkNotNull(suffix);
-        
+
         final Path ret;
         try {
             ret = Files.createTempFile(prefix, suffix);
-        } catch (IOException e) {            
+        } catch (IOException e) {
             throw new DivIoException("Couldn't create temporary directory!", e);
         }
-        
 
         addDeleteHook(ret);
-        
-        
-        return ret;
-        
-    }
-    
 
-    
+        return ret;
+
+    }
+
     /**
-     * Returns a temporary file which is deleted on exit 
-     * (to prevent deletion, set system property {@link Diversicon#DEBUG_KEEP_TEMP_FILES} to true).
-     * @since 0.1.0
+     * Returns a temporary file which is deleted on exit
+     * (to prevent deletion, set system property
+     * {@link Diversicon#PROPERTY_DEBUG_KEEP_TEMP_FILES} to true).
+     * 
      * @throws DivIoException
+     * @since 0.1.0
+     * 
      */
-    public static Path createTempFile(String prefix, String suffix){
+    public static Path createTempFile(String prefix, String suffix) {
         checkNotNull(prefix);
         checkNotNull(suffix);
-        
+
         final Path ret;
         try {
             ret = Files.createTempFile(prefix, suffix);
-        } catch (IOException e) {            
+        } catch (IOException e) {
             throw new DivIoException("Couldn't create temporary directory!", e);
         }
-        
+
         addDeleteHook(ret);
         return ret;
-        
-    }    
-    
+
+    }
+
     /**
-     * Quietly deletes the path at the end of the program 
-     * (to prevent deletion, set system property {@link Diversicon#DEBUG_KEEP_TEMP_FILES} to true).
+     * Quietly deletes the path at the end of the program
+     * (to prevent deletion, set system property
+     * {@link Diversicon#PROPERTY_DEBUG_KEEP_TEMP_FILES} to true).
      *
      * @since 0.1.0
      */
-    private static void addDeleteHook(final Path path){
+    private static void addDeleteHook(final Path path) {
         checkNotNull(path);
-        
+
         @Nullable
-        String prop = System.getProperty(Diversicon.DEBUG_KEEP_TEMP_FILES);        
+        String prop = System.getProperty(Diversicon.PROPERTY_DEBUG_KEEP_TEMP_FILES);
         boolean keepTempFiles = Boolean.parseBoolean(prop);
 
-        if (!(keepTempFiles)){
-            Runtime.getRuntime().addShutdownHook(new Thread(){
-                @Override
-                public void run() {
-                    // According to this better solutions are problematic: http://stackoverflow.com/a/35212952
-                    FileUtils.deleteQuietly(path.toFile());
-                }
-            });
+        if (!(keepTempFiles)) {
+            Runtime.getRuntime()
+                   .addShutdownHook(new Thread() {
+                       @Override
+                       public void run() {
+                           // According to this better solutions are
+                           // problematic: http://stackoverflow.com/a/35212952
+                           FileUtils.deleteQuietly(path.toFile());
+                       }
+                   });
         }
     }
-    
+
     /**
      * Returns a temporary directory which is deleted on exit
-     * (to prevent deletion, set system property {@link Diversicon#DEBUG_KEEP_TEMP_FILES} to true).
+     * (to prevent deletion, set system property
+     * {@link Diversicon#PROPERTY_DEBUG_KEEP_TEMP_FILES} to true).
      * 
-     * @since 0.1.0
      * @throws DivIoException
+     * @since 0.1.0
+     * 
      */
-    public static Path createTempDir(String prefix){
+    public static Path createTempDir(String prefix) {
         checkNotNull(prefix);
-        
+
         final Path ret;
         try {
             ret = Files.createTempDirectory(prefix);
-        } catch (IOException e) {            
+        } catch (IOException e) {
             throw new DivIoException("Couldn't create temporary directory!", e);
         }
-        
+
         addDeleteHook(ret);
         return ret;
 
     }
 
     /**
-     * Returns {@link #createTempDir(String) createTempDir("diversicon-" + prefix)}
+     * Returns {@link #createTempDir(String) createTempDir("diversicon-" +
+     * prefix)}
      *
+     * @throws DivIoException
      * @since 0.1.0
+     * 
      */
-    public static Path createTempDivDir(String prefix){
+    public static Path createTempDivDir(String prefix) {
         return createTempDir("diversicon-" + prefix);
     }
-    
-  
+
+    /**
+     * @since 0.1.0
+     */
+    public static String formatInteger(long c) {
+        NumberFormat nf = NumberFormat.getNumberInstance(Locale.US);
+        return nf.format(c);
+    }
+
+    /**
+     * This method calculates edit distance between two words.
+     * 
+     *  <p>
+     * There are three operations permitted on a word: replace, delete, insert. For example, the edit distance between "a" and "b" is 1, the edit distance between "abc" and "def" is 3. 
+     * </p>
+     * <p>
+     * Taken from here: http://www.programcreek.com/2013/12/edit-distance-in-java/
+     * </p>
+     * @since 0.1.0
+     */
+    public static int editDistance(String word1, String word2) {
+        int len1 = word1.length();
+        int len2 = word2.length();
+
+        // len1+1, len2+1, because finally return dp[len1][len2]
+        int[][] dp = new int[len1 + 1][len2 + 1];
+
+        for (int i = 0; i <= len1; i++) {
+            dp[i][0] = i;
+        }
+
+        for (int j = 0; j <= len2; j++) {
+            dp[0][j] = j;
+        }
+
+        // iterate though, and check last char
+        for (int i = 0; i < len1; i++) {
+            char c1 = word1.charAt(i);
+            for (int j = 0; j < len2; j++) {
+                char c2 = word2.charAt(j);
+
+                // if last two chars equal
+                if (c1 == c2) {
+                    // update dp value for +1 length
+                    dp[i + 1][j + 1] = dp[i][j];
+                } else {
+                    int replace = dp[i][j] + 1;
+                    int insert = dp[i][j + 1] + 1;
+                    int delete = dp[i + 1][j] + 1;
+
+                    int min = replace > insert ? insert : replace;
+                    min = delete > min ? min : delete;
+                    dp[i + 1][j + 1] = min;
+                }
+            }
+        }
+
+        return dp[len1][len2];
+    }
 
 }

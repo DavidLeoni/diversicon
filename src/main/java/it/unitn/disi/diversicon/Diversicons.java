@@ -114,7 +114,6 @@ public final class Diversicons {
     /**
      * List of known relations, (including the inverses)
      */
-
     private static final Map<String, ERelTypeSemantics> relationTypes = new LinkedHashMap<String, ERelTypeSemantics>();
 
     private static final LinkedHashSet<String> transitiveRelations = new LinkedHashSet<String>();
@@ -492,7 +491,7 @@ public final class Diversicons {
         ERelTypeSemantics ret = relationTypes.get(relName);
 
         if (ret == null) {
-            throw new DivNotFoundException("There is no reltaion type associated to relation " + relName);
+            throw new DivNotFoundException("There is no relation type associated to relation " + relName);
         }
         return ret;
     }
@@ -814,6 +813,64 @@ public final class Diversicons {
     }
 
     /**
+     * @deprecated TODO in progress    
+     */
+    public static void turnH2InsertionModeOn(DBConfig dbConfig){
+
+        /**
+         * from
+         * http://www.h2database.com/html/performance.html#fast_import
+         */
+        String saveVars = ""
+                + "  SET @DIV_SAVED_LOG @LOG;"
+                + "  SET @DIV_SAVED_CACHE_SIZE @CACHE_SIZE;"
+                + "  SET @DIV_SAVED_LOCK_MODE @LOCK_MODE;"
+                + "  SET @DIV_SAVED_UNDO_LOG @UNDO_LOG;";
+
+        String setFastOptions = "\n"
+                + "  SET LOG 0;"
+                + "  SET CACHE_SIZE 65536;"
+                + "  SET LOCK_MODE 0;"
+                + "  SET UNDO_LOG 0;";
+
+        
+        Connection conn = null;
+        Statement stat = null;
+        ResultSet rs = null;
+        
+        try {
+            // todo need to improve connection with dbConfig params
+    
+            conn = DriverManager.getConnection(
+                    dbConfig.getJdbc_url(),
+                    dbConfig.getUser(),
+                    dbConfig.getPassword());
+    
+            stat = conn.createStatement();
+            stat.execute(saveVars + setFastOptions);
+        } catch (SQLException ex){
+            throw new DivIoException("Error while turning h2 insertion mode on !", ex);
+        }
+        throw new UnsupportedOperationException("Developer forgot to implement method!");
+    }
+    
+    /**
+     * @deprecated     // TODO in progress
+     */
+
+    public static void turnH2InsertionModOff(){
+        String restoreSavedVars = ""
+                + "  SET LOG @DIV_SAVED_LOG;"
+                + "  SET CACHE_SIZE @DIV_SAVED_CACHE_SIZE;"
+                + "  SET LOCK_MODE @DIV_SAVED_LOCK_MODE;"
+                + "  SET UNDO_LOG @DIV_SAVED_UNDO_LOG;";        
+        throw new UnsupportedOperationException("Developer forgot to implement method!");
+        
+    }
+    
+    
+
+    /**
      * Restores an h2 database from a sql dump
      * (possibly compressed in one of {@link #SUPPORTED_COMPRESSION_FORMATS}).
      * {@code dbConfig} MUST point to a non-existing database, otherwise
@@ -848,7 +905,7 @@ public final class Diversicons {
             /**
              * from
              * http://www.h2database.com/html/performance.html#fast_import
-             * Made some tests, performance gain seems < 1 s :-(
+             * Made some tests, performance gain seems < 4 s 
              */
             String saveVars = ""
                     + "  SET @DIV_SAVED_LOG @LOG;"

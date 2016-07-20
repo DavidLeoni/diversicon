@@ -12,7 +12,7 @@ import org.slf4j.helpers.MessageFormatter;
 /**
  * @deprecated Probably useless
  * 
- *
+ * @since 0.1.0
  */
 public class ImportLogger implements Logger {
     

@@ -4,10 +4,14 @@ import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
+import org.hibernate.CacheMode;
 import org.hibernate.Query;
+import org.hibernate.ScrollMode;
+import org.hibernate.ScrollableResults;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.junit.Test;
@@ -17,8 +21,13 @@ import org.slf4j.LoggerFactory;
 import de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
+import it.unitn.disi.diversicon.DbInfo;
+import it.unitn.disi.diversicon.DivException;
+import it.unitn.disi.diversicon.DivSynsetRelation;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
+import it.unitn.disi.diversicon.InsertionStats;
+import it.unitn.disi.diversicon.internal.Internals;
 
 /**
  * Experiments in Hibernate Hell.
@@ -225,5 +234,6 @@ public class ExperimentsTest {
         
         logger.info("zumzum");
     }
+        
     
 }

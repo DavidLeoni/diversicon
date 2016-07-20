@@ -276,6 +276,8 @@ public class DiversiconTest {
 
     /**
      * @since 0.1.0
+     * 
+     * Could still have problems, see https://github.com/DavidLeoni/diversicon/issues/14
      */
     @Test
     public void testTransitiveClosureNoDuplicates() {
