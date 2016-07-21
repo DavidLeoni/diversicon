@@ -262,7 +262,7 @@ public class DiversiconTest {
                      .synsetRelation(ERelNameSemantics.HYPERNYM, 1)                     
                      .depth(2)
                      .synset()                     
-                     .synsetRelation(ERelNameSemantics.ANTONYM, 3)
+                     .synsetRelation(ERelNameSemantics.HYPERNYM, 3)
                      .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
                      .depth(2)
                      .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
