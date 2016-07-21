@@ -85,43 +85,7 @@ public class DivUtilsIT {
         div.getSession().close();
     }
 
-    /**
-     * @since 0.1.0 
-     */
-    // @Test    
-    public void testRestoreNonAugmentedUncompressedUbyWordnetH2Sql(){
-        Diversicons.restoreH2Sql(DivTester.WORDNET_UBY_NON_AUGMENTED_DB_RESOURCE_URI_UNCOMPRESSED, dbConfig);        
-        Diversicon div = Diversicon.connectToDb(dbConfig);                
-        div.getSession().close();
-    }
 
-    /**
-     * @since 0.1.0 
-     */
-    // @Test
-    public void testRestoreNonAugmentedUncompressedNonResourceUbyWordnetH2Sql(){
-        Diversicons.restoreH2Sql(DivTester.WORDNET_UBY_NON_AUGMENTED_DB_NON_RESOURCE_URI_UNCOMPRESSED, dbConfig);        
-        Diversicon div = Diversicon.connectToDb(dbConfig);                
-        div.getSession().close();
-    }
-    
-    /** 
-     * For now it *should* break when reading UBY db  :-/
-     * 
-     * @since 0.1.0 
-     */
-    // @Test
-    public void testRestoreNonAugmentedNonResourceUbyWordnetH2SqlToMemory(){
-        try {
-            Diversicons.restoreH2Sql(DivTester.WORDNET_UBY_NON_AUGMENTED_DB_NON_RESOURCE_URI, dbConfig);
-            Assert.fail("Should'n arrive here!");
-            Diversicon div = Diversicon.connectToDb(dbConfig);                
-            div.getSession().close();
-
-        } catch (InvalidSchemaException ex){
-            
-        }
-    }
     
     
     /**
@@ -131,7 +95,7 @@ public class DivUtilsIT {
     public void testReadDataWordnetSql(){
         ExtractedStream es = Internals.readData(DivWn31.of().getSqlUri(), true);
         assertTrue(es.isExtracted());
-        assertEquals("div-wn30.sql", es.getFilepath());
+        assertEquals("div-wn31.sql", es.getFilepath());
         assertEquals(DivWn31.of().getSqlUri(), es.getSourceUrl());
         File f = es.toTempFile();
         assertTrue(f.exists());
@@ -145,7 +109,7 @@ public class DivUtilsIT {
     public void testReadDataWordnetXml(){
         ExtractedStream es = Internals.readData(DivWn31.of().getXmlUri(), true);
         assertTrue(es.isExtracted());
-        assertEquals("uby-wn30.xml", es.getFilepath());
+        assertEquals("div-wn31.xml", es.getFilepath());
         assertEquals(DivWn31.of().getXmlUri(), es.getSourceUrl());
         File f = es.toTempFile();
         assertTrue(f.exists());
@@ -160,7 +124,7 @@ public class DivUtilsIT {
      */
     // @Test
     public void testRestoreNativeH2Db(){
-        Restore.execute("../../diversicon-wordnet-3.0/src/main/resources/it/unitn/disi/diversicon/data/wn30/div-wn30.h2.db.zip", "target/restored-wn30", "restored-db", false);
+        Restore.execute("../../diversicon-wordnet-3.1/src/main/resources/it/unitn/disi/diversicon/data/wn30/div-wn30.h2.db.zip", "target/restored-wn31", "restored-db", false);
     }
 
 

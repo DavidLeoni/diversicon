@@ -881,7 +881,7 @@ public final class Diversicons {
      * behaviour is unspecified.
      *
      * @param dumpUrl
-     *            For Wordnet 3.0 packaged dump, you can use
+     *            For Wordnet 3.1 packaged dump, you can use
      *            {@link it.unitn.disi.diversicon.data.DivWn31#WORDNET_DIV_SQL_RESOURCE_URI}
      * @throws DivIoException
      *             if an IO error occurs
@@ -1009,8 +1009,7 @@ public final class Diversicons {
                                      .equals(version.replace("-SNAPSHOT", "")),
                 "Currently only supported version is " + DivWn31.of().getVersion() + ", found instead " + version + "  !");
 
-        String filepath = getCachedH2DbDir(id, version).getAbsolutePath() + File.separator
-                + extractFilenameFromDbPackageId(id);
+        String filepath = getCachedH2DbDir(id, version).getAbsolutePath() + File.separator + id;
 
         if (!new File(filepath + ".h2.db").exists()) {
             restoreH2Db(DivWn31.of().getH2DbUri(), filepath);
@@ -1046,13 +1045,6 @@ public final class Diversicons {
         }
     }
 
-    private static String extractFilenameFromDbPackageId(String id) {
-        String[] arr = id.split("\\.");
-        if (arr.length <= 1) {
-            throw new IllegalArgumentException("Invalid id, no dots found inside: " + id);
-        }
-        return arr[arr.length - 1];
-    }
 
     /**
      * @since 0.1.0
@@ -1076,7 +1068,7 @@ public final class Diversicons {
      * (possibly compressed in one of {@link #SUPPORTED_COMPRESSION_FORMATS}).
      *
      * @param dumpUrl
-     *            For Wordnet 3.0 packaged dump, you can use
+     *            For Wordnet 3.1 packaged dump, you can use
      *            {@link it.unitn.disi.diversicon.data.DivWn31#WORDNET_DIV_SQL_RESOURCE_URI}
      * @param targetPath
      *            the target path where to restore the db, ending with the db

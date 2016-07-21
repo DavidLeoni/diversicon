@@ -167,7 +167,7 @@ public class DiversiconTest {
 
         diversicon.processGraph();
 
-        checkDb(expectedLexicalResource, diversicon);
+        checkDb(expectedLexicalResource, diversicon, Internals.newHashSet(DivTester.Flags.UNORDERED_SYNSET_RELATIONS));
 
         diversicon.getSession()
                   .close();
@@ -257,12 +257,12 @@ public class DiversiconTest {
                      .synset()
                      .synset()
                      .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                     .synset()
+                     .synset()                                          
                      .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
-                     .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                     .synsetRelation(ERelNameSemantics.HYPERNYM, 1)                     
                      .depth(2)
-                     .synset()
-                     .synsetRelation(ERelNameSemantics.HYPERNYM, 3)
+                     .synset()                     
+                     .synsetRelation(ERelNameSemantics.ANTONYM, 3)
                      .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
                      .depth(2)
                      .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
