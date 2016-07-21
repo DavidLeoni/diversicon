@@ -48,8 +48,8 @@ import org.slf4j.LoggerFactory;
 import com.rits.cloning.Cloner;
 
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
-import it.unitn.disi.diversicon.DivException;
-import it.unitn.disi.diversicon.DivIoException;
+import it.disi.unitn.diversicon.exceptions.DivException;
+import it.disi.unitn.diversicon.exceptions.DivIoException;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
 

@@ -55,6 +55,9 @@ import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import de.tudarmstadt.ukp.lmf.transform.DBToXMLTransformer;
 import de.tudarmstadt.ukp.lmf.transform.XMLToDBTransformer;
+import it.disi.unitn.diversicon.exceptions.DivException;
+import it.disi.unitn.diversicon.exceptions.DivIoException;
+import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.internal.Internals;
 
 /**

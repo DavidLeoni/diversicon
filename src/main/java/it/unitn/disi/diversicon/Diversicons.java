@@ -2,6 +2,7 @@ package it.unitn.disi.diversicon;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.sql.Connection;
@@ -17,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
@@ -55,7 +57,10 @@ import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 //import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import de.tudarmstadt.ukp.lmf.transform.StringUtils;
 import it.unitn.disi.diversicon.internal.Internals;
-import it.unitn.disi.diversicon.data.wn30.DivWn30;
+import it.disi.unitn.diversicon.exceptions.DivException;
+import it.disi.unitn.diversicon.exceptions.DivIoException;
+import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
+import it.unitn.disi.diversicon.data.DivWn31;
 import it.unitn.disi.diversicon.internal.ExtractedStream;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
@@ -69,6 +74,8 @@ import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
  * @since 0.1.0
  */
 public final class Diversicons {
+
+    public static final String BUILD_PROPERTIES_PATH = "tod.commons.build.properties";
 
     /**
      * Path relative to user home of the file cache of Diverscon.
@@ -813,9 +820,9 @@ public final class Diversicons {
     }
 
     /**
-     * @deprecated TODO in progress    
+     * @deprecated TODO in progress
      */
-    public static void turnH2InsertionModeOn(DBConfig dbConfig){
+    public static void turnH2InsertionModeOn(DBConfig dbConfig) {
 
         /**
          * from
@@ -833,42 +840,39 @@ public final class Diversicons {
                 + "  SET LOCK_MODE 0;"
                 + "  SET UNDO_LOG 0;";
 
-        
         Connection conn = null;
         Statement stat = null;
         ResultSet rs = null;
-        
+
         try {
             // todo need to improve connection with dbConfig params
-    
+
             conn = DriverManager.getConnection(
                     dbConfig.getJdbc_url(),
                     dbConfig.getUser(),
                     dbConfig.getPassword());
-    
+
             stat = conn.createStatement();
             stat.execute(saveVars + setFastOptions);
-        } catch (SQLException ex){
+        } catch (SQLException ex) {
             throw new DivIoException("Error while turning h2 insertion mode on !", ex);
         }
         throw new UnsupportedOperationException("Developer forgot to implement method!");
     }
-    
+
     /**
-     * @deprecated     // TODO in progress
+     * @deprecated // TODO in progress
      */
 
-    public static void turnH2InsertionModOff(){
+    public static void turnH2InsertionModOff() {
         String restoreSavedVars = ""
                 + "  SET LOG @DIV_SAVED_LOG;"
                 + "  SET CACHE_SIZE @DIV_SAVED_CACHE_SIZE;"
                 + "  SET LOCK_MODE @DIV_SAVED_LOCK_MODE;"
-                + "  SET UNDO_LOG @DIV_SAVED_UNDO_LOG;";        
+                + "  SET UNDO_LOG @DIV_SAVED_UNDO_LOG;";
         throw new UnsupportedOperationException("Developer forgot to implement method!");
-        
+
     }
-    
-    
 
     /**
      * Restores an h2 database from a sql dump
@@ -878,7 +882,7 @@ public final class Diversicons {
      *
      * @param dumpUrl
      *            For Wordnet 3.0 packaged dump, you can use
-     *            {@link it.unitn.disi.diversicon.data.wn30.DivWn30#WORDNET_DIV_SQL_RESOURCE_URI}
+     *            {@link it.unitn.disi.diversicon.data.DivWn31#WORDNET_DIV_SQL_RESOURCE_URI}
      * @throws DivIoException
      *             if an IO error occurs
      * 
@@ -905,7 +909,7 @@ public final class Diversicons {
             /**
              * from
              * http://www.h2database.com/html/performance.html#fast_import
-             * Made some tests, performance gain seems < 4 s 
+             * Made some tests, performance gain seems < 4 s
              */
             String saveVars = ""
                     + "  SET @DIV_SAVED_LOG @LOG;"
@@ -986,7 +990,7 @@ public final class Diversicons {
      *
      * @param id
      *            the worldwide unique identifier for the resource, in a format
-     *            like {@link it.unitn.disi.diversicon.data.wn30.DivWn30#ID}
+     *            like {@link it.unitn.disi.diversicon.data.DivWn31#ID}
      * @param version
      *            the version of the resource, in X.Y.Z-SOMETHING format a la
      *            Maven.
@@ -999,17 +1003,17 @@ public final class Diversicons {
     public static DBConfig fetchH2Db(String id, String version) {
         checkNotBlank(id, "Invalid resource id!");
         checkNotBlank(id, "Invalid version!");
-        checkArgument(DivWn30.ID.equals(id), "Currently only supported id is "
-                + DivWn30.ID + ", found instead " + id + "  !");
-        checkArgument(DivWn30.VERSION.replace("-SNAPSHOT", "")
+        checkArgument(DivWn31.ID.equals(id), "Currently only supported id is "
+                + DivWn31.ID + ", found instead " + id + "  !");
+        checkArgument(DivWn31.of().getVersion().replace("-SNAPSHOT", "")
                                      .equals(version.replace("-SNAPSHOT", "")),
-                "Currently only supported version is " + DivWn30.VERSION + ", found instead " + version + "  !");
+                "Currently only supported version is " + DivWn31.of().getVersion() + ", found instead " + version + "  !");
 
         String filepath = getCachedH2DbDir(id, version).getAbsolutePath() + File.separator
                 + extractFilenameFromDbPackageId(id);
 
         if (!new File(filepath + ".h2.db").exists()) {
-            restoreH2Db(DivWn30.WORDNET_DIV_H2_DB_RESOURCE_URI, filepath);
+            restoreH2Db(DivWn31.of().getH2DbUri(), filepath);
         }
         return makeDefaultH2FileDbConfig(filepath, true);
     }
@@ -1073,7 +1077,7 @@ public final class Diversicons {
      *
      * @param dumpUrl
      *            For Wordnet 3.0 packaged dump, you can use
-     *            {@link it.unitn.disi.diversicon.data.wn30.DivWn30#WORDNET_DIV_SQL_RESOURCE_URI}
+     *            {@link it.unitn.disi.diversicon.data.DivWn31#WORDNET_DIV_SQL_RESOURCE_URI}
      * @param targetPath
      *            the target path where to restore the db, ending with the db
      *            name. Must NOT end with .h2.db
@@ -1257,5 +1261,8 @@ public final class Diversicons {
         checkNotEmpty(filePath, "Found an invalid filepath!");
         return filePath;
     }
+
+
+
 
 }

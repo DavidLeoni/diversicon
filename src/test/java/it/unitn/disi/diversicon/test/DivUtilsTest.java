@@ -22,8 +22,9 @@ import org.xml.sax.SAXException;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
-import it.unitn.disi.diversicon.DivIoException;
-import it.unitn.disi.diversicon.DivNotFoundException;
+import it.disi.unitn.diversicon.exceptions.DivIoException;
+import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
+import it.unitn.disi.diversicon.BuildInfo;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
 import it.unitn.disi.diversicon.internal.Internals;
@@ -202,6 +203,5 @@ public class DivUtilsTest {
         Internals.createTempDivDir("will-survive-");
         System.setProperty(Diversicon.PROPERTY_DEBUG_KEEP_TEMP_FILES, Boolean.toString(false));
         Internals.createTempDivDir("wont-survive-");               
-    }
-
+    }    
 }

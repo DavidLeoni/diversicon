@@ -1,5 +1,7 @@
 package it.unitn.disi.diversicon;
 
+import it.disi.unitn.diversicon.exceptions.DivException;
+
 /**
  * A runtime exception to raise Database schema is found to be invalid.
  * 
