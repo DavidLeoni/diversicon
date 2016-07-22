@@ -51,9 +51,10 @@ public class TestApp1 {
 ### Logging
 
 Diversicon uses <a href="http://www.slf4j.org" target="_blank">SLF4J </a> logging system. Library has only slf4j-api as dependency. In tests we provide <a href="http://logback.qos.ch/" target="_blank"> logback</a> as slf4j implementation. They are configured by default via xml files looked upon  in this order :
-1) whatever is passed by command line: ` mvn test -Dlogback.configurationFile=path-to-my-logback.xml`
-2) `conf/logback-test.xml` as indicated in Maven surefire plugin configuration 
-3) `logback-test.xml` in [test resources](src/test/resources/logback-test.xml). 
+
+1. whatever is passed by command line: ` mvn test -Dlogback.configurationFile=path-to-my-logback.xml`
+2. `conf/logback-test.xml` as indicated in Maven surefire plugin configuration 
+3. `logback-test.xml` in [test resources](src/test/resources/logback-test.xml). 
 
 CAVEAT: stupid Eclipse doesn't pick those surefire properties [by design](https://bugs.eclipse.org/bugs/show_bug.cgi?id=388683) , nor allows to apply run settings to all tests (O_o) so I went to `Windows->Preferences->Java->Installed JREs->Default one->Edit` and set default VM arguments to `-Dlogback.configurationFile=conf/logback-test.xml`. It's silly but could somewhat make sense for other projects too. 
  

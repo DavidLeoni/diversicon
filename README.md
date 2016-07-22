@@ -37,6 +37,7 @@ Simple Java library to provide a multilingual SQL knowledge base for lexicons an
 * Hibernate 
 * <a href="http://www.h2database.com/html/main.html" target="_blank">H2</a> database
 * Apache Commons IO and Compress, XZ Archiver
+* Diversicon Model <a href="https://github.com/DavidLeoni/diversicon-model" target="_blank">Diversicon Model</a>
 
 #### Projects using Diversicon
 
