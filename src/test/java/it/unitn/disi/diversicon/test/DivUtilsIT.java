@@ -34,7 +34,9 @@ public class DivUtilsIT {
     
     private DBConfig dbConfig;
         
-    
+    /**
+     * @since 0.1.0
+     */
     @Before
     public void beforeMethod() throws IOException {
         // needed for testing caching
@@ -43,7 +45,10 @@ public class DivUtilsIT {
         
         dbConfig = DivTester.createNewDbConfig();                
     }
-    
+
+    /**
+     * @since 0.1.0
+     */    
     @After
     public void afterMethod(){
         dbConfig = null;       

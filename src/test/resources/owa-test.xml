@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE LexicalResource SYSTEM "http://compling.hss.ntu.edu.sg/omw/WN-LMF.dtd">
+<LexicalResource>
+        <GlobalInformation label="eng WordNet 10"/>
+        <!-- produced on 2015-11-14 -->
+        <!-- as part of the Open Multilingual Wordnet http://compling.hss.ntu.edu.sg -->
+        <!-- source at WordNet (may have a better version) -->
+        <!-- licence: http://wordnet.princeton.edu/ -->
+	<Lexicon languageCoding='ISO 639-3' label='Princeton' language='eng' owner='wordnet' version='10'>
+	   <LexicalEntry id ='w93688'>
+	      <Lemma writtenForm='redirect examination' partOfSpeech='n'/>
+	      <Sense id='w93688_07195404-n' synset='eng-10-07195404-n'/>
+	   </LexicalEntry>
+	   
+		<LexicalEntry id ='w44919'>
+	      <Lemma writtenForm='quantification' partOfSpeech='n'/>
+	      <Sense id='w44919_01003570-n' synset='eng-10-01003570-n'/>
+	      <Sense id='w44919_06165623-n' synset='eng-10-06165623-n'/>
+	   </LexicalEntry>
+	   
+	   <Synset id='eng-10-08786161-n' baseConcept='3'>
+	      <Definition gloss="an ancient town on a promontory in western Greece">
+	      </Definition>
+	      <SynsetRelations>
+	         <SynsetRelation targets='eng-10-08780881-n' relType='hprt'/>
+	         <SynsetRelation targets='eng-10-08665504-n' relType='hasi'/>
+	      </SynsetRelations>
+	   </Synset>
+		<Synset id='eng-10-10418302-n' baseConcept='3'>
+	      <Definition gloss="a new personification of a familiar idea">
+	         <Statement example="the embodiment of hope"/>
+	         <Statement example="the incarnation of evil"/>
+	      </Definition>
+	      <SynsetRelations>
+	         <SynsetRelation targets='eng-10-10418101-n' relType='hype'/>
+	         <SynsetRelation targets='eng-10-10418577-n' relType='hypo'/>	    
+	      </SynsetRelations>
+	   </Synset>
+   
+	</Lexicon>
+</LexicalResource>

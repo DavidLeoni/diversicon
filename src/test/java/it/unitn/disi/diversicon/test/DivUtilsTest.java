@@ -191,6 +191,7 @@ public class DivUtilsTest {
     @Test
     public void testCreateTables(){        
         Diversicons.createTables(dbConfig);
+                
         // todo improve test
     }
 

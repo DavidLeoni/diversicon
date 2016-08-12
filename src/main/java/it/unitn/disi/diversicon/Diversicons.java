@@ -129,7 +129,9 @@ public final class Diversicons {
     private static final LinkedHashSet<String> partOfRelations = new LinkedHashSet<String>();
     private static final LinkedHashSet<String> canonicalPartOfRelations = new LinkedHashSet<String>();
 
-    private static final String DEFAULT_H2_DB_NAME = "default-db";
+    private static final String DEFAULT_H2_USER = "root";
+
+    private static final String DEFAULT_H2_PASSWORD = "pass";
 
     private static Map<String, String> inverseRelations = new HashMap();
 
@@ -269,7 +271,7 @@ public final class Diversicons {
      */
     public static void dropCreateTables(DBConfig dbConfig) {
 
-        LOG.info("Creating database " + dbConfig.getJdbc_url() + " ...");
+        LOG.info("Recreating tables in database  " + dbConfig.getJdbc_url() + " ...");
 
         Configuration hcfg = getHibernateConfig(dbConfig, false);
 
@@ -292,7 +294,7 @@ public final class Diversicons {
         }
         session.flush();
         session.close();
-        LOG.info("Done creating database:  " + dbConfig.getJdbc_url());
+        LOG.info("Done recreating tables in database:  " + dbConfig.getJdbc_url());
 
     }
 
@@ -307,7 +309,7 @@ public final class Diversicons {
      */
     public static void createTables(DBConfig dbConfig) {
 
-        LOG.info("Creating database " + dbConfig.getJdbc_url() + " ...");
+        LOG.info("Creating tables in database  " + dbConfig.getJdbc_url() + " ...");
 
         Configuration hcfg = getHibernateConfig(dbConfig, false);
 
@@ -330,7 +332,7 @@ public final class Diversicons {
         }
         session.flush();
         session.close();
-        LOG.info("Done creating database  " + dbConfig.getJdbc_url());
+        LOG.info("Done creating tables in database  " + dbConfig.getJdbc_url());
 
     }
 
@@ -751,13 +753,15 @@ public final class Diversicons {
         }
 
     }
-
+    
     /**
+     * Creates the default configuration to access a file H2 database. NOTE: if database 
+     * does not exist it is created.
      * 
      * @param filePath
-     *            the path to the database, which must end with just the
+     *            the path to a database, which must end with just the
      *            database name
-     *            (so without the {@code .h2.db})
+     *            (so without the {@code .h2.db}).  
      * 
      * @since 0.1.0
      */
@@ -781,11 +785,14 @@ public final class Diversicons {
 
     /**
      * 
+     * Creates the default configuration to access an in-memory H2 database. NOTE: if database 
+     * does not exist it is created.
+     * 
      * @param dbName
      *            Uniquely identifies the db among all in-memory dbs.
-     * @param if
-     *            compressed db is compressed, so occupies less space but has
+     * @param compressed if db is compressed, occupies less space but has
      *            slower access time
+     * @since 0.1.0
      */
     public static DBConfig makeDefaultH2InMemoryDbConfig(String dbName, boolean compressed) {
         checkNotEmpty(dbName, "Invalid db name!");
@@ -814,13 +821,14 @@ public final class Diversicons {
         DBConfig ret = new DBConfig();
         ret.setDb_vendor("de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect");
         ret.setJdbc_driver_class("org.h2.Driver");
-        ret.setUser("root"); // same as UBY
-        ret.setPassword("pass"); // same as UBY
+        ret.setUser(DEFAULT_H2_USER); // same as UBY
+        ret.setPassword(DEFAULT_H2_PASSWORD); // same as UBY
         return ret;
     }
 
     /**
      * @deprecated TODO in progress
+     * @since 0.1.0
      */
     public static void turnH2InsertionModeOn(DBConfig dbConfig) {
 
@@ -862,8 +870,8 @@ public final class Diversicons {
 
     /**
      * @deprecated // TODO in progress
+     * @since 0.1.0
      */
-
     public static void turnH2InsertionModOff() {
         String restoreSavedVars = ""
                 + "  SET LOG @DIV_SAVED_LOG;"
@@ -894,7 +902,7 @@ public final class Diversicons {
 
         Date start = new Date();
 
-        LOG.info("Restoring database " + dbConfig.getJdbc_url() + "  ...");
+        LOG.info("Restoring database " + dbConfig.getJdbc_url() + " (may require a long time to perform) ...");
         try {
             Class.forName("org.h2.Driver");
         } catch (ClassNotFoundException ex) {
@@ -980,13 +988,12 @@ public final class Diversicons {
     }
 
     /**
-     * EXPERIMENTAL - IMPLEMENTATION MIGHT WILDLY CHANGE
-     * 
+     *  
      * Restores a packaged H2 db to file system in user's home under
      * {@link #CACHE_PATH}. The database is intended
-     * to be accessed only in read-only mode. Database may be fetched from the
-     * internet or directly taken from a jar
-     * if on the classpath.
+     * to be accessed only in read-only mode and if
+     * already present no fetch is performed. The database may be fetched from the
+     * internet or directly taken from a jar if on the classpath.
      *
      * @param id
      *            the worldwide unique identifier for the resource, in a format
@@ -1005,14 +1012,20 @@ public final class Diversicons {
         checkNotBlank(id, "Invalid version!");
         checkArgument(DivWn31.ID.equals(id), "Currently only supported id is "
                 + DivWn31.ID + ", found instead " + id + "  !");
-        checkArgument(DivWn31.of().getVersion().replace("-SNAPSHOT", "")
-                                     .equals(version.replace("-SNAPSHOT", "")),
-                "Currently only supported version is " + DivWn31.of().getVersion() + ", found instead " + version + "  !");
+        checkArgument(DivWn31.of()
+                             .getVersion()
+                             .replace("-SNAPSHOT", "")
+                             .equals(version.replace("-SNAPSHOT", "")),
+                "Currently only supported version is " + DivWn31.of()
+                                                                .getVersion()
+                        + ", found instead " + version + "  !");
 
         String filepath = getCachedH2DbDir(id, version).getAbsolutePath() + File.separator + id;
 
         if (!new File(filepath + ".h2.db").exists()) {
-            restoreH2Db(DivWn31.of().getH2DbUri(), filepath);
+            restoreH2Db(DivWn31.of()
+                               .getH2DbUri(),
+                    filepath);
         }
         return makeDefaultH2FileDbConfig(filepath, true);
     }
@@ -1045,7 +1058,6 @@ public final class Diversicons {
         }
     }
 
-
     /**
      * @since 0.1.0
      */
@@ -1055,7 +1067,7 @@ public final class Diversicons {
     }
 
     /**
-     * @since 0.1
+     * @since 0.1.0
      */
     public static File getCachedH2DbDir(String id, String version) {
         checkNotBlank(id, "Invalid id!");
@@ -1163,7 +1175,7 @@ public final class Diversicons {
     }
 
     /**
-     * 
+     * Returns a java.sql.Connection to an H2 database from UBY DBConfig. 
      * 
      * @throws DivIoConnection
      * 
@@ -1253,8 +1265,5 @@ public final class Diversicons {
         checkNotEmpty(filePath, "Found an invalid filepath!");
         return filePath;
     }
-
-
-
 
 }

@@ -69,6 +69,14 @@ import it.unitn.disi.diversicon.internal.Internals;
  * {@code provenance} edges.
  * 
  * To create instances use {@link #connectToDb(DBConfig)} method
+ * 
+ * <h3>Concurrency</h3>
+ * <p>
+ * A Diversicon opens a hibernate {@link org.hibernate.Session Session} with the DB 
+ * upon instance creation, as Uby does.  This implies a single instance of Diversicon <i> cannot</i> be shared among concurrent processes, 
+ * see <a href="https://docs.jboss.org/hibernate/orm/3.3/reference/en/html/transactions.html#transactions-basics" target="_blank">Hibernate documentation</a>.
+ * TODO maybe it's possible to have one different instance per thread. 
+ * </p> 
  *
  * @since 0.1.0
  */
@@ -963,7 +971,7 @@ public class Diversicon extends Uby {
      * Creates an instance of a Diversicon and opens a connection to the db.
      * Db must already exists. Present schema will be validated against required
      * one
-     * and if it doesn't match InvalidSchemaException will be thrown.
+     * and if it doesn't match {@link InvalidSchemaException} will be thrown.
      * 
      * @param dbConfig
      *

@@ -43,6 +43,18 @@ import it.unitn.disi.diversicon.Diversicons;
 import it.unitn.disi.diversicon.internal.Internals;
 
 public final class DivTester {
+    
+    /**
+     * @since 0.1.0
+     */
+    private static final String MINIMAL_XML =         
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+            + "<LexicalResource name=\"lexical resource 1\">   \n" 
+            + "     <Lexicon id=\"lexicon 1\">       \n"
+            + "         <Synset id=\"synset 1\"/>    \n"        
+            + "     </Lexicon>                       \n" 
+            + "</LexicalResource>";        
+    
 
     private static final String TEST_RESOURCES_PATH = "it/unitn/disi/diversicon/test/";
 
@@ -500,7 +512,7 @@ public final class DivTester {
         LexicalResource dbLe = div.getLexicalResource(lexicalResource.getName());
 
         try {
-            Path outPath = Files.createTempFile(DivTester.DIVERSICON_TEST_STRING, "");
+            Path outPath = Internals.createTempFile(DivTester.DIVERSICON_TEST_STRING, "");
 
             new DBToXMLTransformer(dbConfig, outPath.toString(), null)
                                                                       .transform(dbLe);

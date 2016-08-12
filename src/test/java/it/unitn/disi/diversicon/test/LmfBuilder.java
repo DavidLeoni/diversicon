@@ -13,6 +13,7 @@ import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import it.unitn.disi.diversicon.DivSynsetRelation;
 import it.unitn.disi.diversicon.internal.Internals;
 
+import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 import static it.unitn.disi.diversicon.internal.Internals.newArrayList;
@@ -103,20 +104,38 @@ public class LmfBuilder {
     private String id(String name, Collection c) {
         return prefix + name + " " + (c.size() + 1);
     }
+    
+    /**
+     * Returns something like {@code myprefix-name 3} where 3 is the collection
+     * size
+     */
+    private String id(String name, long num) {
+        checkArgument(num >= 0, "Invalid id number, should be >= 0 !");
+        return prefix + name + " " + num;
+    }
 
     /**
      * @since 0.1.0
      */
     public LmfBuilder synset() {
+        Lexicon lexicon = getCurLexicon();
+        return synset(lexicon.getSynsets().size()+ 1);
+    }
+    
+    /**
+     * @since 0.1.0
+     */
+    public LmfBuilder synset(long id) {
         checkBuilt();
         Synset synset = new Synset();
         Lexicon lexicon = getCurLexicon();
-        synset.setId(id("synset", lexicon.getSynsets()));
+        synset.setId(id("synset", id));
 
         lexicon.getSynsets()
                .add(synset);
         return this;
     }
+    
 
     /**
      * Creates a definition and attaches it to current synset
