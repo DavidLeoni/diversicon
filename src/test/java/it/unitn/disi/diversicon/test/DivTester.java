@@ -2,9 +2,12 @@ package it.unitn.disi.diversicon.test;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
+import static it.unitn.disi.diversicon.internal.Internals.createTempFile;
 import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
 import static org.junit.Assert.assertEquals;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.nio.file.Files;
@@ -35,6 +38,7 @@ import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import de.tudarmstadt.ukp.lmf.transform.DBToXMLTransformer;
+import de.tudarmstadt.ukp.lmf.transform.LMFXmlWriter;
 import it.disi.unitn.diversicon.exceptions.DivException;
 import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.DivSynsetRelation;
@@ -505,25 +509,20 @@ public final class DivTester {
     public static File writeXml(LexicalResource lexicalResource) {
         checkNotNull(lexicalResource);
 
-        DBConfig dbConfig = createNewDbConfig();
-        Diversicons.dropCreateTables(dbConfig);
-        Diversicon div = Diversicon.connectToDb(dbConfig);
-        div.importResource(lexicalResource, true);
-        LexicalResource dbLe = div.getLexicalResource(lexicalResource.getName());
-
+        File ret = createTempFile(DivTester.DIVERSICON_TEST_STRING, ".xml").toFile();
+        
+        LMFXmlWriter writer;
         try {
-            Path outPath = Internals.createTempFile(DivTester.DIVERSICON_TEST_STRING, "");
-
-            new DBToXMLTransformer(dbConfig, outPath.toString(), null)
-                                                                      .transform(dbLe);
-            return outPath.toFile();
-        } catch (IOException | SAXException ex) {
-            throw new DivException("Error while making xml file!", ex);
-        } finally {
-            div.getSession()
-               .close();
+            writer = new LMFXmlWriter(new FileOutputStream(
+                    ret), null);  // todo check if setting dtd means something
+            writer.writeElement(lexicalResource);
+            writer.writeEndDocument();
+            
+        } catch (FileNotFoundException | SAXException ex) {
+            throw new DivException("Error while writing lexical resource to XML: " + ret.getAbsolutePath(), ex);
         }
 
+        return ret;
     }
 
     /**
