@@ -208,16 +208,8 @@ public class UbyTest {
                                       .synset(1)
                                       .build();
 
-        File xml = new File(DivTester.createTestDir()
-                                     .toFile()
-                + "test.xml");
-
-        DivTester.writeXml(lexRes);
-
-        LOG.debug("\n" + FileUtils.readFileToString(xml));
-
-        new XMLToDBTransformer(dbConfig).transform(xml, null);
-
+        importIntoUby(lexRes);
+        
     }
 
     /**
@@ -283,8 +275,9 @@ public class UbyTest {
     /**
      * Inputs:
      * 
-     * 'e' FILEPATH : Extracts relType from SynsetRelation rows of OWA XML
-     * files.
+     * <pre>
+     *      e FILEPATH : Extracts relType from SynsetRelation rows of OWA XML at FILEPATH
+     * </pre>
      *
      * @since 0.1.0
      */
