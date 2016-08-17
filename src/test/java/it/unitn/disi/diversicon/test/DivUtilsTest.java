@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import javax.annotation.Nullable;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -22,6 +23,7 @@ import org.xml.sax.SAXException;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
+import de.tudarmstadt.ukp.lmf.transform.LMFXmlWriter;
 import it.disi.unitn.diversicon.exceptions.DivIoException;
 import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.BuildInfo;
@@ -204,5 +206,24 @@ public class DivUtilsTest {
         Internals.createTempDivDir("will-survive-");
         System.setProperty(Diversicon.PROPERTY_DEBUG_KEEP_TEMP_FILES, Boolean.toString(false));
         Internals.createTempDivDir("wont-survive-");               
-    }    
+    }
+
+    
+    /**
+     * 
+     * 
+     * @since 0.1.0
+     */
+    @Test
+    public void testWriteXml() throws IOException{
+        
+        File xml = DivTester.writeXml(DivTester.GRAPH_1_HYPERNYM);
+        
+        String str = FileUtils.readFileToString(xml, "UTF-8");
+        LOG.debug(str);
+        
+        assertTrue(!str.contains("DivSynsetRelation"));
+        
+    }
+
 }

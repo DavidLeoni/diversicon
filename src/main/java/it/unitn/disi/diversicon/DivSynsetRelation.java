@@ -98,6 +98,19 @@ public class DivSynsetRelation extends SynsetRelation {
                 + targetId + ", relType=" + relType + ", relName=" + relName + ", frequencies=" + frequencies + "]";
     }
 	
-	
+    /**
+     * Returns a new UBY SynsetRelation that will be a shallow copy of this data structure
+     * 
+     * @since 0.1.0
+     */
+    public SynsetRelation toSynsetRelation(){
+        SynsetRelation ret = new SynsetRelation();
+        ret.setFrequencies(this.getFrequencies());
+        ret.setRelName(this.getRelName());
+        ret.setRelType(this.getRelType());
+        ret.setSource(this.getSource());
+        ret.setTarget(this.getTarget());            
+        return ret;
+    }
 
 }

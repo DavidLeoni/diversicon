@@ -33,8 +33,7 @@ import it.unitn.disi.diversicon.internal.Internals;
 /**
  * 
  * Simple transformer to directly put into the db a LexicalResource complete
- * with all the
- * lexicons, synsets, etc.
+ * with all the lexicons, synsets, etc.
  * 
  * @since 0.1.0
  * @author David Leoni

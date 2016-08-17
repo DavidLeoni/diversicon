@@ -115,6 +115,8 @@ public class LmfBuilder {
     }
 
     /**
+     * Creates synset with id like 'synset n'
+     * 
      * @since 0.1.0
      */
     public LmfBuilder synset() {

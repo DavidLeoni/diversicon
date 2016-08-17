@@ -6,15 +6,13 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.annotation.Nullable;
 import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamSource;
@@ -22,7 +20,6 @@ import javax.xml.transform.stream.StreamSource;
 import org.apache.commons.io.FileUtils;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
-import org.dom4j.DocumentHelper;
 import org.dom4j.io.DocumentResult;
 import org.dom4j.io.DocumentSource;
 import org.dom4j.io.OutputFormat;
@@ -32,28 +29,29 @@ import org.hibernate.exception.ConstraintViolationException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
 import de.tudarmstadt.ukp.lmf.api.Uby;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
-import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
+import de.tudarmstadt.ukp.lmf.model.enums.ERelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
+import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import de.tudarmstadt.ukp.lmf.transform.LMFDBUtils;
-import de.tudarmstadt.ukp.lmf.transform.LMFXmlWriter;
 import de.tudarmstadt.ukp.lmf.transform.XMLToDBTransformer;
 import it.disi.unitn.diversicon.exceptions.DivException;
-import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
+import it.unitn.disi.diversicon.internal.Internals;
 
+import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 import static it.unitn.disi.diversicon.test.DivTester.GRAPH_1_HYPERNYM;
-import static it.unitn.disi.diversicon.test.DivTester.checkDb;
 import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -68,6 +66,10 @@ public class UbyTest {
 
     private DBConfig dbConfig;
 
+    @Rule 
+    public TemporaryFolder folder= new TemporaryFolder();
+
+    
     @Before
     public void beforeMethod() {
         dbConfig = DivTester.createNewDbConfig();
@@ -84,10 +86,11 @@ public class UbyTest {
      * 
      * See https://github.com/DavidLeoni/diversicon/issues/7
      * 
+     * @see #testGetSynsetIterator()
      * @since 0.1.0
      */
     @Test
-    public void testGetSynsetById() throws FileNotFoundException {
+    public void testGetSynsetByNonExistingId() throws FileNotFoundException {
 
         LMFDBUtils.createTables(dbConfig);
         Uby uby = new Uby(dbConfig);
@@ -104,22 +107,51 @@ public class UbyTest {
     }
 
     /**
+     * Seems like calling Uby.getSynsetIterator(null).next()  always throws NullPointerException:
      * 
-     * @param lexicalResourceName
-     *            the name of an existing lexical resource into which merge.
-     *            If it doesn't exist or null, a new lexical resource is created
-     *            using name attribute found
-     *            in the XML (thus provided {@code lexicaResourceName} will be
-     *            ignored).
+     * See https://github.com/DavidLeoni/diversicon/issues/16
      * 
+     * @see #testGetSynsetByNonExistingId()
      * @since 0.1.0
      */
-    private void importIntoUby(LexicalResource res, @Nullable String lexicalResourceName) {
+    @Test
+    public void testGetSynsetIterator() throws FileNotFoundException  {
 
+        LMFDBUtils.createTables(dbConfig);
+                
+        LexicalResource lexRes = lmf().lexicon()
+                .synset()
+                .build();
+       
+        importIntoUby(lexRes);
+                
+        Uby uby = new Uby(dbConfig);
         try {
-            File xml = DivTester.writeXml(res);
+            Iterator<Synset> iter = uby.getSynsetIterator(null);
+            iter.next();
+            Assert.fail("Seems bug was solved!");
+
+        } catch (NullPointerException ex) {
+
+        }
+        
+
+        uby.getSession()
+           .close();
+    }
+    
+    
+    /**    
+     * Transforms res into an XML and then imports it into UBY
+     * @since 0.1.0
+     */
+    private File importIntoUby(LexicalResource lexRes) {
+        File xml;
+        try {
+             xml = DivTester.writeXml(lexRes);
 
             new XMLToDBTransformer(dbConfig).transform(xml, null);
+            return xml;
         } catch (Exception ex) {
             throw new DivException("Error while import file into Uby!", ex);
         }
@@ -139,10 +171,8 @@ public class UbyTest {
     public void testCantMergeSameLexicon() throws FileNotFoundException, IllegalArgumentException, DocumentException {
 
         LMFDBUtils.createTables(dbConfig);
-
-        File xml = DivTester.writeXml(GRAPH_1_HYPERNYM);
-
-        new XMLToDBTransformer(dbConfig).transform(xml, null);
+        
+        File xml = importIntoUby(GRAPH_1_HYPERNYM);       
 
         try {
             new XMLToDBTransformer(dbConfig).transform(xml, GRAPH_1_HYPERNYM.getName());
@@ -182,10 +212,7 @@ public class UbyTest {
                                      .toFile()
                 + "test.xml");
 
-        LMFXmlWriter writer = new LMFXmlWriter(xml.getAbsolutePath(), null);
-
-        writer.writeElement(lexRes);
-        writer.writeEndDocument();
+        DivTester.writeXml(lexRes);
 
         LOG.debug("\n" + FileUtils.readFileToString(xml));
 
@@ -221,7 +248,9 @@ public class UbyTest {
         new XMLToDBTransformer(dbConfig).transform(xml, null);
 
     }
-
+/**
+ * @since 0.1.0 
+ */
     @Test
     public void testOwaToUby() throws DocumentException, TransformerException, IOException {
 
@@ -292,5 +321,64 @@ public class UbyTest {
         }
 
     }
+    
+    /**
+     * Shows you can import a synset relation pointing to a non-existing synset, and 
+     * such synset is not automatically created in the db. Still when 
+     * in the API there is Synset to return, Hibernate  creates a 
+     * Java object on the fly.
+     *
+     * @since 0.1.0
+     */
+    @Test
+    public void testSynsetRelationNonExistingTarget() throws FileNotFoundException {
 
+        Diversicons.createTables(dbConfig); // Diversicons, otherwise
+                                            // JavaTransformer
+                                            // complains about missing
+                                            // DivSynsetRelation column
+
+        LexicalResource lexRes = lmf().lexicon()
+                                      .synset()
+                                      .build();
+        
+        Synset syn = lexRes.getLexicons()
+                           .get(0)
+                           .getSynsets()
+                           .get(0);
+
+        SynsetRelation sr = new SynsetRelation();
+        sr.setRelName("a");
+        sr.setRelType(ERelTypeSemantics.label);
+        sr.setSource(syn);
+
+        Synset syn2 = new Synset();
+        syn2.setId("synset 2");
+
+        sr.setTarget(syn2);
+
+        syn.setSynsetRelations(Internals.newArrayList(sr));
+
+        importIntoUby(lexRes);        
+        
+        Uby uby = new Uby(dbConfig);
+               
+        Synset retSyn1 = uby.getSynsetById("synset 1");                
+        
+        // second synset is not created !
+        assertEquals(1, uby.getLexicons().get(0).getSynsets().size());
+        
+        List<SynsetRelation> synRels = retSyn1.getSynsetRelations();
+        checkNotNull(synRels);        
+        assertEquals(1, synRels.size());
+        SynsetRelation retSynRel = synRels.get(0); 
+        Synset retSyn2 = retSynRel.getTarget();
+        // shows Hibernate here does create the synset object 
+        assertEquals("synset 2", retSyn2.getId());
+
+    }
+
+
+    
+  
 }

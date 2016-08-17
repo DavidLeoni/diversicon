@@ -5,6 +5,9 @@ import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 import static it.unitn.disi.diversicon.internal.Internals.createTempFile;
 import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -22,6 +25,8 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.apache.commons.io.FileUtils;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
@@ -42,6 +47,7 @@ import de.tudarmstadt.ukp.lmf.transform.LMFXmlWriter;
 import it.disi.unitn.diversicon.exceptions.DivException;
 import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.DivSynsetRelation;
+import it.unitn.disi.diversicon.DivXmlWriter;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
 import it.unitn.disi.diversicon.internal.Internals;
@@ -511,9 +517,9 @@ public final class DivTester {
 
         File ret = createTempFile(DivTester.DIVERSICON_TEST_STRING, ".xml").toFile();
         
-        LMFXmlWriter writer;
+        DivXmlWriter writer;
         try {
-            writer = new LMFXmlWriter(new FileOutputStream(
+            writer = new DivXmlWriter(new FileOutputStream(
                     ret), null);  // todo check if setting dtd means something
             writer.writeElement(lexicalResource);
             writer.writeEndDocument();

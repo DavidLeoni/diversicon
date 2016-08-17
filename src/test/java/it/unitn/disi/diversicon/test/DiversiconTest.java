@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.commons.io.FileUtils;
 import org.hibernate.exception.GenericJDBCException;
 import org.junit.After;
 import org.junit.Assert;
@@ -670,6 +671,14 @@ public class DiversiconTest {
     @Test
     public void testImportXml() {
 
+        File xml = DivTester.writeXml(GRAPH_4_HYP_HOL_HELLO);
+        
+        try {
+            LOG.debug(FileUtils.readFileToString(xml, "UTF-8"));
+        } catch (IOException e) {        
+            throw new RuntimeException("Something went wrong!", e);
+        }
+        
         Diversicons.dropCreateTables(dbConfig);
 
         Diversicon div = Diversicon.connectToDb(dbConfig);
@@ -677,9 +686,10 @@ public class DiversiconTest {
         assertFalse(div.formatImportJobs(true)
                        .isEmpty());
 
-        File xml = DivTester.writeXml(GRAPH_4_HYP_HOL_HELLO);
-
+        
         div.importXml(xml.getAbsolutePath());
+        
+        checkDb(GRAPH_4_HYP_HOL_HELLO, div);
 
     }
 
