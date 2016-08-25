@@ -137,7 +137,7 @@ public class ExtractedStream {
                         LOG.debug("Writing stream to " + tempFile.getAbsolutePath() + " ...");
                         FileUtils.copyInputStreamToFile(this.inputStream, tempFile);
 
-                    } else if (sourceUrl.startsWith("file:") || !Internals.withProtocol(sourceUrl)) {
+                    } else if (sourceUrl.startsWith("file:") || !Internals.hasProtocol(sourceUrl)) {
                         this.tempFile = new File(sourceUrl);
                     } else {
 

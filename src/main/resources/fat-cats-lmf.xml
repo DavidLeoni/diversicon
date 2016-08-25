@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?
+  xmlns:fc01="https://github.com/DavidLeoni/diversicon/tree/master/src/main/resources/fat-cats-lmf.xml"
+  xmlns:wn31="https://github.com/DavidLeoni/diversicon-wordnet-3.1/blob/master/src/main/resources/it/unitn/disi/diversicon/data/div-wn31.xml.xz">
+<!DOCTYPE LexicalResource SYSTEM "ubyLmfDTD_1.0.dtd">
+
+<!-- 
+
+Simple example of an LMF file, linking formalizing fat cats taken from an imaginary my-bestiary.csv,
+and linking them to WordNet 3.1. Since in UBY ids are global, we prepend everything with
+a prefix.In this case we chose 'fc01':
+ 
+				wn31:feline
+					^
+					|
+			 fc01:fat-feline
+					^
+					|
+			  fc01:fat-cat
+					^
+					|
+ 		     fc01:fat-wildcat
+
+
+'	
+	  
+-->
+<LexicalResource dtdVersion="1.0" name="fc01:lr1">
+    <GlobalInformation label="Example of an LMF file"/>
+    <Lexicon languageIdentifier="eng" id="divex:lex-eng" name="Example Lexicon">
+        <LexicalEntry id="fc01:le-fat-feline" partOfSpeech="noun">
+            <Lemma>
+                <FormRepresentation languageIdentifier="eng" writtenForm="fat feline"/>
+            </Lemma>
+            <Sense id="fc01:s-fat-feline" index="1" synset="fc01:ss-fat-cat">
+                <MonolingualExternalRef externalSystem="my-bestiary" externalReference="3rd row, fourth column in CSV"/>
+            </Sense>
+        </LexicalEntry>
+        <LexicalEntry id="fc01:le-fat-cat" partOfSpeech="noun">
+            <Lemma>
+                <FormRepresentation languageIdentifier="eng" writtenForm="fat cat"/>
+            </Lemma>
+            <Sense id="fc01:s-fat-cat" index="1" synset="fc01:ss-fat-cat">
+                <MonolingualExternalRef externalSystem="my-bestiary" externalReference="2nd row 5th column in csv of origin"/>
+            </Sense>
+        </LexicalEntry>
+
+        <LexicalEntry id="fc01:le-fat-wildcat" partOfSpeech="noun">
+            <Lemma>
+                <FormRepresentation languageIdentifier="eng" writtenForm="fat wildcat"/>
+            </Lemma>
+            <Sense id="fc01:s-fat-wildcat" index="1" synset="fc01:ss-fat-wildcat">
+                <MonolingualExternalRef externalSystem="my-bestiary" externalReference="1st row 3rd column in csv of origin"/>
+            </Sense>
+        </LexicalEntry>
+
+       
+        <Synset id="fc01:ss-fat-feline">
+            <Definition>
+                <TextRepresentation languageIdentifier="eng" writtenText="An oversized meowing animal"/>
+            </Definition>
+            <!-- here we state our fat feline has as hypernym Wordnet 3.1 'feline':
+            	 http://wordnetweb.princeton.edu/perl/webwn?s=feline&sub=Search+WordNet&o2=&o0=1&o8=1&o1=1&o7=&o5=&o9=&o6=&o3=&o4=&h=00
+            	 which is defined in an external file
+            -->
+            <SynsetRelation target="wn31:ss-2123649" relType="taxonomic" relName="hypernym"/>
+            <MonolingualExternalRef externalSystem="wn31" externalReference="[POS: noun] 2123649"/>
+        </Synset>
+        <Synset id="fc01:ss-fat-cat">
+            <Definition>
+                <TextRepresentation languageIdentifier="eng" writtenText="That big feline always sleeping in front of your fridge"/>
+            </Definition>			           
+            <SynsetRelation target="fc01:ss-fat-feline" relType="taxonomic" relName="hypernym"/>             
+        </Synset>
+        <Synset id="fc01:ss-fat-wildcat">
+            <Definition>
+                <TextRepresentation languageIdentifier="eng" writtenText="A cat with without owner who got huge by digging in your trash."/>
+            </Definition>			            
+            <SynsetRelation target="fc01:ss-fat-cat" relType="taxonomic" relName="hypernym"/>             
+        </Synset>
+
+       
+    </Lexicon>
+</LexicalResource>

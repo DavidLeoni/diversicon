@@ -714,7 +714,7 @@ public final class Internals {
         } else {
             try {
 
-                if (withProtocol(dataUrl)) {
+                if (hasProtocol(dataUrl)) {
                     inputStream = new URL(dataUrl).openStream();
                 } else {
                     inputStream = new FileInputStream(dataUrl);
@@ -764,7 +764,7 @@ public final class Internals {
     /**
      * @since 0.1.0
      */
-    static boolean withProtocol(String dataUrl) {
+    static boolean hasProtocol(String dataUrl) {
         checkNotBlank(dataUrl, "Invalid data url!");
         Pattern p = Pattern.compile("^(\\w)+:(.*)");
         Matcher m = p.matcher(dataUrl);
@@ -888,7 +888,10 @@ public final class Internals {
         }
 
         if (sourceDirFile != null) {
-            LOG.debug("Copying directory from {} to {}", sourceDirFile.getAbsolutePath(),
+            LOG.debug("\nCopying directory ...\n"
+                    + "  from:   {} \n"
+                    + "  to  :   {}", 
+                    sourceDirFile.getAbsolutePath(),
                     destDir.getAbsolutePath());
             try {
                 FileUtils.copyDirectory(sourceDirFile, destDir);
@@ -910,7 +913,7 @@ public final class Internals {
                             new File(jarFile.getAbsolutePath() + "/../../src/main/resources", sourceDirPath), destDir);
                     LOG.info("Done copying directory");
                 } catch (IOException ex) {
-                    throw new RuntimeException("Couldn't copy the directory!", ex);
+                    throw new DivIoException("Couldn't copy the directory!", ex);
                 }
             } else {
                 LOG.info("Extracting jar {} to {}", jarFile.getAbsolutePath(), destDir.getAbsolutePath());

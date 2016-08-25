@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -60,7 +61,7 @@ import it.unitn.disi.diversicon.internal.Internals;
 import it.disi.unitn.diversicon.exceptions.DivException;
 import it.disi.unitn.diversicon.exceptions.DivIoException;
 import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
-import it.unitn.disi.diversicon.data.DivWn31;
+import it.unitn.disi.diversicon.data.FatCats;
 import it.unitn.disi.diversicon.internal.ExtractedStream;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
@@ -75,6 +76,22 @@ import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
  */
 public final class Diversicons {
 
+    /**
+     * Mnemonic shorthand for H2 database
+     * 
+     * @since 0.1.0
+     */
+    public static final String H2_IDENTIFIER = "h2";    
+    
+    /**
+     * Maps a lowercased db mnemonic (like 'h2') to its driver name (like 'org.h2.Driver')
+     * 
+     * @since 0.1.0
+     */
+    private static final Map<String, String> DATABASE_DRIVERS = 
+            Collections.unmodifiableMap(Internals.newMap(H2_IDENTIFIER, "org.h2.Driver"));
+
+    
     public static final String BUILD_PROPERTIES_PATH = "tod.commons.build.properties";
 
     /**
@@ -129,9 +146,9 @@ public final class Diversicons {
     private static final LinkedHashSet<String> partOfRelations = new LinkedHashSet<String>();
     private static final LinkedHashSet<String> canonicalPartOfRelations = new LinkedHashSet<String>();
 
-    private static final String DEFAULT_H2_USER = "root";
+    private static final String DEFAULT_USER = "root";
 
-    private static final String DEFAULT_H2_PASSWORD = "pass";
+    private static final String DEFAULT_PASSWORD = "pass";
 
     private static Map<String, String> inverseRelations = new HashMap();
 
@@ -821,8 +838,8 @@ public final class Diversicons {
         DBConfig ret = new DBConfig();
         ret.setDb_vendor("de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect");
         ret.setJdbc_driver_class("org.h2.Driver");
-        ret.setUser(DEFAULT_H2_USER); // same as UBY
-        ret.setPassword(DEFAULT_H2_PASSWORD); // same as UBY
+        ret.setUser(DEFAULT_USER); // same as UBY
+        ret.setPassword(DEFAULT_PASSWORD); // same as UBY
         return ret;
     }
 
@@ -890,7 +907,7 @@ public final class Diversicons {
      *
      * @param dumpUrl
      *            For Wordnet 3.1 packaged dump, you can use
-     *            {@link it.unitn.disi.diversicon.data.DivWn31#WORDNET_DIV_SQL_RESOURCE_URI}
+     *            {@link it.unitn.disi.diversicon.data.FatCats#WORDNET_DIV_SQL_RESOURCE_URI}
      * @throws DivIoException
      *             if an IO error occurs
      * 
@@ -997,7 +1014,7 @@ public final class Diversicons {
      *
      * @param id
      *            the worldwide unique identifier for the resource, in a format
-     *            like {@link it.unitn.disi.diversicon.data.DivWn31#ID}
+     *            like {@link it.unitn.disi.diversicon.data.FatCats#ID}
      * @param version
      *            the version of the resource, in X.Y.Z-SOMETHING format a la
      *            Maven.
@@ -1010,20 +1027,20 @@ public final class Diversicons {
     public static DBConfig fetchH2Db(String id, String version) {
         checkNotBlank(id, "Invalid resource id!");
         checkNotBlank(id, "Invalid version!");
-        checkArgument(DivWn31.ID.equals(id), "Currently only supported id is "
-                + DivWn31.ID + ", found instead " + id + "  !");
-        checkArgument(DivWn31.of()
+        checkArgument(FatCats.ID.equals(id), "Currently only supported id is "
+                + FatCats.ID + ", found instead " + id + "  !");
+        checkArgument(FatCats.of()
                              .getVersion()
                              .replace("-SNAPSHOT", "")
                              .equals(version.replace("-SNAPSHOT", "")),
-                "Currently only supported version is " + DivWn31.of()
+                "Currently only supported version is " + FatCats.of()
                                                                 .getVersion()
                         + ", found instead " + version + "  !");
 
         String filepath = getCachedH2DbDir(id, version).getAbsolutePath() + File.separator + id;
 
         if (!new File(filepath + ".h2.db").exists()) {
-            restoreH2Db(DivWn31.of()
+            restoreH2Db(FatCats.of()
                                .getH2DbUri(),
                     filepath);
         }
@@ -1081,7 +1098,7 @@ public final class Diversicons {
      *
      * @param dumpUrl
      *            For Wordnet 3.1 packaged dump, you can use
-     *            {@link it.unitn.disi.diversicon.data.DivWn31#WORDNET_DIV_SQL_RESOURCE_URI}
+     *            {@link it.unitn.disi.diversicon.data.FatCats#WORDNET_DIV_SQL_RESOURCE_URI}
      * @param targetPath
      *            the target path where to restore the db, ending with the db
      *            name. Must NOT end with .h2.db
@@ -1109,7 +1126,7 @@ public final class Diversicons {
         Date start = new Date();
 
         LOG.info("Restoring database:   " + dumpUrl);
-        LOG.info("    to   " + target.getAbsolutePath() + "  ...");
+        LOG.info("                to:   " + target.getAbsolutePath() + "  ...");
 
         ExtractedStream extractedStream = Internals.readData(dumpUrl, true);
 
@@ -1119,9 +1136,8 @@ public final class Diversicons {
             throw new DivIoException("Something went wrong!", e);
         }
 
-        LOG.info("Done restoring database " + dumpUrl + " to " + target.getAbsolutePath());
+        LOG.info("Database created in " + Internals.formatInterval(start, new Date()));
 
-        LOG.info("Elapsed time: " + Internals.formatInterval(start, new Date()));
     }
 
     /**
@@ -1217,7 +1233,7 @@ public final class Diversicons {
     }
 
     /**
-     * Checks provided {@code dbConfig} points to an H2 database.
+     * Checks provided {@code dbConfig} is for an H2 database.
      * 
      * @throws IllegalArgumentException
      * 
@@ -1264,6 +1280,60 @@ public final class Diversicons {
 
         checkNotEmpty(filePath, "Found an invalid filepath!");
         return filePath;
+    }
+   
+    /**
+     * Returns true if provided configuration refers to a database which could work 
+     * with Diversicon. In order to work two conditions need to be met:
+     * 
+     * 1) Db driver must be present in classpath
+     * 2) Database must not be blacklisted
+     *  
+     * @throws ClassNotFoundExc
+     * 
+     * @since 0.1.0
+     */    
+    // we should ban dbs that don't support recursive queries (i.e. mysql)
+    // maybe Hibernate can tell us...
+    public static boolean isDatabaseSupported(String driver) {
+        checkNotNull(driver);                              
+                                  
+        try {
+            Class.forName(driver);
+        } catch (ClassNotFoundException ex) {
+            LOG.debug("Couldn't find database driver class: " + driver, ex);
+            return false;
+        }
+        
+        return driver.equals("org.h2.Driver");
+       
+    }
+    
+    
+    
+    /**
+     * Returns the lowercased shorthand to identify a database (like 'h2')
+     * 
+     * @throws IllegalArgumentException
+     * 
+     * @since 0.1.0
+     */
+    // TODO Spring DatabaseType seems a good source for identifiers https://github.com/spring-projects/spring-batch/blob/master/spring-batch-infrastructure/src/main/java/org/springframework/batch/support/DatabaseType.java
+    // also see Jdbc DatabaseMetadata: http://stackoverflow.com/a/254220
+    public static String getDatabaseId(DBConfig dbConfig){
+        checkH2Db(dbConfig);
+        return H2_IDENTIFIER;
+    }
+
+    /**
+     * 
+     * @throws IllegalArgumentException
+     */
+    public static void checkSupportedDatabase(String databaseDriver) {
+        checkNotNull(databaseDriver);
+        if (!isDatabaseSupported(databaseDriver)){
+            throw new UnsupportedOperationException("Unsupported database!");
+        }
     }
 
 }
