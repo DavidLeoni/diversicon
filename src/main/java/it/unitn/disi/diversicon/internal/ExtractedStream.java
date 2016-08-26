@@ -158,4 +158,15 @@ public class ExtractedStream {
             throw new DivIoException("Error while creating file!", ex);
         }
     }
+
+    /**
+     * @since 0.1.0
+     */
+    @Override
+    public String toString() {
+        return "ExtractedStream [filepath=" + filepath + ", sourceUrl=" + sourceUrl + ", extracted=" + extracted
+                + ", tempFile=" + tempFile + "]";
+    }
+    
+    
 }

@@ -61,7 +61,7 @@ import it.unitn.disi.diversicon.internal.Internals;
 import it.disi.unitn.diversicon.exceptions.DivException;
 import it.disi.unitn.diversicon.exceptions.DivIoException;
 import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
-import it.unitn.disi.diversicon.data.FatCats;
+import it.unitn.disi.diversicon.data.Smartphones;
 import it.unitn.disi.diversicon.internal.ExtractedStream;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
@@ -907,7 +907,7 @@ public final class Diversicons {
      *
      * @param dumpUrl
      *            For Wordnet 3.1 packaged dump, you can use
-     *            {@link it.unitn.disi.diversicon.data.FatCats#WORDNET_DIV_SQL_RESOURCE_URI}
+     *            {@link it.unitn.disi.diversicon.data.Smartphones#WORDNET_DIV_SQL_RESOURCE_URI}
      * @throws DivIoException
      *             if an IO error occurs
      * 
@@ -1014,7 +1014,7 @@ public final class Diversicons {
      *
      * @param id
      *            the worldwide unique identifier for the resource, in a format
-     *            like {@link it.unitn.disi.diversicon.data.FatCats#ID}
+     *            like {@link it.unitn.disi.diversicon.data.Smartphones#ID}
      * @param version
      *            the version of the resource, in X.Y.Z-SOMETHING format a la
      *            Maven.
@@ -1027,20 +1027,20 @@ public final class Diversicons {
     public static DBConfig fetchH2Db(String id, String version) {
         checkNotBlank(id, "Invalid resource id!");
         checkNotBlank(id, "Invalid version!");
-        checkArgument(FatCats.ID.equals(id), "Currently only supported id is "
-                + FatCats.ID + ", found instead " + id + "  !");
-        checkArgument(FatCats.of()
+        checkArgument(Smartphones.ID.equals(id), "Currently only supported id is "
+                + Smartphones.ID + ", found instead " + id + "  !");
+        checkArgument(Smartphones.of()
                              .getVersion()
                              .replace("-SNAPSHOT", "")
                              .equals(version.replace("-SNAPSHOT", "")),
-                "Currently only supported version is " + FatCats.of()
+                "Currently only supported version is " + Smartphones.of()
                                                                 .getVersion()
                         + ", found instead " + version + "  !");
 
         String filepath = getCachedH2DbDir(id, version).getAbsolutePath() + File.separator + id;
 
         if (!new File(filepath + ".h2.db").exists()) {
-            restoreH2Db(FatCats.of()
+            restoreH2Db(Smartphones.of()
                                .getH2DbUri(),
                     filepath);
         }
@@ -1098,7 +1098,7 @@ public final class Diversicons {
      *
      * @param dumpUrl
      *            For Wordnet 3.1 packaged dump, you can use
-     *            {@link it.unitn.disi.diversicon.data.FatCats#WORDNET_DIV_SQL_RESOURCE_URI}
+     *            {@link it.unitn.disi.diversicon.data.Smartphones#WORDNET_DIV_SQL_RESOURCE_URI}
      * @param targetPath
      *            the target path where to restore the db, ending with the db
      *            name. Must NOT end with .h2.db

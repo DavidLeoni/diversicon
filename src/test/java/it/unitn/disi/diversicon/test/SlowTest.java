@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
-import it.unitn.disi.diversicon.data.FatCats;
+import it.unitn.disi.diversicon.data.Smartphones;
 
 import static it.unitn.disi.diversicon.test.DivTester.*;
 
@@ -50,7 +50,7 @@ public class SlowTest {
         DBConfig dbConfig = Diversicons.makeDefaultH2InMemoryDbConfig("mydb-" + new Date().getTime(), false);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);        
-        div.importXml(FatCats.of().getXmlUri());
+        div.importXml(Smartphones.of().getXmlUri());
     }
 
     /**
@@ -61,7 +61,7 @@ public class SlowTest {
         DBConfig dbConfig = Diversicons.makeDefaultH2FileDbConfig("target/div-wn31-" + new Date().getTime(), false);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);
-        div.importXml(FatCats.of().getXmlUri());
+        div.importXml(Smartphones.of().getXmlUri());
     }
 
     /**
@@ -72,7 +72,7 @@ public class SlowTest {
         DBConfig dbConfig = Diversicons.makeDefaultH2InMemoryDbConfig("mydb-" + new Date().getTime(), false);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);        
-        div.importXml(FatCats.of().getXmlUri());
+        div.importXml(Smartphones.of().getXmlUri());
         String zipFilePath = "target/div-wn31-" + new Date().getTime() + ".sql.zip";
         div.exportToSql(zipFilePath, true);
         assertTrue(new File(zipFilePath).exists());
@@ -87,7 +87,7 @@ public class SlowTest {
         DBConfig dbConfig = Diversicons.makeDefaultH2FileDbConfig("target/div-wn31-" + new Date().getTime(), false);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);
-        div.importXml(FatCats.of().getXmlUri());
+        div.importXml(Smartphones.of().getXmlUri());
         String zipFilePath = "target/div-wn31-" + new Date().getTime() + ".sql.zip";
         div.exportToSql(zipFilePath, true);
         assertTrue(new File(zipFilePath).exists());

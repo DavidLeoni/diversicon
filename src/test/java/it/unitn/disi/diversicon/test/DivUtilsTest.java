@@ -29,6 +29,7 @@ import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.BuildInfo;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
+import it.unitn.disi.diversicon.internal.ExtractedStream;
 import it.unitn.disi.diversicon.internal.Internals;
 
 
@@ -226,4 +227,24 @@ public class DivUtilsTest {
         
     }
 
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testReadDataJar(){
+        File f = new File("src/test/resources/test.jar!/a.txt");
+        ExtractedStream es = Internals.readData("jar:file://" + f.getAbsolutePath(), false);
+        LOG.debug("Extracted stream = " + es.toString());
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testReadCompressedDataJar(){
+        File f = new File("src/test/resources/test.jar!/b.txt.xz");
+        ExtractedStream es = Internals.readData("jar:file://" + f.getAbsolutePath(), true);
+        LOG.debug("Extracted stream = " + es.toString());
+    }
+    
 }

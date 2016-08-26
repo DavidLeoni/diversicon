@@ -655,6 +655,8 @@ public final class Internals {
      *            <li>{@code classpath:/my/package/name/data.zip}</li>
      *            <li>{@code file:/my/path/data.zip}</li>
      *            <li>{@code http://... }</li>
+     *            <li>{@code jar:file:///home/user/data.jar!/my-file.txt}</li>
+     *            <li>{@code jar:file:///home/user/data.jar!/my-file.txt.zip}</li>
      *            <li>whatever protocol..</li>
      *            </ul>
      * @param decompress
@@ -725,8 +727,16 @@ public final class Internals {
                 throw new DivIoException("Error while opening lexical resource " + dataUrl + "  !!", ex);
             }
         }
+        
+        String path;
+        
+        if ("jar".equals(uri.getScheme())){                
+            path = getJarPath(dataUrl);
+        } else {
+            path = uri.getPath();
+        }
 
-        if (decompress && isFormatSupported(uri.getPath(), Diversicons.SUPPORTED_COMPRESSION_FORMATS)) {
+        if (decompress && isFormatSupported(path, Diversicons.SUPPORTED_COMPRESSION_FORMATS)) {
 
             try {
 
@@ -734,7 +744,7 @@ public final class Internals {
                         ? (BufferedInputStream) inputStream
                         : new BufferedInputStream(inputStream);
 
-                if (isFormatSupported(uri.getPath(), Diversicons.SUPPORTED_ARCHIVE_FORMATS)) {
+                if (isFormatSupported(path, Diversicons.SUPPORTED_ARCHIVE_FORMATS)) {
 
                     ArchiveInputStream zin = new ArchiveStreamFactory()
                                                                        .createArchiveInputStream(buffered);
@@ -746,7 +756,7 @@ public final class Internals {
 
                     CompressorInputStream cin = new CompressorStreamFactory()
                                                                              .createCompressorInputStream(buffered);
-                    String fname = FilenameUtils.getBaseName(uri.getPath());
+                    String fname = FilenameUtils.getBaseName(path);
                     return new ExtractedStream(fname, cin, dataUrl, true);
                 }
 
@@ -756,9 +766,23 @@ public final class Internals {
 
             throw new DivIoException("Found empty stream in archive " + dataUrl.toString() + " !");
 
-        } else {
-            return new ExtractedStream(uri.getPath(), inputStream, dataUrl, false);
+        } else {                                        
+            return new ExtractedStream(path, inputStream, dataUrl, false);                
+            
         }
+    }
+    
+    /**
+     * @since 0.1.0
+     */
+    private static String getJarPath(String dataUrl){
+        checkArgument(dataUrl.startsWith("jar:"), "Expected input to start with 'jar:', found instead " + dataUrl);
+        String subDataUri = dataUrl.replace("jar:", "");
+        try {
+            return new URI(subDataUri).getPath();
+        } catch (URISyntaxException e) {                
+            throw new DivException("Couldn't parse subDataUrl " + subDataUri, e);
+        }        
     }
 
     /**

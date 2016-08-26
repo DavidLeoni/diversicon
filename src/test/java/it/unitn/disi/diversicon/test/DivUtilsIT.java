@@ -21,7 +21,7 @@ import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
 import it.unitn.disi.diversicon.InvalidSchemaException;
-import it.unitn.disi.diversicon.data.FatCats;
+import it.unitn.disi.diversicon.data.Smartphones;
 import it.unitn.disi.diversicon.internal.ExtractedStream;
 import it.unitn.disi.diversicon.internal.Internals;
 
@@ -61,7 +61,7 @@ public class DivUtilsIT {
      */
     // @Test
     public void testRestoreAugmentedWordnetSqlToH2InMemory(){
-        Diversicons.restoreH2Sql(FatCats.of().getSqlUri(), dbConfig);
+        Diversicons.restoreH2Sql(Smartphones.of().getSqlUri(), dbConfig);
         
         Diversicon div = Diversicon.connectToDb(dbConfig);
                 
@@ -79,7 +79,7 @@ public class DivUtilsIT {
         
         File target = new File(dir.toString() + "/test");
         
-        Diversicons.restoreH2Db(FatCats.of().getH2DbUri(), target.getAbsolutePath());
+        Diversicons.restoreH2Db(Smartphones.of().getH2DbUri(), target.getAbsolutePath());
         
         DBConfig dbCfg = Diversicons.makeDefaultH2FileDbConfig(target.getAbsolutePath(), false); 
         
@@ -98,10 +98,10 @@ public class DivUtilsIT {
      */
     @Test
     public void testReadDataWordnetSql(){
-        ExtractedStream es = Internals.readData(FatCats.of().getSqlUri(), true);
+        ExtractedStream es = Internals.readData(Smartphones.of().getSqlUri(), true);
         assertTrue(es.isExtracted());
         assertEquals("div-wn31.sql", es.getFilepath());
-        assertEquals(FatCats.of().getSqlUri(), es.getSourceUrl());
+        assertEquals(Smartphones.of().getSqlUri(), es.getSourceUrl());
         File f = es.toTempFile();
         assertTrue(f.exists());
         assertTrue(f.length() > 0);        
@@ -112,10 +112,10 @@ public class DivUtilsIT {
      */
     @Test
     public void testReadDataWordnetXml(){
-        ExtractedStream es = Internals.readData(FatCats.of().getXmlUri(), true);
+        ExtractedStream es = Internals.readData(Smartphones.of().getXmlUri(), true);
         assertTrue(es.isExtracted());
         assertEquals("div-wn31.xml", es.getFilepath());
-        assertEquals(FatCats.of().getXmlUri(), es.getSourceUrl());
+        assertEquals(Smartphones.of().getXmlUri(), es.getSourceUrl());
         File f = es.toTempFile();
         assertTrue(f.exists());
         assertTrue(f.length() > 0);                
@@ -140,10 +140,10 @@ public class DivUtilsIT {
     public void testFetchH2Db(){
         
         assertFalse(Diversicons.getCacheDir().exists());
-        Diversicons.fetchH2Db(FatCats.ID, FatCats.of().getVersion());        
-        assertTrue(Diversicons.getCachedH2DbDir(FatCats.ID, FatCats.of().getVersion()).exists());
+        Diversicons.fetchH2Db(Smartphones.ID, Smartphones.of().getVersion());        
+        assertTrue(Diversicons.getCachedH2DbDir(Smartphones.ID, Smartphones.of().getVersion()).exists());
         // should be faster ...
-        DBConfig config = Diversicons.fetchH2Db(FatCats.ID, FatCats.of().getVersion());
+        DBConfig config = Diversicons.fetchH2Db(Smartphones.ID, Smartphones.of().getVersion());
         
         // should allow multiple connections ...
         
@@ -183,4 +183,6 @@ public class DivUtilsIT {
         assertFalse(Diversicons.getCacheDir().exists());        
         
     }
+    
+
 }

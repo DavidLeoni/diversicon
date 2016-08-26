@@ -1,81 +1,95 @@
 <?xml version="1.0" encoding="UTF-8"?
-  xmlns:fc01="https://github.com/DavidLeoni/diversicon/tree/master/src/main/resources/fat-cats-lmf.xml"
-  xmlns:wn31="https://github.com/DavidLeoni/diversicon-wordnet-3.1/blob/master/src/main/resources/it/unitn/disi/diversicon/data/div-wn31.xml.xz">
-<!DOCTYPE LexicalResource SYSTEM "ubyLmfDTD_1.0.dtd">
+  xmlns:sm="https://github.com/DavidLeoni/diversicon/tree/master/src/main/resources/smartphones-lmf.xml"
+  xmlns:wn31="https://github.com/DavidLeoni/diversicon-wordnet-3.1/blob/master/src/main/resources/it/unitn/disi/diversicon/data/div-wn31.xml.xz">  
+<!DOCTYPE LexicalResource PUBLIC  "Diversicon DTD" "https://github.com/DavidLeoni/diversicon/tree/master/src/main/resources/diversicon-1.0.dtd">
 
 <!-- 
 
-Simple example of an LMF file, linking formalizing fat cats taken from an imaginary my-bestiary.csv,
-and linking them to WordNet 3.1. Since in UBY ids are global, we prepend everything with
-a prefix.In this case we chose 'fc01':
+Simple example of an LMF file, formalizing smartphones taken from 
+an imaginary terminology file "smartphones.csv", and linking them to WordNet 3.1.
  
-				wn31:feline
+Since in UBY IDs are global, we prepend everything with a prefix. In this case we chose 'sm'.
+NOTE: here we are abusing XML namespaces, they should only be for tags and attributes
+(like <my-namespace:mytag my-namespace:myAttribute="bla bla">) but
+we also use them for tag IDs: <tag id="my-namespace:bla"> ...
+ 
+ 
+             wn31:cellphone    http://wordnetweb.princeton.edu/perl/webwn?s=cellphone     
 					^
 					|
-			 fc01:fat-feline
+             sm01:smartphone
 					^
 					|
-			  fc01:fat-cat
+              sm01:phablet
 					^
-					|
- 		     fc01:fat-wildcat
-
-
-'	
-	  
+			 		|
+             sm01:quantumlet
+	
 -->
-<LexicalResource dtdVersion="1.0" name="fc01:lr1">
-    <GlobalInformation label="Example of an LMF file"/>
-    <Lexicon languageIdentifier="eng" id="divex:lex-eng" name="Example Lexicon">
-        <LexicalEntry id="fc01:le-fat-feline" partOfSpeech="noun">
+
+<LexicalResource dtdVersion="1.0" name="sm:lr">	
+    <GlobalInformation label="Example of an LMF file"/>       
+    
+    <MetaData metaDataId="sm:"
+    		  creationDate=""
+    		  creationTool="text editor"
+    		  version="1.0"   
+    		  creationProcess="by hand"
+    		  automatic="false"
+    		  lexicalResourceId="sm:lr"/>    
+    
+    <Lexicon languageIdentifier="eng" id="sm:lex-eng" name="Smartphone English lexicon">
+        <LexicalEntry id="sm:le-smartphone" partOfSpeech="noun">
             <Lemma>
-                <FormRepresentation languageIdentifier="eng" writtenForm="fat feline"/>
+                <FormRepresentation languageIdentifier="eng" writtenForm="smartphone"/>
             </Lemma>
-            <Sense id="fc01:s-fat-feline" index="1" synset="fc01:ss-fat-cat">
-                <MonolingualExternalRef externalSystem="my-bestiary" externalReference="3rd row, fourth column in CSV"/>
+            <Sense id="sm:s-smartphone" index="1" synset="sm01:ss-phablet">
+                <MonolingualExternalRef externalSystem="handheld-devices" externalReference="3rd row, fourth column in CSV"/>
             </Sense>
         </LexicalEntry>
-        <LexicalEntry id="fc01:le-fat-cat" partOfSpeech="noun">
+        <LexicalEntry id="sm:le-phablet" partOfSpeech="noun">
             <Lemma>
-                <FormRepresentation languageIdentifier="eng" writtenForm="fat cat"/>
+                <FormRepresentation languageIdentifier="eng" writtenForm="phablet"/>
             </Lemma>
-            <Sense id="fc01:s-fat-cat" index="1" synset="fc01:ss-fat-cat">
-                <MonolingualExternalRef externalSystem="my-bestiary" externalReference="2nd row 5th column in csv of origin"/>
+            <Sense id="sm:s-phablet" index="1" synset="sm:ss-phablet">
+                <MonolingualExternalRef externalSystem="handheld-devices" externalReference="2nd row 5th column in csv of origin"/>
             </Sense>
         </LexicalEntry>
 
-        <LexicalEntry id="fc01:le-fat-wildcat" partOfSpeech="noun">
+        <LexicalEntry id="sm:le-dumblet" partOfSpeech="noun">
             <Lemma>
-                <FormRepresentation languageIdentifier="eng" writtenForm="fat wildcat"/>
+                <FormRepresentation languageIdentifier="eng" writtenForm="dumblet"/>
             </Lemma>
-            <Sense id="fc01:s-fat-wildcat" index="1" synset="fc01:ss-fat-wildcat">
-                <MonolingualExternalRef externalSystem="my-bestiary" externalReference="1st row 3rd column in csv of origin"/>
+            <Sense id="sm:s-dumblet" index="1" synset="sm:ss-dumblet">
+                <MonolingualExternalRef externalSystem="handheld-devices" externalReference="1st row 3rd column in csv of origin"/>
             </Sense>
         </LexicalEntry>
 
        
-        <Synset id="fc01:ss-fat-feline">
+        <Synset id="sm:ss-smartphone">
             <Definition>
-                <TextRepresentation languageIdentifier="eng" writtenText="An oversized meowing animal"/>
+                <TextRepresentation languageIdentifier="eng" writtenText="A cellphone designed to lock your eyes to the screen, even when you walk"/>
             </Definition>
-            <!-- here we state our fat feline has as hypernym Wordnet 3.1 'feline':
-            	 http://wordnetweb.princeton.edu/perl/webwn?s=feline&sub=Search+WordNet&o2=&o0=1&o8=1&o1=1&o7=&o5=&o9=&o6=&o3=&o4=&h=00
+            <!-- here we state our fat cellphone has as hypernym Wordnet 3.1 'cellphone':
+            	 http://wordnetweb.princeton.edu/perl/webwn?s=cellphone
             	 which is defined in an external file
             -->
             <SynsetRelation target="wn31:ss-2123649" relType="taxonomic" relName="hypernym"/>
             <MonolingualExternalRef externalSystem="wn31" externalReference="[POS: noun] 2123649"/>
         </Synset>
-        <Synset id="fc01:ss-fat-cat">
+        <Synset id="sm:ss-phablet">
             <Definition>
-                <TextRepresentation languageIdentifier="eng" writtenText="That big feline always sleeping in front of your fridge"/>
+                <TextRepresentation languageIdentifier="eng" writtenText="An unholy union between a smartphone and a tablet"/>
             </Definition>			           
-            <SynsetRelation target="fc01:ss-fat-feline" relType="taxonomic" relName="hypernym"/>             
+            <SynsetRelation target="sm01:ss-smartphone" relType="taxonomic" relName="hypernym"/>
+            <MonolingualExternalRef externalSystem="wn31" externalReference="[POS: noun] 2123649"/>
         </Synset>
-        <Synset id="fc01:ss-fat-wildcat">
+        <Synset id="sm:ss-quantumlet">
             <Definition>
-                <TextRepresentation languageIdentifier="eng" writtenText="A cat with without owner who got huge by digging in your trash."/>
+                <TextRepresentation languageIdentifier="eng" writtenText="The final handheld device that will completely replace your mind."/>
             </Definition>			            
-            <SynsetRelation target="fc01:ss-fat-cat" relType="taxonomic" relName="hypernym"/>             
+            <SynsetRelation target="sm:ss-quantumlet" relType="taxonomic" relName="hypernym"/>
+			<MonolingualExternalRef externalSystem="wn31" externalReference="[POS: noun] 2123649"/>
         </Synset>
 
        
