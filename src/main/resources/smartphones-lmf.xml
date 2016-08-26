@@ -5,32 +5,36 @@
 
 <!-- 
 
-Simple example of an LMF file, formalizing smartphones taken from 
-an imaginary terminology file "smartphones.csv", and linking them to WordNet 3.1.
+  Simple example of an LMF file, formalizing smartphones taken from 
+  an imaginary terminology file "smartphones.csv", and linking them to WordNet 3.1.
  
-Since in UBY IDs are global, we prepend everything with a prefix. In this case we chose 'sm'.
-NOTE: here we are abusing XML namespaces, they should only be for tags and attributes
-(like <my-namespace:mytag my-namespace:myAttribute="bla bla">) but
-we also use them for tag IDs: <tag id="my-namespace:bla"> ...
+  Since in UBY IDs are global, we prepend everything with a prefix. In this case we chose 'sm',
+  while for Wordnet 3.1 we used 'wn31'. Currently, we don't require any specific format for
+  prefixes nor namespace urls, so version numbers are not mandatory and urls
+  are not required to be resolvable nor persistent.
+ 
+  NOTE: here we are abusing XML namespaces, they should only be for tags and attributes
+  (like <my-namespace:mytag my-namespace:myAttribute="bla bla">) but
+  we also use them for tag IDs: <tag id="my-namespace:bla"> ...
  
  
              wn31:cellphone    http://wordnetweb.princeton.edu/perl/webwn?s=cellphone     
-					^
-					|
+                    ^
+                    |
              sm01:smartphone
-					^
-					|
+                    ^
+                    |
               sm01:phablet
-					^
-			 		|
+                    ^
+                    |
              sm01:quantumlet
 	
 -->
 
 <LexicalResource dtdVersion="1.0" name="sm:lr">	
-    <GlobalInformation label="Example of an LMF file"/>       
+    <GlobalInformation label="Example smartphone terminology linked to Wordnet 3.1"/>       
     
-    <MetaData metaDataId="sm:"
+    <MetaData metaDataId="sm:md"
     		  creationDate=""
     		  creationTool="text editor"
     		  version="1.0"   
@@ -44,7 +48,7 @@ we also use them for tag IDs: <tag id="my-namespace:bla"> ...
                 <FormRepresentation languageIdentifier="eng" writtenForm="smartphone"/>
             </Lemma>
             <Sense id="sm:s-smartphone" index="1" synset="sm01:ss-phablet">
-                <MonolingualExternalRef externalSystem="handheld-devices" externalReference="3rd row, fourth column in CSV"/>
+                <MonolingualExternalRef externalSystem="smartphones" externalReference="3rd row, fourth column in CSV"/>
             </Sense>
         </LexicalEntry>
         <LexicalEntry id="sm:le-phablet" partOfSpeech="noun">
@@ -52,7 +56,7 @@ we also use them for tag IDs: <tag id="my-namespace:bla"> ...
                 <FormRepresentation languageIdentifier="eng" writtenForm="phablet"/>
             </Lemma>
             <Sense id="sm:s-phablet" index="1" synset="sm:ss-phablet">
-                <MonolingualExternalRef externalSystem="handheld-devices" externalReference="2nd row 5th column in csv of origin"/>
+                <MonolingualExternalRef externalSystem="smartphones" externalReference="2nd row 5th column in csv of origin"/>
             </Sense>
         </LexicalEntry>
 
@@ -60,8 +64,8 @@ we also use them for tag IDs: <tag id="my-namespace:bla"> ...
             <Lemma>
                 <FormRepresentation languageIdentifier="eng" writtenForm="dumblet"/>
             </Lemma>
-            <Sense id="sm:s-dumblet" index="1" synset="sm:ss-dumblet">
-                <MonolingualExternalRef externalSystem="handheld-devices" externalReference="1st row 3rd column in csv of origin"/>
+            <Sense id="sm:s-quantumlet" index="1" synset="sm:ss-quantumlet">
+                <MonolingualExternalRef externalSystem="smartphones" externalReference="1st row 3rd column in csv of origin"/>
             </Sense>
         </LexicalEntry>
 
