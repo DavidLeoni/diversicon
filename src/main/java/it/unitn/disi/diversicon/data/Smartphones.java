@@ -16,7 +16,7 @@ public class Smartphones extends DiversiconResource {
     /**
      * @since 0.1.0
      */
-    public static final String ID = "handheld-devices-lmf";
+    public static final String ID = "smartphones-lmf";
     
     /**
      * @since 0.1.0
@@ -26,7 +26,7 @@ public class Smartphones extends DiversiconResource {
     /**
      * @since 0.1.0
      */
-    private static final String CLASSPATH = "classpath:" + ID;
+    private static final String CLASSPATH = "classpath:/" + ID;
     
     /**
      * @since 0.1.0

@@ -320,17 +320,87 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * Normalizes and augments the synsetRelation graph with edges to speed up
+     * Validates, normalizes and augments the synsetRelation graph with edges to speed up
      * searches.
+     * 
+     * @throws DivValidationException
      * 
      * @since 0.1.0
      */
     // todo what about provenance? todo instances?
     public void processGraph() {
 
+        validateGraph();
+        
         normalizeGraph();
 
         computeTransitiveClosure();
+
+    }
+
+    /**
+     * Validates input graph. For now checks are minimal.
+     * 
+     * @throws DivValidationException
+     * 
+     * @since 0.1.0
+     */
+    private void validateGraph() {
+        
+        LOG.info("Validating SynsetRelations...");               
+
+        Transaction tx = null;
+        Date checkpoint = new Date();
+
+        Date start = checkpoint;
+
+        try {
+            tx = session.beginTransaction();           
+
+            String hql = "FROM SynsetRelation SR"
+                    + "   WHERE "
+                    + "         SR.source = SR.target"
+                    + "    AND  SR.relName IN " + makeSqlList(Diversicons.getCanonicalTransitiveRelations());
+            Query query = session.createQuery(hql);
+
+            ScrollableResults synsetRelations = query
+                                             .setCacheMode(CacheMode.IGNORE)
+                                             .scroll(ScrollMode.FORWARD_ONLY);
+            int count = 0;
+                       
+
+            while (synsetRelations.next()) {
+
+                SynsetRelation sr = (SynsetRelation) synsetRelations.get(0);
+                
+                LOG.error("Found transitive canonical SynsetRelation with a self loop: " + Diversicons.toString(sr));
+                count += 1;                               
+            }
+
+            
+            if (count > 0){
+                throw new DivValidationException("Found " + count + " invalid relations!");
+            } else {
+                DbInfo dbInfo = getDbInfo();
+                dbInfo.setToValidate(false);
+                session.saveOrUpdate(dbInfo);
+                tx.commit();
+            }
+
+            LOG.info("");
+            LOG.info("Done validating SynsetRelations.");
+            LOG.info("");            
+            LOG.info("   Elapsed time: " + Internals.formatInterval(start, new Date()));
+            LOG.info("");
+            
+
+        } catch (Exception ex) {
+            LOG.error("Error while validating graph! Rolling back!");
+            if (tx != null) {
+                tx.rollback();
+            }
+            throw new DivValidationException("Error while validating the graph!", ex);
+        }
 
     }
 
@@ -416,10 +486,11 @@ public class Diversicon extends Uby {
      *
      * @since 0.1.0
      */
-    // TODO: should check for loops!
     private void normalizeGraph() {
+        
+        checkArgument(!getDbInfo().isToValidate(), "Tried to normalize a graph which is yet to validate!");
 
-        LOG.info("Normalizing SynsetRelations...");
+        LOG.info("Normalizing SynsetRelations...");               
 
         Transaction tx = null;
         Date checkpoint = new Date();
@@ -454,11 +525,13 @@ public class Diversicon extends Uby {
 
                 for (SynsetRelation sr : relations) {
                     DivSynsetRelation ssr = (DivSynsetRelation) sr;
-
+                    
                     if (Diversicons.hasInverse(ssr.getRelName())) {
                         String inverseRelName = Diversicons.getInverse(ssr.getRelName());
                         if (Diversicons.isCanonicalRelation(inverseRelName)
                                 && Diversicons.isTransitive(inverseRelName)
+                                // don't want to add cycles
+                                && !(ssr.getSource().getId().equals(ssr.getTarget().getId())) 
                                 && !containsRel(ssr.getTarget(),
                                         ssr.getSource(),
                                         inverseRelName)) {
@@ -513,6 +586,10 @@ public class Diversicon extends Uby {
         }
     }
 
+    private void checkSelfLoops() {
+        throw new UnsupportedOperationException("TODO - developer forgot to implement the method!");
+    }
+
     /**
      * 
      * @param checkpoint
@@ -556,11 +633,14 @@ public class Diversicon extends Uby {
      * 
      * @since 0.1.0
      */
-    private void computeTransitiveClosure() {
+    private void computeTransitiveClosure() {                      
         Date start = new Date();
 
         LOG.info("Computing transitive closure for SynsetRelations (may take some minutes) ...");
 
+        checkArgument(!getDbInfo().isToNormalize(), "Tried to compute transitive closure of a graph which is yet to normalize!");
+
+        
         Transaction tx = null;
         try {
             tx = session.beginTransaction();
@@ -617,7 +697,8 @@ public class Diversicon extends Uby {
 
                 Synset source = (Synset) session.get(Synset.class, (String)  results.get(0));                
                 String relName = (String) results.get(1);
-                Synset target = (Synset) session.get(Synset.class, (String)  results.get(2));
+                String targetId = (String) results.get(2);
+                //Synset target = (Synset) session.get(Synset.class, (String)  results.get(2));
                 int depth;
                 Object depthCandidate = results.get(3);
                 if (depthCandidate instanceof String){
@@ -639,7 +720,9 @@ public class Diversicon extends Uby {
                 ssr.setRelName(relName);
                 ssr.setRelType(Diversicons.getRelationType(relName));
                 ssr.setSource(source);
-                ssr.setTarget(target);
+                Synset targetSynset = new Synset();
+                targetSynset.setId(targetId);
+                ssr.setTarget(targetSynset);
 
                 source.getSynsetRelations()
                       .add(ssr);
@@ -697,17 +780,19 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * 
      * See {@link #importFiles(ImportConfig)}
+     * 
+     * For supported URL formats see {@link it.unitn.disi.diversicon.internal.Internals#readData(String, boolean)
+     * Internals.readData}
      * 
      * @since 0.1.0
      */
-    public ImportJob importXml(String filepath) {
+    public ImportJob importXml(String fileUrl) {
 
         ImportConfig config = new ImportConfig();
 
         config.setAuthor(DEFAULT_AUTHOR);
-        config.setFileUrls(Arrays.asList(filepath));
+        config.setFileUrls(Arrays.asList(fileUrl));
 
         return importFiles(config).get(0);
     }
@@ -717,6 +802,8 @@ public class Diversicon extends Uby {
      * transaction. In case one
      * fails... TODO! Call is synchronous, after finishing returns logs of each
      * import.
+     * 
+     * @throws DivValidationException
      * 
      * @since 0.1.0
      */
@@ -747,6 +834,7 @@ public class Diversicon extends Uby {
             tx = session.beginTransaction();
 
             DbInfo dbInfo = getDbInfo();
+            dbInfo.setToValidate(true);
             dbInfo.setToNormalize(true);
             dbInfo.setToAugment(true);
             session.saveOrUpdate(dbInfo);
@@ -917,6 +1005,8 @@ public class Diversicon extends Uby {
      *            if false after the import the graph is normalized
      *            and augmented with transitive closure.
      * @throws DivException
+     * @throws DivValidationException
+     * 
      * @since 0.1.0
      */
     public ImportJob importResource(

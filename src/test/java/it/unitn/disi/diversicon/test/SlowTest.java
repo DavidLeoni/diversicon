@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
-import it.unitn.disi.diversicon.data.Smartphones;
+import it.unitn.disi.diversicon.data.DivWn31;
 
 import static it.unitn.disi.diversicon.test.DivTester.*;
 
@@ -50,9 +50,24 @@ public class SlowTest {
         DBConfig dbConfig = Diversicons.makeDefaultH2InMemoryDbConfig("mydb-" + new Date().getTime(), false);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);        
-        div.importXml(Smartphones.of().getXmlUri());
+        div.importXml(DivWn31.of().getXmlUri());
     }
 
+    /**
+     * Ignored ,this makes my laptop hang....
+     * 
+     * @since 0.1.0 
+     */
+    // @Test
+    public void testRestoreAugmentedWordnetSqlToH2InMemory(){
+        Diversicons.restoreH2Sql(DivWn31.of().getSqlUri(), dbConfig);
+        
+        Diversicon div = Diversicon.connectToDb(dbConfig);
+                
+        div.getSession().close();
+    
+    }    
+    
     /**
      * @since 0.1.0
      */    
@@ -61,7 +76,7 @@ public class SlowTest {
         DBConfig dbConfig = Diversicons.makeDefaultH2FileDbConfig("target/div-wn31-" + new Date().getTime(), false);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);
-        div.importXml(Smartphones.of().getXmlUri());
+        div.importXml(DivWn31.of().getXmlUri());
     }
 
     /**
@@ -72,7 +87,7 @@ public class SlowTest {
         DBConfig dbConfig = Diversicons.makeDefaultH2InMemoryDbConfig("mydb-" + new Date().getTime(), false);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);        
-        div.importXml(Smartphones.of().getXmlUri());
+        div.importXml(DivWn31.of().getXmlUri());
         String zipFilePath = "target/div-wn31-" + new Date().getTime() + ".sql.zip";
         div.exportToSql(zipFilePath, true);
         assertTrue(new File(zipFilePath).exists());
@@ -87,7 +102,7 @@ public class SlowTest {
         DBConfig dbConfig = Diversicons.makeDefaultH2FileDbConfig("target/div-wn31-" + new Date().getTime(), false);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);
-        div.importXml(Smartphones.of().getXmlUri());
+        div.importXml(DivWn31.of().getXmlUri());
         String zipFilePath = "target/div-wn31-" + new Date().getTime() + ".sql.zip";
         div.exportToSql(zipFilePath, true);
         assertTrue(new File(zipFilePath).exists());

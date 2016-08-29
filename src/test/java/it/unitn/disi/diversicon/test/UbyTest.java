@@ -38,7 +38,9 @@ import org.xml.sax.SAXException;
 
 import de.tudarmstadt.ukp.lmf.api.Uby;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
+import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelTypeSemantics;
+import de.tudarmstadt.ukp.lmf.model.meta.MetaData;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
@@ -52,6 +54,7 @@ import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 import static it.unitn.disi.diversicon.test.DivTester.GRAPH_1_HYPERNYM;
 import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -193,8 +196,6 @@ public class UbyTest {
      * "https://github.com/dkpro/dkpro-uby/blob/de.tudarmstadt.ukp.uby-0.7.0/de.tudarmstadt.ukp.uby.persistence.transform-asl/src/main/java/de/tudarmstadt/ukp/lmf/transform/XMLToDBTransformer.java#L88"
      * target="_blank">never performed </a> </b>
      * 
-     * @throws SAXException
-     * 
      * @since 0.1.0
      */
     @Test
@@ -214,10 +215,6 @@ public class UbyTest {
 
     /**
      * Tries to import xml with myAttr=666
-     * 
-     * @throws IOException
-     * @throws DocumentException
-     * @throws IllegalArgumentException
      * 
      * @since 0.1.0
      */
@@ -240,9 +237,10 @@ public class UbyTest {
         new XMLToDBTransformer(dbConfig).transform(xml, null);
 
     }
-/**
- * @since 0.1.0 
- */
+    
+    /**
+     * @since 0.1.0 
+     */
     @Test
     public void testOwaToUby() throws DocumentException, TransformerException, IOException {
 
@@ -371,7 +369,75 @@ public class UbyTest {
 
     }
 
+    /**
+     * Shows in UBY synset relations are not removed on cascade if target synset is deleted.
+     *
+     * @since 0.1.0
+     */
+    @Test
+    public void testSynsetConstraints() throws FileNotFoundException {
 
-    
+        Diversicons.createTables(dbConfig); // Diversicons, otherwise
+                                            // JavaTransformer
+                                            // complains about missing
+                                            // DivSynsetRelation column
+
+        LexicalResource lexRes= lmf().lexicon()
+                .synset()
+                .synset()
+                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                .build();
+        
+        importIntoUby(lexRes);               
+        
+        Uby uby = new Uby(dbConfig);
+               
+        Synset syn = (Synset) uby.getSession().get(Synset.class, "synset 1");
+        
+        uby.getSession().delete(syn);
+        uby.getSession().flush();
+        
+        List<Synset> synsets = uby.getLexiconById("lexicon 1").getSynsets();        
+        assertEquals(1, synsets.size());
+        Synset syn2 = synsets.get(0);
+        assertEquals(1, syn2.getSynsetRelations().size());
+               
+    }
+
+    /**
+     * Test for https://github.com/DavidLeoni/diversicon/issues/17
+     * 
+     * MetaData can be an element of a LexicalResource. In UBY 0.7.0 DTD, 
+     * MetaData has lexicalResourceId as required field, but it's not necessary, 
+     * importer should automatically determine it (although currently doesn't).
+     * 
+     * @since 0.1.0
+     */
+    @Test
+    public void testMetadataResource(){
+        
+        Diversicons.createTables(dbConfig); // Diversicons, otherwise
+        // JavaTransformer
+        // complains about missing
+        // DivSynsetRelation column        
+       
+        LexicalResource lr = LmfBuilder.lmf().build();
+        MetaData md = new MetaData();
+        md.setId("metadata 1");
+        lr.setMetaData(Internals.newArrayList(md));
+        
+        importIntoUby(lr);
+        
+        Uby uby = new Uby(dbConfig);
+        
+        LexicalResource lr2 = uby.getLexicalResource("lexical resource 1");
+        
+        MetaData md2 = lr2.getMetaData().get(0);
+        
+        assertEquals("metadata 1", md2.getId());
+        assertEquals(null, md2.getLexicalResource());
+        
+    }
+
   
 }

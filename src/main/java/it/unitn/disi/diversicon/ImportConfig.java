@@ -33,7 +33,8 @@ public class ImportConfig {
     }
 
     /**
-     * The URL of the files to import. URLs can have special {@code classpath:} protocol.
+     * The URL of the files to import. For supported URL formats see {@link it.unitn.disi.diversicon.internal.Internals#readData(String, boolean)
+     * Internals.readData}
      * 
      * @since 0.1.0
      */

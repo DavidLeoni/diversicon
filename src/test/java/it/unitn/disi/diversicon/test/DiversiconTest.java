@@ -29,6 +29,7 @@ import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelTypeSemantics;
+import de.tudarmstadt.ukp.lmf.model.meta.MetaData;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
@@ -36,11 +37,13 @@ import it.disi.unitn.diversicon.exceptions.DivIoException;
 import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.DbInfo;
 import it.unitn.disi.diversicon.DivSynsetRelation;
+import it.unitn.disi.diversicon.DivValidationException;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
 import it.unitn.disi.diversicon.ImportConfig;
 import it.unitn.disi.diversicon.ImportJob;
 import it.unitn.disi.diversicon.InvalidSchemaException;
+import it.unitn.disi.diversicon.data.Smartphones;
 import it.unitn.disi.diversicon.internal.Internals;
 
 import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
@@ -662,6 +665,55 @@ public class DiversiconTest {
     }
 
     /**
+     * Shows we don't allow self loops for canonical transitive relations
+     * 
+     * @since 0.1.0
+     * @see #testSelfLoopNonCanonical()
+     */
+    @Test
+    public void testSelfLoopCanonical(){
+        LexicalResource lr = lmf().lexicon()
+             .synset()             
+             .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+             .build();
+        
+        Diversicons.dropCreateTables(dbConfig);
+
+        Diversicon div = Diversicon.connectToDb(dbConfig);
+        
+        try {
+            div.importResource(lr, false);
+            Assert.fail("Shouldn't arrive here!");
+        } catch (DivValidationException ex){
+            
+        }
+    }
+
+    /**
+     * Shows we allow self-loops for non canonical transitive relations,
+     * because they won't be considered by Diversicon algorithms
+     * 
+     * @since 0.1.0
+     * @see #testSelfLoopCanonical()
+     */
+    @Test
+    public void testSelfLoopNonCanonical(){        
+        LexicalResource lr = lmf().lexicon()
+             .synset()             
+             .synsetRelation(ERelNameSemantics.HYPONYM, 1)
+             .build();
+        
+        Diversicons.dropCreateTables(dbConfig);
+
+        Diversicon div = Diversicon.connectToDb(dbConfig);
+                
+        div.importResource(lr, false);
+        
+        DivTester.checkDb(lr, div);
+    }
+    
+    
+    /**
      * Was giving absurd problems for null discriminator in
      * DivSynsetRelation.hbm.xml
      * 
@@ -693,6 +745,34 @@ public class DiversiconTest {
 
     }
 
+    /**
+     * We should be able to import Smartphones and compute transitive closure 
+     * even without Wordnet loaded. 
+     * 
+     * @see DivUtilsIT#testImportSmartPhonesXmlWithWordnet()
+     * 
+     * @since 0.1.0
+     * 
+     */
+    @Test
+    public void testImportSmartPhonesXmlWithoutWordnet() {
+                
+        Diversicons.dropCreateTables(dbConfig);
+
+        Diversicon div = Diversicon.connectToDb(dbConfig);
+        
+        div.importXml(Smartphones.of().getXmlUri());        
+                
+        LexicalResource lr = div.getLexicalResource("sm:lr");
+        List<MetaData> metadatas = lr.getMetaData();
+        assertEquals(1, metadatas.size());
+        MetaData metadata = metadatas.get(0);
+        assertNotNull(metadata);
+        assertEquals("sm:md", metadata.getId());
+        
+    }    
+    
+    
     /**
      * Watch out for long texts when importing
      * 

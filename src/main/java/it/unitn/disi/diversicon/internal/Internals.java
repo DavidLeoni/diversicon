@@ -679,6 +679,9 @@ public final class Internals {
         InputStream inputStream = null;
 
         URI uri;
+        
+        String uriPath;
+        
         try {
             uri = new URI(dataUrl);
         } catch (URISyntaxException ex) {
@@ -689,19 +692,19 @@ public final class Internals {
 
         if ("classpath".equals(uri.getScheme())) {
             String q = dataUrl.substring("classpath:".length());
-
+            uriPath = q;
             inputStream = Diversicons.class.getResourceAsStream(q);
             if (inputStream == null) {
 
                 try {
 
-                    String candidatePathTest = "src/test/resources" + q;
+                    String candidatePathTest = "src/test/resources/" + q;
                     LOG.trace("    Searching data in " + candidatePathTest + " ...");
                     inputStream = new FileInputStream(candidatePathTest);
                     LOG.debug("    Located data in " + candidatePathTest);
                 } catch (FileNotFoundException ex1) {
                     try {
-                        String candidatePathMain = "src/main/resources" + q;
+                        String candidatePathMain = "src/main/resources/" + q;
                         LOG.trace("    Searching data in " + candidatePathMain + " ...");
                         inputStream = new FileInputStream(candidatePathMain);
                         LOG.debug("    Located data in " + candidatePathMain);
@@ -714,6 +717,13 @@ public final class Internals {
                 LOG.debug("    Located data in " + dataUrl);
             }
         } else {
+            
+            if ("jar".equals(uri.getScheme())){                
+                uriPath = getJarPath(dataUrl);
+            } else {
+                uriPath = uri.getPath();
+            }
+            
             try {
 
                 if (hasProtocol(dataUrl)) {
@@ -728,15 +738,10 @@ public final class Internals {
             }
         }
         
-        String path;
         
-        if ("jar".equals(uri.getScheme())){                
-            path = getJarPath(dataUrl);
-        } else {
-            path = uri.getPath();
-        }
+        
 
-        if (decompress && isFormatSupported(path, Diversicons.SUPPORTED_COMPRESSION_FORMATS)) {
+        if (decompress && isFormatSupported(uriPath, Diversicons.SUPPORTED_COMPRESSION_FORMATS)) {
 
             try {
 
@@ -744,7 +749,7 @@ public final class Internals {
                         ? (BufferedInputStream) inputStream
                         : new BufferedInputStream(inputStream);
 
-                if (isFormatSupported(path, Diversicons.SUPPORTED_ARCHIVE_FORMATS)) {
+                if (isFormatSupported(uriPath, Diversicons.SUPPORTED_ARCHIVE_FORMATS)) {
 
                     ArchiveInputStream zin = new ArchiveStreamFactory()
                                                                        .createArchiveInputStream(buffered);
@@ -756,7 +761,7 @@ public final class Internals {
 
                     CompressorInputStream cin = new CompressorStreamFactory()
                                                                              .createCompressorInputStream(buffered);
-                    String fname = FilenameUtils.getBaseName(path);
+                    String fname = FilenameUtils.getBaseName(uriPath);
                     return new ExtractedStream(fname, cin, dataUrl, true);
                 }
 
@@ -767,7 +772,7 @@ public final class Internals {
             throw new DivIoException("Found empty stream in archive " + dataUrl.toString() + " !");
 
         } else {                                        
-            return new ExtractedStream(path, inputStream, dataUrl, false);                
+            return new ExtractedStream(uriPath, inputStream, dataUrl, false);                
             
         }
     }

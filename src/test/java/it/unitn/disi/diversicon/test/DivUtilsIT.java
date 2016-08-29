@@ -21,6 +21,7 @@ import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
 import it.unitn.disi.diversicon.InvalidSchemaException;
+import it.unitn.disi.diversicon.data.DivWn31;
 import it.unitn.disi.diversicon.data.Smartphones;
 import it.unitn.disi.diversicon.internal.ExtractedStream;
 import it.unitn.disi.diversicon.internal.Internals;
@@ -54,32 +55,19 @@ public class DivUtilsIT {
         dbConfig = null;       
     }
 
-    /**
-     * Ignored ,this makes my laptop hang....
-     * 
-     * @since 0.1.0 
-     */
-    // @Test
-    public void testRestoreAugmentedWordnetSqlToH2InMemory(){
-        Diversicons.restoreH2Sql(Smartphones.of().getSqlUri(), dbConfig);
-        
-        Diversicon div = Diversicon.connectToDb(dbConfig);
-                
-        div.getSession().close();
-    
-    }
+  
     
     /**
      * @since 0.1.0 
      */
     @Test
-    public void testRestoreH2DbToFile() throws IOException {
+    public void testRestoreWordnetH2DbToFile() throws IOException {
 
         Path dir = DivTester.createTestDir();
         
         File target = new File(dir.toString() + "/test");
         
-        Diversicons.restoreH2Db(Smartphones.of().getH2DbUri(), target.getAbsolutePath());
+        Diversicons.restoreH2Db(DivWn31.of().getH2DbUri(), target.getAbsolutePath());
         
         DBConfig dbCfg = Diversicons.makeDefaultH2FileDbConfig(target.getAbsolutePath(), false); 
         
@@ -91,17 +79,39 @@ public class DivUtilsIT {
     }
 
 
-    
+    /**
+     * We should be able to import Smartphones and compute transitive closure 
+     * even without Wordnet loaded. 
+     * 
+     * @since 0.1.0
+     * 
+     * @see DiversiconTest#testImportSmartPhonesXmlWithoutWordnet()
+     */
+    @Test
+    public void testImportSmartPhonesXmlWithWordnet() {
+
+        Path dir = DivTester.createTestDir();
+        
+        File target = new File(dir.toString() + "/test");
+        
+        Diversicons.restoreH2Db(DivWn31.of().getH2DbUri(), target.getAbsolutePath());
+        
+        DBConfig dbCfg = Diversicons.makeDefaultH2FileDbConfig(target.getAbsolutePath(), false); 
+        
+        Diversicon div = Diversicon.connectToDb(dbCfg);               
+        
+        div.importXml(Smartphones.of().getXmlUri());        
+    }
     
     /**
      * @since 0.1.0
      */
     @Test
     public void testReadDataWordnetSql(){
-        ExtractedStream es = Internals.readData(Smartphones.of().getSqlUri(), true);
+        ExtractedStream es = Internals.readData(DivWn31.of().getSqlUri(), true);
         assertTrue(es.isExtracted());
         assertEquals("div-wn31.sql", es.getFilepath());
-        assertEquals(Smartphones.of().getSqlUri(), es.getSourceUrl());
+        assertEquals(DivWn31.of().getSqlUri(), es.getSourceUrl());
         File f = es.toTempFile();
         assertTrue(f.exists());
         assertTrue(f.length() > 0);        
@@ -112,14 +122,16 @@ public class DivUtilsIT {
      */
     @Test
     public void testReadDataWordnetXml(){
-        ExtractedStream es = Internals.readData(Smartphones.of().getXmlUri(), true);
+        ExtractedStream es = Internals.readData(DivWn31.of().getXmlUri(), true);
         assertTrue(es.isExtracted());
         assertEquals("div-wn31.xml", es.getFilepath());
-        assertEquals(Smartphones.of().getXmlUri(), es.getSourceUrl());
+        assertEquals(DivWn31.of().getXmlUri(), es.getSourceUrl());
         File f = es.toTempFile();
         assertTrue(f.exists());
         assertTrue(f.length() > 0);                
     }
+
+    
     
     
     /**
@@ -140,10 +152,10 @@ public class DivUtilsIT {
     public void testFetchH2Db(){
         
         assertFalse(Diversicons.getCacheDir().exists());
-        Diversicons.fetchH2Db(Smartphones.ID, Smartphones.of().getVersion());        
-        assertTrue(Diversicons.getCachedH2DbDir(Smartphones.ID, Smartphones.of().getVersion()).exists());
+        Diversicons.fetchH2Db(DivWn31.ID, DivWn31.of().getVersion());        
+        assertTrue(Diversicons.getCachedH2DbDir(DivWn31.ID, DivWn31.of().getVersion()).exists());
         // should be faster ...
-        DBConfig config = Diversicons.fetchH2Db(Smartphones.ID, Smartphones.of().getVersion());
+        DBConfig config = Diversicons.fetchH2Db(DivWn31.ID, DivWn31.of().getVersion());
         
         // should allow multiple connections ...
         
@@ -167,6 +179,7 @@ public class DivUtilsIT {
         
         
     }
+    
     
     
     /**
