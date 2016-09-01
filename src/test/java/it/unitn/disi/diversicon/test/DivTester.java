@@ -18,9 +18,11 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -508,12 +510,16 @@ public final class DivTester {
     }
 
     /**
-     * Creates an xml file out of the provided lexical resource.
+     * Creates an xml file out of the provided lexical resource. Written 
+     * lexical resource will include provided namespaces as {@code xmlns} attributes
+     * 
+     * @param namespaces Namespaces expressed as prefix : url
      * 
      * @since 0.1.0
      */
-    public static File writeXml(LexicalResource lexicalResource) {
+    public static File writeXml(LexicalResource lexicalResource, Map<String, String> namespaces) {
         checkNotNull(lexicalResource);
+        checkNotNull(namespaces);
 
         File ret = createTempFile(DivTester.DIVERSICON_TEST_STRING, ".xml").toFile();
         
@@ -529,6 +535,16 @@ public final class DivTester {
         }
 
         return ret;
+        
+    }
+    
+    /**
+     * Creates an xml file out of the provided lexical resource.
+     * 
+     * @since 0.1.0
+     */
+    public static File writeXml(LexicalResource lexicalResource) {
+        return writeXml(lexicalResource, new HashMap());
     }
 
     /**

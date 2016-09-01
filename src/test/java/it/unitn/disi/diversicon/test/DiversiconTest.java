@@ -772,6 +772,12 @@ public class DiversiconTest {
         
     }    
     
+    /**
+     * @since 0.1.0
+     */
+    public void testExportToXml(){
+        
+    }
     
     /**
      * Watch out for long texts when importing

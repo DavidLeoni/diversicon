@@ -1,61 +1,39 @@
 package it.unitn.disi.diversicon;
 
-import java.io.FileNotFoundException;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nullable;
+
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
 
-import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
-import de.tudarmstadt.ukp.lmf.transform.LMFXmlWriter;
-import de.tudarmstadt.ukp.lmf.transform.UBYXMLTransformer;
+import de.tudarmstadt.ukp.lmf.transform.DBConfig;
+import de.tudarmstadt.ukp.lmf.transform.DBToXMLTransformer;
 import it.unitn.disi.diversicon.internal.Internals;
 
-/**
- * 
- * Needed because {@link LMFXmlWriter} writes {@code <DivSynsetRelation>} tags
- * instead of just {@code <SynsetRelation>}
- * 
- * @since 0.1.0
- */
-public class DivXmlWriter extends LMFXmlWriter {
+public class DivDbToXmlTransformer extends DBToXMLTransformer {
 
     private Map<String, String> namespaces;
 
-
     /**
-     * Constructs a LMFXmlWriter, XML will be saved to OutputStream out.   
+     * See {@link DBToXMLTransformer#DBToXMLTransformer(DBConfig, OutputStream, String)
+     *      super constructor}
+     *      
+     * @param namespaces Diversicon namespaces
      * 
      * @since 0.1.0
      */
-    public DivXmlWriter(OutputStream outputStream,
+    public DivDbToXmlTransformer(DBConfig dbConfig, 
+            OutputStream outputStream, 
             @Nullable String dtdPath,
             Map<String, String> namespaces) throws SAXException {
-        super(outputStream, dtdPath);
-
+        super(dbConfig, outputStream, dtdPath);
         this.namespaces = Diversicons.checkNamespaces(namespaces);
     }
-
-    /**
-     * 
-     * Constructs a LMFXmlWriter, XML will be saved to file in outputPath
-     * 
-     * @param outputPath
-     * @param dtdPath
-     *            Path of the dtd-File
-     * @throws FileNotFoundException
-     *             if the writer can not to the specified outputPath
-     * @since 0.1.0
-     */
-    public DivXmlWriter(String outputPath, String dtdPath) throws FileNotFoundException, SAXException {
-        super(outputPath, dtdPath);
-    }
-
+    
     /**
      * 
      * {@inheritDoc}
@@ -63,7 +41,7 @@ public class DivXmlWriter extends LMFXmlWriter {
      * <p>
      * <strong>
      * DIVERSICON NOTE: this function must be <i>the same</i> as 
-     * {@link DivDbToXmlTransformer#doWriteElement(Object, boolean)}<br/>
+     * {@link DivXmlWriter#doWriteElement(Object, boolean)}<br/>
      * 
      * For an explanation, see {@link Internals#prepareXmlElement(Object, boolean, Map, de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata, AttributesImpl, List)
      * Internals#prepareXmlElement} 
@@ -93,5 +71,6 @@ public class DivXmlWriter extends LMFXmlWriter {
         if (closeTag) 
             th.endElement("", "", elementName);
     }
+
 
 }

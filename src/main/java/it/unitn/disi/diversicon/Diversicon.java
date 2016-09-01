@@ -853,8 +853,12 @@ public class Diversicon extends Uby {
 
             LOG.info("Loading LMF : " + fileUrl + " ...");
 
-            String lexicalResourceName = Diversicons.extractNameFromLexicalResource(fileUrl);
-
+            String lexicalResourceName = Diversicons.readLexicalResourceName(fileUrl);
+            
+            String defaultPrefix = Diversicons.namespacePrefixFromId(lexicalResourceName);
+            
+            Map<String, String> namespaces = Diversicons.readLexicalResourceNamespaces(fileUrl);
+            
             ImportJob job = startImportJob(config, fileUrl, lexicalResourceName);
 
             File file = Internals.readData(fileUrl, true)

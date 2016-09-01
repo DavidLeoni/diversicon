@@ -6,8 +6,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -21,7 +24,9 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -44,12 +49,25 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.AttributesImpl;
 
 import com.rits.cloning.Cloner;
 
+import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
+import de.tudarmstadt.ukp.lmf.model.interfaces.IHasID;
+import de.tudarmstadt.ukp.lmf.model.miscellaneous.EVarType;
+import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
+import de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata;
+import de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata.UBYLMFFieldMetadata;
 import it.disi.unitn.diversicon.exceptions.DivException;
 import it.disi.unitn.diversicon.exceptions.DivIoException;
+import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
+
+import java.io.BufferedReader;
+
+import it.unitn.disi.diversicon.DivSynsetRelation;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
 
@@ -656,7 +674,8 @@ public final class Internals {
      *            <li>{@code file:/my/path/data.zip}</li>
      *            <li>{@code http://... }</li>
      *            <li>{@code jar:file:///home/user/data.jar!/my-file.txt}</li>
-     *            <li>{@code jar:file:///home/user/data.jar!/my-file.txt.zip}</li>
+     *            <li>{@code jar:file:///home/user/data.jar!/my-file.txt.zip}
+     *            </li>
      *            <li>whatever protocol..</li>
      *            </ul>
      * @param decompress
@@ -679,9 +698,9 @@ public final class Internals {
         InputStream inputStream = null;
 
         URI uri;
-        
+
         String uriPath;
-        
+
         try {
             uri = new URI(dataUrl);
         } catch (URISyntaxException ex) {
@@ -717,13 +736,13 @@ public final class Internals {
                 LOG.debug("    Located data in " + dataUrl);
             }
         } else {
-            
-            if ("jar".equals(uri.getScheme())){                
+
+            if ("jar".equals(uri.getScheme())) {
                 uriPath = getJarPath(dataUrl);
             } else {
                 uriPath = uri.getPath();
             }
-            
+
             try {
 
                 if (hasProtocol(dataUrl)) {
@@ -737,9 +756,6 @@ public final class Internals {
                 throw new DivIoException("Error while opening lexical resource " + dataUrl + "  !!", ex);
             }
         }
-        
-        
-        
 
         if (decompress && isFormatSupported(uriPath, Diversicons.SUPPORTED_COMPRESSION_FORMATS)) {
 
@@ -771,23 +787,23 @@ public final class Internals {
 
             throw new DivIoException("Found empty stream in archive " + dataUrl.toString() + " !");
 
-        } else {                                        
-            return new ExtractedStream(uriPath, inputStream, dataUrl, false);                
-            
+        } else {
+            return new ExtractedStream(uriPath, inputStream, dataUrl, false);
+
         }
     }
-    
+
     /**
      * @since 0.1.0
      */
-    private static String getJarPath(String dataUrl){
+    private static String getJarPath(String dataUrl) {
         checkArgument(dataUrl.startsWith("jar:"), "Expected input to start with 'jar:', found instead " + dataUrl);
         String subDataUri = dataUrl.replace("jar:", "");
         try {
             return new URI(subDataUri).getPath();
-        } catch (URISyntaxException e) {                
+        } catch (URISyntaxException e) {
             throw new DivException("Couldn't parse subDataUrl " + subDataUri, e);
-        }        
+        }
     }
 
     /**
@@ -919,7 +935,7 @@ public final class Internals {
         if (sourceDirFile != null) {
             LOG.debug("\nCopying directory ...\n"
                     + "  from:   {} \n"
-                    + "  to  :   {}", 
+                    + "  to  :   {}",
                     sourceDirFile.getAbsolutePath(),
                     destDir.getAbsolutePath());
             try {
@@ -1180,12 +1196,16 @@ public final class Internals {
     /**
      * This method calculates edit distance between two words.
      * 
-     *  <p>
-     * There are three operations permitted on a word: replace, delete, insert. For example, the edit distance between "a" and "b" is 1, the edit distance between "abc" and "def" is 3. 
+     * <p>
+     * There are three operations permitted on a word: replace, delete, insert.
+     * For example, the edit distance between "a" and "b" is 1, the edit
+     * distance between "abc" and "def" is 3.
      * </p>
      * <p>
-     * Taken from here: http://www.programcreek.com/2013/12/edit-distance-in-java/
+     * Taken from here:
+     * http://www.programcreek.com/2013/12/edit-distance-in-java/
      * </p>
+     * 
      * @since 0.1.0
      */
     public static int editDistance(String word1, String word2) {
@@ -1226,6 +1246,147 @@ public final class Internals {
         }
 
         return dp[len1][len2];
+    }
+
+    /**
+     * Little dirty way to quickly patch a LexicalResource in a file with
+     * namespaces
+     * 
+     * @throws DivNotFoundException
+     *             if no LexicalResource tag is found
+     * @throws DivException
+     *             for any other error.
+     * 
+     * 
+     * @since 0.1.0
+     */
+    public static void appendNamespacesToLexicalResource(File lmfXml) {
+        FileReader input;
+        try {
+            input = new FileReader(lmfXml);
+        } catch (FileNotFoundException ex) {
+            throw new DivIoException("Couldn't find file " + lmfXml.getAbsolutePath(), ex);
+        }
+
+        try (BufferedReader bufRead = new BufferedReader(input)) {
+
+            String myLine = null;
+
+            while ((myLine = bufRead.readLine()) != null) {
+                if (myLine.contains("<LexicalResource ")) {
+
+                    return;
+                }
+            }
+        } catch (IOException e) {
+            throw new DivIoException("Error while parsing file " + lmfXml.getAbsolutePath(), e);
+        }
+
+        throw new DivNotFoundException("Couldn't find ");
+    }
+
+    /**
+     * Copied this from {@link de.tudarmstadt.ukp.lmf.transform.UBYXMLTransform#doWriteElement}
+     * 
+     * <p>
+     * Modified in Diversicon to
+     * <ul>
+     * <li>prevent writing wrong tag name DivSynsetRelation</li>
+     * <li>add namespaces to the LexicalResource</li>
+     * </ul>
+     * 
+     * </p>
+     * 
+     * @return the element tagname
+     * 
+     * @throws SAXException 
+     * @since 0.1.0
+     */
+    public static String prepareXmlElement(Object inputLmfObject,
+            boolean closeTag,
+            Map<String, String> namespaces,
+            UBYLMFClassMetadata classMetadata,
+            AttributesImpl atts,
+            List<Object> children) throws SAXException {
+               
+        checkNotNull(inputLmfObject);
+        checkNotNull(atts);
+        checkNotNull(children);
+        Diversicons.checkNamespaces(namespaces);
+        
+        Object lmfObject;        
+        String elementName; 
+        
+        if (inputLmfObject instanceof LexicalResource){
+            for (String prefix : namespaces.keySet()) {
+                atts.addAttribute("", "", "xmlns:" + prefix, "CDATA", namespaces.get(prefix));
+            }
+            lmfObject = inputLmfObject;
+            elementName = lmfObject.getClass().getSimpleName();
+        } else if (inputLmfObject instanceof DivSynsetRelation) {
+            DivSynsetRelation dsr = (DivSynsetRelation) inputLmfObject;
+            lmfObject = dsr.toSynsetRelation();
+            elementName = SynsetRelation.class.getSimpleName();
+        } else {
+            lmfObject = inputLmfObject;
+            elementName = lmfObject.getClass().getSimpleName();
+        }        
+        
+        
+        int hibernateSuffixIdx = elementName.indexOf("_$$");
+        if (hibernateSuffixIdx > 0)
+            elementName = elementName.substring(0, hibernateSuffixIdx);
+                 
+        for (UBYLMFFieldMetadata fieldMeta : classMetadata.getFields()) {
+            EVarType varType = fieldMeta.getVarType();
+            if (varType == EVarType.NONE)
+                continue;
+
+            String xmlFieldName = fieldMeta.getName().replace("_", "");
+            Method getter = fieldMeta.getGetter();
+            Object retObj;
+            try {
+                retObj = getter.invoke(lmfObject);
+            } catch (IllegalAccessException e) {
+                throw new SAXException(e);
+            } catch (InvocationTargetException e) {
+                throw new SAXException(e);
+            }
+            
+            if (retObj != null) {
+                switch (fieldMeta.getVarType()) {
+                    case ATTRIBUTE:
+                    case ATTRIBUTE_OPTIONAL:
+                        atts.addAttribute("", "", xmlFieldName, "CDATA", retObj.toString());
+                        break;
+                    case CHILD:
+                        // Transform children of the new element to XML
+                        children.add(retObj);
+                        break;
+                    case CHILDREN:
+                        if (closeTag)
+                            for (Object obj : (Iterable<Object>) retObj)
+                                children.add(obj);
+                        break;
+                    case IDREF:
+                        // Save IDREFs as attribute of the new element
+                        atts.addAttribute("", "", xmlFieldName, "CDATA", ((IHasID) retObj).getId());
+                        break;
+                    case IDREFS:
+                        StringBuilder attrValue = new StringBuilder();                  
+                        for (Object obj : (Iterable<Object>) retObj)
+                            attrValue.append(attrValue.length() > 0 ? " " : "")
+                                    .append(((IHasID) obj).getId());
+                        if (attrValue.length() > 0)
+                            atts.addAttribute("", "", xmlFieldName, "CDATA", attrValue.toString());
+                        break;
+                    case NONE:
+                        break;
+                }
+            }                       
+        }        
+
+        return elementName;
     }
 
 }

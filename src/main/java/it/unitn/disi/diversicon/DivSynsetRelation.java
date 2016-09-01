@@ -33,10 +33,8 @@ import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
  */
 public class DivSynsetRelation extends SynsetRelation {
 
-	@VarType(type = EVarType.ATTRIBUTE)
 	protected int depth;
 
-	@VarType(type = EVarType.ATTRIBUTE)
 	protected String provenance;
 	
 	/**

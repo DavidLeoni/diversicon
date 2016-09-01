@@ -9,6 +9,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import javax.annotation.Nullable;
 
 import org.apache.commons.io.FileUtils;
@@ -24,6 +28,7 @@ import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import de.tudarmstadt.ukp.lmf.transform.LMFXmlWriter;
+import it.disi.unitn.diversicon.exceptions.DivException;
 import it.disi.unitn.diversicon.exceptions.DivIoException;
 import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.BuildInfo;
@@ -142,16 +147,60 @@ public class DivUtilsTest {
         div.getSession().close();
     
     }
-    
+
+    /**
+     * @since 0.1.0
+     */
     @Test
-    public void testGetLexicalResourceName() throws SAXException, IOException{
-
+    public void testReadLexicalResourceName() throws SAXException, IOException{
         File outFile = DivTester.writeXml(DivTester.GRAPH_1_HYPERNYM);
-        String name = Diversicons.extractNameFromLexicalResource(outFile.getAbsolutePath());        
+        String name = Diversicons.readLexicalResourceName(outFile.getAbsolutePath());        
         assertEquals(DivTester.GRAPH_1_HYPERNYM.getName(), name);
-
     }
 
+    /**
+     * @since 0.1.0
+     */    
+    @Test
+    public void testReadLexicalResourceNameNotFound() throws SAXException, IOException{
+
+        File outFile = Internals.createTempFile("diversicon-test", "xml").toFile();
+        FileUtils.writeStringToFile(outFile, "<LexicalResource></LexicalResource>");        
+        try {
+            Diversicons.readLexicalResourceName(outFile.getAbsolutePath());
+            Assert.fail("Shouldn't arive here!");
+        } catch (DivNotFoundException ex){
+            
+        }        
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testReadLexicalResourceNamespaces() throws SAXException, IOException{
+        
+        File outFile = new File(""); //DivTester.writeXml();
+        Map<String, String> namespaces = Diversicons.readLexicalResourceNamespaces(outFile.getAbsolutePath());
+        assertEquals(0, namespaces.size());
+        throw new UnsupportedOperationException("todo implemenet me!");
+    }
+
+    /**
+     * @since 0.1.0
+     */    
+    @Test
+    public void testReadLexicalResourceNamespacesNotFound() throws SAXException, IOException{
+
+        File outFile = Internals.createTempFile("diversicon-test", "xml").toFile();
+        FileUtils.writeStringToFile(outFile, "<LexicalResource></LexicalResource>");        
+        
+        Map<String, String> namespaces = Diversicons.readLexicalResourceNamespaces(outFile.getAbsolutePath());
+        assertEquals(0, namespaces.size());
+                
+    }
+    
+    
     /**
      * @since 0.1.0
      */
@@ -245,6 +294,25 @@ public class DivUtilsTest {
         File f = new File("src/test/resources/test.jar!/b.txt.xz");
         ExtractedStream es = Internals.readData("jar:file://" + f.getAbsolutePath(), true);
         LOG.debug("Extracted stream = " + es.toString());
+    }
+    
+    
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testNamespacePrefix(){
+        Pattern p = Diversicons.NAMESPACE_PREFIX_PATTERN;
+        assertFalse(p.matcher("").matches());
+        assertFalse(p.matcher("-").matches());
+        assertFalse(p.matcher("_").matches());
+        assertFalse(p.matcher("2").matches());
+        assertTrue(p.matcher("a").matches());
+        assertFalse(p.matcher(".").matches());
+        assertTrue(p.matcher("a.b").matches());
+        assertFalse(p.matcher("a:b").matches());
+        assertFalse(p.matcher("a:").matches());
+        assertTrue(p.matcher("a-").matches());
     }
     
 }
