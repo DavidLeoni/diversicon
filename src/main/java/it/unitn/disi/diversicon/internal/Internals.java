@@ -668,6 +668,18 @@ public final class Internals {
     }
 
     /**
+     * Gets input stream from a url, for more info see  {@link #readData(String, boolean) readData(dataUrl, false)}
+     * 
+     * @throws DivIoException
+     *         on error.
+     *             
+     * @since 0.1.0
+     */
+    public static ExtractedStream readData(String dataUrl) {
+       return readData(dataUrl, false); 
+    }
+    
+    /**
      * Gets input stream from a url pointing to possibly compressed data.
      * 
      * @param dataUrl
@@ -854,6 +866,7 @@ public final class Internals {
      *            content is extracted.
      *
      * @throws DivIoException
+     * 
      * @since 0.1.0
      */
     public static void copyDirFromJar(File jarFile, File destDir, String dirPath) {
@@ -868,8 +881,8 @@ public final class Internals {
             normalizedDirPath = dirPath;
         }
 
-        try {
-            JarFile jar = new JarFile(jarFile);
+        try (JarFile jar = new JarFile(jarFile)) {
+            
             java.util.Enumeration enumEntries = jar.entries();
             while (enumEntries.hasMoreElements()) {
                 JarEntry jarEntry = (JarEntry) enumEntries.nextElement();
@@ -904,7 +917,7 @@ public final class Internals {
         } catch (IOException ex) {
             throw new DivIoException("Error while extracting jar file! Jar source: " + jarFile.getAbsolutePath()
                     + " destDir = " + destDir.getAbsolutePath(), ex);
-        }
+        } 
     }
 
     /**

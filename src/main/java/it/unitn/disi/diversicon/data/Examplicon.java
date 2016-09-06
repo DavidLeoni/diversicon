@@ -6,22 +6,22 @@ import it.unitn.disi.diversicon.BuildInfo;
 import it.unitn.disi.diversicon.DiversiconResource;
 
 /**
- * Singleton holding references to sample {@code handheld-devices} files packaged for Diversicon
+ * Example terminology used for testing XML validation.   
  * 
  * @since 0.1.0
  *
  */
-public class Smartphones extends DiversiconResource {
+public class Examplicon extends DiversiconResource {
 
     /**
      * @since 0.1.0
      */
-    public static final String ID = "smartphones.lmf";
+    public static final String ID = "examplicon.lmf";
     
     /**
      * @since 0.1.0
      */
-    public static final String PREFIX = "sm";
+    public static final String PREFIX = "ex";
 
     /**
      * @since 0.1.0
@@ -52,7 +52,7 @@ public class Smartphones extends DiversiconResource {
     /**
      * @since 0.1.0
      */
-    private static final Smartphones INSTANCE = new Smartphones();   
+    private static final Examplicon INSTANCE = new Examplicon();   
     
     static {
         INSTANCE.setId(ID);
@@ -61,11 +61,11 @@ public class Smartphones extends DiversiconResource {
         INSTANCE.setSqlUri(CLASSPATH + ".sql");
         INSTANCE.setXmlUri(CLASSPATH + ".xml");
         INSTANCE.setSampleXmlUri(CLASSPATH + ".xml"); // sample of itself
-        if (BuildInfo.hasProperties(Smartphones.class)){
-            BuildInfo buildInfo = BuildInfo.of(Smartphones.class);
+        if (BuildInfo.hasProperties(Examplicon.class)){
+            BuildInfo buildInfo = BuildInfo.of(Examplicon.class);
             INSTANCE.setVersion(buildInfo.getVersion());
         } else {            
-            throw new IllegalStateException("Couldn't find properties file " + BuildInfo.BUILD_PROPERTIES_PATH + " for class " + Smartphones.class.getCanonicalName());
+            throw new IllegalStateException("Couldn't find properties file " + BuildInfo.BUILD_PROPERTIES_PATH + " for class " + Examplicon.class.getCanonicalName());
         }
         
         
@@ -74,7 +74,7 @@ public class Smartphones extends DiversiconResource {
     /**
      * @since 0.1.0
      */
-    public static Smartphones of(){
+    public static Examplicon of(){
         return INSTANCE;
     }
    

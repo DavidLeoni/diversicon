@@ -11,6 +11,7 @@ import org.apache.xerces.impl.Constants;
 import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -249,7 +250,7 @@ public class ExperimentsTest {
     @Test
     public void testXsd11Validation() throws SAXException, IOException {               
         
-        File xmlFile = new File("src/test/resources/xsd/assertions-test.xml");;
+        
         File xsdFile = new File("src/test/resources/xsd/assertions-test.xsd");
 
         // if editor can't find the constant probably default xerces is being used
@@ -258,9 +259,19 @@ public class ExperimentsTest {
         SchemaFactory factory = SchemaFactory.newInstance(Constants.W3C_XML_SCHEMA11_NS_URI);
         File schemaLocation = xsdFile;
         Schema schema = factory.newSchema(schemaLocation);
+        
         Validator validator = schema.newValidator();
-        Source source = new StreamSource(xmlFile);
-        validator.validate(source);
+        Source sourcePass = new StreamSource(new File("src/test/resources/xsd/test-pass.xml"));
+        validator.validate(sourcePass);
+
+        Source sourceFail = new StreamSource(new File("src/test/resources/xsd/test-fail.xml"));
+        
+        try {
+            validator.validate(sourceFail);
+            Assert.fail("Shouldn't arrive here!");
+        } catch (SAXException ex){
+            
+        }
 
     }
 

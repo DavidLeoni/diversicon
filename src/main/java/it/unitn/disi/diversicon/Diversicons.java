@@ -25,6 +25,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.io.FileUtils;
+import org.apache.xerces.impl.Constants;
 import org.dom4j.Attribute;
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
@@ -48,6 +49,11 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import javax.annotation.Nullable;
+import javax.xml.transform.Source;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
 
 import de.tudarmstadt.ukp.lmf.hibernate.HibernateConnect;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelTypeSemantics;
@@ -63,6 +69,7 @@ import it.disi.unitn.diversicon.exceptions.DivException;
 import it.disi.unitn.diversicon.exceptions.DivIoException;
 import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.data.DivWn31;
+import it.unitn.disi.diversicon.exceptions.InvalidXmlException;
 import it.unitn.disi.diversicon.internal.ExtractedStream;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
@@ -77,7 +84,11 @@ import static it.unitn.disi.diversicon.internal.Internals.format;
  * @since 0.1.0
  */
 public final class Diversicons {
-        
+
+    private static final Logger LOG = LoggerFactory.getLogger(Diversicons.class);
+    
+    public static final String DIVERSICON_SCHEMA_1_0_URL = "classpath:/diversicon-1.0.xsd";  
+    
     /**
      * Suggested max length for lexical resource names, which are also prefixes like wn31, sm.
      * 
@@ -149,7 +160,7 @@ public final class Diversicons {
             ArchiveStreamFactory.TAR,
             ArchiveStreamFactory.ZIP };
 
-    private static final Logger LOG = LoggerFactory.getLogger(Diversicons.class);
+
 
     /**
      * List of known relations, excluding the inverses.
@@ -1469,7 +1480,7 @@ public final class Diversicons {
             String[] s = e.getMessage()
                           .split(LexicalResourceNameHandler.DELIM);
 
-            HashMap<String, String> ret = new HashMap();
+            HashMap<String, String> ret = new HashMap<>();
             if (s.length > 1) {
                 for (int i = 1; i < s.length; i++) {
                     String[] qname = s[i].split(LexicalResourceNameHandler.NAMESPACE_DELIM);
@@ -1509,4 +1520,42 @@ public final class Diversicons {
         return namespaces;
     }
 
+    /**
+     * @throws InvalidXmlException
+     * 
+     * @since 0.1.0
+     * 
+     */
+    public static void validateXml(File xmlFile){
+        
+        checkNotNull(xmlFile);
+                
+        File xsdFile = Internals.readData(DIVERSICON_SCHEMA_1_0_URL, false).toTempFile();
+
+        // if editor can't find the constant probably default xerces is being used
+        // instead of the one supporting schema 1.1
+        
+        SchemaFactory factory = SchemaFactory.newInstance(Constants.W3C_XML_SCHEMA11_NS_URI);
+        File schemaLocation = xsdFile;
+        Schema schema;
+        try {
+            schema = factory.newSchema(schemaLocation);
+        } catch (SAXException e) {
+            throw new DivException("Error while parsing schema!", e);
+        }
+        
+        Validator validator = schema.newValidator();
+        DivXmlErrorHandler errorHandler = new DivXmlErrorHandler(LOG);
+        validator.setErrorHandler(errorHandler);
+        
+        Source source = new StreamSource(xmlFile);
+        try {
+            validator.validate(source);
+        } catch (SAXException | IOException e) {            
+            throw new InvalidXmlException(errorHandler, "Fatal error while validating " + xmlFile.getAbsolutePath(), e);
+        }        
+        if (errorHandler.invalid()){
+            throw new InvalidXmlException(errorHandler, "Invalid xml! " + errorHandler.toString() + " in " + xmlFile.getAbsolutePath());
+        }
+    }
 }

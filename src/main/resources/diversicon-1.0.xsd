@@ -1,15 +1,39 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <xs:schema  xmlns:xs="http://www.w3.org/2001/XMLSchema" 
 			xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning"
-			vc:minVersion="1.1"
-			version="1.1">
+			vc:minVersion="1.1">
  				
-	<xs:complexType name="arrayType">
-	 <xs:sequence>
-	  <xs:element name="entry" minOccurs="0" maxOccurs="unbounded"/>
-	 </xs:sequence>
-	 <xs:attribute name="length" type="xs:int"/>
-	 <xs:assert test="@length eq fn:count(./entry)"/>
+	<xs:annotation>
+	    <xs:documentation xml:lang="en">
+	     	XML Schema for Diversicon LMF XMLs
+	     	
+	     	Note it uses assertions to check constraints among values, so it requires XSD 1.1 
+	     	compatible parses. 
+	     		     	
+	     	Derived from DTD
+	     	https://github.com/DavidLeoni/diversicon/blob/master/src/main/resources/diversicon-1.0.dtd
+	     	
+	     	Which in turn is derived from original UBY DTD at v0.7.0:
+	     	https://github.com/dkpro/dkpro-uby/blob/de.tudarmstadt.ukp.uby-0.7.0/de.tudarmstadt.ukp.uby.lmf.model-asl/src/main/resources/dtd/UBY_LMF.dtd
+	     		     		     
+	    </xs:documentation>
+	  </xs:annotation> 				
+ 				
+	<xs:complexType name="Lexicon" >
+		<xs:attribute name="id" type="xs:string"/>
+	</xs:complexType> 				
+ 				
+	<xs:complexType name="LexicalResource" >
+	 	 		
+		<xs:sequence>
+			<xs:element name="Lexicon" type="Lexicon" minOccurs="1" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:attribute name="name" type="xs:string"/>	 		 
+	 	
+	 	<xs:assert test="./Lexicon/@id = 'pippo'"/>
+	 	
 	</xs:complexType>
+	
+	<xs:element name="LexicalResource" type="LexicalResource" ></xs:element>
 	
 </xs:schema>

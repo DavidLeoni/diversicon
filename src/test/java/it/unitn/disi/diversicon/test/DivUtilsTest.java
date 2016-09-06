@@ -34,6 +34,7 @@ import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.BuildInfo;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
+import it.unitn.disi.diversicon.data.Examplicon;
 import it.unitn.disi.diversicon.internal.ExtractedStream;
 import it.unitn.disi.diversicon.internal.Internals;
 
@@ -259,7 +260,15 @@ public class DivUtilsTest {
     }
 
     
-
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testValidate(){
+        File f = Internals.readData(Examplicon.XML_URI).toTempFile();
+        
+        Diversicons.validateXml(f);
+    }
 
     /**
      * @since 0.1.0
