@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xs:schema  xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+			xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning"
+			vc:minVersion="1.1"
+			version="1.1">
+ 				
+	<xs:complexType name="arrayType">
+	 <xs:sequence>
+	  <xs:element name="entry" minOccurs="0" maxOccurs="unbounded"/>
+	 </xs:sequence>
+	 <xs:attribute name="length" type="xs:int"/>
+	 <xs:assert test="@length eq fn:count(./entry)"/>
+	</xs:complexType>
+	
+</xs:schema>

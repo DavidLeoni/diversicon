@@ -4,48 +4,52 @@ import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
-import org.hibernate.CacheMode;
+import org.apache.xerces.impl.Constants;
 import org.hibernate.Query;
-import org.hibernate.ScrollMode;
-import org.hibernate.ScrollableResults;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
-import it.disi.unitn.diversicon.exceptions.DivException;
-import it.unitn.disi.diversicon.DbInfo;
-import it.unitn.disi.diversicon.DivSynsetRelation;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
-import it.unitn.disi.diversicon.InsertionStats;
-import it.unitn.disi.diversicon.internal.Internals;
+import java.io.File;
+import java.io.IOException;
+
+import javax.xml.transform.Source;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
+import org.xml.sax.SAXException;
 
 /**
- * Experiments in Hibernate Hell.
+ * Various experiments and discarded code .
  *
+ *
+ * @since 0.1.0
  */
 public class ExperimentsTest {
 
-    private static final Logger log = LoggerFactory.getLogger(ExperimentsTest.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ExperimentsTest.class);
 
     /**
      * Adds missing edges for relations we consider as canonical
      * 
      * Keeping this here just to remember what a horror it was
      * Adds missing edges for relations we consider as canonical
+     * 
+     * @since 0.1.0
      */
     private void normalizeGraphWithSqlCrap() {
 
-        log.info("Going to normalizing graph with canonical relations ...");
+        LOG.info("Going to normalizing graph with canonical relations ...");
 
         DBConfig dbConfig = DivTester.createNewDbConfig();
 
@@ -57,10 +61,10 @@ public class ExperimentsTest {
 
         for (String relName : Diversicons.getCanonicalRelations()) {
 
-            log.info("Normalizing graph with canonical relation " + relName + " ...");
+            LOG.info("Normalizing graph with canonical relation " + relName + " ...");
 
             String inverseRelName = Diversicons.getInverse(relName);
-            log.info("inverse relation name = " + inverseRelName);
+            LOG.info("inverse relation name = " + inverseRelName);
 
             /*
              * String hqlInsert =
@@ -115,23 +119,23 @@ public class ExperimentsTest {
              * .setParameter("provenance", "'" + getProvenance() + "'");
              */
             int createdEntities = query.executeUpdate();
-            log.info("Inserted " + createdEntities + " " + relName + " edges.");
+            LOG.info("Inserted " + createdEntities + " " + relName + " edges.");
 
         }
 
         tx.commit();
         session.close();
 
-        log.info("Done normalizing graph with canonical relations.");
+        LOG.info("Done normalizing graph with canonical relations.");
 
     }
 
     private static class Expericon extends Diversicon {
 
-        Expericon(DBConfig dbConfig){
+        Expericon(DBConfig dbConfig) {
             super(dbConfig);
         }
-        
+
         /**
          * EXPERIMENTAL VERSION USING UNION. HQL CAN'T HANDLE IT, OF COURSE.
          * 
@@ -152,7 +156,8 @@ public class ExperimentsTest {
          *            if -1 all parents until the root are retrieved. If zero
          *            nothing is returned.
          * @param lexicon
-         * @return
+         * 
+         * @since 0.1.0
          */
         public Iterator<Synset> getConnectedSynsets(
                 String synsetId,
@@ -227,13 +232,36 @@ public class ExperimentsTest {
         }
 
     }
-    
+
+    /**
+     * @since 0.1.0
+     */
     @Test
-    public void testLogger(){
+    public void testLogger() {
         Logger logger = LoggerFactory.getLogger(Diversicon.class);
-        
+
         logger.info("zumzum");
     }
+
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testXsd11Validation() throws SAXException, IOException {               
         
-    
+        File xmlFile = new File("src/test/resources/xsd/assertions-test.xml");;
+        File xsdFile = new File("src/test/resources/xsd/assertions-test.xsd");
+
+        // if editor can't find the constant probably default xerces is being used
+        // instead of the one supporting schema 1.1
+        
+        SchemaFactory factory = SchemaFactory.newInstance(Constants.W3C_XML_SCHEMA11_NS_URI);
+        File schemaLocation = xsdFile;
+        Schema schema = factory.newSchema(schemaLocation);
+        Validator validator = schema.newValidator();
+        Source source = new StreamSource(xmlFile);
+        validator.validate(source);
+
+    }
+
 }

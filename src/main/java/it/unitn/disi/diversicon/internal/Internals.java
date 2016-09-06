@@ -1,5 +1,7 @@
 package it.unitn.disi.diversicon.internal;
 
+import static it.unitn.disi.diversicon.internal.Internals.checkNotBlank;
+
 import java.io.BufferedInputStream;
 import java.io.EOFException;
 import java.io.File;
@@ -67,6 +69,7 @@ import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 
 import java.io.BufferedReader;
 
+import it.unitn.disi.diversicon.BuildInfo;
 import it.unitn.disi.diversicon.DivSynsetRelation;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
@@ -1321,17 +1324,16 @@ public final class Internals {
             for (String prefix : namespaces.keySet()) {
                 atts.addAttribute("", "", "xmlns:" + prefix, "CDATA", namespaces.get(prefix));
             }
-            lmfObject = inputLmfObject;
-            elementName = lmfObject.getClass().getSimpleName();
-        } else if (inputLmfObject instanceof DivSynsetRelation) {
+        }
+        
+        if (inputLmfObject instanceof DivSynsetRelation) {
             DivSynsetRelation dsr = (DivSynsetRelation) inputLmfObject;
             lmfObject = dsr.toSynsetRelation();
             elementName = SynsetRelation.class.getSimpleName();
         } else {
             lmfObject = inputLmfObject;
             elementName = lmfObject.getClass().getSimpleName();
-        }        
-        
+        }                
         
         int hibernateSuffixIdx = elementName.indexOf("_$$");
         if (hibernateSuffixIdx > 0)
@@ -1387,6 +1389,38 @@ public final class Internals {
         }        
 
         return elementName;
+    }
+
+    /**
+     * @since 0.1.0
+     * @param name
+     * @param namespaces
+     */
+    public static void checkLexicalResource(String name, Map<String, 
+                        String> namespaces,
+            boolean skipNamespaceChecking) {
+        BuildInfo build = BuildInfo.of(Diversicon.class);
+        
+        checkNotBlank(name, "Invalid lexical resource name!");
+
+        if (name.length() > Diversicons.LEXICAL_RESOURCE_NAME_SUGGESTED_LENGTH) {
+            LOG.warn("Lexical resource name " + name + " longer than "
+                    + Diversicons.LEXICAL_RESOURCE_NAME_SUGGESTED_LENGTH
+                    + ": since it is used as a prefix, this may cause memory issues.");
+        }        
+
+        
+        if (!skipNamespaceChecking){
+            Diversicons.checkNamespaces(namespaces);
+
+            if (!namespaces.containsKey(name)) {
+                throw new IllegalArgumentException(
+                        "Couldn't find LexicalResource name " + name + " among namespace prefixes! "
+                                + "See " + build.docsAtVersion() + "/diversicon-lmf.html"
+                                + " for info on how to structure a Diversicon XML!");
+            }
+            
+        }
     }
 
 }

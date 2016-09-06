@@ -15,12 +15,17 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
+import org.dom4j.Document;
+import org.dom4j.DocumentException;
+import org.dom4j.io.SAXReader;
 import org.hibernate.exception.GenericJDBCException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +59,7 @@ public class DiversiconTest {
     private static final Logger LOG = LoggerFactory.getLogger(DiversiconTest.class);
 
     private DBConfig dbConfig;
-
+    
     @Before
     public void beforeMethod() {
         dbConfig = createNewDbConfig();
@@ -715,21 +720,17 @@ public class DiversiconTest {
     
     /**
      * Was giving absurd problems for null discriminator in
-     * DivSynsetRelation.hbm.xml
+     * DivSynsetRelation.hbm.xml 
      * 
      * @since 0.1.0
      * 
      */
     @Test
-    public void testImportXml() {
+    public void testImportXml() throws IOException {
 
         File xml = DivTester.writeXml(GRAPH_4_HYP_HOL_HELLO);
         
-        try {
-            LOG.debug(FileUtils.readFileToString(xml, "UTF-8"));
-        } catch (IOException e) {        
-            throw new RuntimeException("Something went wrong!", e);
-        }
+        LOG.debug(FileUtils.readFileToString(xml, "UTF-8"));
         
         Diversicons.dropCreateTables(dbConfig);
 
@@ -737,7 +738,6 @@ public class DiversiconTest {
 
         assertFalse(div.formatImportJobs(true)
                        .isEmpty());
-
         
         div.importXml(xml.getAbsolutePath());
         
@@ -772,12 +772,93 @@ public class DiversiconTest {
         
     }    
     
-    /**
+    /** 
      * @since 0.1.0
      */
-    public void testExportToXml(){
+    @Test
+    public void testExportToXml() throws IOException {
         
+        Diversicons.dropCreateTables(dbConfig);
+
+        Diversicon div = Diversicon.connectToDb(dbConfig);
+        
+        div.importResource(GRAPH_1_HYPERNYM, false);
+        
+        File dir = Internals.createTempDir(DivTester.DIVERSICON_TEST_STRING).toFile();
+        
+        File xml = new File(dir, "test.xml");
+        
+        div.exportToXml(xml.toString(), 
+                        GRAPH_1_HYPERNYM.getName(),
+                        false);
+        
+        String str = FileUtils.readFileToString(xml, "UTF-8");
+        assertTrue(!str.contains("DivSynsetRelation"));        
     }
+   
+    
+    /**
+     * 
+     * @since 0.1.0
+     */
+    @Test
+    public void testTransformWithNamespaces() throws IOException, DocumentException {
+               
+        Assert.fail();
+        
+/**        Diversicons.dropCreateTables(dbConfig);
+
+        Diversicon div = Diversicon.connectToDb(dbConfig);
+        
+        div.importResource(GRAPH_1_HYPERNYM, false);
+        
+        File dir = Internals.createTempDir(DivTester.DIVERSICON_TEST_STRING).toFile();
+        
+        File xml = new File(dir, "test.xml");
+        
+        div.exportToXml(xml.toString(), 
+                        GRAPH_1_HYPERNYM.getName(),
+                        false);
+        
+        String str = FileUtils.readFileToString(xml, "UTF-8");
+        
+        
+        File xml = DivTester.writeXml(DivTester.GRAPH_1_HYPERNYM,
+                Internals.newMap("prefix-1", "url-1",
+                                 "prefix-2", "url-2"));
+        
+        Diversicons.dropCreateTables(dbConfig);
+
+        Diversicon div = Diversicon.connectToDb(dbConfig);
+        
+        div.importResource(GRAPH_1_HYPERNYM, false);
+        
+        File dir = Internals.createTempDir(DivTester.DIVERSICON_TEST_STRING).toFile();
+        
+        File xml = new File(dir, "test.xml");
+        
+        div.exportToXml(xml.toString(), 
+                        GRAPH_1_HYPERNYM.getName(),
+                        false,
+                        Internals.newMap("prefix-1", "url-1",
+                                "prefix-2", "url-2"));
+        
+        SAXReader reader = new SAXReader();
+        Document document = reader.read(xml);
+                
+        String str = FileUtils.readFileToString(xml, "UTF-8");
+        LOG.debug(str);
+        
+        assertEquals(1, document
+                    .selectNodes("//LexicalResource[namespace::*[.='url-1'] "
+                                 + " and namespace::*[.='url-2'] ]" )
+                     .size());
+        // using just string matching because can't select xmlns stuff: https://www.oxygenxml.com/forum/topic4845.html 
+        assertTrue(str.contains("xmlns:prefix-1=\"url-1\""));
+        assertTrue(str.contains("xmlns:prefix-2=\"url-2\""));
+   **/             
+    }
+    
     
     /**
      * Watch out for long texts when importing

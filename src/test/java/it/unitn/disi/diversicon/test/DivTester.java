@@ -526,7 +526,9 @@ public final class DivTester {
         DivXmlWriter writer;
         try {
             writer = new DivXmlWriter(new FileOutputStream(
-                    ret), null);  // todo check if setting dtd means something
+                    ret), 
+                    null, 
+                    namespaces);  // todo check if setting dtd means something
             writer.writeElement(lexicalResource);
             writer.writeEndDocument();
             

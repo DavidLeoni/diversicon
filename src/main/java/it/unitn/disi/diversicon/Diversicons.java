@@ -77,6 +77,13 @@ import static it.unitn.disi.diversicon.internal.Internals.format;
  * @since 0.1.0
  */
 public final class Diversicons {
+        
+    /**
+     * Suggested max length for lexical resource names, which are also prefixes like wn31, sm.
+     * 
+     * @since 0.1.0
+     */
+    public static final int LEXICAL_RESOURCE_NAME_SUGGESTED_LENGTH = 5;
 
     /**
      * Valid prefixes:
@@ -407,8 +414,10 @@ public final class Diversicons {
      * Returns the hibernate configuration for accessing db specified by
      * {@code dbConfig}
      * 
+     * <p>
      * NOTE: returned configuration will not do any change to an already
      * present database, nor it will create a new one if none is present.
+     * </p>
      * 
      * @param validate
      *            if true database schema is validated upon first connection.
@@ -1435,7 +1444,7 @@ public final class Diversicons {
      * 
      * @see #readLexicalResourceName(String)
      */
-    // implementation is unholy
+    // todo implementation is unholy
     public static Map<String, String> readLexicalResourceNamespaces(String lexResUrl) {
 
         SAXReader reader = new SAXReader(false);

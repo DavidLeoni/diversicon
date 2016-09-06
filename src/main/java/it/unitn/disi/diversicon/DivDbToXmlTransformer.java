@@ -14,7 +14,7 @@ import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import de.tudarmstadt.ukp.lmf.transform.DBToXMLTransformer;
 import it.unitn.disi.diversicon.internal.Internals;
 
-public class DivDbToXmlTransformer extends DBToXMLTransformer {
+class DivDbToXmlTransformer extends DBToXMLTransformer {
 
     private Map<String, String> namespaces;
 
@@ -33,7 +33,7 @@ public class DivDbToXmlTransformer extends DBToXMLTransformer {
         super(dbConfig, outputStream, dtdPath);
         this.namespaces = Diversicons.checkNamespaces(namespaces);
     }
-    
+       
     /**
      * 
      * {@inheritDoc}

@@ -60,6 +60,7 @@ public class Smartphones extends DiversiconResource {
         INSTANCE.setH2DbUri(CLASSPATH + ".h2.db");
         INSTANCE.setSqlUri(CLASSPATH + ".sql");
         INSTANCE.setXmlUri(CLASSPATH + ".xml");
+        INSTANCE.setSampleXmlUri(CLASSPATH + ".xml"); // sample of itself
         if (BuildInfo.hasProperties(Smartphones.class)){
             BuildInfo buildInfo = BuildInfo.of(Smartphones.class);
             INSTANCE.setVersion(buildInfo.getVersion());

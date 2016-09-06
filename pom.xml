@@ -201,7 +201,46 @@
 			<groupId>it.unitn.disi</groupId>
 			<artifactId>diversicon-model</artifactId>			
 		</dependency>
+		
+		<dependency>
+			<groupId>jaxen</groupId>
+			<artifactId>jaxen</artifactId>
+			<version>1.1.1</version>
+			
+			<!--  !!!!!!!!!!!!!!
+				 VERY IMPORTANT EXCLUSIONS! WITHOUT THEM, JAVA 
+				 BY DEFAULT WILL PICK A XERCES IMPLEMENTATION THAT 
+				 DOES NOT SUPPORT XML SCHEMA 1.1  !!!  			
+			     !!!!!!!!!!!
+			-->
+			<exclusions>
+				<exclusion>
+					<groupId> xml-apis </groupId>
+					<artifactId> xml-apis </artifactId>
+				</exclusion>
+				<exclusion>
+					<artifactId>xercesImpl</artifactId>
+					<groupId>xerces</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
 
+
+		<!--  
+		
+			 2.11 needed for validating xsd 1.1 , see https://stackoverflow.com/a/35991872
+		
+			For gory details about xerces hell, look here: http://stackoverflow.com/questions/11677572/dealing-with-xerces-hell-in-java-maven
+		-->
+		
+
+		<dependency>
+		    <groupId>org.opengis.cite.xerces</groupId>
+		    <artifactId>xercesImpl-xsd11</artifactId>
+		    <version>2.12-beta-r1667115</version>
+		</dependency>
+
+		 
 
 		<!-- ****************** TEST DEPENDENCIES ****************** -->
 

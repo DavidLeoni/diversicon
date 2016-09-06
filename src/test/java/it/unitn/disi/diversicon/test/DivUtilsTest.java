@@ -259,22 +259,7 @@ public class DivUtilsTest {
     }
 
     
-    /**
-     * 
-     * 
-     * @since 0.1.0
-     */
-    @Test
-    public void testWriteXml() throws IOException{
-        
-        File xml = DivTester.writeXml(DivTester.GRAPH_1_HYPERNYM);
-        
-        String str = FileUtils.readFileToString(xml, "UTF-8");
-        LOG.debug(str);
-        
-        assertTrue(!str.contains("DivSynsetRelation"));
-        
-    }
+
 
     /**
      * @since 0.1.0

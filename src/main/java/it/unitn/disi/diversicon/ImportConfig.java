@@ -13,13 +13,15 @@ import java.util.List;
  * @see ImportJob
  */
 public class ImportConfig {
+
     private List<String> fileUrls;
     private String author;
     private String description;
     private boolean skipAugment;
+    private boolean skipNamespaceChecking;
 
     /**
-     * Config default constructor.
+     * Default constructor.
      * 
      * By default augments graph after import.
      * 
@@ -30,6 +32,23 @@ public class ImportConfig {
         this.author = "";
         this.description = "";
         this.skipAugment = false;
+        this.skipNamespaceChecking = false;
+    }
+
+    /**
+     * @since 0.1.0
+     * @return
+     */
+    public boolean isSkipNamespaceChecking() {
+        return skipNamespaceChecking;
+    }
+
+    /**
+     * @since 0.1.0
+     * @return
+     */    
+    public void setSkipNamespaceChecking(boolean skipNamespaceChecking) {
+        this.skipNamespaceChecking = skipNamespaceChecking;
     }
 
     /**
@@ -122,4 +141,11 @@ public class ImportConfig {
         this.fileUrls.add(fileUrl);
     }
 
+    @Override
+    public String toString() {
+        return "ImportConfig [fileUrls=" + fileUrls + ", author=" + author + ", description=" + description
+                + ", skipAugment=" + skipAugment + "]";
+    }
+    
+    
 }

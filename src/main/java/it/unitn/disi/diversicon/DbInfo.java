@@ -3,7 +3,9 @@ package it.unitn.disi.diversicon;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
@@ -23,17 +25,19 @@ public class DbInfo {
     @Nullable
     private ImportJob currentImportJob;
     private boolean toValidate;
-
+    private List<Namespace> namespaces;
 
     /**
      * @since 0.1.0
      */
     public DbInfo() {
         this.schemaVersion = Diversicon.DIVERSICON_SCHEMA_VERSION;
-        this.version = "";
+        this.version = "";       
+        this.toValidate = false;
         this.toNormalize = false;
         this.toAugment = false;
         this.description = "";
+        this.namespaces = new ArrayList();
     }
 
 
