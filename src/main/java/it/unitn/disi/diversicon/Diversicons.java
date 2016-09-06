@@ -1521,6 +1521,9 @@ public final class Diversicons {
     }
 
     /**
+     * TODO put a link to this most precious cookbook somewhere: 
+     * http://www.datypic.com/books/defxmlschema/chapter14.html
+     * 
      * @throws InvalidXmlException
      * 
      * @since 0.1.0

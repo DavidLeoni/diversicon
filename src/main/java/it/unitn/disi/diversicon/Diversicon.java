@@ -350,10 +350,12 @@ public class Diversicon extends Uby {
     /**
      * Validates input graph. For now checks are minimal.
      * 
+     * 
+     * 
      * @throws DivValidationException
      * 
      * @since 0.1.0
-     */
+     */    
     private void validateGraph() {
 
         LOG.info("Validating SynsetRelations...");

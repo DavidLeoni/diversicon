@@ -101,8 +101,9 @@ public class DivXmlErrorHandler implements ErrorHandler {
      * @since 0.1.0
      */    
     public void warning(SAXParseException ex) {
-        this.warningCount += 1;
 
+        this.warningCount += 1;
+        
         log.warn(ex.getMessage());    
 
         
@@ -115,6 +116,10 @@ public class DivXmlErrorHandler implements ErrorHandler {
      */    
     public void error(SAXParseException ex) {
         this.errorCount += 1;
+        
+        log.error(ex.getSystemId());
+        log.error("Line: " + ex.getLineNumber());
+        log.error("Column: "+ex.getColumnNumber());
         log.error(ex.getMessage());            
     }
 
