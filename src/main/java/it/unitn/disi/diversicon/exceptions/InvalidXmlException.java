@@ -29,6 +29,26 @@ public class InvalidXmlException extends DivException {
         setErrorHandler(errorHandler);
     }
     
+    /**
+     * Creates the exception using the provided message and throwable
+     * 
+     * @since 0.1.0
+     */
+    public InvalidXmlException(DivXmlErrorHandler errorHandler, String msg, Throwable tr) {
+        super(msg, tr);
+        setErrorHandler(errorHandler);
+    }
+
+    /**
+     * Creates the exception using the provided message
+     * 
+     * @since 0.1.0
+     */
+    public InvalidXmlException(DivXmlErrorHandler errorHandler, String msg) {
+        super(msg);
+        setErrorHandler(errorHandler);        
+    }
+    
     
     /**
      * @since 0.1.0
@@ -49,24 +69,4 @@ public class InvalidXmlException extends DivException {
         this.errorHandler = errorHandler;
     }
 
-
-
-    /**
-     * Creates the exception using the provided message and throwable
-     * 
-     * @since 0.1.0
-     */
-    public InvalidXmlException(DivXmlErrorHandler errorHandler, String msg, Throwable tr) {
-        super(msg, tr);
-    }
-
-    /**
-     * Creates the exception using the provided message
-     * 
-     * @since 0.1.0
-     */
-    public InvalidXmlException(DivXmlErrorHandler errorHandler, String msg) {
-        super(msg);
-        
-    }
 }

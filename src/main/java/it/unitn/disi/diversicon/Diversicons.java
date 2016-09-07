@@ -1521,15 +1521,32 @@ public final class Diversicons {
     }
 
     /**
+     * 
+     * See {@link #validateXml(File, long)}
+     * 
+     * @throws InvalidXmlException
+     * 
+     * @since 0.1.0
+     * 
+     */    
+    public static void validateXml(File xmlFile, Logger log){
+        validateXml(xmlFile, log, -1);
+    }
+    
+    /**
      * TODO put a link to this most precious cookbook somewhere: 
      * http://www.datypic.com/books/defxmlschema/chapter14.html
+     * 
+     * See also http://www.ibm.com/developerworks/library/x-xml11pt2/
+     * 
+     * important point about child/parent deps: http://stackoverflow.com/a/25344978
      * 
      * @throws InvalidXmlException
      * 
      * @since 0.1.0
      * 
      */
-    public static void validateXml(File xmlFile){
+    public static void validateXml(File xmlFile, Logger log, long logLimit){
         
         checkNotNull(xmlFile);
                 
@@ -1546,19 +1563,25 @@ public final class Diversicons {
         } catch (SAXException e) {
             throw new DivException("Error while parsing schema!", e);
         }
+
+        Source source = new StreamSource(xmlFile);        
+        DivXmlErrorHandler errorHandler = new DivXmlErrorHandler(log, logLimit, source.getSystemId());        
         
         Validator validator = schema.newValidator();
-        DivXmlErrorHandler errorHandler = new DivXmlErrorHandler(LOG);
+        
         validator.setErrorHandler(errorHandler);
         
-        Source source = new StreamSource(xmlFile);
-        try {
+        
+        try {            
             validator.validate(source);
         } catch (SAXException | IOException e) {            
             throw new InvalidXmlException(errorHandler, "Fatal error while validating " + xmlFile.getAbsolutePath(), e);
-        }        
+        }
+        
+        
         if (errorHandler.invalid()){
-            throw new InvalidXmlException(errorHandler, "Invalid xml! " + errorHandler.toString() + " in " + xmlFile.getAbsolutePath());
+            log.error("Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath());
+            throw new InvalidXmlException(errorHandler, "Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath());
         }
     }
 }

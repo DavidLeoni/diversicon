@@ -25,13 +25,25 @@
 	</xs:complexType> 				
  				
 	<xs:complexType name="LexicalResource" >
-	 	 		
+	 		 	 		
 		<xs:sequence>
-			<xs:element name="Lexicon" type="Lexicon" minOccurs="1" maxOccurs="unbounded"/>
+			<xs:element name="Lexicon" type="Lexicon" minOccurs="1" maxOccurs="unbounded">				
+			</xs:element>			
 		</xs:sequence>
 		<xs:attribute name="name" type="xs:string"/>
-	 	
-	 	<xs:assert id="gnippa" test="fn:starts-with(./Lexicon/@id, fn:concat(@name, ':'))"/>
+
+		<xs:assert test="every $a in .//* satisfies fn:starts-with($a/@id, fn:concat(@name, ':'))">		
+			<xs:annotation>
+			      <xs:appinfo>
+			        Value of the "min" attribute can not be greater than that of the "max"
+			        attribute.
+			      </xs:appinfo>
+			      <xs:documentation>
+			        When this assertion fails, the content of the above "appinfo" is used
+			        to produce the error message.
+			      </xs:documentation>
+	    	</xs:annotation>		
+		</xs:assert>
 	 	
 	</xs:complexType>
 	

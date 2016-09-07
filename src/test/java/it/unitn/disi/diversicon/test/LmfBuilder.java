@@ -27,11 +27,11 @@ import java.util.Collection;
  * Experimental builder helper for {@link LexicalResource} data structures, to
  * use for testing purposes.
  * 
- * The builder will automatically create necessary ids for you like 'lexical
+ * The builder will automatically create necessary ids for you, like 'lexical
  * resource 1', 'synset 3', ... according to the order of insertion.
  * 
  * Start building with {@link #lmf()} or {@link #lmf(String)} and finish with
- * {@link #build()i}. Each builder instance can build only one object.
+ * {@link #build()}. Each builder instance can build only one object.
  * 
  * @since 0.1.0
  *
@@ -49,17 +49,17 @@ public class LmfBuilder {
     /**
      * @since 0.1.0
      */
-    private LmfBuilder(){
+    private LmfBuilder() {
         this("");
     }
-    
+
     /**
      * @since 0.1.0
      */
     private LmfBuilder(String prefix) {
         checkNotNull(prefix);
-        
-        this.prefix = prefix;        
+
+        this.prefix = prefix;
         this.lexicalResource = new LexicalResource();
         this.lexicalResource.setName(prefix + "lexical resource 1");
         this.built = false;
@@ -78,11 +78,17 @@ public class LmfBuilder {
         return this;
     }
 
+    /**
+     * @since 0.1.0
+     */
     private Synset getSynset(int idNum) {
         Internals.checkArgument(idNum >= 1, "idNum must be greater than zero! Found instead " + idNum);
         return getSynset(prefix + "synset " + idNum);
     }
 
+    /**
+     * @since 0.1.0
+     */
     private Synset getSynset(String synsetId) {
         checkNotEmpty(synsetId, "Invalid synset id!");
 
@@ -100,14 +106,18 @@ public class LmfBuilder {
     /**
      * Returns something like {@code myprefix-name 3} where 3 is the collection
      * size
+     * 
+     * @since 0.1.0
      */
     private String id(String name, Collection c) {
         return prefix + name + " " + (c.size() + 1);
     }
-    
+
     /**
      * Returns something like {@code myprefix-name 3} where 3 is the collection
      * size
+     * 
+     * @since 0.1.0
      */
     private String id(String name, long num) {
         checkArgument(num >= 0, "Invalid id number, should be >= 0 !");
@@ -121,9 +131,11 @@ public class LmfBuilder {
      */
     public LmfBuilder synset() {
         Lexicon lexicon = getCurLexicon();
-        return synset(lexicon.getSynsets().size()+ 1);
+        return synset(lexicon.getSynsets()
+                             .size()
+                + 1);
     }
-    
+
     /**
      * @since 0.1.0
      */
@@ -137,7 +149,6 @@ public class LmfBuilder {
                .add(synset);
         return this;
     }
-    
 
     /**
      * Creates a definition and attaches it to current synset
@@ -160,6 +171,7 @@ public class LmfBuilder {
      * 
      * @param targetIdNum
      *            must be > 0.
+     * 
      * @since 0.1.0
      */
     public LmfBuilder synsetRelation(String relName, int targetIdNum) {
@@ -200,6 +212,7 @@ public class LmfBuilder {
      * 
      * @param targetIdNum
      *            must be > 0.
+     * 
      * @since 0.1.0
      */
     public LmfBuilder synsetRelation(String relName, int sourceIdNum, int targetIdNum) {
@@ -288,13 +301,15 @@ public class LmfBuilder {
     };
 
     /**
-     * Start building a lexical resource, prepending every id of every element inside 
-     * (even nested ones such as synsets) with {@code prefix}. No space will be added after the prefix. 
+     * Start building a lexical resource, prepending every id of every element
+     * inside
+     * (even nested ones such as synsets) with {@code prefix}. No space will be
+     * added after the prefix.
      *
      * @since 0.1.0
      */
     public static LmfBuilder lmf(String prefix) {
-        return new LmfBuilder(prefix);       
+        return new LmfBuilder(prefix);
     }
 
     /**
@@ -343,6 +358,7 @@ public class LmfBuilder {
      * 
      * @param synsetIdNum
      *            must exist
+     * 
      * @since 0.1.0
      */
     public LmfBuilder lexicalEntry(String writtenForm, String synsetId) {

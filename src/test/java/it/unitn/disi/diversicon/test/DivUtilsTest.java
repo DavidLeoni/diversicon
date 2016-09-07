@@ -32,9 +32,11 @@ import it.disi.unitn.diversicon.exceptions.DivException;
 import it.disi.unitn.diversicon.exceptions.DivIoException;
 import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.BuildInfo;
+import it.unitn.disi.diversicon.DivXmlErrorHandler;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
 import it.unitn.disi.diversicon.data.Examplicon;
+import it.unitn.disi.diversicon.exceptions.InvalidXmlException;
 import it.unitn.disi.diversicon.internal.ExtractedStream;
 import it.unitn.disi.diversicon.internal.Internals;
 
@@ -45,7 +47,7 @@ public class DivUtilsTest {
         
     private static final Logger LOG = LoggerFactory.getLogger(DivUtilsTest.class);
     
-    private DBConfig dbConfig;
+    private DBConfig dbConfig;       
         
     @Nullable
     private String savedKeepTempFiles ;
@@ -53,7 +55,7 @@ public class DivUtilsTest {
     @Before
     public void beforeMethod(){
          savedKeepTempFiles = System.getProperty(Diversicon.PROPERTY_DEBUG_KEEP_TEMP_FILES);
-         dbConfig = DivTester.createNewDbConfig();                
+         dbConfig = DivTester.createNewDbConfig();             
     }
     
     @After
@@ -258,17 +260,84 @@ public class DivUtilsTest {
         System.setProperty(Diversicon.PROPERTY_DEBUG_KEEP_TEMP_FILES, Boolean.toString(false));
         Internals.createTempDivDir("wont-survive-");               
     }
-
     
     /**
      * @since 0.1.0
      */
     @Test
-    public void testValidate(){
+    public void testValidateXml(){
         File f = Internals.readData(Examplicon.XML_URI).toTempFile();
         
-        Diversicons.validateXml(f);
+        Diversicons.validateXml(f, LOG);
     }
+    
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testValidateXmlLogLimitZero(){
+        File f = Internals.readData(Examplicon.XML_URI).toTempFile();
+        
+        Diversicons.validateXml(f, LOG, 0);
+    }
+    
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testValidateXmlLogLimitOne(){
+        File f = Internals.readData(Examplicon.XML_URI).toTempFile();
+        
+        Diversicons.validateXml(f, LOG, 1);
+    }
+    
+    
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testValidateXmlFatalIllFormed() throws IOException{
+        
+        File f = DivTester.writeXml("666");
+        
+        try {
+            Diversicons.validateXml(f, LOG);            
+            Assert.fail("Shouldn't arrive here!");            
+        } catch (InvalidXmlException ex){
+            LOG.debug("Catched exception:", ex);
+            assertFatal(ex);
+        }
+    }
+    
+    /**
+     * Asserts one fatal error occurred
+     * 
+     * @since 0.1.0
+     */
+    private static void assertFatal(InvalidXmlException ex) {
+        DivXmlErrorHandler errorHandler = ex.getErrorHandler();
+        assertTrue(errorHandler.isFatal());
+        assertEquals(1, errorHandler.issuesCount());
+        assertTrue(errorHandler.fatalError() != null);
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testValidateXmlFatalUnclosedTag() throws IOException{
+                
+        File f = DivTester.writeXml("<bla>");
+        
+        try {
+            Diversicons.validateXml(f, LOG);            
+            Assert.fail("Shouldn't arrive here!");
+        } catch (InvalidXmlException ex){
+            LOG.debug("Catched exception:", ex);
+            assertFatal(ex);
+        }
+    }
+    
 
     /**
      * @since 0.1.0

@@ -586,4 +586,17 @@ public final class DivTester {
         return Internals.createTempDivDir("test");
     }
 
+    static File writeXml(String content){
+        checkNotNull(content);
+        
+        Path p = DivTester.createTestDir();
+        File f = new File(p.toFile(),"test.xml");        
+        try {
+            FileUtils.writeStringToFile(f, content);
+        } catch (IOException ex) {            
+            throw new Error("Failed writing xml string to file " + f.getAbsolutePath(), ex);
+        }
+        return f;
+    }
+    
 }
