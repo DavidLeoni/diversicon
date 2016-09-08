@@ -1,6 +1,7 @@
 package it.unitn.disi.diversicon.internal;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkNotBlank;
+import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 
 import java.io.BufferedInputStream;
 import java.io.EOFException;
@@ -734,22 +735,22 @@ public final class Internals {
                 try {
 
                     String candidatePathTest = "src/test/resources/" + q;
-                    LOG.trace("    Searching data in " + candidatePathTest + " ...");
+                    LOG.trace("    Searching data at " + candidatePathTest + " ...");
                     inputStream = new FileInputStream(candidatePathTest);
-                    LOG.debug("    Located data in " + candidatePathTest);
+                    LOG.debug("    Located data at " + candidatePathTest);
                 } catch (FileNotFoundException ex1) {
                     try {
                         String candidatePathMain = "src/main/resources/" + q;
-                        LOG.trace("    Searching data in " + candidatePathMain + " ...");
+                        LOG.trace("    Searching data at " + candidatePathMain + " ...");
                         inputStream = new FileInputStream(candidatePathMain);
-                        LOG.debug("    Located data in " + candidatePathMain);
+                        LOG.debug("    Located data at " + candidatePathMain);
                     } catch (FileNotFoundException ex2) {
                         throw new DivIoException("Couldn't find input stream: " + dataUrl.toString());
                     }
                 }
 
             } else {
-                LOG.debug("    Located data in " + dataUrl);
+                LOG.debug("    Located data at " + dataUrl);
             }
         } else {
 
@@ -767,7 +768,7 @@ public final class Internals {
                     inputStream = new FileInputStream(dataUrl);
                 }
 
-                LOG.debug("    Located data in " + dataUrl);
+                LOG.debug("    Located data at " + dataUrl);
             } catch (IOException ex) {
                 throw new DivIoException("Error while opening lexical resource " + dataUrl + "  !!", ex);
             }
@@ -1265,42 +1266,6 @@ public final class Internals {
         return dp[len1][len2];
     }
 
-    /**
-     * Little dirty way to quickly patch a LexicalResource in a file with
-     * namespaces
-     * 
-     * @throws DivNotFoundException
-     *             if no LexicalResource tag is found
-     * @throws DivException
-     *             for any other error.
-     * 
-     * 
-     * @since 0.1.0
-     */
-    public static void appendNamespacesToLexicalResource(File lmfXml) {
-        FileReader input;
-        try {
-            input = new FileReader(lmfXml);
-        } catch (FileNotFoundException ex) {
-            throw new DivIoException("Couldn't find file " + lmfXml.getAbsolutePath(), ex);
-        }
-
-        try (BufferedReader bufRead = new BufferedReader(input)) {
-
-            String myLine = null;
-
-            while ((myLine = bufRead.readLine()) != null) {
-                if (myLine.contains("<LexicalResource ")) {
-
-                    return;
-                }
-            }
-        } catch (IOException e) {
-            throw new DivIoException("Error while parsing file " + lmfXml.getAbsolutePath(), e);
-        }
-
-        throw new DivNotFoundException("Couldn't find ");
-    }
 
     /**
      * Copied this from {@link de.tudarmstadt.ukp.lmf.transform.UBYXMLTransform#doWriteElement}
@@ -1309,6 +1274,8 @@ public final class Internals {
      * Modified in Diversicon to
      * <ul>
      * <li>prevent writing wrong tag name DivSynsetRelation</li>
+     * <li>add id to the LexicalResource</li>
+     * <li>add prefix to the LexicalResource</li>
      * <li>add namespaces to the LexicalResource</li>
      * </ul>
      * 
@@ -1317,11 +1284,12 @@ public final class Internals {
      * @return the element tagname
      * 
      * @throws SAXException 
+     * 
      * @since 0.1.0
      */
     public static String prepareXmlElement(Object inputLmfObject,
             boolean closeTag,
-            Map<String, String> namespaces,
+            LexResPackage lexResPackage,
             UBYLMFClassMetadata classMetadata,
             AttributesImpl atts,
             List<Object> children) throws SAXException {
@@ -1329,14 +1297,22 @@ public final class Internals {
         checkNotNull(inputLmfObject);
         checkNotNull(atts);
         checkNotNull(children);
-        Diversicons.checkNamespaces(namespaces);
+        Internals.checkLexResPackage(lexResPackage);
         
         Object lmfObject;        
         String elementName; 
         
         if (inputLmfObject instanceof LexicalResource){
-            for (String prefix : namespaces.keySet()) {
-                atts.addAttribute("", "", "xmlns:" + prefix, "CDATA", namespaces.get(prefix));
+            
+            atts.addAttribute("", "", "id", "CDATA", 
+                        lexResPackage.getId());
+
+            atts.addAttribute("", "", "prefix", "CDATA", 
+                    lexResPackage.getPrefix());           
+            
+            for (String prefix : lexResPackage.getNamespaces().keySet()) {
+                atts.addAttribute("", "", "xmlns:" + prefix, "CDATA", 
+                        lexResPackage.getNamespaces().get(prefix));
             }
         }
         
@@ -1406,34 +1382,183 @@ public final class Internals {
     }
 
     /**
+     * See {@link #checkLexResPackage(LexResPackage, LexicalResource, boolean)}
+     * 
+     * @throws IllegalArgumentException
+     * 
      * @since 0.1.0
-     * @param name
-     * @param namespaces
      */
-    public static void checkResource(LexResPackage divRes,
+    public static LexResPackage checkLexResPackage(LexResPackage lexResPackage){
+        return checkLexResPackage(lexResPackage, null, false);
+    }    
+    
+    /**
+     * See {@link #checkLexResPackage(LexResPackage, LexicalResource, boolean)} 
+     * 
+     * @throws IllegalArgumentException
+     * 
+     * @since 0.1.0
+     */
+    public static LexResPackage checkLexResPackage(
+            LexResPackage lexResPackage, 
+            LexicalResource lexRes){
+        
+        return checkLexResPackage(lexResPackage,  lexRes, false);
+    }    
+
+    /**
+     * See {@link #checkLexResPackage(LexResPackage, LexicalResource, boolean)}
+     * 
+     * @throws IllegalArgumentException
+     * 
+     * @since 0.1.0
+     */
+    public static LexResPackage checkLexResPackage(
+            LexResPackage pack,
             boolean skipNamespaceChecking) {
+        return checkLexResPackage(pack, null, skipNamespaceChecking);
+    }
+    
+    /**
+     * @throws IllegalArgumentException
+     * 
+     * @since 0.1.0
+     */
+    public static LexResPackage checkLexResPackage(
+            LexResPackage pack,
+            @Nullable
+            LexicalResource lexRes,
+            boolean skipNamespaceChecking) {
+        
         BuildInfo build = BuildInfo.of(Diversicon.class);
         
-        checkNotBlank(divRes.getName(), "Invalid lexical resource name!");
+        checkNotBlank(pack.getId(), "Invalid lexical resource id!");
+        checkNotBlank(pack.getPrefix(), "Invalid lexical resource prefix!");
+        checkNotBlank(pack.getName(), "Invalid lexical resource name!");             
 
-        if (divRes.getName().length() > Diversicons.LEXICAL_RESOURCE_NAME_SUGGESTED_LENGTH) {
-            LOG.warn("Lexical resource name " + divRes.getName() + " longer than "
-                    + Diversicons.LEXICAL_RESOURCE_NAME_SUGGESTED_LENGTH
-                    + ": since it is used as a prefix, this may cause memory issues.");
-        }        
+        if (pack.getPrefix().length() > Diversicons.LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH) {
+            LOG.warn("Lexical resource prefix " + pack.getPrefix() + " longer than "
+                    + Diversicons.LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH
+                    + ": this may cause memory issues.");
+        }
 
         
         if (!skipNamespaceChecking){
-            Diversicons.checkNamespaces(divRes.getNamespaces());
+            Diversicons.checkNamespaces(pack.getNamespaces());
 
-            if (!divRes.getNamespaces().containsKey(divRes.getName())) {
+            if (!pack.getNamespaces().containsKey(pack.getPrefix())) {
                 throw new IllegalArgumentException(
-                        "Couldn't find LexicalResource name " + divRes.getName() + " among namespace prefixes! "
+                        "Couldn't find LexicalResource prefix " + pack.getPrefix() + " among namespace prefixes! "
                                 + "See " + build.docsAtVersion() + "/diversicon-lmf.html"
                                 + " for info on how to structure a Diversicon XML!");
             }
             
         }
+        
+        if (lexRes != null){
+            
+            Internals.checkEquals("", pack.getName(), lexRes.getName());    
+        }        
+        
+        return pack;
     }
+    
+    /**
+     * Copied from Junit 'format'
+     * 
+     * @since 0.1.0
+     */
+    static String formatCheck(String message, Object expected, Object actual) {
+        String formatted = "";
+        if (message != null && !message.equals("")) {
+            formatted = message + " ";
+        }
+        String expectedString = String.valueOf(expected);
+        String actualString = String.valueOf(actual);
+        if (expectedString.equals(actualString)) {
+            return formatted + "expected: "
+                    + formatClassAndValue(expected, expectedString)
+                    + " but was: " + formatClassAndValue(actual, actualString);
+        } else {
+            return formatted + "expected:<" + expectedString + "> but was:<"
+                    + actualString + ">";
+        }
+    }
+    
+    /**
+     * Copied from Junit
+     * 
+     * @since 0.1.0
+     */
+    private static String formatClassAndValue(Object value, String valueString) {
+        String className = value == null ? "null" : value.getClass().getName();
+        return className + "<" + valueString + ">";
+    }
+
+    /**
+     * Adapted from Junit
+     * 
+     * See {@link #checkEquals(String, Object, Object)}
+     * 
+     * @since 0.1.0
+     */
+    static public void checkEquals(
+            @Nullable Object expected, 
+            @Nullable  Object actual){
+        checkEquals("", expected, actual);
+    }
+            
+    
+    /**
+     * Adapted from Junit
+     * 
+     * Asserts that two objects are equal. If they are not, an
+     * {@link IllegalArgumentError} is thrown with the given message. If
+     * <code>expected</code> and <code>actual</code> are <code>null</code>,
+     * they are considered equal.
+     *
+     * @param message the identifying message for the {@link AssertionError} (<code>null</code>
+     * okay)
+     * @param expected expected value
+     * @param actual actual value
+     * 
+     * @throws IllegalArgumentException
+     * 
+     * @since 0.1.0
+     */
+    static public void checkEquals(
+            @Nullable String message, 
+            @Nullable Object expected,
+            @Nullable Object actual) {
+        if (equalsRegardingNull(expected, actual)) {
+            return;
+        } else if (expected instanceof String && actual instanceof String) {
+            String cleanMessage = message == null ? "" : message;
+            throw new IllegalArgumentException(cleanMessage + " Expected:-->"+ (String) expected 
+                    +"<-- Found:-->" + (String) actual + "<--");
+        } else {            
+            String formsg = formatCheck(message, expected, actual);
+            if (formsg == null) {
+                throw new AssertionError();
+            }
+            throw new IllegalArgumentException(formsg);
+        }
+    }
+    
+
+    
+    /**
+     * Copied from Junit 
+     * 
+     * @since 0.1.0
+     */
+    private static boolean equalsRegardingNull(Object expected, Object actual) {
+        if (expected == null) {
+            return actual == null;
+        }
+
+        return expected.equals(actual);
+    }
+    
 
 }

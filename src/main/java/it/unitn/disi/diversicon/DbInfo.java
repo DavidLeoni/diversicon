@@ -25,7 +25,6 @@ public class DbInfo {
     @Nullable
     private ImportJob currentImportJob;
     private boolean toValidate;
-    private List<Namespace> namespaces;
 
     /**
      * @since 0.1.0
@@ -36,11 +35,9 @@ public class DbInfo {
         this.toValidate = false;
         this.toNormalize = false;
         this.toAugment = false;
-        this.description = "";
-        this.namespaces = new ArrayList();
+        this.description = "";        
     }
-
-
+       
     /**
      * @since 0.1.0
      */

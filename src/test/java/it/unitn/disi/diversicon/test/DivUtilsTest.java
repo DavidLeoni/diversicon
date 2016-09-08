@@ -208,7 +208,10 @@ public class DivUtilsTest {
     public void testDropCreateTables(){        
         Diversicons.dropCreateTables(dbConfig);
         
-        // todo improve test
+        Diversicon div = Diversicon.connectToDb(dbConfig);
+        
+        div.getSession().close();
+        
     }
     
     /**

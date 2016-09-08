@@ -10,9 +10,7 @@
    <id name="id" type="string" node="@id">
     	<column name="id" />   
     </id>
-   
-                           
-    
+                                 
    <property name="name" column="name" node="@name" type="string"/>
    <property name="xmlUri" column="xmlUri" node="@xmlUri" type="string"/>
    <property name="sqlUri" column="sqlUri" node="@sqlUri" type="string"/>

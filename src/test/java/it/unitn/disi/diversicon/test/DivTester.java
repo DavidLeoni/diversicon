@@ -1,6 +1,7 @@
 package it.unitn.disi.diversicon.test;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
+import static it.unitn.disi.diversicon.internal.Internals.checkNotBlank;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 import static it.unitn.disi.diversicon.internal.Internals.createTempFile;
 import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
@@ -49,9 +50,9 @@ import de.tudarmstadt.ukp.lmf.transform.LMFXmlWriter;
 import it.disi.unitn.diversicon.exceptions.DivException;
 import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.DivSynsetRelation;
-import it.unitn.disi.diversicon.DivXmlWriter;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
+import it.unitn.disi.diversicon.LexResPackage;
 import it.unitn.disi.diversicon.internal.Internals;
 
 public final class DivTester {
@@ -81,6 +82,8 @@ public final class DivTester {
 
     private static int dbCounter = -1;
 
+    
+    
     /**
      * 2 verteces and 1 hypernym edge
      * 
@@ -161,6 +164,7 @@ public final class DivTester {
                 }
             }
         }
+        
         throw new DivNotFoundException("Couldn't find synset with id 'synset " + idNum);
     }
 
@@ -517,36 +521,50 @@ public final class DivTester {
      * 
      * @since 0.1.0
      */
-    public static File writeXml(LexicalResource lexicalResource, Map<String, String> namespaces) {
-        checkNotNull(lexicalResource);
-        checkNotNull(namespaces);
-
-        File ret = createTempFile(DivTester.DIVERSICON_TEST_STRING, ".xml").toFile();
+    public static File writeXml(
+            LexicalResource lexRes, 
+            LexResPackage lexResPackage) {
+        checkNotNull(lexRes);
+        checkNotNull(lexResPackage);
         
-        DivXmlWriter writer;
-        try {
-            writer = new DivXmlWriter(new FileOutputStream(
-                    ret), 
-                    null, 
-                    namespaces);  // todo check if setting dtd means something
-            writer.writeElement(lexicalResource);
-            writer.writeEndDocument();
-            
-        } catch (FileNotFoundException | SAXException ex) {
-            throw new DivException("Error while writing lexical resource to XML: " + ret.getAbsolutePath(), ex);
-        }
+        File ret = createTempFile(DivTester.DIVERSICON_TEST_STRING, ".xml").toFile();        
+        Diversicons.writeLexResToXml(lexRes, lexResPackage, ret);               
 
-        return ret;
-        
+        return ret;        
     }
     
     /**
-     * Creates an xml file out of the provided lexical resource.
+     * Creates an xml file out of the provided lexical resource and prefix.
+     * 
+     * Other required parameters will be automatcally 
+     * generated in a predictable manner.
      * 
      * @since 0.1.0
      */
-    public static File writeXml(LexicalResource lexicalResource) {
-        return writeXml(lexicalResource, new HashMap());
+    public static File writeXml(LexicalResource lexRes, String prefix) {
+        checkNotNull(lexRes);
+        Diversicons.checkPrefix(prefix);        
+        
+        LexResPackage pack = new LexResPackage();
+        
+        pack.setId(prefix);
+        pack.setName(lexRes.getName());
+        pack.setPrefix(prefix);
+        pack.putNamespace(prefix, "http://test-"+lexRes.hashCode() + ".xml");
+        
+        return writeXml(lexRes, pack);
+    }
+    
+    /**
+     * Creates an xml file out of the provided lexical resource and {@link #DEFAULT_PREFIX}.
+     * 
+     * Other required parameters will be automatcally 
+     * generated in a predictable manner.
+     * 
+     * @since 0.1.0
+     */
+    public static File writeXml(LexicalResource lexRes) {        
+        return writeXml(lexRes, LmfBuilder.DEFAULT_PREFIX);
     }
 
     /**
@@ -586,6 +604,11 @@ public final class DivTester {
         return Internals.createTempDivDir("test");
     }
 
+    /**
+     * @since 0.1.0
+     * @param content
+     * @return
+     */
     static File writeXml(String content){
         checkNotNull(content);
         

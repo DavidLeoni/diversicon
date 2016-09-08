@@ -39,6 +39,7 @@ import org.hibernate.SQLQuery;
 import org.hibernate.ScrollMode;
 import org.hibernate.ScrollableResults;
 import org.hibernate.Transaction;
+import org.hibernate.criterion.Criterion;
 import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Projections;
 import org.hibernate.criterion.Restrictions;
@@ -924,10 +925,10 @@ public class Diversicon extends Uby {
             throw new InvalidImportException("Couldn't read file to import: " + fileUrl, ex);
         }
 
-        LexResPackage divRes;        
+        LexResPackage lexResPackage;        
         
         try {
-            divRes = Diversicons.readResource(fileUrl);                                  
+            lexResPackage = Diversicons.readResource(fileUrl);                                  
         } catch (Exception ex) {
             throw new InvalidImportException("Couldn't extract attributes from LexicalResource " + fileUrl, ex);
         }
@@ -935,7 +936,7 @@ public class Diversicon extends Uby {
         ImportJob job = createImportJob(
                 config,
                 fileUrl,
-                divRes);
+                lexResPackage);
         
         DivXmlToDbTransformer trans = new DivXmlToDbTransformer(this, config.isSkipNamespaceChecking());
 
@@ -1034,7 +1035,7 @@ public class Diversicon extends Uby {
             }
 
             throw new DivException("Error while ending import job in db!", ex);
-        }
+        } 
 
     }
 
@@ -1055,7 +1056,6 @@ public class Diversicon extends Uby {
             ImportConfig config,
             String fileUrl,
             LexResPackage divRes) {
-
         
         try {
             checkNotNull(config);
@@ -1064,7 +1064,7 @@ public class Diversicon extends Uby {
                                 .contains(fileUrl),
                     "Couldn't find fileUrl " + fileUrl + "in importConfig!");
             
-            Internals.checkResource(divRes, config.isSkipNamespaceChecking());
+            Internals.checkLexResPackage(divRes, config.isSkipNamespaceChecking());
         } catch (Exception ex) {
             throw new InvalidImportException("Invalid import for " + fileUrl + " in config " + config.toString(), ex);
         }
@@ -1090,13 +1090,13 @@ public class Diversicon extends Uby {
             tx.commit();
             return job;
 
-        } catch (Exception ex) {                       
-            throw new DivException("Error while adding import job in db!", ex);
-        } finally {
+        } catch (Exception ex) {
             LOG.error("Error while adding import job in db, rolling back!");
             if (tx != null) {
                 tx.rollback();
             }
+
+            throw new DivException("Error while adding import job in db!", ex);
         }
     }
 
@@ -1238,7 +1238,7 @@ public class Diversicon extends Uby {
      *            {@code .xml.zip}.
      *            If the path includes non-existing directories, they will be
      *            automatically created.
-     * @param lexicalResourceName
+     * @param lexResName
      *            the name of the lexical resource to export.
      * @param compress
      *            if true file is compressed to zip
@@ -1252,11 +1252,11 @@ public class Diversicon extends Uby {
      */
     public void exportToXml(
             String outPath,
-            String lexicalResourceName,
+            String lexResName,
             boolean compress) {
-
+        
         checkNotBlank(outPath, "invalid sql path!");
-        checkNotBlank(lexicalResourceName, "invalid lexical resource name!");
+        checkNotBlank(lexResName, "invalid lexical resource name!");
 
         File outFile = new File(outPath);
 
@@ -1272,10 +1272,10 @@ public class Diversicon extends Uby {
 
         LOG.info("Exporting xml to " + outPath + "  ...");
 
-        LexicalResource dbLe = getLexicalResource(lexicalResourceName);
+        LexicalResource dbLe = getLexicalResource(lexResName);
 
         if (dbLe == null) {
-            throw new DivNotFoundException("Couldn't find lexical resource " + lexicalResourceName + "  !");
+            throw new DivNotFoundException("Couldn't find lexical resource " + lexResName + "  !");
         }
 
         try {
@@ -1296,12 +1296,12 @@ public class Diversicon extends Uby {
                 zar.closeArchiveEntry();
 
             } else {
-
+                LexResPackage pack = getLexResPackageByName(lexResName);
                 new DivDbToXmlTransformer(
-                        dbConfig,
+                        this,
                         new FileOutputStream(outPath),
                         null,
-                        getNamespaces()).transform(dbLe);
+                        pack).transform(dbLe);
             }
 
         } catch (IOException | SAXException ex) {
@@ -1702,11 +1702,33 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * Returns a list of {@link Namespace namespaces} used within Diversicon.
+     * @throws DivNotFoundException
      * 
      * @since 0.1.0
      */
-    public Map<String, String> getNamespaces() {
+    public LexResPackage getLexResPackageByName(String lexResName){
+        checkNotBlank(lexResName, "Invalid lexical resource name!");
+                
+        Criteria criteria = session.createCriteria(LexResPackage.class)
+        .add( Restrictions.like("name", lexResName) );
+        
+        @SuppressWarnings("unchecked")
+        LexResPackage ret = (LexResPackage) criteria.uniqueResult();
+        
+        if (ret == null){
+            throw new DivNotFoundException("Couldn't find lexical resource package with name " + lexResName);
+        }
+        
+        return ret;       
+    }
+    
+    /*
+     * Returns a list of {@link Namespace namespaces} used within database.
+     * 
+     * @since 0.1.0
+     
+    public Map<String, String> getNamespaces() {               
+        
         Criteria criteria = session.createCriteria(Namespace.class);
         @SuppressWarnings("unchecked")
         List<Namespace> res = criteria.list();
@@ -1722,4 +1744,5 @@ public class Diversicon extends Uby {
 
         return ret;
     }
+    */
 }

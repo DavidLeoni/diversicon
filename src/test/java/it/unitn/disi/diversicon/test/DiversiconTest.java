@@ -730,7 +730,7 @@ public class DiversiconTest {
 
         File xml = DivTester.writeXml(GRAPH_4_HYP_HOL_HELLO);
         
-        LOG.debug(FileUtils.readFileToString(xml, "UTF-8"));
+        LOG.debug("\n" + FileUtils.readFileToString(xml, "UTF-8"));
         
         Diversicons.dropCreateTables(dbConfig);
 

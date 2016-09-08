@@ -1,10 +1,10 @@
 package it.unitn.disi.diversicon;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.StringReader;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -14,24 +14,18 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.xerces.impl.Constants;
-import org.dom4j.Attribute;
 import org.dom4j.DocumentException;
-import org.dom4j.Element;
-import org.dom4j.ElementHandler;
-import org.dom4j.ElementPath;
-import org.dom4j.Namespace;
 import org.dom4j.io.SAXReader;
 import org.h2.tools.RunScript;
 import org.hibernate.HibernateException;
@@ -45,8 +39,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
-import org.xml.sax.EntityResolver;
-import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import javax.annotation.Nullable;
@@ -57,14 +49,13 @@ import javax.xml.validation.SchemaFactory;
 import javax.xml.validation.Validator;
 
 import de.tudarmstadt.ukp.lmf.hibernate.HibernateConnect;
+import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 
 import static de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics.*;
 
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
-//import de.tudarmstadt.ukp.lmf.transform.DBConfig;
-import de.tudarmstadt.ukp.lmf.transform.StringUtils;
 import it.unitn.disi.diversicon.internal.Internals;
 import it.disi.unitn.diversicon.exceptions.DivException;
 import it.disi.unitn.diversicon.exceptions.DivIoException;
@@ -77,7 +68,6 @@ import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotBlank;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
-import static it.unitn.disi.diversicon.internal.Internals.format;
 
 /**
  * Utility class for {@link Diversicon}
@@ -95,7 +85,7 @@ public final class Diversicons {
      * 
      * @since 0.1.0
      */
-    public static final int LEXICAL_RESOURCE_NAME_SUGGESTED_LENGTH = 5;
+    public static final int LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH = 5;
 
     /**
      * Valid prefixes:
@@ -742,8 +732,7 @@ public final class Diversicons {
 
     /**
      * Creates the default configuration to access a file H2 database. NOTE: if
-     * database
-     * does not exist it is created.
+     * database does not exist it is created (but tables are not!)
      * 
      * @param filePath
      *            the path to a database, which must end with just the
@@ -773,8 +762,7 @@ public final class Diversicons {
     /**
      * 
      * Creates the default configuration to access an in-memory H2 database.
-     * NOTE: if database
-     * does not exist it is created.
+     * NOTE: if database does not exist it is created (but tables are not!)
      * 
      * @param dbName
      *            Uniquely identifies the db among all in-memory dbs.
@@ -1454,5 +1442,56 @@ public final class Diversicons {
         throw new DivNotFoundException("Couldn't find lexical resource tag in "
                 + lexResUrl + "  !");
 
+    }
+    
+    
+    /**
+     * Creates an xml file out of the provided lexical resource. Written 
+     * lexical resource will include provided namespaces as {@code xmlns} attributes
+     * 
+     * @param namespaces Namespaces expressed as prefix : url
+     * 
+     * @since 0.1.0
+     */
+    public static File writeLexResToXml(
+            LexicalResource lexRes, 
+            LexResPackage lexResPackage,
+            File ret) {
+        
+        checkNotNull(lexRes);
+        
+        Internals.checkLexResPackage(lexResPackage, lexRes);       
+        
+        DivXmlWriter writer;
+        try {
+            writer = new DivXmlWriter(new FileOutputStream(
+                    ret), 
+                    null, 
+                    lexResPackage);  // todo check if setting dtd means something
+            
+            writer.writeElement(lexRes);
+            writer.writeEndDocument();
+            
+        } catch (FileNotFoundException | SAXException ex) {
+            throw new DivException("Error while writing lexical resource to XML: " + ret.getAbsolutePath(), ex);
+        }
+
+        return ret;
+        
+    }
+
+    /**
+     * 
+     * Checks a prefix is valid, throwing IllegalArgumentException otherwise
+     * 
+     * @throws IllegalArgumentException
+     * 
+     * @since 0.1.0
+     */
+    public static String checkPrefix(String prefix){
+        if (!NAMESPACE_PREFIX_PATTERN.matcher(prefix).matches()){
+            throw new IllegalArgumentException("Invalid prefix!");
+        }
+        return prefix;
     }
 }

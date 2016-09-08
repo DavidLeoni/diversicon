@@ -1,5 +1,7 @@
 package it.unitn.disi.diversicon;
 
+import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
+
 import java.io.FileNotFoundException;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -23,9 +25,9 @@ import it.unitn.disi.diversicon.internal.Internals;
  * 
  * @since 0.1.0
  */
-public class DivXmlWriter extends LMFXmlWriter {
+class DivXmlWriter extends LMFXmlWriter {
 
-    private Map<String, String> namespaces;
+    private LexResPackage lexResPackage;
 
 
     /**
@@ -35,10 +37,11 @@ public class DivXmlWriter extends LMFXmlWriter {
      */
     public DivXmlWriter(OutputStream outputStream,
             @Nullable String dtdPath,
-            Map<String, String> namespaces) throws SAXException {
+            LexResPackage lexResPackage) throws SAXException {
         super(outputStream, dtdPath);
-
-        this.namespaces = Diversicons.checkNamespaces(namespaces);
+        
+        this.lexResPackage = checkNotNull(lexResPackage); 
+        
     }
 
     /**
@@ -81,7 +84,7 @@ public class DivXmlWriter extends LMFXmlWriter {
         List<Object> children = new ArrayList<>();        
         String elementName = Internals.prepareXmlElement(lmfObject,
                 closeTag,
-                namespaces,
+                lexResPackage,
                 getClassMetadata(lmfObject.getClass()),
                 atts, 
                 children);

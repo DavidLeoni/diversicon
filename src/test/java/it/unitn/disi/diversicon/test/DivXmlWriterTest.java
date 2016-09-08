@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import it.unitn.disi.diversicon.LexResPackage;
 import it.unitn.disi.diversicon.internal.Internals;
 
 /**
@@ -45,10 +46,15 @@ public class DivXmlWriterTest {
      */
     @Test
     public void testTransformWithNamespaces() throws IOException, DocumentException {
-                        
-        File xml = DivTester.writeXml(DivTester.GRAPH_1_HYPERNYM,
-                Internals.newMap("prefix-1", "url-1",
+                
+        LexResPackage pack = new LexResPackage();
+        pack.setName(DivTester.GRAPH_1_HYPERNYM.getName());
+        pack.setPrefix(LmfBuilder.DEFAULT_PREFIX);
+        pack.setId(LmfBuilder.DEFAULT_PREFIX);
+        pack.setNamespaces(Internals.newMap("prefix-1", "url-1",
                                  "prefix-2", "url-2"));
+        
+        File xml = DivTester.writeXml(DivTester.GRAPH_1_HYPERNYM, pack);
         
         SAXReader reader = new SAXReader();
         Document document = reader.read(xml);

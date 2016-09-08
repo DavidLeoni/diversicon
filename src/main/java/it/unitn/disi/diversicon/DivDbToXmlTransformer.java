@@ -1,9 +1,12 @@
 package it.unitn.disi.diversicon;
 
+import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
+
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.annotation.Nullable;
 
@@ -14,24 +17,32 @@ import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import de.tudarmstadt.ukp.lmf.transform.DBToXMLTransformer;
 import it.unitn.disi.diversicon.internal.Internals;
 
+/**
+ * @since 0.1.0
+ *
+ */
 class DivDbToXmlTransformer extends DBToXMLTransformer {
 
-    private Map<String, String> namespaces;
+    private LexResPackage lexResPackage;
 
     /**
      * See {@link DBToXMLTransformer#DBToXMLTransformer(DBConfig, OutputStream, String)
      *      super constructor}
      *      
-     * @param namespaces Diversicon namespaces
+     * @param lexResPackage Additional info about the lexical resource
      * 
      * @since 0.1.0
      */
-    public DivDbToXmlTransformer(DBConfig dbConfig, 
+    public DivDbToXmlTransformer(Diversicon div, 
             OutputStream outputStream, 
             @Nullable String dtdPath,
-            Map<String, String> namespaces) throws SAXException {
-        super(dbConfig, outputStream, dtdPath);
-        this.namespaces = Diversicons.checkNamespaces(namespaces);
+            LexResPackage lexResPackage) throws SAXException {
+        super(Diversicons.makeDefaultH2InMemoryDbConfig(UUID.randomUUID().toString(), false), outputStream, dtdPath);
+        session.close();
+        sessionFactory = div.getSessionFactory();
+        session = div.getSession();
+        checkNotNull(lexResPackage);
+        this.lexResPackage = lexResPackage;
     }
        
     /**
@@ -59,7 +70,7 @@ class DivDbToXmlTransformer extends DBToXMLTransformer {
         List<Object> children = new ArrayList<>();        
         String elementName = Internals.prepareXmlElement(lmfObject,
                 closeTag,
-                namespaces,
+                lexResPackage,
                 getClassMetadata(lmfObject.getClass()),
                 atts, 
                 children);

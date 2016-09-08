@@ -22,6 +22,9 @@ import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
 import java.util.Arrays;
 import java.util.Collection;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * 
  * Experimental builder helper for {@link LexicalResource} data structures, to
@@ -39,6 +42,13 @@ import java.util.Collection;
 // todo implement other id naming policies...
 // todo implement all elements builders... huge!
 public class LmfBuilder {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(LmfBuilder.class);
+    
+    /**
+     * @since 0.1.0
+     */
+    public static final String DEFAULT_PREFIX = "test";
 
     private LexicalResource lexicalResource;
     private long lastSenseId;
@@ -83,7 +93,7 @@ public class LmfBuilder {
      */
     private Synset getSynset(int idNum) {
         Internals.checkArgument(idNum >= 1, "idNum must be greater than zero! Found instead " + idNum);
-        return getSynset(prefix + "synset " + idNum);
+        return getSynset(id("synset", idNum));
     }
 
     /**
@@ -110,18 +120,20 @@ public class LmfBuilder {
      * @since 0.1.0
      */
     private String id(String name, Collection c) {
-        return prefix + name + " " + (c.size() + 1);
+        return id(name, (c.size() + 1));
     }
 
     /**
-     * Returns something like {@code myprefix-name 3} where 3 is the collection
-     * size
+     * Returns something like {@code myprefix:name 3}
      * 
      * @since 0.1.0
      */
     private String id(String name, long num) {
         checkArgument(num >= 0, "Invalid id number, should be >= 0 !");
-        return prefix + name + " " + num;
+        if (name.startsWith(" ") || name.endsWith(" ")){
+            LOG.warn("Found name with spaces at the beginning / end: -->" + name + "<--");
+        }
+        return prefix + ":" + name + " " + num;
     }
 
     /**
@@ -297,7 +309,7 @@ public class LmfBuilder {
      * @since 0.1.0
      */
     public static LmfBuilder lmf() {
-        return new LmfBuilder();
+        return new LmfBuilder(DEFAULT_PREFIX);
     };
 
     /**
