@@ -59,7 +59,7 @@ class DivXmlToDbTransformer extends XMLToDBTransformer {
                 }
             }
 
-            Internals.checkLexicalResource(name, namespaces, skipNamespaceChecking);
+            //Internals.checkResource(name, namespaces, skipNamespaceChecking);
         } else {
             if (!skipNamespaceChecking && lexicalResource != null) {
                 // Would have liked to get it from class, but if we 

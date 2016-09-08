@@ -649,7 +649,7 @@ public class DiversiconTest {
         assertTrue(job.getEndDate()
                       .getTime() >= job.getStartDate()
                                        .getTime());
-        assertEquals("lexical resource 1", job.getLexicalResourceName());
+        assertEquals("lexical resource 1", job.getResourceDescriptor().getName());
         assertTrue(job.getFileUrl()
                       .startsWith(Diversicon.MEMORY_PROTOCOL + ":"));
         /*
@@ -980,10 +980,10 @@ public class DiversiconTest {
         ImportJob import1 = div.getImportJobs()
                                .get(1);
 
-        assertEquals("lexical resource 1", import0.getLexicalResourceName());
+        assertEquals("lexical resource 1", import0.getResourceDescriptor().getName());
         assertNotEquals(-1, import0.getId());
 
-        assertEquals(prefix2 + "lexical resource 1", import1.getLexicalResourceName());
+        assertEquals(prefix2 + "lexical resource 1", import1.getResourceDescriptor().getName());
         assertNotEquals(-1, import1.getId());
 
         div.getSession()

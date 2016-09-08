@@ -15,20 +15,21 @@
                   
    <property name="author" column="author" node="@author" type="string"/>
    <property name="description" column="description" node="@description" type="text"/>   
-   <property name="fileUrl" column="fileUrl" node="@fileUrl" type="string" length="1000"/>
-   <property name="lexicalResourceName" column="lexicalResourceName" node="@lexicalResourceName" type="string"/>
+   <property name="fileUrl" column="fileUrl" node="@fileUrl" type="string" length="1000"/>   
    <property name="startDate" column="startDate" node="@startDate" type="date"/>
    <property name="endDate" column="endDate" node="@endDate" type="date"/>
    
-   
-   
+      
    <list name="logMessages" node=".">
             <key column="importJobId" />
             <index column="idx"/>
             <one-to-many class="it.unitn.disi.diversicon.ImportJob" node="ImportJob"/>
     </list> 
       
-  			
+	<one-to-one name="lexResPackage" class="it.unitn.disi.diversicon.LexResPackage"
+			cascade="save-update"></one-to-one>
+  	
+
 </class>
 
 </hibernate-mapping>

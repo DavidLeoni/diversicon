@@ -72,6 +72,7 @@ import java.io.BufferedReader;
 import it.unitn.disi.diversicon.BuildInfo;
 import it.unitn.disi.diversicon.DivSynsetRelation;
 import it.unitn.disi.diversicon.Diversicon;
+import it.unitn.disi.diversicon.LexResPackage;
 import it.unitn.disi.diversicon.Diversicons;
 
 /**
@@ -1409,26 +1410,25 @@ public final class Internals {
      * @param name
      * @param namespaces
      */
-    public static void checkLexicalResource(String name, Map<String, 
-                        String> namespaces,
+    public static void checkResource(LexResPackage divRes,
             boolean skipNamespaceChecking) {
         BuildInfo build = BuildInfo.of(Diversicon.class);
         
-        checkNotBlank(name, "Invalid lexical resource name!");
+        checkNotBlank(divRes.getName(), "Invalid lexical resource name!");
 
-        if (name.length() > Diversicons.LEXICAL_RESOURCE_NAME_SUGGESTED_LENGTH) {
-            LOG.warn("Lexical resource name " + name + " longer than "
+        if (divRes.getName().length() > Diversicons.LEXICAL_RESOURCE_NAME_SUGGESTED_LENGTH) {
+            LOG.warn("Lexical resource name " + divRes.getName() + " longer than "
                     + Diversicons.LEXICAL_RESOURCE_NAME_SUGGESTED_LENGTH
                     + ": since it is used as a prefix, this may cause memory issues.");
         }        
 
         
         if (!skipNamespaceChecking){
-            Diversicons.checkNamespaces(namespaces);
+            Diversicons.checkNamespaces(divRes.getNamespaces());
 
-            if (!namespaces.containsKey(name)) {
+            if (!divRes.getNamespaces().containsKey(divRes.getName())) {
                 throw new IllegalArgumentException(
-                        "Couldn't find LexicalResource name " + name + " among namespace prefixes! "
+                        "Couldn't find LexicalResource name " + divRes.getName() + " among namespace prefixes! "
                                 + "See " + build.docsAtVersion() + "/diversicon-lmf.html"
                                 + " for info on how to structure a Diversicon XML!");
             }

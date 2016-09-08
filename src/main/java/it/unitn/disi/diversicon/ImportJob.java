@@ -23,14 +23,15 @@ public class ImportJob {
     private String description;
     
     private String fileUrl;
-    private String lexicalResourceName;
-    
+        
     @Nullable
     private Date startDate;
     @Nullable
     private Date endDate;
     
     private List<LogMessage> logMessages;
+
+    private LexResPackage lexResPackage;
 
     /**
      * @since 0.1.0
@@ -40,12 +41,21 @@ public class ImportJob {
         this.author = "";
         this.description = "";
         this.fileUrl = "";
-        this.lexicalResourceName = "";
+        this.lexResPackage = new LexResPackage();
         
         this.startDate = null;
         this.endDate = null;
         this.logMessages = new ArrayList();
     }
+
+    
+    /**
+     * @since 0.1.0
+     */
+    public LexResPackage getLexResPackage() {
+        return lexResPackage;
+    }
+
 
     /**
      * The name of the author of the import
@@ -91,7 +101,29 @@ public class ImportJob {
     
     
     /**
-     * The url of the imported file. If 
+     * Identifiers used within the resource.
+     * 
+     * @since 0.1.0
+     */
+    public LexResPackage getResourceDescriptor() {
+        return lexResPackage;
+    }
+    
+    
+    /**
+     * 
+     * See {@link #getResourceDescriptor()}
+     * 
+     * @since 0.1.0
+     */
+    public void setLexResPackage(LexResPackage lexResPackage) {
+        checkNotNull(lexResPackage);
+        
+        this.lexResPackage = lexResPackage;
+    }
+
+    /**
+     * The url of the imported file. 
      * 
      * @since 0.1.0
      */
@@ -108,27 +140,7 @@ public class ImportJob {
         checkNotNull(fileUrl);
         this.fileUrl = fileUrl;
     }
-
-
-    /**
-     * 
-     * The name to assign to the lexical resource.
-     * @since 0.1.0
-     */
-    public String getLexicalResourceName() {
-        return lexicalResourceName;
-    }
-
-
-    /**
-     * See {@link #getLexicalResourceName()}
-     * 
-     * @since 0.1.0
-     */
-    public void setLexicalResourceName(String lexicalResourceName) {
-        this.lexicalResourceName = lexicalResourceName;
-    }
-
+  
 
 
     /**

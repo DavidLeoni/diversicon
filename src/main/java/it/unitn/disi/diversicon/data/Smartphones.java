@@ -3,7 +3,7 @@ package it.unitn.disi.diversicon.data;
 import javax.annotation.Nullable;
 
 import it.unitn.disi.diversicon.BuildInfo;
-import it.unitn.disi.diversicon.DiversiconResource;
+import it.unitn.disi.diversicon.LexResPackage;
 
 /**
  * Singleton holding references to sample {@code handheld-devices} files packaged for Diversicon
@@ -11,12 +11,17 @@ import it.unitn.disi.diversicon.DiversiconResource;
  * @since 0.1.0
  *
  */
-public class Smartphones extends DiversiconResource {
+public class Smartphones extends LexResPackage {
 
     /**
      * @since 0.1.0
      */
-    public static final String ID = "smartphones.lmf";
+    public static final String ID = "smartphones";
+    
+    /**
+     * @since 0.1.0
+     */
+    public static final String NAME = "Smartphones";
     
     /**
      * @since 0.1.0
@@ -26,7 +31,7 @@ public class Smartphones extends DiversiconResource {
     /**
      * @since 0.1.0
      */
-    private static final String CLASSPATH = "classpath:/" + ID;
+    private static final String CLASSPATH = "classpath:/" + ID + ".lmf";
     
     /**
      * @since 0.1.0
@@ -56,6 +61,7 @@ public class Smartphones extends DiversiconResource {
     
     static {
         INSTANCE.setId(ID);
+        INSTANCE.setName(NAME);
         INSTANCE.setPrefix(PREFIX);
         INSTANCE.setH2DbUri(CLASSPATH + ".h2.db");
         INSTANCE.setSqlUri(CLASSPATH + ".sql");

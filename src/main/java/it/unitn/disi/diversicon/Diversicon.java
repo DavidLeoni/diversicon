@@ -898,7 +898,7 @@ public class Diversicon extends Uby {
         LOG.info("");
 
         for (ImportJob job : jobs) {
-            LOG.info("    " + job.getLexicalResourceName() + "    from    " + job.getFileUrl());
+            LOG.info("    " + job.getResourceDescriptor().getName() + "    from    " + job.getFileUrl());
         }
         
     }
@@ -924,12 +924,10 @@ public class Diversicon extends Uby {
             throw new InvalidImportException("Couldn't read file to import: " + fileUrl, ex);
         }
 
-        String resName;
-        Map<String, String> resNamespaces;
-                
+        LexResPackage divRes;        
+        
         try {
-            resName = Diversicons.readLexicalResourceName(fileUrl);
-            resNamespaces = Diversicons.readLexicalResourceNamespaces(fileUrl);                       
+            divRes = Diversicons.readResource(fileUrl);                                  
         } catch (Exception ex) {
             throw new InvalidImportException("Couldn't extract attributes from LexicalResource " + fileUrl, ex);
         }
@@ -937,8 +935,7 @@ public class Diversicon extends Uby {
         ImportJob job = createImportJob(
                 config,
                 fileUrl,
-                resName,
-                resNamespaces);
+                divRes);
         
         DivXmlToDbTransformer trans = new DivXmlToDbTransformer(this, config.isSkipNamespaceChecking());
 
@@ -1057,8 +1054,7 @@ public class Diversicon extends Uby {
     private ImportJob createImportJob(
             ImportConfig config,
             String fileUrl,
-            String lexResName,
-            Map<String, String> lexResNamespaces) {
+            LexResPackage divRes) {
 
         
         try {
@@ -1068,7 +1064,7 @@ public class Diversicon extends Uby {
                                 .contains(fileUrl),
                     "Couldn't find fileUrl " + fileUrl + "in importConfig!");
             
-            Internals.checkLexicalResource(lexResName, lexResNamespaces, config.isSkipNamespaceChecking());
+            Internals.checkResource(divRes, config.isSkipNamespaceChecking());
         } catch (Exception ex) {
             throw new InvalidImportException("Invalid import for " + fileUrl + " in config " + config.toString(), ex);
         }
@@ -1083,7 +1079,7 @@ public class Diversicon extends Uby {
             job.setDescription(config.getDescription());
             job.setStartDate(new Date());
             job.setFileUrl(fileUrl);
-            job.setLexicalResourceName(lexResName);
+            job.setLexResPackage(divRes);
 
             session.saveOrUpdate(job);
 
@@ -1119,7 +1115,8 @@ public class Diversicon extends Uby {
             LexicalResource lexicalResource,        
             boolean skipAugment) {
                 
-        return  importResource(lexicalResource, 
+        return  importResource(lexicalResource,
+                "",
                 new HashMap<String, String>(), 
                 skipAugment, 
                 true);
@@ -1139,6 +1136,8 @@ public class Diversicon extends Uby {
      * on it instead.
      * </p> 
      * 
+     * @param prefix
+     *           The prefix to use within the database
      * @param namespaces
      *            The namespaces used by the resource
      * @param skipAugment
@@ -1153,18 +1152,20 @@ public class Diversicon extends Uby {
      */
     public ImportJob importResource(
             LexicalResource lexicalResource,
+            String prefix,
             Map<String, String> namespaces,
             boolean skipAugment,
             boolean skipNamespaceChecking) {
 
-        checkNotNull(lexicalResource);
+        checkNotNull(lexicalResource);        
 
         LOG.info("Going to save lexical resource to database...");
 
         ImportJob job = null;
 
-        try {
-            ImportConfig config = new ImportConfig();
+        try {            
+            
+            ImportConfig config = new ImportConfig();                       
             
             config.setSkipNamespaceChecking(skipNamespaceChecking);
             config.setSkipAugment(skipAugment);
@@ -1174,10 +1175,14 @@ public class Diversicon extends Uby {
 
             config.addLexicalResource(fileUrl);
 
+            LexResPackage divRes = new LexResPackage();
+            divRes.setName(lexicalResource.getName());
+            divRes.setNamespaces(namespaces);
+            divRes.setPrefix(prefix);
+            
             job = createImportJob(  config, 
                                     fileUrl, 
-                                    lexicalResource.getName(),
-                                    namespaces);
+                                    divRes);
 
             new JavaToDbTransformer(dbConfig, lexicalResource).transform();
 
@@ -1533,9 +1538,13 @@ public class Diversicon extends Uby {
         sb.append("IMPORT ID: ");
         sb.append(job.getId());
         sb.append("   LEXICAL RESOURCE: ");
-        sb.append(job.getLexicalResourceName());
+        sb.append(job.getResourceDescriptor().getName());
         sb.append("   IMPORT AUTHOR: ");
         sb.append(job.getAuthor());
+        sb.append("\n");
+        sb.append("NAMESPACE: ");
+        sb.append(job.getResourceDescriptor().getPrefix() + ":" + job.getResourceDescriptor().getNamespaces().get(job.getResourceDescriptor().getPrefix()));
+
 
         if (job.getLogMessages()
                .size() > 0) {
@@ -1651,7 +1660,7 @@ public class Diversicon extends Uby {
 
         if (importJob != null) {
             sb.append("- There is an import job in progress for lexical resource "
-                    + importJob.getLexicalResourceName() + " from file " + importJob.getFileUrl() + "\n");
+                    + importJob.getResourceDescriptor().getName() + " from file " + importJob.getFileUrl() + "\n");
         }
         return sb.toString();
 

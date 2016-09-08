@@ -31,6 +31,7 @@ import org.dom4j.DocumentException;
 import org.dom4j.Element;
 import org.dom4j.ElementHandler;
 import org.dom4j.ElementPath;
+import org.dom4j.Namespace;
 import org.dom4j.io.SAXReader;
 import org.h2.tools.RunScript;
 import org.hibernate.HibernateException;
@@ -736,110 +737,8 @@ public final class Diversicons {
         return partOfRelations.contains(relName);
     }
 
-    /**
-     * Extracts the name of a lexical resource from an XML file
-     * 
-     * @throws DivNotFoundException
-     *             thrown only when really sure it was not found
-     * @throws DivException
-     * 
-     * @since 0.1.0
-     */
-    // implementation is unholy
-    public static String readLexicalResourceName(final String lexResUrl) {
-        SAXReader reader = new SAXReader(false);
+   
 
-        ExtractedStream es = Internals.readData(lexResUrl, true);
-
-        reader.setEntityResolver(new EntityResolver() {
-            @Override
-            public InputSource resolveEntity(String publicId, String systemId)
-                    throws SAXException, IOException {
-                if (systemId.endsWith(".dtd")) {
-                    return new InputSource(new StringReader(""));
-                }
-                return null;
-            }
-        });
-        reader.setDefaultHandler(new LexicalResourceNameHandler());
-        try {
-            reader.read(es.stream());
-        } catch (DocumentException e) {
-
-            if (e.getMessage()
-                 .contains(LexicalResourceNameHandler.DELIM)) {
-
-                String name = e.getMessage()
-                               .substring(0, e.getMessage()
-                                              .indexOf(LexicalResourceNameHandler.DELIM));
-                if (name.isEmpty()) {
-                    throw new DivNotFoundException("Couldn't find 'name' in LexicalResource tag of file "
-                            + lexResUrl + "!", e);
-                } else {
-                    return name;
-                }
-            }
-        }
-        throw new DivNotFoundException("Couldn't find attribute name in lexical resource "
-                + lexResUrl + "  !");
-    }
-
-    /**
-     * div dirty - What a horrible class
-     * 
-     * @since 0.1.0
-     */
-    private static class LexicalResourceNameHandler implements ElementHandler {
-
-        private static final String DELIM = "<--ATTR DELIM-->";
-        private static final String NAMESPACE_DELIM = "<--NS DELIM-->";
-
-        @Override
-        public void onStart(ElementPath elementPath) {
-            Element el = elementPath.getCurrent();
-            String elName = el.getName();
-
-            // Remove empty attributes and invalid characters.
-            Iterator<?> attrIter = el.attributeIterator();
-            while (attrIter.hasNext()) {
-                Attribute attr = (Attribute) attrIter.next();
-                if ("NULL".equals(attr.getStringValue())) {
-                    attrIter.remove();
-                } else {
-                    attr.setValue(StringUtils.replaceNonUtf8(attr.getValue()));
-                }
-            }
-
-            if ("LexicalResource".equals(elName)) {
-                // I know this is horrible, can't find better method :P
-                String name = el.attributeValue("name");
-                if (name == null) {
-                    name = "";
-                }
-                Map<String, String> namespaces = new HashMap<>();
-
-                for (Attribute attr : (List<Attribute>) el.attributes()) {
-                    if ("xmlns".equals(attr.getNamespacePrefix())) {
-                        namespaces.put(attr.getName(), attr.getValue());
-                    }
-                }
-
-                StringBuilder sb = new StringBuilder();
-                sb.append(name + DELIM);
-                for (String key : namespaces.keySet()) {
-                    sb.append(key + NAMESPACE_DELIM + namespaces.get(key) + DELIM);
-                }
-                throw new RuntimeException(sb.toString());
-
-            }
-
-        }
-
-        @Override
-        public void onEnd(ElementPath elementPath) {
-        }
-
-    }
 
     /**
      * Creates the default configuration to access a file H2 database. NOTE: if
@@ -1442,64 +1341,7 @@ public final class Diversicons {
                     "Provided id: " + id + " has invalid prefix! It should match " + NAMESPACE_PREFIX_PATTERN);
         }
 
-    }
-
-    /**
-     * Extracts the namespaces within a a lexical resource from an XML file
-     * 
-     * @throws DivNotFoundException
-     *             thrown only when really sure it was not found
-     * @throws DivException
-     * 
-     * @since 0.1.0
-     * 
-     * @see #readLexicalResourceName(String)
-     */
-    // todo implementation is unholy
-    public static Map<String, String> readLexicalResourceNamespaces(String lexResUrl) {
-
-        SAXReader reader = new SAXReader(false);
-
-        ExtractedStream es = Internals.readData(lexResUrl, true);
-
-        reader.setEntityResolver(new EntityResolver() {
-            @Override
-            public InputSource resolveEntity(String publicId, String systemId)
-                    throws SAXException, IOException {
-                if (systemId.endsWith(".dtd")) {
-                    return new InputSource(new StringReader(""));
-                }
-                return null;
-            }
-        });
-        reader.setDefaultHandler(new LexicalResourceNameHandler());
-        try {
-            reader.read(es.stream());
-        } catch (DocumentException e) {
-
-            String[] s = e.getMessage()
-                          .split(LexicalResourceNameHandler.DELIM);
-
-            HashMap<String, String> ret = new HashMap<>();
-            if (s.length > 1) {
-                for (int i = 1; i < s.length; i++) {
-                    String[] qname = s[i].split(LexicalResourceNameHandler.NAMESPACE_DELIM);
-                    if (qname.length == 2) {
-                        ret.put(qname[0], qname[1]);
-                    } else {
-                        throw new DivException("Couldn't parse namespace definition: " + s[i]);
-                    }
-
-                }
-
-            }
-
-            return ret;
-
-        }
-        throw new DivNotFoundException("Couldn't find attribute name in lexical resource "
-                + lexResUrl + "  !");
-    }
+    }   
     
     /**
      * 
@@ -1583,5 +1425,34 @@ public final class Diversicons {
             log.error("Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath());
             throw new InvalidXmlException(errorHandler, "Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath());
         }
+    }
+
+    /**
+     * Reads metadata about a given resource.
+     * 
+     * @param path A path to a file as specified by {@link Internals#readData(String, boolean)
+     * 
+     * @since 0.1.0
+     */
+    public static LexResPackage readResource(String lexResUrl) {
+        
+        LexResPackage ret = new LexResPackage();
+        
+        SAXReader reader = new SAXReader(false);
+
+        ExtractedStream es = Internals.readData(lexResUrl, true);
+        DiversiconResourceHandler handler = new DiversiconResourceHandler(ret);        
+        reader.setDefaultHandler(handler);
+        try {
+            reader.read(es.stream());
+        } catch (DocumentException e) {
+
+            if (e.getMessage().contains(DiversiconResourceHandler.FOUND)) {
+                return ret;
+            }
+        }
+        throw new DivNotFoundException("Couldn't find lexical resource tag in "
+                + lexResUrl + "  !");
+
     }
 }

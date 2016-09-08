@@ -34,7 +34,9 @@ import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.BuildInfo;
 import it.unitn.disi.diversicon.DivXmlErrorHandler;
 import it.unitn.disi.diversicon.Diversicon;
+import it.unitn.disi.diversicon.LexResPackage;
 import it.unitn.disi.diversicon.Diversicons;
+import it.unitn.disi.diversicon.data.DivWn31;
 import it.unitn.disi.diversicon.data.Examplicon;
 import it.unitn.disi.diversicon.exceptions.InvalidXmlException;
 import it.unitn.disi.diversicon.internal.ExtractedStream;
@@ -151,56 +153,27 @@ public class DivUtilsTest {
     
     }
 
-    /**
-     * @since 0.1.0
-     */
-    @Test
-    public void testReadLexicalResourceName() throws SAXException, IOException{
-        File outFile = DivTester.writeXml(DivTester.GRAPH_1_HYPERNYM);
-        String name = Diversicons.readLexicalResourceName(outFile.getAbsolutePath());        
-        assertEquals(DivTester.GRAPH_1_HYPERNYM.getName(), name);
-    }
-
-    /**
-     * @since 0.1.0
-     */    
-    @Test
-    public void testReadLexicalResourceNameNotFound() throws SAXException, IOException{
-
-        File outFile = Internals.createTempFile("diversicon-test", "xml").toFile();
-        FileUtils.writeStringToFile(outFile, "<LexicalResource></LexicalResource>");        
-        try {
-            Diversicons.readLexicalResourceName(outFile.getAbsolutePath());
-            Assert.fail("Shouldn't arive here!");
-        } catch (DivNotFoundException ex){
-            
-        }        
-    }
 
     /**
      * @since 0.1.0
      */
     @Test
-    public void testReadLexicalResourceNamespaces() throws SAXException, IOException{
+    public void testReadDiversiconResource() {
         
-        File outFile = new File(""); //DivTester.writeXml();
-        Map<String, String> namespaces = Diversicons.readLexicalResourceNamespaces(outFile.getAbsolutePath());
-        assertEquals(0, namespaces.size());
-        throw new UnsupportedOperationException("todo implemenet me!");
-    }
-
-    /**
-     * @since 0.1.0
-     */    
-    @Test
-    public void testReadLexicalResourceNamespacesNotFound() throws SAXException, IOException{
-
-        File outFile = Internals.createTempFile("diversicon-test", "xml").toFile();
-        FileUtils.writeStringToFile(outFile, "<LexicalResource></LexicalResource>");        
+        LexResPackage dr = Diversicons.readResource(Examplicon.XML_URI);               
         
-        Map<String, String> namespaces = Diversicons.readLexicalResourceNamespaces(outFile.getAbsolutePath());
-        assertEquals(0, namespaces.size());
-                
+        assertEquals(Examplicon.NAME, dr.getName());
+        
+        assertEquals(Examplicon.PREFIX, dr.getPrefix());
+        
+        Map<String, String> ns = Diversicons.readResource(Examplicon.XML_URI).getNamespaces();
+        
+        assertEquals(3, ns.size());
+        assertTrue(ns.containsKey(Examplicon.PREFIX));
+        assertTrue(ns.containsKey(DivWn31.PREFIX));
+        
+        assertTrue(ns.get(Examplicon.PREFIX).contains(Examplicon.ID + ".lmf.xml"));
+        assertTrue(ns.get(DivWn31.PREFIX).contains(DivWn31.ID + ".lmf.xml"));
     }
     
     
