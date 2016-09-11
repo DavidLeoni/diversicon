@@ -29,9 +29,11 @@
 		<xs:sequence>
 			<xs:element name="Lexicon" type="Lexicon" minOccurs="1" maxOccurs="unbounded">				
 			</xs:element>			
-		</xs:sequence>
+		</xs:sequence>		
+		<xs:attribute name="id" type="xs:string"/>
+		<xs:attribute name="prefix" type="xs:string"/>
 		<xs:attribute name="name" type="xs:string"/>
-
+	
 		<xs:assert test="every $a in .//* satisfies fn:starts-with($a/@id, fn:concat(@name, ':'))">		
 			<xs:annotation>
 			      <xs:appinfo>

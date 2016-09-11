@@ -1721,6 +1721,39 @@ public class Diversicon extends Uby {
         
         return ret;       
     }
+
+    /**
+     * @throws DivNotFoundException
+     * 
+     * @since 0.1.0
+     */
+    public LexResPackage getLexResPackageById(String lexResId){
+        checkNotBlank(lexResId, "Invalid lexical resource id!");
+                
+        Criteria criteria = session.createCriteria(LexResPackage.class)
+        .add( Restrictions.like("id", lexResId) );
+        
+        @SuppressWarnings("unchecked")
+        LexResPackage ret = (LexResPackage) criteria.uniqueResult();
+        
+        if (ret == null){
+            throw new DivNotFoundException("Couldn't find lexical resource package with id " + lexResId);
+        }
+        
+        return ret;       
+    }
+    
+    
+    /**
+     * 
+     * @since 0.1.0
+     * 
+     * @throws DivNotFoundException
+     */
+    public LexicalResource getLexicalResourceById(String id) {
+        String name = getLexResPackageById(id).getName();
+        return getLexicalResource(name);
+    }
     
     /*
      * Returns a list of {@link Namespace namespaces} used within database.

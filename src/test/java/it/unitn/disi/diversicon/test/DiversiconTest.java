@@ -763,7 +763,7 @@ public class DiversiconTest {
         
         div.importXml(Smartphones.of().getXmlUri());        
                 
-        LexicalResource lr = div.getLexicalResource("sm:lr");
+        LexicalResource lr = div.getLexicalResourceById(Smartphones.ID);
         List<MetaData> metadatas = lr.getMetaData();
         assertEquals(1, metadatas.size());
         MetaData metadata = metadatas.get(0);

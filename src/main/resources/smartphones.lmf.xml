@@ -1,37 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>  
-<!DOCTYPE LexicalResource PUBLIC  "Diversicon DTD" "https://github.com/DavidLeoni/diversicon/tree/master/src/main/resources/diversicon-1.0.dtd">
+
 
 <!-- 
 
   Simple example of an LMF file, formalizing smartphones taken from 
   an imaginary terminology file "smartphones.csv", and linking them to WordNet 3.1.
- 
- 
+  
+			                wn31:cellphone     wn31:computer    
+						           ^                 ^
+						           |                 |
+						     sm:smartphone       sm:tablet
+						            ^               ^
+						            \              /         
+						             \            /
+						               sm:phablet  
+						                    ^
+						                    |
+						              sm:phoneborg
+	
+	
   Since in UBY IDs are global, when merging multiple sources into the db we
   must prepend everything with a prefix. In this example we chose 'sm',
-  while for Wordnet 3.1 we used 'wn31'. Note that currently we don't require
-  any specific format for prefixes nor namespace urls, so version numbers 
-  are not mandatory and urls are not required to be resolvable nor persistent.
-        
+  while for Wordnet 3.1 we used 'wn31'. You can find Wordnet synsets here:          
   
- 
-             wn31:cellphone    http://wordnetweb.princeton.edu/perl/webwn?s=cellphone     
-                    ^
-                    |
-              sm:smartphone
-                    ^
-                    |
-               sm:phablet
-                    ^
-                    |
-              sm:phoneborg
+  http://wordnetweb.princeton.edu/perl/webwn?s=cellphone&i=0 
+  http://wordnetweb.princeton.edu/perl/webwn?s=computer&i=0
 	 
 -->
 
 <LexicalResource name="Smartphones"
-				 id="sm"				 
+				 id="smartphones"
+				 prefix="sm"				 
   				 xmlns:sm="https://github.com/DavidLeoni/diversicon/tree/master/src/main/resources/smartphones-lmf.xml"
-  				 xmlns:wn31="https://github.com/DavidLeoni/diversicon-wordnet-3.1/blob/master/src/main/resources/it/unitn/disi/diversicon/data/div-wn31.xml.xz">	
+  				 xmlns:wn31="https://github.com/DavidLeoni/diversicon-wordnet-3.1/blob/master/src/main/resources/it/unitn/disi/diversicon/data/div-wn31.xml.xz"
+				 
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xsi:schemaLocation="https://github.com/DavidLeoni/diversicon/tree/master/src/main/resources/diversicon-1.0.xsd">
+                 	
     <GlobalInformation label="Example smartphone terminology linked to Wordnet 3.1"/>       
     
     <MetaData id="sm:md"
@@ -75,6 +80,20 @@
             </Sense>
         </LexicalEntry>
 
+        <LexicalEntry id="sm:le-tablet"
+        			  partOfSpeech="noun">
+            <Lemma>
+                <FormRepresentation languageIdentifier="eng" 
+                					writtenForm="tablet"/>
+            </Lemma>
+            <Sense id="sm:s-tablet" 
+            	   synset="sm:ss-tablet">
+                <MonolingualExternalRef externalSystem="smartphones" 
+                						externalReference="4nd row 2th column in csv of origin"/>
+            </Sense>
+        </LexicalEntry>
+
+
         <LexicalEntry id="sm:le-phoneborg" 
                       partOfSpeech="noun">
             <Lemma>
@@ -98,12 +117,13 @@
             	 http://wordnetweb.princeton.edu/perl/webwn?s=cellphone
             	 which is defined in an external file
             -->
-            <SynsetRelation target="wn31:ss-2123649" 
+            <SynsetRelation target="wn31:ss-2995984" 
             				relType="taxonomic" 
             				relName="hypernym"/>
             <MonolingualExternalRef externalSystem="wn31" 
-            						externalReference="[POS: noun] 2123649"/>
+            						externalReference="[POS: noun] 2995984"/>
         </Synset>
+
         <Synset id="sm:ss-phablet">
             <Definition>
                 <TextRepresentation languageIdentifier="eng" 
@@ -115,6 +135,20 @@
             <MonolingualExternalRef externalSystem="wn31" 
             						externalReference="[POS: noun] 2123649"/>
         </Synset>
+        
+        <Synset id="sm:ss-tablet">
+            <Definition>
+                <TextRepresentation languageIdentifier="eng" 
+                					writtenText="A flat computer that you can control "/>
+            </Definition>			           
+            <SynsetRelation target="wn31:ss-3086983" 
+            				relType="taxonomic" 
+            				relName="hypernym"/>
+            <MonolingualExternalRef externalSystem="wn31" 
+            						externalReference="[POS: noun] 3086983"/>
+        </Synset>
+        
+
         <Synset id="sm:ss-phoneborg">
             <Definition>
                 <TextRepresentation languageIdentifier="eng"
