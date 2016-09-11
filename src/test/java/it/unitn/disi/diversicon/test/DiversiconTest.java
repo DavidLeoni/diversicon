@@ -15,17 +15,14 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
-import org.dom4j.Document;
+
 import org.dom4j.DocumentException;
-import org.dom4j.io.SAXReader;
 import org.hibernate.exception.GenericJDBCException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -315,27 +312,35 @@ public class DiversiconTest {
     }
 
     /**
-     * Checks sequence indicated by provided provided iterator contains all the
+     * Checks sequence indicated by provided iterator contains all the
      * synsets of given ids.
      * 
      * @throws DivNotFoundException
      */
-    private static void checkContainsAll(Iterator<Synset> iter, String... ids) {
-
-        Set<String> synsetIds = new HashSet();
+    private static void checkContainsAll(Iterator<Synset> iter, String firstId, String... ids) {
+        
+               
+        Set<String> synsetIds = new HashSet<>();
         while (iter.hasNext()) {
             synsetIds.add(iter.next()
                               .getId());
         }
 
-        HashSet<String> listIds = new HashSet();
+        HashSet<String> setIds = new HashSet<>();
+        setIds.add(firstId);
         for (String id : ids) {
-            listIds.add(id);
+            setIds.add(id);
         }
 
-        assertEquals(listIds, synsetIds);
+        assertEquals(setIds, synsetIds);
     }
 
+    /**
+     * @since 0.1.0
+     */
+    private static String id(String name){        
+        return LmfBuilder.DEFAULT_PREFIX + ":" + name;
+    }
     /**
      * Test on simple graph
      * 
@@ -351,32 +356,32 @@ public class DiversiconTest {
         diversicon.importResource(GRAPH_1_HYPERNYM, true);
 
         assertFalse(diversicon.getConnectedSynsets(
-                "synset 2",
+                id("synset 2"),
                 0,
                 ERelNameSemantics.HYPERNYM)
                               .hasNext());
 
         assertFalse(diversicon.getConnectedSynsets(
-                "synset 2",
+                id("synset 2"),
                 -1)
                               .hasNext());
 
         checkContainsAll(diversicon.getConnectedSynsets(
-                "synset 2",
+                id("synset 2"),
                 1,
                 ERelNameSemantics.HYPERNYM),
-                "synset 1");
+                id("synset 1"));
 
         checkContainsAll(diversicon.getConnectedSynsets(
-                "synset 2",
+                id("synset 2"),
                 -1,
                 ERelNameSemantics.HYPERNYM),
-                "synset 1");
+                id("synset 1"));
 
-        checkContainsAll(diversicon.getConnectedSynsets(
-                "synset 2",
+        assertFalse(diversicon.getConnectedSynsets(
+                id("synset 2"),
                 1,
-                "hello"));
+                "hello").hasNext());
 
         diversicon.getSession()
                   .close();
@@ -396,62 +401,62 @@ public class DiversiconTest {
         div.importResource(DAG_3_HYPERNYM, true);
 
         assertTrue(div.isConnected(
-                "synset 1",
-                "synset 1",
+                id("synset 1"),
+                id("synset 1"),
                 1,
                 Arrays.asList(ERelNameSemantics.HYPERNYM)));
 
         assertTrue(div.isConnected(
-                "synset 1",
-                "synset 1",
-                0, new ArrayList()));
+                id("synset 1"),
+                id("synset 1"),
+                0, new ArrayList<String>()));
 
         assertFalse(div.isConnected(
-                "synset 2",
-                "synset 1",
+                id("synset 2"),
+                id("synset 1"),
                 0,
                 Arrays.asList(ERelNameSemantics.HYPERNYM)));
 
         assertTrue(div.isConnected(
-                "synset 2",
-                "synset 1",
+                id("synset 2"),
+                id("synset 1"),
                 1,
                 Arrays.asList(ERelNameSemantics.HYPERNYM)));
 
         assertTrue(div.isConnected(
-                "synset 2",
-                "synset 1",
+                id("synset 2"),
+                id("synset 1"),
                 -1,
                 Arrays.asList(ERelNameSemantics.HYPERNYM)));
 
         assertTrue(div.isConnected(
-                "synset 1",
-                "synset 3",
+                id("synset 1"),
+                id("synset 3"),
                 -1,
                 Arrays.asList(ERelNameSemantics.HYPONYM)));
 
         assertFalse(div.isConnected(
-                "synset 3",
-                "synset 1",
+                id("synset 3"),
+                id("synset 1"),
                 -1,
                 Arrays.asList(ERelNameSemantics.HYPONYM)));
 
         assertFalse(div.isConnected(
-                "synset 1",
-                "synset 2",
+                id("synset 1"),
+                id("synset 2"),
                 -1,
                 Arrays.asList(ERelNameSemantics.HYPERNYM)));
 
         assertTrue(div.isConnected(
-                "synset 1",
-                "synset 1",
+                id("synset 1"),
+                id("synset 1"),
                 -1,
                 Arrays.asList(ERelNameSemantics.HYPERNYM)));
 
         try {
             div.isConnected(
-                    "synset 1",
-                    "synset 1",
+                    id("synset 1"),
+                    id("synset 1"),
                     -2,
                     Arrays.asList(ERelNameSemantics.HYPERNYM));
             Assert.fail("Shouldn't arrive here!");
@@ -462,7 +467,7 @@ public class DiversiconTest {
         try {
             div.isConnected(
                     "",
-                    "synset 1",
+                    id("synset 1"),
                     -1,
                     new ArrayList());
             Assert.fail("Shouldn't arrive here!");
@@ -472,8 +477,8 @@ public class DiversiconTest {
 
         try {
             div.isConnected(
-                    "synset 1",
-                    "",
+                    id("synset 1"),
+                    id(""),
                     -1,
                     new ArrayList());
             Assert.fail("Shouldn't arrive here!");
@@ -527,40 +532,40 @@ public class DiversiconTest {
         div.importResource(DAG_3_HYPERNYM, true);
 
         checkContainsAll(div.getConnectedSynsets(
-                "synset 2",
+                id("synset 2"),
                 1,
                 ERelNameSemantics.HYPERNYM),
-                "synset 1");
+                id("synset 1"));
 
         checkContainsAll(div.getConnectedSynsets(
-                "synset 1",
+                id("synset 1"),
                 1,
                 ERelNameSemantics.HYPONYM),
-                "synset 2");
+                id("synset 2"));
 
         checkContainsAll(div.getConnectedSynsets(
-                "synset 3",
+                id("synset 3"),
                 1,
                 ERelNameSemantics.HYPERNYM),
-                "synset 2");
+                id("synset 2"));
 
         checkContainsAll(div.getConnectedSynsets(
-                "synset 2",
+                id("synset 2"),
                 1,
                 ERelNameSemantics.HYPONYM),
-                "synset 3");
+                id("synset 3"));
 
         checkContainsAll(div.getConnectedSynsets(
-                "synset 3",
+                id("synset 3"),
                 2,
                 ERelNameSemantics.HYPERNYM),
-                "synset 1", "synset 2");
+                id("synset 1"), id("synset 2"));
 
         checkContainsAll(div.getConnectedSynsets(
-                "synset 1",
+                id("synset 1"),
                 2,
                 ERelNameSemantics.HYPONYM),
-                "synset 2", "synset 3");
+                id("synset 2"), id("synset 3"));
 
         div.getSession()
            .close();
@@ -578,12 +583,12 @@ public class DiversiconTest {
         Diversicon diversicon = Diversicon.connectToDb(dbConfig);
         diversicon.importResource(GRAPH_4_HYP_HOL_HELLO, true);
         checkContainsAll(diversicon.getConnectedSynsets(
-                "synset 4",
+                id("synset 4"),
                 1,
                 ERelNameSemantics.HYPERNYM,
                 ERelNameSemantics.HOLONYM),
-                "synset 1",
-                "synset 2");
+                id("synset 1"),
+                id("synset 2"));
 
         diversicon.getSession()
                   .close();
@@ -602,11 +607,11 @@ public class DiversiconTest {
         diversicon.importResource(DAG_2_MULTI_REL, true);
 
         checkContainsAll(diversicon.getConnectedSynsets(
-                "synset 2",
+                id("synset 2"),
                 1,
                 ERelNameSemantics.HYPERNYM,
                 ERelNameSemantics.HOLONYM),
-                "synset 1");
+                id("synset 1"));
 
         diversicon.getSession()
                   .close();
@@ -741,7 +746,9 @@ public class DiversiconTest {
         
         div.importXml(xml.getAbsolutePath());
         
-        checkDb(GRAPH_4_HYP_HOL_HELLO, div);
+        checkDb(GRAPH_4_HYP_HOL_HELLO, div);                
+        
+        div.getSession().close();
 
     }
 
@@ -1159,6 +1166,23 @@ public class DiversiconTest {
                                                   
         }
         
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testGetSynsetRelationsCount(){
+        Diversicons.dropCreateTables(dbConfig);
+
+        Diversicon div = Diversicon.connectToDb(dbConfig);       
+
+        div.importResource(GRAPH_1_HYPERNYM, false);
+
+        assertEquals(1, div.getSynsetRelationsCount());
+
+        div.getSession()
+           .close();        
     }
     
 }

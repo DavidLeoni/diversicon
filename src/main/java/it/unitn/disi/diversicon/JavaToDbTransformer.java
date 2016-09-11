@@ -58,27 +58,22 @@ class JavaToDbTransformer extends LMFDBTransformer {
      * 
      * @param resource
      *            a LexicalResource complete with all the lexicons, synsets,
-     *            etc.
-     *            MUST have a {@code name}
+     *            etc. MUST have a {@code name}
      * @throws FileNotFoundException
      * 
      * @since 0.1.0
      */
-    public JavaToDbTransformer(DBConfig dbConfig,
+    public JavaToDbTransformer(
+            Diversicon div,
             LexicalResource lexicalResource)
                     throws FileNotFoundException {
-        // div dirty - needed because super() is private
-        super(Diversicons.makeDefaultH2InMemoryDbConfig(UUID.randomUUID().toString(), false));
-        session.close();
+        super(div.getDbConfig());        
+        sessionFactory.close();  // div dirty but needed...       
+        sessionFactory = div.getSessionFactory();       
                 
         checkNotNull(lexicalResource);
         checkNotEmpty(lexicalResource.getName(), "Invalid lexicalResource name!");
-
-        Configuration cfg = Diversicons.getHibernateConfig(dbConfig, false);
-        sessionFactory = cfg.buildSessionFactory(
-                new ServiceRegistryBuilder().applySettings(
-                        cfg.getProperties())
-                                            .buildServiceRegistry());
+        
                 
         session = sessionFactory.openSession();
         

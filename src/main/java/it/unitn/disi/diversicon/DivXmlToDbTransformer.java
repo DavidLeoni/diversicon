@@ -126,7 +126,7 @@ class DivXmlValidator implements ElementHandler {
 
                     if (!id.startsWith(pack.getPrefix())) {
                         throw new InterruptedImportException("Found " + n + " id " + id
-                                + " not starting with LexicalResource prefix " + lexicalResource.getName());
+                                + " not starting with LexicalResource prefix " + pack.getPrefix());
                     }
                 }
             }
@@ -152,7 +152,7 @@ class DivXmlToDbTransformer extends XMLToDBTransformer {
      */
     DivXmlToDbTransformer(Diversicon div, boolean skipNamespaceChecking) {
         super(div.getDbConfig());        
-        sessionFactory.close();  // ugly but needed...       
+        sessionFactory.close();  // div dirty but needed...       
         sessionFactory = div.getSessionFactory();       
     }      
 

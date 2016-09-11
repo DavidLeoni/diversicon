@@ -132,6 +132,9 @@
             <SynsetRelation target="sm:ss-smartphone" 
             				relType="taxonomic" 
             				relName="hypernym"/>
+            <SynsetRelation target="sm:ss-tablet" 
+            				relType="taxonomic" 
+            				relName="hypernym"/>            				
             <MonolingualExternalRef externalSystem="wn31" 
             						externalReference="[POS: noun] 2123649"/>
         </Synset>

@@ -97,7 +97,7 @@ public final class Diversicons {
     /**
      * @since 0.1.0
      */
-    public static final Pattern ID_PATTERN = Pattern.compile(NAMESPACE_PREFIX_PATTERN.toString() + ":(.*)");
+    public static final Pattern ID_PATTERN = Pattern.compile(NAMESPACE_PREFIX_PATTERN.toString() + ":" + ".+");
 
     /**
      * Mnemonic shorthand for H2 database
@@ -1493,5 +1493,19 @@ public final class Diversicons {
             throw new IllegalArgumentException("Invalid prefix!");
         }
         return prefix;
+    }
+
+    /**
+     * 
+     * Checks an id is valid, throwing IllegalArgumentException otherwise
+     * 
+     * @throws IllegalArgumentException
+     * 
+     * @since 0.1.0
+     */    
+    public static void checkId(String id, String string) {
+        if (!ID_PATTERN.matcher(id).matches()){
+            throw new IllegalArgumentException("Invalid id!");
+        }        
     }
 }

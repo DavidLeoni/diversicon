@@ -37,7 +37,7 @@ class DivDbToXmlTransformer extends DBToXMLTransformer {
             OutputStream outputStream, 
             @Nullable String dtdPath,
             LexResPackage lexResPackage) throws SAXException {
-        super(Diversicons.makeDefaultH2InMemoryDbConfig(UUID.randomUUID().toString(), false), outputStream, dtdPath);
+        super(div.getDbConfig(), outputStream, dtdPath);
         session.close();
         sessionFactory = div.getSessionFactory();
         session = div.getSession();

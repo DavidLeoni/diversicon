@@ -3,16 +3,15 @@ package it.unitn.disi.diversicon;
 import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotBlank;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
+import static it.unitn.disi.diversicon.Diversicons.checkId;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
-import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -20,7 +19,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.zip.Deflater;
@@ -39,7 +37,6 @@ import org.hibernate.SQLQuery;
 import org.hibernate.ScrollMode;
 import org.hibernate.ScrollableResults;
 import org.hibernate.Transaction;
-import org.hibernate.criterion.Criterion;
 import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Projections;
 import org.hibernate.criterion.Restrictions;
@@ -50,14 +47,12 @@ import org.xml.sax.SAXException;
 
 import de.tudarmstadt.ukp.lmf.api.Uby;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
-import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import de.tudarmstadt.ukp.lmf.transform.DBToXMLTransformer;
-import de.tudarmstadt.ukp.lmf.transform.XMLToDBTransformer;
 import it.disi.unitn.diversicon.exceptions.DivException;
 import it.disi.unitn.diversicon.exceptions.DivIoException;
 import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
@@ -235,7 +230,7 @@ public class Diversicon extends Uby {
             int depth,
             Iterable<String> relNames) {
 
-        checkNotEmpty(synsetId, "Invalid synset id!");
+        checkId(synsetId, "Invalid synset id!");
         checkNotNull(relNames, "Invalid relation names!");
         checkArgument(depth >= -1, "Depth must be >= -1 , found instead: " + depth);
 
@@ -597,9 +592,6 @@ public class Diversicon extends Uby {
         }
     }
 
-    private void checkSelfLoops() {
-        throw new UnsupportedOperationException("TODO - developer forgot to implement the method!");
-    }
 
     /**
      * 
@@ -783,7 +775,8 @@ public class Diversicon extends Uby {
      * @since 0.1.0
      */
     public long getSynsetRelationsCount() {
-        return ((Number) session.createCriteria(DivSynsetRelation.class)
+        // tried to put DivSynsetRelation.class but was always giving a 0 count ..
+        return ((Number) session.createCriteria(SynsetRelation.class)
                                 .setProjection(Projections.rowCount())
                                 .uniqueResult()).longValue();
 
@@ -822,7 +815,7 @@ public class Diversicon extends Uby {
 
         Date start = new Date();
 
-        List<ImportJob> ret = new ArrayList();
+        List<ImportJob> ret = new ArrayList<>();
 
         checkNotNull(config);
 
@@ -1184,7 +1177,7 @@ public class Diversicon extends Uby {
                                     fileUrl, 
                                     divRes);
 
-            new JavaToDbTransformer(dbConfig, lexicalResource).transform();
+            new JavaToDbTransformer(this, lexicalResource).transform();
 
             endImportJob(job);
 
@@ -1413,8 +1406,8 @@ public class Diversicon extends Uby {
             int depth,
             List<String> relNames) {
 
-        checkNotEmpty(sourceSynsetId, "Invalid source synset id!");
-        checkNotEmpty(targetSynsetId, "Invalid target synset id!");
+        checkId(sourceSynsetId, "Invalid source synset id!");
+        checkId(targetSynsetId, "Invalid target synset id!");
         checkNotNull(relNames, "Invalid relation names!");
 
         checkArgument(depth >= -1, "Depth must be >= -1 , found instead: " + depth);
@@ -1594,7 +1587,8 @@ public class Diversicon extends Uby {
     public String formatImportJobs(boolean showFullLogs) {
         StringBuilder sb = new StringBuilder();
 
-        List<ImportJob> importJobs = session.createCriteria(ImportJob.class)
+        @SuppressWarnings("unchecked")
+        List<ImportJob> importJobs =  session.createCriteria(ImportJob.class)
                                             .addOrder(Order.desc("startDate"))
                                             .setMaxResults(50)
                                             .list();
@@ -1617,6 +1611,7 @@ public class Diversicon extends Uby {
      */
     public List<ImportJob> getImportJobs() {
         Criteria crit = session.createCriteria(ImportJob.class);
+        @SuppressWarnings("unchecked")
         List<ImportJob> ret = crit.list();
         return ret;
     }

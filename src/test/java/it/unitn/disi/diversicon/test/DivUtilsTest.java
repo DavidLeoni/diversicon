@@ -43,7 +43,10 @@ import it.unitn.disi.diversicon.internal.ExtractedStream;
 import it.unitn.disi.diversicon.internal.Internals;
 
 
-
+/**
+ * @since 0.1.0
+ *
+ */
 public class DivUtilsTest {
        
         
@@ -119,16 +122,21 @@ public class DivUtilsTest {
     // todo make it more extensive
     public void testBuilder(){
                 
-        LexicalResource lexicalResource1 = LmfBuilder.lmf()
+        LexicalResource lexRes1 = LmfBuilder.lmf()
                 .lexicon()
                 .synset()  
                 .definition("cool")
                 .lexicalEntry("a")
                 .synset()
                 .lexicalEntry("b")
+                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
                 .build();
 
-        LexicalResource lexicalResource2 = LmfBuilder.lmf()
+        assertEquals(1, lexRes1.getLexicons().size());
+        assertEquals(2, lexRes1.getLexicons().get(0).getSynsets().size());
+        assertEquals(1, lexRes1.getLexicons().get(0).getSynsets().get(1).getSynsetRelations().size());
+        
+        LexicalResource lexRes2 = LmfBuilder.lmf()
                 .lexicon()
                 .synset()
                 .definition("uncool")
@@ -138,12 +146,12 @@ public class DivUtilsTest {
 
         Diversicon div = Diversicon.connectToDb(dbConfig);               
         
-        div.importResource(lexicalResource1,  true);
+        div.importResource(lexRes1,  true);
         
-        DivTester.checkDb(lexicalResource1, div);
+        DivTester.checkDb(lexRes1, div);
       
         try {
-            DivTester.checkDb(lexicalResource2, div);
+            DivTester.checkDb(lexRes2, div);
             Assert.fail("Shouldn't arrive here!");
         } catch (Exception ex){
             
@@ -343,6 +351,8 @@ public class DivUtilsTest {
     public void testNamespacePrefix(){
         Pattern p = Diversicons.NAMESPACE_PREFIX_PATTERN;
         assertFalse(p.matcher("").matches());
+        assertFalse(p.matcher(" a").matches());
+        assertFalse(p.matcher("\t").matches());
         assertFalse(p.matcher("-").matches());
         assertFalse(p.matcher("_").matches());
         assertFalse(p.matcher("2").matches());
@@ -353,5 +363,29 @@ public class DivUtilsTest {
         assertFalse(p.matcher("a:").matches());
         assertTrue(p.matcher("a-").matches());
     }
+ 
+    /**
+     * Shows we are much more permissive with id names than with prefixes.
+     * 
+     * @since 0.1.0
+     */
+    @Test
+    public void testIdPattern(){
+        Pattern p = Diversicons.ID_PATTERN;
+        assertFalse(p.matcher("t:").matches());
+        assertTrue(p.matcher("t: a").matches());
+        assertTrue(p.matcher("t:\t").matches());
+        assertTrue(p.matcher("t:-").matches());
+        assertTrue(p.matcher("t:_").matches());
+        assertTrue(p.matcher("t:2").matches());
+        assertTrue(p.matcher("t:a").matches());
+        assertTrue(p.matcher("t:.").matches());
+        assertTrue(p.matcher("t:a.b").matches());
+        assertTrue(p.matcher("t:a:b").matches());
+        assertTrue(p.matcher("t:a:").matches());
+        assertTrue(p.matcher("t:a-").matches());
+        assertFalse(p.matcher("a").matches()); // currently we don't support non-prefixed ids.
+    }
+ 
     
 }

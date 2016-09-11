@@ -322,7 +322,11 @@ public final class DivTester {
      * 
      * @since 0.1.0
      */    
-    private static void checkDbSynset(Synset syn, Lexicon lex, Diversicon diversicon, Set<Flags> flags) {
+    private static void checkDbSynset(
+            Synset syn, 
+            Lexicon lex, 
+            Diversicon diversicon, 
+            Set<Flags> flags) {
         String synId = getId(syn);
         try {
             Synset dbSyn = diversicon.getSynsetById(syn.getId());

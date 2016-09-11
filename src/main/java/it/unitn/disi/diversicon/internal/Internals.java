@@ -1432,8 +1432,11 @@ public final class Internals {
         
         BuildInfo build = BuildInfo.of(Diversicon.class);
         
-        checkNotBlank(pack.getId(), "Invalid lexical resource id!");
-        checkNotBlank(pack.getPrefix(), "Invalid lexical resource prefix!");
+        if (!skipNamespaceChecking){
+            checkNotBlank(pack.getId(), "Invalid lexical resource id!");
+            checkNotBlank(pack.getPrefix(), "Invalid lexical resource prefix!");
+        }
+                
         checkNotBlank(pack.getName(), "Invalid lexical resource name!");             
 
         if (pack.getPrefix().length() > Diversicons.LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH) {
