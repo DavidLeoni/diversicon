@@ -670,17 +670,18 @@ public final class Internals {
     }
 
     /**
-     * Gets input stream from a url, for more info see  {@link #readData(String, boolean) readData(dataUrl, false)}
+     * Gets input stream from a url, for more info see
+     * {@link #readData(String, boolean) readData(dataUrl, false)}
      * 
      * @throws DivIoException
-     *         on error.
-     *             
+     *             on error.
+     * 
      * @since 0.1.0
      */
     public static ExtractedStream readData(String dataUrl) {
-       return readData(dataUrl, false); 
+        return readData(dataUrl, false);
     }
-    
+
     /**
      * Gets input stream from a url pointing to possibly compressed data.
      * 
@@ -884,7 +885,7 @@ public final class Internals {
         }
 
         try (JarFile jar = new JarFile(jarFile)) {
-            
+
             java.util.Enumeration enumEntries = jar.entries();
             while (enumEntries.hasMoreElements()) {
                 JarEntry jarEntry = (JarEntry) enumEntries.nextElement();
@@ -919,7 +920,7 @@ public final class Internals {
         } catch (IOException ex) {
             throw new DivIoException("Error while extracting jar file! Jar source: " + jarFile.getAbsolutePath()
                     + " destDir = " + destDir.getAbsolutePath(), ex);
-        } 
+        }
     }
 
     /**
@@ -1266,9 +1267,9 @@ public final class Internals {
         return dp[len1][len2];
     }
 
-
     /**
-     * Copied this from {@link de.tudarmstadt.ukp.lmf.transform.UBYXMLTransform#doWriteElement}
+     * Copied this from
+     * {@link de.tudarmstadt.ukp.lmf.transform.UBYXMLTransform#doWriteElement}
      * 
      * <p>
      * Modified in Diversicon to
@@ -1283,7 +1284,7 @@ public final class Internals {
      * 
      * @return the element tagname
      * 
-     * @throws SAXException 
+     * @throws SAXException
      * 
      * @since 0.1.0
      */
@@ -1293,48 +1294,52 @@ public final class Internals {
             UBYLMFClassMetadata classMetadata,
             AttributesImpl atts,
             List<Object> children) throws SAXException {
-               
+
         checkNotNull(inputLmfObject);
         checkNotNull(atts);
         checkNotNull(children);
         Internals.checkLexResPackage(lexResPackage);
-        
-        Object lmfObject;        
-        String elementName; 
-        
-        if (inputLmfObject instanceof LexicalResource){
-            
-            atts.addAttribute("", "", "id", "CDATA", 
-                        lexResPackage.getId());
 
-            atts.addAttribute("", "", "prefix", "CDATA", 
-                    lexResPackage.getPrefix());           
-            
-            for (String prefix : lexResPackage.getNamespaces().keySet()) {
-                atts.addAttribute("", "", "xmlns:" + prefix, "CDATA", 
-                        lexResPackage.getNamespaces().get(prefix));
+        Object lmfObject;
+        String elementName;
+
+        if (inputLmfObject instanceof LexicalResource) {
+
+            atts.addAttribute("", "", "id", "CDATA",
+                    lexResPackage.getId());
+
+            atts.addAttribute("", "", "prefix", "CDATA",
+                    lexResPackage.getPrefix());
+
+            for (String prefix : lexResPackage.getNamespaces()
+                                              .keySet()) {
+                atts.addAttribute("", "", "xmlns:" + prefix, "CDATA",
+                        lexResPackage.getNamespaces()
+                                     .get(prefix));
             }
         }
-        
+
         if (inputLmfObject instanceof DivSynsetRelation) {
             DivSynsetRelation dsr = (DivSynsetRelation) inputLmfObject;
             lmfObject = dsr.toSynsetRelation();
             elementName = SynsetRelation.class.getSimpleName();
         } else {
             lmfObject = inputLmfObject;
-            elementName = lmfObject.getClass().getSimpleName();
-        }                
-        
+            elementName = lmfObject.getClass()
+                                   .getSimpleName();
+        }
+
         int hibernateSuffixIdx = elementName.indexOf("_$$");
         if (hibernateSuffixIdx > 0)
             elementName = elementName.substring(0, hibernateSuffixIdx);
-                 
+
         for (UBYLMFFieldMetadata fieldMeta : classMetadata.getFields()) {
             EVarType varType = fieldMeta.getVarType();
             if (varType == EVarType.NONE)
                 continue;
 
-            String xmlFieldName = fieldMeta.getName().replace("_", "");
+            String xmlFieldName = fieldMeta.getName()
+                                           .replace("_", "");
             Method getter = fieldMeta.getGetter();
             Object retObj;
             try {
@@ -1344,81 +1349,56 @@ public final class Internals {
             } catch (InvocationTargetException e) {
                 throw new SAXException(e);
             }
-            
+
             if (retObj != null) {
                 switch (fieldMeta.getVarType()) {
-                    case ATTRIBUTE:
-                    case ATTRIBUTE_OPTIONAL:
-                        atts.addAttribute("", "", xmlFieldName, "CDATA", retObj.toString());
-                        break;
-                    case CHILD:
-                        // Transform children of the new element to XML
-                        children.add(retObj);
-                        break;
-                    case CHILDREN:
-                        if (closeTag)
-                            for (Object obj : (Iterable<Object>) retObj)
-                                children.add(obj);
-                        break;
-                    case IDREF:
-                        // Save IDREFs as attribute of the new element
-                        atts.addAttribute("", "", xmlFieldName, "CDATA", ((IHasID) retObj).getId());
-                        break;
-                    case IDREFS:
-                        StringBuilder attrValue = new StringBuilder();                  
+                case ATTRIBUTE:
+                case ATTRIBUTE_OPTIONAL:
+                    atts.addAttribute("", "", xmlFieldName, "CDATA", retObj.toString());
+                    break;
+                case CHILD:
+                    // Transform children of the new element to XML
+                    children.add(retObj);
+                    break;
+                case CHILDREN:
+                    if (closeTag)
                         for (Object obj : (Iterable<Object>) retObj)
-                            attrValue.append(attrValue.length() > 0 ? " " : "")
-                                    .append(((IHasID) obj).getId());
-                        if (attrValue.length() > 0)
-                            atts.addAttribute("", "", xmlFieldName, "CDATA", attrValue.toString());
-                        break;
-                    case NONE:
-                        break;
+                            children.add(obj);
+                    break;
+                case IDREF:
+                    // Save IDREFs as attribute of the new element
+                    atts.addAttribute("", "", xmlFieldName, "CDATA", ((IHasID) retObj).getId());
+                    break;
+                case IDREFS:
+                    StringBuilder attrValue = new StringBuilder();
+                    for (Object obj : (Iterable<Object>) retObj)
+                        attrValue.append(attrValue.length() > 0 ? " " : "")
+                                 .append(((IHasID) obj).getId());
+                    if (attrValue.length() > 0)
+                        atts.addAttribute("", "", xmlFieldName, "CDATA", attrValue.toString());
+                    break;
+                case NONE:
+                    break;
                 }
-            }                       
-        }        
+            }
+        }
 
         return elementName;
     }
 
     /**
-     * See {@link #checkLexResPackage(LexResPackage, LexicalResource, boolean)}
+     * See {@link #checkLexResPackage(LexResPackage, LexicalResource)}
      * 
      * @throws IllegalArgumentException
      * 
      * @since 0.1.0
      */
-    public static LexResPackage checkLexResPackage(LexResPackage lexResPackage){
-        return checkLexResPackage(lexResPackage, null, false);
-    }    
-    
-    /**
-     * See {@link #checkLexResPackage(LexResPackage, LexicalResource, boolean)} 
-     * 
-     * @throws IllegalArgumentException
-     * 
-     * @since 0.1.0
-     */
-    public static LexResPackage checkLexResPackage(
-            LexResPackage lexResPackage, 
-            LexicalResource lexRes){
-        
-        return checkLexResPackage(lexResPackage,  lexRes, false);
-    }    
-
-    /**
-     * See {@link #checkLexResPackage(LexResPackage, LexicalResource, boolean)}
-     * 
-     * @throws IllegalArgumentException
-     * 
-     * @since 0.1.0
-     */
-    public static LexResPackage checkLexResPackage(
-            LexResPackage pack,
-            boolean skipNamespaceChecking) {
-        return checkLexResPackage(pack, null, skipNamespaceChecking);
+    public static LexResPackage checkLexResPackage(LexResPackage lexResPackage) {
+        return checkLexResPackage(lexResPackage, null);
     }
-    
+
+  
+
     /**
      * @throws IllegalArgumentException
      * 
@@ -1426,46 +1406,40 @@ public final class Internals {
      */
     public static LexResPackage checkLexResPackage(
             LexResPackage pack,
-            @Nullable
-            LexicalResource lexRes,
-            boolean skipNamespaceChecking) {
-        
-        BuildInfo build = BuildInfo.of(Diversicon.class);
-        
-        if (!skipNamespaceChecking){
-            checkNotBlank(pack.getId(), "Invalid lexical resource id!");
-            checkNotBlank(pack.getPrefix(), "Invalid lexical resource prefix!");
-        }
-                
-        checkNotBlank(pack.getName(), "Invalid lexical resource name!");             
+            @Nullable LexicalResource lexRes) {
 
-        if (pack.getPrefix().length() > Diversicons.LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH) {
+        BuildInfo build = BuildInfo.of(Diversicon.class);
+
+        checkNotBlank(pack.getId(), "Invalid lexical resource id!");
+        Diversicons.checkPrefix(pack.getPrefix());
+
+        checkNotBlank(pack.getName(), "Invalid lexical resource name!");
+
+        if (pack.getPrefix()
+                .length() > Diversicons.LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH) {
             LOG.warn("Lexical resource prefix " + pack.getPrefix() + " longer than "
                     + Diversicons.LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH
                     + ": this may cause memory issues.");
         }
 
-        
-        if (!skipNamespaceChecking){
-            Diversicons.checkNamespaces(pack.getNamespaces());
+        Diversicons.checkNamespaces(pack.getNamespaces());
 
-            if (!pack.getNamespaces().containsKey(pack.getPrefix())) {
-                throw new IllegalArgumentException(
-                        "Couldn't find LexicalResource prefix " + pack.getPrefix() + " among namespace prefixes! "
-                                + "See " + build.docsAtVersion() + "/diversicon-lmf.html"
-                                + " for info on how to structure a Diversicon XML!");
-            }
-            
+        if (!pack.getNamespaces()
+                 .containsKey(pack.getPrefix())) {
+            throw new IllegalArgumentException(
+                    "Couldn't find LexicalResource prefix " + pack.getPrefix() + " among namespace prefixes! "
+                            + "See " + build.docsAtVersion() + "/diversicon-lmf.html"
+                            + " for info on how to structure a Diversicon XML!");
         }
-        
-        if (lexRes != null){
-            
-            Internals.checkEquals("", pack.getName(), lexRes.getName());    
-        }        
-        
+
+        if (lexRes != null) {
+
+            Internals.checkEquals("", pack.getName(), lexRes.getName());
+        }
+
         return pack;
     }
-    
+
     /**
      * Copied from Junit 'format'
      * 
@@ -1487,14 +1461,15 @@ public final class Internals {
                     + actualString + ">";
         }
     }
-    
+
     /**
      * Copied from Junit
      * 
      * @since 0.1.0
      */
     private static String formatClassAndValue(Object value, String valueString) {
-        String className = value == null ? "null" : value.getClass().getName();
+        String className = value == null ? "null" : value.getClass()
+                                                         .getName();
         return className + "<" + valueString + ">";
     }
 
@@ -1506,12 +1481,11 @@ public final class Internals {
      * @since 0.1.0
      */
     static public void checkEquals(
-            @Nullable Object expected, 
-            @Nullable  Object actual){
+            @Nullable Object expected,
+            @Nullable Object actual) {
         checkEquals("", expected, actual);
     }
-            
-    
+
     /**
      * Adapted from Junit
      * 
@@ -1520,26 +1494,30 @@ public final class Internals {
      * <code>expected</code> and <code>actual</code> are <code>null</code>,
      * they are considered equal.
      *
-     * @param message the identifying message for the {@link AssertionError} (<code>null</code>
-     * okay)
-     * @param expected expected value
-     * @param actual actual value
+     * @param message
+     *            the identifying message for the {@link AssertionError} (
+     *            <code>null</code>
+     *            okay)
+     * @param expected
+     *            expected value
+     * @param actual
+     *            actual value
      * 
      * @throws IllegalArgumentException
      * 
      * @since 0.1.0
      */
     static public void checkEquals(
-            @Nullable String message, 
+            @Nullable String message,
             @Nullable Object expected,
             @Nullable Object actual) {
         if (equalsRegardingNull(expected, actual)) {
             return;
         } else if (expected instanceof String && actual instanceof String) {
             String cleanMessage = message == null ? "" : message;
-            throw new IllegalArgumentException(cleanMessage + " Expected:-->"+ (String) expected 
-                    +"<-- Found:-->" + (String) actual + "<--");
-        } else {            
+            throw new IllegalArgumentException(cleanMessage + " Expected:-->" + (String) expected
+                    + "<-- Found:-->" + (String) actual + "<--");
+        } else {
             String formsg = formatCheck(message, expected, actual);
             if (formsg == null) {
                 throw new AssertionError();
@@ -1547,11 +1525,9 @@ public final class Internals {
             throw new IllegalArgumentException(formsg);
         }
     }
-    
 
-    
     /**
-     * Copied from Junit 
+     * Copied from Junit
      * 
      * @since 0.1.0
      */
@@ -1562,6 +1538,5 @@ public final class Internals {
 
         return expected.equals(actual);
     }
-    
 
 }

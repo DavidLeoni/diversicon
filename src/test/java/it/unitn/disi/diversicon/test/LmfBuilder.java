@@ -71,7 +71,7 @@ public class LmfBuilder {
 
         this.prefix = prefix;
         this.lexicalResource = new LexicalResource();
-        this.lexicalResource.setName(prefix + "lexical resource 1");
+        this.lexicalResource.setName(prefix + ":lexical resource 1");
         this.built = false;
         this.lastSenseId = 0;
 

@@ -38,9 +38,8 @@ class DivDbToXmlTransformer extends DBToXMLTransformer {
             @Nullable String dtdPath,
             LexResPackage lexResPackage) throws SAXException {
         super(div.getDbConfig(), outputStream, dtdPath);
-        session.close();
-        sessionFactory = div.getSessionFactory();
-        session = div.getSession();
+        dbConfig = div.getDbConfig();
+        sessionFactory = div.getSessionFactory();        
         checkNotNull(lexResPackage);
         this.lexResPackage = lexResPackage;
     }

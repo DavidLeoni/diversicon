@@ -18,7 +18,6 @@ public class ImportConfig {
     private String author;
     private String description;
     private boolean skipAugment;
-    private boolean skipNamespaceChecking;
 
     /**
      * Default constructor.
@@ -28,28 +27,13 @@ public class ImportConfig {
      * @since 0.1.0
      */
     public ImportConfig() {
-        this.fileUrls = new ArrayList();
+        this.fileUrls = new ArrayList<>();
         this.author = "";
         this.description = "";
         this.skipAugment = false;
-        this.skipNamespaceChecking = false;
     }
 
-    /**
-     * @since 0.1.0
-     * @return
-     */
-    public boolean isSkipNamespaceChecking() {
-        return skipNamespaceChecking;
-    }
 
-    /**
-     * @since 0.1.0
-     * @return
-     */    
-    public void setSkipNamespaceChecking(boolean skipNamespaceChecking) {
-        this.skipNamespaceChecking = skipNamespaceChecking;
-    }
 
     /**
      * The URL of the files to import. For supported URL formats see {@link it.unitn.disi.diversicon.internal.Internals#readData(String, boolean)

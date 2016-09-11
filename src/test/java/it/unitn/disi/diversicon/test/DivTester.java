@@ -50,8 +50,10 @@ import de.tudarmstadt.ukp.lmf.transform.LMFXmlWriter;
 import it.disi.unitn.diversicon.exceptions.DivException;
 import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.DivSynsetRelation;
+import it.unitn.disi.diversicon.DivValidationException;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
+import it.unitn.disi.diversicon.ImportJob;
 import it.unitn.disi.diversicon.LexResPackage;
 import it.unitn.disi.diversicon.internal.Internals;
 
@@ -549,14 +551,56 @@ public final class DivTester {
         checkNotNull(lexRes);
         Diversicons.checkPrefix(prefix);        
         
+        LexResPackage pack = createLexResPackage(lexRes, prefix);
+        
+        return writeXml(lexRes, pack);
+    }
+    
+    /**
+     * Creates a Lexical Resource package automatically filling id, name and namespaces
+     * in a predictable manner.
+     * 
+     * @since 0.1.0
+     */
+    public static LexResPackage createLexResPackage(LexicalResource lexRes, String prefix){
         LexResPackage pack = new LexResPackage();
         
         pack.setId(prefix);
         pack.setName(lexRes.getName());
         pack.setPrefix(prefix);
         pack.putNamespace(prefix, "http://test-"+lexRes.hashCode() + ".xml");
-        
-        return writeXml(lexRes, pack);
+        return pack;
+    }
+    
+    /**
+     * Creates a Lexical Resource package using the default test prefix
+     * 
+     * See {@link #createLexResPackage(LexicalResource, String)}
+     * 
+     * @since 0.1.0
+     */
+    public static LexResPackage createLexResPackage(LexicalResource lexRes){
+        return createLexResPackage(lexRes, LmfBuilder.DEFAULT_PREFIX);
+    }    
+    
+    /**
+     * 
+     * Imports a resource, automatically creating id, prefix and namespaces.
+     * 
+     * See {@link Diversicon#importResource(LexicalResource, LexResPackage, boolean)
+     * 
+     * @throws DivException
+     * @throws DivValidationException
+     * 
+     * @since 0.1.0
+     */
+    public static ImportJob importResource(Diversicon div,
+            LexicalResource lexRes,        
+            boolean skipAugment) {
+                       
+        return  div.importResource(lexRes,
+                createLexResPackage(lexRes), 
+                skipAugment);
     }
     
     /**

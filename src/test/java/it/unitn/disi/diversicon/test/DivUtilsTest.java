@@ -146,7 +146,7 @@ public class DivUtilsTest {
 
         Diversicon div = Diversicon.connectToDb(dbConfig);               
         
-        div.importResource(lexRes1,  true);
+        DivTester.importResource(div,lexRes1,  true);
         
         DivTester.checkDb(lexRes1, div);
       

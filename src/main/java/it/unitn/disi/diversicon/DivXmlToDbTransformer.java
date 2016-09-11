@@ -76,8 +76,7 @@ class SampleOfXmlLocator extends DefaultHandler {
  */
 class DivXmlValidator implements ElementHandler {
         
-    private LexResPackage pack;
-    private boolean skipNamespaceChecking;
+    private LexResPackage pack;   
     
     
     
@@ -85,8 +84,7 @@ class DivXmlValidator implements ElementHandler {
      * @since 0.1.0
      */
     public DivXmlValidator(boolean skipNamespaceChecking){
-        this.pack = new LexResPackage();
-        this.skipNamespaceChecking = false;
+        this.pack = new LexResPackage();        
     }
     
     /**
@@ -115,21 +113,21 @@ class DivXmlValidator implements ElementHandler {
             }
             
         } else {
-            if (!skipNamespaceChecking ) {
-                // Would have liked to get it from class, but if we 
-                // assume xml schema pass was done before it should still be ok
-                
-                @Nullable
-                String id = el.attributeValue("id");
-                if (id != null) {
-                    Internals.checkNotBlank(id, "Found invalid id!");
+            
+            // Would have liked to get it from class, but if we 
+            // assume xml schema pass was done before it should still be ok
+            
+            @Nullable
+            String id = el.attributeValue("id");
+            if (id != null) {
+                Internals.checkNotBlank(id, "Found invalid id!");
 
-                    if (!id.startsWith(pack.getPrefix())) {
-                        throw new InterruptedImportException("Found " + n + " id " + id
-                                + " not starting with LexicalResource prefix " + pack.getPrefix());
-                    }
+                if (!id.startsWith(pack.getPrefix())) {
+                    throw new InterruptedImportException("Found " + n + " id " + id
+                            + " not starting with LexicalResource prefix " + pack.getPrefix());
                 }
             }
+            
         }       
         
 
@@ -150,7 +148,7 @@ class DivXmlToDbTransformer extends XMLToDBTransformer {
     /**
      * @since 0.1.0
      */
-    DivXmlToDbTransformer(Diversicon div, boolean skipNamespaceChecking) {
+    DivXmlToDbTransformer(Diversicon div) {
         super(div.getDbConfig());        
         sessionFactory.close();  // div dirty but needed...       
         sessionFactory = div.getSessionFactory();       

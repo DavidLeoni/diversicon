@@ -10,13 +10,14 @@
    <id name="id" type="string" node="@id">
     	<column name="id" />   
     </id>
-                                 
+    
+   <property name="prefix" column="prefix" node="@prefix" type="string"/>                              
    <property name="name" column="name" node="@name" type="string"/>
    <property name="xmlUri" column="xmlUri" node="@xmlUri" type="string"/>
    <property name="sqlUri" column="sqlUri" node="@sqlUri" type="string"/>
    <property name="h2DbUri" column="h2DbUri" node="@h2DbUri" type="string"/>
    <property name="version" column="version" node="@version" type="string"/>
-   <property name="prefix" column="prefix" node="@prefix" type="string"/>
+   
    <property name="sampleXmlUri" column="sampleXmlUri" node="@sampleXmlUri" type="string"/>
    
    <!--  todo  namespaces -->  

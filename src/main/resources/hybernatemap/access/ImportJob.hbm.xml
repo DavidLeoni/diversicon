@@ -25,9 +25,14 @@
             <index column="idx"/>
             <one-to-many class="it.unitn.disi.diversicon.ImportJob" node="ImportJob"/>
     </list> 
+          
       
-	<one-to-one name="lexResPackage" class="it.unitn.disi.diversicon.LexResPackage"
-			cascade="save-update"></one-to-one>
+	<many-to-one name="lexResPackage" 
+				class="it.unitn.disi.diversicon.LexResPackage"
+				column="lexResPackageId"
+				unique="true"
+				cascade="save-update"> 		        	
+	</many-to-one>
   	
 
 </class>

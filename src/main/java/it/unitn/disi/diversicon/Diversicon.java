@@ -931,7 +931,7 @@ public class Diversicon extends Uby {
                 fileUrl,
                 lexResPackage);
         
-        DivXmlToDbTransformer trans = new DivXmlToDbTransformer(this, config.isSkipNamespaceChecking());
+        DivXmlToDbTransformer trans = new DivXmlToDbTransformer(this);
 
         try {
             trans.transform(file, null);
@@ -1057,7 +1057,7 @@ public class Diversicon extends Uby {
                                 .contains(fileUrl),
                     "Couldn't find fileUrl " + fileUrl + "in importConfig!");
             
-            Internals.checkLexResPackage(divRes, config.isSkipNamespaceChecking());
+            Internals.checkLexResPackage(divRes);
         } catch (Exception ex) {
             throw new InvalidImportException("Invalid import for " + fileUrl + " in config " + config.toString(), ex);
         }
@@ -1093,27 +1093,7 @@ public class Diversicon extends Uby {
         }
     }
 
-    /**
-     * 
-     * Imports a resource without checking namespaces.
-     * 
-     * See {@link #importResource(LexicalResource, HashMap, boolean)
-     * 
-     * @throws DivException
-     * @throws DivValidationException
-     * 
-     * @since 0.1.0
-     */
-    public ImportJob importResource(
-            LexicalResource lexicalResource,        
-            boolean skipAugment) {
-                
-        return  importResource(lexicalResource,
-                "",
-                new HashMap<String, String>(), 
-                skipAugment, 
-                true);
-    }
+   
     
     /**
      * 
@@ -1136,8 +1116,6 @@ public class Diversicon extends Uby {
      * @param skipAugment
      *            if true, after the import prevents the graph froom being normalized
      *            and augmented with transitive closure.
-     * @param skipNamespaceChecking
-     *            if true, does not check namespacing constraints are satisfied.            
      * @throws DivException
      * @throws DivValidationException
      * 
@@ -1145,12 +1123,11 @@ public class Diversicon extends Uby {
      */
     public ImportJob importResource(
             LexicalResource lexicalResource,
-            String prefix,
-            Map<String, String> namespaces,
-            boolean skipAugment,
-            boolean skipNamespaceChecking) {
+            LexResPackage lexResPackage,
+            boolean skipAugment) {
 
-        checkNotNull(lexicalResource);        
+        checkNotNull(lexicalResource);
+        checkNotNull(lexResPackage);
 
         LOG.info("Going to save lexical resource to database...");
 
@@ -1159,23 +1136,17 @@ public class Diversicon extends Uby {
         try {            
             
             ImportConfig config = new ImportConfig();                       
-            
-            config.setSkipNamespaceChecking(skipNamespaceChecking);
+                        
             config.setSkipAugment(skipAugment);
             config.setAuthor(DEFAULT_AUTHOR);
 
             String fileUrl = MEMORY_PROTOCOL + ":" + lexicalResource.hashCode();
 
             config.addLexicalResource(fileUrl);
-
-            LexResPackage divRes = new LexResPackage();
-            divRes.setName(lexicalResource.getName());
-            divRes.setNamespaces(namespaces);
-            divRes.setPrefix(prefix);
-            
+                       
             job = createImportJob(  config, 
                                     fileUrl, 
-                                    divRes);
+                                    lexResPackage);
 
             new JavaToDbTransformer(this, lexicalResource).transform();
 
@@ -1537,10 +1508,12 @@ public class Diversicon extends Uby {
         sb.append("\n");
         sb.append("NAMESPACE: ");
         sb.append(job.getResourceDescriptor().getPrefix() + ":" + job.getResourceDescriptor().getNamespaces().get(job.getResourceDescriptor().getPrefix()));
-
+        sb.append("   FROM FILE: ");
+        sb.append(job.getFileUrl());        
 
         if (job.getLogMessages()
                .size() > 0) {
+            sb.append("\n");
             sb.append("   THERE WHERE " + job.getLogMessages()
                                              .size()
                     + " WARNINGS/ERRORS");
@@ -1550,8 +1523,6 @@ public class Diversicon extends Uby {
         sb.append(formatDate(job.getStartDate()));
         sb.append("   ENDED: ");
         sb.append(formatDate(job.getEndDate()));
-        sb.append("   FROM FILE: ");
-        sb.append(job.getFileUrl());
         sb.append("\n");
         sb.append(job.getDescription());
         sb.append("\n");
