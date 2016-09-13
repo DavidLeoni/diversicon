@@ -23,6 +23,7 @@ import org.dom4j.io.SAXReader;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -253,6 +254,7 @@ public class DivUtilsTest {
      * @since 0.1.0
      */
     @Test
+    @Ignore
     public void testValidateXml(){
         File f = Internals.readData(Examplicon.XML_URI).toTempFile();
         
@@ -263,6 +265,7 @@ public class DivUtilsTest {
      * @since 0.1.0
      */
     @Test
+    @Ignore
     public void testValidateXmlLogLimitZero(){
         File f = Internals.readData(Examplicon.XML_URI).toTempFile();
         
@@ -273,6 +276,7 @@ public class DivUtilsTest {
      * @since 0.1.0
      */
     @Test
+    @Ignore
     public void testValidateXmlLogLimitOne(){
         File f = Internals.readData(Examplicon.XML_URI).toTempFile();
         
@@ -284,6 +288,7 @@ public class DivUtilsTest {
      * @since 0.1.0
      */
     @Test
+    @Ignore
     public void testValidateXmlFatalIllFormed() throws IOException{
         
         File f = DivTester.writeXml("666");
@@ -313,6 +318,7 @@ public class DivUtilsTest {
      * @since 0.1.0
      */
     @Test
+    @Ignore
     public void testValidateXmlFatalUnclosedTag() throws IOException{
                 
         File f = DivTester.writeXml("<bla>");

@@ -133,11 +133,19 @@ public class ImportConfig {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         
-        sb.append("ImportConfig\n");
-        sb.append("        author=" + author + "\n");
-        sb.append("   description=" + description + "\n");
-        sb.append("   skipAugment=" + skipAugment + "\n");
-        sb.append("      fileUrls=" + fileUrls+"\n");
+        sb.append("ImportConfig:\n");
+        sb.append("  author      = " + author + "\n");
+        sb.append("  description = " + description + "\n");
+        sb.append("  skipAugment = " + skipAugment + "\n");
+        sb.append("  fileUrls    = ");
+        
+        if (fileUrls.isEmpty()){
+            sb.append("[]\n");
+        } else {
+            for (String s : fileUrls){
+                sb.append("    " + s + "\n");
+            }            
+        }
         
         return sb.toString();
     }
