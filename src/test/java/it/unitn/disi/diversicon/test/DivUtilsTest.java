@@ -1,6 +1,7 @@
 package it.unitn.disi.diversicon.test;
 
 
+import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -16,6 +17,9 @@ import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 
 import org.apache.commons.io.FileUtils;
+import org.dom4j.Document;
+import org.dom4j.DocumentException;
+import org.dom4j.io.SAXReader;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -387,5 +391,81 @@ public class DivUtilsTest {
         assertFalse(p.matcher("a").matches()); // currently we don't support non-prefixed ids.
     }
  
+    /**
+     * For comments, see  https://github.com/DavidLeoni/diversicon/issues/20
+     * 
+     * @since 0.1.0
+     */
+    @Test
+    public void testWriteLexResToXml() throws IOException, DocumentException{
+
+        // 3 dag already augmented
+        LexicalResource res = lmf().lexicon()
+        .synset()
+        .synset()        
+        .synsetRelation(ERelNameSemantics.HYPONYM, 1)        
+        .synsetRelation(ERelNameSemantics.HYPERNYM, 1,2)
+        .provenance(Diversicon.getProvenanceId())
+        .synset()
+        .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
+        .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+        .provenance(Diversicon.getProvenanceId())
+        .depth(2)
+        .build();
+        
+        File xml = DivTester.writeXml(res);
+        
+        String str = FileUtils.readFileToString(xml, "UTF-8");
+        LOG.debug(str);
+        
+        assertTrue(!str.contains("DivSynsetRelation"));
+
+        SAXReader reader = new SAXReader();
+        Document document = reader.read(xml);
+
+        assertTrue(!str.contains(ERelNameSemantics.HYPONYM));
+        assertTrue(str.contains(ERelNameSemantics.HYPERNYM));
+        
+        // this should be filtered, we don't want edges from the transitive closure
+        assertEquals(0, document
+                .selectNodes("//Synset[@id='test:synset 3']/SynsetRelation[@target='test:synset 1']" )
+                 .size());
+    }
     
+    /**
+     * 
+     * @since 0.1.0
+     */
+    @Test
+    public void testWriteLexResToXmlWithNamespaces() throws IOException, DocumentException {
+                
+        String pref2 = LmfBuilder.DEFAULT_PREFIX + "-2";
+        
+        LexResPackage pack = new LexResPackage();
+        pack.setName(DivTester.GRAPH_1_HYPERNYM.getName());
+        pack.setPrefix(LmfBuilder.DEFAULT_PREFIX);
+        pack.setId(LmfBuilder.DEFAULT_PREFIX);
+        pack.setNamespaces(Internals.newMap(
+                LmfBuilder.DEFAULT_PREFIX, "url-1",
+                pref2, "url-2"));
+        
+        File xml = DivTester.writeXml(DivTester.GRAPH_1_HYPERNYM, pack);
+        
+        SAXReader reader = new SAXReader();
+        Document document = reader.read(xml);
+                
+        String str = FileUtils.readFileToString(xml, "UTF-8");
+        LOG.debug(str);
+        
+        assertEquals(1, document
+                    .selectNodes("//LexicalResource[namespace::*[.='url-1'] "
+                                 + " and namespace::*[.='url-2'] ]" )
+                     .size());
+        
+        // using just string matching because can't select xmlns stuff: https://www.oxygenxml.com/forum/topic4845.html 
+        assertTrue(str.contains("xmlns:test=\"url-1\""));
+        assertTrue(str.contains("xmlns:test-2=\"url-2\""));
+        assertTrue(str.contains("xmlns:xsi="));
+        assertTrue(str.contains("xsi:schemaLocation"));
+    }   
 }

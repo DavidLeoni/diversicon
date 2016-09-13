@@ -413,4 +413,26 @@ public class LmfBuilder {
         return sense;
     }
 
+    /**
+     * Sets the provenance of the last SynsetRelation created.
+     * 
+     * @since 0.1.0
+     */
+    public LmfBuilder provenance(String provenanceId) {
+        checkNotNull(provenanceId);
+        SynsetRelation sr = getCurSynsetRelation();
+
+        if (sr instanceof DivSynsetRelation) {
+            DivSynsetRelation dsr = (DivSynsetRelation) sr;
+            dsr.setProvenance(provenanceId);
+        } else {
+            throw new IllegalStateException(
+                    "Expected " + DivSynsetRelation.class.getCanonicalName() + " Found instead: " + sr.getClass()
+                                                                                                      .getCanonicalName());
+        }
+
+        return this;
+
+    }
+
 }

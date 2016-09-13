@@ -166,7 +166,7 @@ public class UbyTest {
      * uby 0.7.0 xml transformer, even if you explicitly select an existing
      * lexical resource, see https://github.com/DavidLeoni/diversicon/issues/6
      * 
-     * See also {@link DiversiconTest#testCantMergeSameLexicon()}
+     * See also {@link DiversiconTest#testImportCantMergeSameLexicon()}
      * 
      * @since 0.1.0
      */

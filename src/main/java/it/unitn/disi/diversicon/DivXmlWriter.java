@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nullable;
+import javax.xml.transform.OutputKeys;
+
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
 
@@ -38,8 +40,7 @@ class DivXmlWriter extends LMFXmlWriter {
     public DivXmlWriter(OutputStream outputStream,
             @Nullable String dtdPath,
             LexResPackage lexResPackage) throws SAXException {
-        super(outputStream, dtdPath);
-        
+        super(outputStream, dtdPath);        
         this.lexResPackage = checkNotNull(lexResPackage); 
         
     }
@@ -65,7 +66,7 @@ class DivXmlWriter extends LMFXmlWriter {
      * 
      * <p>
      * <strong>
-     * DIVERSICON NOTE: this function must be <i>the same</i> as 
+     * DIVERSICON NOTE: this function MUST be <i>the same</i> as 
      * {@link DivDbToXmlTransformer#doWriteElement(Object, boolean)}<br/>
      * 
      * For an explanation, see {@link Internals#prepareXmlElement(Object, boolean, Map, de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata, AttributesImpl, List)
@@ -79,15 +80,21 @@ class DivXmlWriter extends LMFXmlWriter {
      */
     @Override
     protected void doWriteElement(Object lmfObject, boolean closeTag) throws SAXException {
-
+                        
         AttributesImpl atts = new AttributesImpl();
-        List<Object> children = new ArrayList<>();        
+        List<Object> children = new ArrayList<>();
+        
+        @Nullable
         String elementName = Internals.prepareXmlElement(lmfObject,
                 closeTag,
                 lexResPackage,
                 getClassMetadata(lmfObject.getClass()),
                 atts, 
                 children);
+        
+        if (elementName == null){
+            return;
+        }
         
         th.startElement("", "", elementName, atts);
         for (Object child : children) {

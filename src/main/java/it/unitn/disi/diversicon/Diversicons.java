@@ -77,8 +77,11 @@ import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 public final class Diversicons {
 
     private static final Logger LOG = LoggerFactory.getLogger(Diversicons.class);
+
     
-    public static final String DIVERSICON_SCHEMA_1_0_URL = "classpath:/diversicon-1.0.xsd";  
+    public static final String DIVERSICON_SCHEMA_1_0_FILENAME = "diversicon-1.0.xsd";
+    public static final String DIVERSICON_SCHEMA_1_0_CLASSPATH_URL = "classpath:/" + DIVERSICON_SCHEMA_1_0_FILENAME;      
+    public static final String DIVERSICON_SCHEMA_1_0_PUBLIC_URL = "https://github.com/DavidLeoni/diversicon/tree/master/src/main/resources/" + DIVERSICON_SCHEMA_1_0_FILENAME;
     
     /**
      * Suggested max length for lexical resource names, which are also prefixes like wn31, sm.
@@ -1380,7 +1383,7 @@ public final class Diversicons {
         
         checkNotNull(xmlFile);
                 
-        File xsdFile = Internals.readData(DIVERSICON_SCHEMA_1_0_URL, false).toTempFile();
+        File xsdFile = Internals.readData(DIVERSICON_SCHEMA_1_0_CLASSPATH_URL, false).toTempFile();
 
         // if editor can't find the constant probably default xerces is being used
         // instead of the one supporting schema 1.1
@@ -1508,4 +1511,5 @@ public final class Diversicons {
             throw new IllegalArgumentException("Invalid id!");
         }        
     }
+        
 }

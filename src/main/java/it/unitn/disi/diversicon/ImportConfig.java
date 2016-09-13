@@ -125,10 +125,21 @@ public class ImportConfig {
         this.fileUrls.add(fileUrl);
     }
 
+    /**
+     * 
+     * @since 0.1.0
+     */
     @Override
     public String toString() {
-        return "ImportConfig [fileUrls=" + fileUrls + ", author=" + author + ", description=" + description
-                + ", skipAugment=" + skipAugment + "]";
+        StringBuilder sb = new StringBuilder();
+        
+        sb.append("ImportConfig\n");
+        sb.append("        author=" + author + "\n");
+        sb.append("   description=" + description + "\n");
+        sb.append("   skipAugment=" + skipAugment + "\n");
+        sb.append("      fileUrls=" + fileUrls+"\n");
+        
+        return sb.toString();
     }
     
     

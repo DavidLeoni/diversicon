@@ -50,7 +50,7 @@ class DivDbToXmlTransformer extends DBToXMLTransformer {
      * 
      * <p>
      * <strong>
-     * DIVERSICON NOTE: this function must be <i>the same</i> as 
+     * DIVERSICON NOTE: this function MUST be <i>the same</i> as 
      * {@link DivXmlWriter#doWriteElement(Object, boolean)}<br/>
      * 
      * For an explanation, see {@link Internals#prepareXmlElement(Object, boolean, Map, de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata, AttributesImpl, List)
@@ -66,13 +66,19 @@ class DivDbToXmlTransformer extends DBToXMLTransformer {
     protected void doWriteElement(Object lmfObject, boolean closeTag) throws SAXException {
 
         AttributesImpl atts = new AttributesImpl();
-        List<Object> children = new ArrayList<>();        
+        List<Object> children = new ArrayList<>();
+        
+        @Nullable
         String elementName = Internals.prepareXmlElement(lmfObject,
                 closeTag,
                 lexResPackage,
                 getClassMetadata(lmfObject.getClass()),
                 atts, 
                 children);
+        
+        if (elementName == null){
+            return;
+        }
         
         th.startElement("", "", elementName, atts);
         for (Object child : children) {

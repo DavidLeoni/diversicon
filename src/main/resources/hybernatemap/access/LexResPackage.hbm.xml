@@ -20,7 +20,12 @@
    
    <property name="sampleXmlUri" column="sampleXmlUri" node="@sampleXmlUri" type="string"/>
    
-   <!--  todo  namespaces -->  
+   <map name="namespaces" table="Namespace" >
+   		<key />	    
+	    <map-key column="prefix" type="string"/>
+	    <element column="url" type="string" />	   
+	</map>
+     
   			
 </class>
 

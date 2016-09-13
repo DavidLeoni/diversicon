@@ -3,21 +3,17 @@ package it.unitn.disi.diversicon.exceptions;
 import it.disi.unitn.diversicon.exceptions.DivException;
 
 /**
- * A runtime exception raised to signal an import request is erroneous,
- * before any changes to database have been done.
+ * A runtime exception raised when trying to perform
+ * an operation while database is not in the correct state.  
  * 
- * @see InterruptedImportException
  * 
  * @since 0.1.0
  */
-public class InvalidImportException extends DivException {
+public class InvalidStateException extends DivException {
     
     private static final long serialVersionUID = 1L;
 
-    /**
-     * @since 0.1.0
-     */
-    private InvalidImportException(){
+    private InvalidStateException(){
         super();
     }
     
@@ -26,7 +22,7 @@ public class InvalidImportException extends DivException {
      * 
      * @since 0.1.0
      */
-    public InvalidImportException(Throwable tr) {
+    public InvalidStateException(Throwable tr) {
         super(tr);
     }
 
@@ -35,7 +31,7 @@ public class InvalidImportException extends DivException {
      * 
      * @since 0.1.0
      */
-    public InvalidImportException(String msg, Throwable tr) {
+    public InvalidStateException(String msg, Throwable tr) {
         super(msg, tr);
     }
 
@@ -44,7 +40,7 @@ public class InvalidImportException extends DivException {
      * 
      * @since 0.1.0
      */
-    public InvalidImportException(String msg) {
+    public InvalidStateException(String msg) {
         super(msg);
     }
 }

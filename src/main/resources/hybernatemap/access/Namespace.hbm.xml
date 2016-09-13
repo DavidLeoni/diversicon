@@ -2,15 +2,15 @@
  "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
 "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
 <hibernate-mapping >  
-<class name="it.unitn.disi.diversicon.Namespace" 
-	   table="Namespace" 
-	   node="Namespace" 
-	   dynamic-insert="true">
-   
-   <id name="prefix" column="prefix" node="@prefix" type="string"></id>
-        
-   <property name="url" column="url" node="@url" type="string"/>
-  	  			
-</class>
+	<class name="it.unitn.disi.diversicon.Namespace" 
+		   table="Namespace" 
+		   node="Namespace" 
+		   dynamic-insert="true">
+	   
+	   <id name="prefix" column="prefix" node="@prefix" type="string"></id>
+	        
+	   <property name="url" column="url" node="@url" type="string"/>
+	  	  			
+	</class>
 
 </hibernate-mapping>

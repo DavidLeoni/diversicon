@@ -98,6 +98,21 @@ public final class DivTester {
                                                           .build();
 
     /**
+     * Graph with 3 verteces and 2 hypernym edges,  a good candidate for augmentation. 
+     * 
+     * @see #DAG_3_HYPERNYM
+     * 
+     * @since 0.1.0 
+     */
+    public static LexicalResource GRAPH_3_HYPERNYM = lmf().lexicon()
+        .synset()
+        .synset()
+        .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+        .synset()
+        .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
+        .build();
+        
+    /**
      * 4 verteces, last one is connected to others by respectively hypernym
      * edge, holonym and 'hello' edge
      * 
@@ -115,6 +130,8 @@ public final class DivTester {
 
     /**
      * A full DAG, 3 verteces and 3 hypernyms
+     * 
+     * @see #GRAPH_3_HYPERNYM
      * 
      * @since 0.1.0
      */
@@ -583,9 +600,11 @@ public final class DivTester {
         return createLexResPackage(lexRes, LmfBuilder.DEFAULT_PREFIX);
     }    
     
+    
+    
     /**
      * 
-     * Imports a resource, automatically creating id, prefix and namespaces.
+     * Imports a resource automatically creating id, prefix and namespaces in a predictable way.
      * 
      * See {@link Diversicon#importResource(LexicalResource, LexResPackage, boolean)
      * 
@@ -604,10 +623,9 @@ public final class DivTester {
     }
     
     /**
-     * Creates an xml file out of the provided lexical resource and {@link #DEFAULT_PREFIX}.
+     * Creates an XML file out of the provided lexical resource and {@link #DEFAULT_PREFIX}.
      * 
-     * Other required parameters will be automatcally 
-     * generated in a predictable manner.
+     * Other required parameters will be automatically generated in a predictable manner.
      * 
      * @since 0.1.0
      */
@@ -654,8 +672,6 @@ public final class DivTester {
 
     /**
      * @since 0.1.0
-     * @param content
-     * @return
      */
     static File writeXml(String content){
         checkNotNull(content);

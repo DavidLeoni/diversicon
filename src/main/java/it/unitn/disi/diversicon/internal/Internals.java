@@ -39,6 +39,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import javax.annotation.Nullable;
+import javax.xml.XMLConstants;
 
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveException;
@@ -50,6 +51,7 @@ import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.xerces.impl.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
@@ -1278,16 +1280,19 @@ public final class Internals {
      * <li>add id to the LexicalResource</li>
      * <li>add prefix to the LexicalResource</li>
      * <li>add namespaces to the LexicalResource</li>
+     * <li>skip computed transitive relations</li>
+     * <li>skip non-canonical relations</li>
      * </ul>
      * 
      * </p>
      * 
-     * @return the element tagname
+     * @return the element tagname. If null, the element must be skipped.
      * 
      * @throws SAXException
      * 
      * @since 0.1.0
-     */
+     */    
+    @Nullable
     public static String prepareXmlElement(Object inputLmfObject,
             boolean closeTag,
             LexResPackage lexResPackage,
@@ -1300,8 +1305,9 @@ public final class Internals {
         checkNotNull(children);
         Internals.checkLexResPackage(lexResPackage);
 
-        Object lmfObject;
-        String elementName;
+        Object lmfObject = inputLmfObject;
+        String elementName = lmfObject.getClass()
+                .getSimpleName();
 
         if (inputLmfObject instanceof LexicalResource) {
 
@@ -1310,25 +1316,24 @@ public final class Internals {
 
             atts.addAttribute("", "", "prefix", "CDATA",
                     lexResPackage.getPrefix());
-
-            for (String prefix : lexResPackage.getNamespaces()
-                                              .keySet()) {
-                atts.addAttribute("", "", "xmlns:" + prefix, "CDATA",
-                        lexResPackage.getNamespaces()
-                                     .get(prefix));
-            }
-        }
-
-        if (inputLmfObject instanceof DivSynsetRelation) {
+            
+            // note at the end of the method we put xmlns
+        } else if (inputLmfObject instanceof DivSynsetRelation) {
+        
             DivSynsetRelation dsr = (DivSynsetRelation) inputLmfObject;
             lmfObject = dsr.toSynsetRelation();
             elementName = SynsetRelation.class.getSimpleName();
-        } else {
-            lmfObject = inputLmfObject;
-            elementName = lmfObject.getClass()
-                                   .getSimpleName();
-        }
-
+            
+            if (Diversicon.getProvenanceId().equals(dsr.getProvenance())){
+                if (dsr.getDepth() > 1){
+                    return null;   
+                }
+                if (!Diversicons.isCanonicalRelation(dsr.getRelName())){
+                    return null;
+                }
+            }            
+        } 
+        
         int hibernateSuffixIdx = elementName.indexOf("_$$");
         if (hibernateSuffixIdx > 0)
             elementName = elementName.substring(0, hibernateSuffixIdx);
@@ -1383,11 +1388,42 @@ public final class Internals {
             }
         }
 
+        boolean foundXsi = false;
+        String xsiPrefix = "xsi";
+        
+        if (inputLmfObject instanceof LexicalResource) {
+            
+            // note at the beginning of the method we put id and prefix
+            for (String prefix : lexResPackage.getNamespaces()
+                    .keySet()) {
+                String url = lexResPackage.getNamespaces()
+                        .get(prefix);
+                atts.addAttribute("", "", "xmlns:" + prefix, "CDATA",
+                        url);
+                
+                if (XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI.equals(url)){
+                    foundXsi = true;
+                    xsiPrefix = prefix;
+                }                
+            }
+            
+            if (!foundXsi){
+                atts.addAttribute("", "", "xmlns:" + xsiPrefix, "CDATA",
+                        XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
+            }
+            
+            atts.addAttribute("", "", xsiPrefix + ":schemaLocation", "CDATA",
+                    Diversicons.DIVERSICON_SCHEMA_1_0_PUBLIC_URL);
+            
+        }        
+        
         return elementName;
     }
 
     /**
-     * See {@link #checkLexResPackage(LexResPackage, LexicalResource)}
+     * Performs a coherence check on provided lexical resource package.
+     * 
+     * To match it against a LexicalResource, see {@link #checkLexResPackage(LexResPackage, LexicalResource)}
      * 
      * @throws IllegalArgumentException
      * 
@@ -1395,10 +1431,8 @@ public final class Internals {
      */
     public static LexResPackage checkLexResPackage(LexResPackage lexResPackage) {
         return checkLexResPackage(lexResPackage, null);
-    }
-
-  
-
+    }   
+    
     /**
      * @throws IllegalArgumentException
      * 
@@ -1427,7 +1461,7 @@ public final class Internals {
         if (!pack.getNamespaces()
                  .containsKey(pack.getPrefix())) {
             throw new IllegalArgumentException(
-                    "Couldn't find LexicalResource prefix " + pack.getPrefix() + " among namespace prefixes! "
+                    "Couldn't find LexicalResource prefix '" + pack.getPrefix() + "' among namespace prefixes! "
                             + "See " + build.docsAtVersion() + "/diversicon-lmf.html"
                             + " for info on how to structure a Diversicon XML!");
         }

@@ -47,9 +47,12 @@ import it.unitn.disi.diversicon.ImportJob;
 import it.unitn.disi.diversicon.InvalidSchemaException;
 import it.unitn.disi.diversicon.LexResPackage;
 import it.unitn.disi.diversicon.data.Smartphones;
+import it.unitn.disi.diversicon.exceptions.InterruptedImportException;
+import it.unitn.disi.diversicon.exceptions.InvalidImportException;
 import it.unitn.disi.diversicon.internal.Internals;
 
 import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
+import static it.unitn.disi.diversicon.internal.Internals.checkNotBlank;
 import static it.unitn.disi.diversicon.test.DivTester.*;
 
 public class DiversiconTest {
@@ -74,7 +77,7 @@ public class DiversiconTest {
      * @since 0.1.0
      */
     @Test
-    public void testDontAutoCreate() {
+    public void testConnectToDbDontAutoCreate() {
         
         try {
             Diversicon uby = Diversicon.connectToDb(dbConfig);
@@ -232,13 +235,7 @@ public class DiversiconTest {
     @Test
     public void testTransitiveClosureDepth_2() {
 
-        assertAugmentation(lmf().lexicon()
-                                .synset()
-                                .synset()
-                                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                                .synset()
-                                .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
-                                .build(),
+        assertAugmentation(GRAPH_3_HYPERNYM,
                 DAG_3_HYPERNYM);
 
     }
@@ -681,7 +678,7 @@ public class DiversiconTest {
      * 
      * @since 0.1.0
      * @see #testSelfLoopNonCanonical()
-     */
+     */    
     @Test
     public void testSelfLoopCanonical(){
         LexicalResource lr = lmf().lexicon()
@@ -696,7 +693,7 @@ public class DiversiconTest {
         try {
             DivTester.importResource(div, lr, false);
             Assert.fail("Shouldn't arrive here!");
-        } catch (DivValidationException ex){
+        } catch (InterruptedImportException ex){
             
         }
     }
@@ -724,6 +721,91 @@ public class DiversiconTest {
         DivTester.checkDb(lr, div);
     }
     
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testGetNamespaces(){
+                
+        Diversicons.dropCreateTables(dbConfig);
+
+        Diversicon div = Diversicon.connectToDb(dbConfig);       
+        
+        ImportJob job = DivTester.importResource(div, GRAPH_1_HYPERNYM, true);        
+        LexResPackage pack1 = job.getLexResPackage();        
+
+        assertEquals(LmfBuilder.DEFAULT_PREFIX, pack1.getPrefix());
+        
+        String nsUrl1 = pack1.getNamespaces().get(pack1.getPrefix()); 
+        Internals.checkNotBlank(nsUrl1, "Invalid url!");
+        
+        assertEquals(nsUrl1, div.getNamespaces().get(LmfBuilder.DEFAULT_PREFIX));
+
+        String prefix2 = "test2";
+        
+        /**
+         * 2 verteces and 1 hypernym edge
+         */
+        LexicalResource lexRes2 = lmf(prefix2).lexicon()
+                                              .synset()
+                                              .synset()
+                                              .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                              .build();
+        
+        ImportJob job2 = div.importResource(lexRes2,
+                createLexResPackage(lexRes2, prefix2), 
+                true);
+
+        assertEquals(2, div.getNamespaces().size());
+        
+        LexResPackage pack2 = job2.getLexResPackage();
+        assertEquals(prefix2, pack2.getPrefix());
+        String nsUrl2 = pack2.getNamespaces().get(pack2.getPrefix());
+        assertEquals(nsUrl2, div.getNamespaces().get(pack2.getPrefix()));
+        
+    }
+    
+    /**
+     * 
+     * Imports two resources. Second one assigns to the first prefix a different url.
+     * 
+     * Expected result: exception is thrown.
+     * 
+     * @since 0.1.0
+     * 
+     */
+    @Test
+    public void testImportWithClashingDependencies() throws IOException {
+
+        Diversicons.dropCreateTables(dbConfig);
+
+        Diversicon div = Diversicon.connectToDb(dbConfig);       
+        
+        ImportJob job1 = DivTester.importResource(div, GRAPH_1_HYPERNYM, true);
+        job1.getLexResPackage();
+
+        String prefix2 = "test2";
+        /**
+         * 2 verteces and 1 hypernym edge
+         */
+        LexicalResource lexRes2 = lmf(prefix2).lexicon()
+                                              .synset()
+                                              .synset()
+                                              .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                              .build();
+        LexResPackage pack2 = DivTester.createLexResPackage(lexRes2, prefix2);
+        pack2.putNamespace(LmfBuilder.DEFAULT_PREFIX,
+                           "http://666");
+        
+        try {
+            div.importResource( lexRes2, pack2, true);
+                                   
+            Assert.fail("Shouldn't arrive here!");
+        } catch (InvalidImportException ex){
+            LOG.debug("Caught exception:", ex);
+        }
+        
+    }
     
     /**
      * Was giving absurd problems for null discriminator in
@@ -940,8 +1022,7 @@ public class DiversiconTest {
      * @since 0.1.0
      */
     @Test
-    @Ignore
-    public void testCantMergeSameLexicon() {
+    public void testImportCantMergeSameLexicon() {
 
         Diversicons.dropCreateTables(dbConfig);
 
@@ -949,19 +1030,25 @@ public class DiversiconTest {
 
         DivTester.importResource(div, GRAPH_1_HYPERNYM, true);
 
-        DivTester.importResource(div, GRAPH_1_HYPERNYM, true);
+        try {
+            DivTester.importResource(div, GRAPH_1_HYPERNYM, true);
+            Assert.fail("Shouldn't arrive here!");
+        } catch (InvalidImportException ex){
+            
+        } finally {
+            div.getSession()
+            .close();    
+        }
 
-        DivTester.checkDb(GRAPH_1_HYPERNYM, div);
 
-        div.getSession()
-           .close();
+        
     }
 
     /**
      * @since 0.1.0
      */
     @Test
-    public void testMergeTwoSeparateLexicalResources() {
+    public void testImportTwoSeparateLexicalResources() {
 
         Diversicons.dropCreateTables(dbConfig);
 
@@ -1109,7 +1196,7 @@ public class DiversiconTest {
      * @since 0.1.0
      */
     @Test  
-    public void testInMemoryCompressedH2(){
+    public void testConnectToDbH2InMemoryCompressed(){
         try {
             DBConfig dbConfig = Diversicons.makeDefaultH2InMemoryDbConfig("trial-" + UUID.randomUUID(), true);
             Assert.fail("Shouldn't arrive here!");
@@ -1143,12 +1230,14 @@ public class DiversiconTest {
     }
     
     /**
+     * Attempts to connect with wrong password.
+     * 
      * Test for https://github.com/DavidLeoni/diversicon/issues/13
      * 
      * @since 0.1.0
      */
     @Test
-    public void testConnectionTimeout(){
+    public void testConnectToDbTimeout(){
         
         Date start = new Date();
         
