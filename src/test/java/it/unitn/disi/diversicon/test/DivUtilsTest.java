@@ -305,7 +305,7 @@ public class DivUtilsTest {
     private static void assertFatal(InvalidXmlException ex) {
         DivXmlErrorHandler errorHandler = ex.getErrorHandler();
         assertTrue(errorHandler.isFatal());
-        assertEquals(1, errorHandler.issuesCount());
+        assertTrue(errorHandler.issuesCount() >= 1);
         assertTrue(errorHandler.fatalError() != null);
     }
 

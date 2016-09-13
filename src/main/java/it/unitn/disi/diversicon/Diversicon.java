@@ -703,8 +703,6 @@ public class Diversicon extends Uby {
                 Synset source = (Synset) session.get(Synset.class, (String) results.get(0));
                 String relName = (String) results.get(1);
                 String targetId = (String) results.get(2);
-                // Synset target = (Synset) session.get(Synset.class, (String)
-                // results.get(2));
                 int depth;
                 Object depthCandidate = results.get(3);
                 if (depthCandidate instanceof String) {

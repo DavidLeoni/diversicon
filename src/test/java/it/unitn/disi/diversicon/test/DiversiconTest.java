@@ -766,6 +766,37 @@ public class DiversiconTest {
     }
     
     /**
+     * Shows we can calculate transitive closure using relations
+     * pointing to missing synsets
+     *  
+     * @since 0.1.0
+     */
+    @Test
+    public void testTransitiveClosureMissingSynsets(){
+        
+        Diversicons.dropCreateTables(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);               
+        String upp = "upp";
+        
+        /**
+         * 2 verteces and 1 hypernym edge, plus one hypernym to upper ontology synset
+         */
+        LexicalResource lexRes = lmf().lexicon()
+                                              .synset()
+                                              .synsetRelation(ERelNameSemantics.HYPERNYM, upp +":ss-1")
+                                              .synset()
+                                              .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                              .build();
+        LexResPackage pack = DivTester.createLexResPackage(lexRes);
+        pack.putNamespace(upp,
+                           "http://upp");
+               
+        div.importResource( lexRes, pack, false);
+        assertEquals(3, div.getSynsetRelationsCount());                                       
+        
+    }
+    
+    /**
      * 
      * Imports two resources. Second one assigns to the first prefix a different url.
      * 
@@ -846,8 +877,8 @@ public class DiversiconTest {
      * 
      */
     @Test
-    public void testImportSmartPhonesXmlWithoutWordnet() {
-                
+    public void testImportSmartPhonesXmlWithoutWordnet() {        
+        
         Diversicons.dropCreateTables(dbConfig);
 
         Diversicon div = Diversicon.connectToDb(dbConfig);

@@ -181,6 +181,9 @@ public class LmfBuilder {
 
     /**
      * 
+     * Adds to current synset a synsetRelation pointing to target synset 
+     * specified by {@code targetIdNum} 
+     * 
      * @param targetIdNum
      *            must be > 0.
      * 
@@ -202,6 +205,32 @@ public class LmfBuilder {
 
     }
 
+    /**
+     * 
+     * Adds to current synset a synsetRelation pointing to target synset 
+     * specified by {@code targetId} 
+     *
+     * @since 0.1.0
+     */
+    public LmfBuilder synsetRelation(String relName, String targetId) {
+        checkBuilt();
+        checkNotEmpty(relName, "Invalid relation name!");
+        checkNotNull(targetId);
+       
+        DivSynsetRelation sr = new DivSynsetRelation();
+        Synset ts = new Synset();
+        ts.setId(targetId);
+        sr.setTarget(ts);
+        Synset curSynset = getCurSynset();
+        sr.setSource(curSynset);
+        sr.setRelName(relName);
+        curSynset.getSynsetRelations()
+                 .add(sr);
+        return this;
+
+    }
+    
+    
     /**
      * @since 0.1.0
      */
