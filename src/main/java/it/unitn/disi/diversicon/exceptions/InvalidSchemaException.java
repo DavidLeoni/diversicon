@@ -1,4 +1,4 @@
-package it.unitn.disi.diversicon;
+package it.unitn.disi.diversicon.exceptions;
 
 import it.disi.unitn.diversicon.exceptions.DivException;
 

@@ -58,8 +58,10 @@ import it.disi.unitn.diversicon.exceptions.DivException;
 import it.disi.unitn.diversicon.exceptions.DivIoException;
 import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.exceptions.InvalidStateException;
+import it.unitn.disi.diversicon.exceptions.DivValidationException;
 import it.unitn.disi.diversicon.exceptions.InterruptedImportException;
 import it.unitn.disi.diversicon.exceptions.InvalidImportException;
+import it.unitn.disi.diversicon.exceptions.InvalidSchemaException;
 import it.unitn.disi.diversicon.internal.Internals;
 
 /**

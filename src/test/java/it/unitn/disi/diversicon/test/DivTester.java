@@ -50,11 +50,11 @@ import de.tudarmstadt.ukp.lmf.transform.LMFXmlWriter;
 import it.disi.unitn.diversicon.exceptions.DivException;
 import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.DivSynsetRelation;
-import it.unitn.disi.diversicon.DivValidationException;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
 import it.unitn.disi.diversicon.ImportJob;
 import it.unitn.disi.diversicon.LexResPackage;
+import it.unitn.disi.diversicon.exceptions.DivValidationException;
 import it.unitn.disi.diversicon.internal.Internals;
 
 public final class DivTester {

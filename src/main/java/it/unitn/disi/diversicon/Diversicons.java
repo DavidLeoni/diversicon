@@ -60,6 +60,7 @@ import it.disi.unitn.diversicon.exceptions.DivException;
 import it.disi.unitn.diversicon.exceptions.DivIoException;
 import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.data.DivWn31;
+import it.unitn.disi.diversicon.exceptions.InvalidSchemaException;
 import it.unitn.disi.diversicon.exceptions.InvalidXmlException;
 import it.unitn.disi.diversicon.internal.ExtractedStream;
 

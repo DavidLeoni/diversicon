@@ -39,16 +39,16 @@ import it.disi.unitn.diversicon.exceptions.DivIoException;
 import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.DbInfo;
 import it.unitn.disi.diversicon.DivSynsetRelation;
-import it.unitn.disi.diversicon.DivValidationException;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
 import it.unitn.disi.diversicon.ImportConfig;
 import it.unitn.disi.diversicon.ImportJob;
-import it.unitn.disi.diversicon.InvalidSchemaException;
 import it.unitn.disi.diversicon.LexResPackage;
 import it.unitn.disi.diversicon.data.Smartphones;
+import it.unitn.disi.diversicon.exceptions.DivValidationException;
 import it.unitn.disi.diversicon.exceptions.InterruptedImportException;
 import it.unitn.disi.diversicon.exceptions.InvalidImportException;
+import it.unitn.disi.diversicon.exceptions.InvalidSchemaException;
 import it.unitn.disi.diversicon.internal.Internals;
 
 import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
