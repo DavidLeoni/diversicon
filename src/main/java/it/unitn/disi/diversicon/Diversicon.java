@@ -1,17 +1,18 @@
 package it.unitn.disi.diversicon;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
+import static it.unitn.disi.diversicon.internal.Internals.checkEquals;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotBlank;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
+import static it.unitn.disi.diversicon.Diversicons.checkId;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
-import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,7 +20,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.zip.Deflater;
@@ -54,10 +54,14 @@ import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import de.tudarmstadt.ukp.lmf.transform.DBToXMLTransformer;
-import de.tudarmstadt.ukp.lmf.transform.XMLToDBTransformer;
 import it.disi.unitn.diversicon.exceptions.DivException;
 import it.disi.unitn.diversicon.exceptions.DivIoException;
 import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
+import it.unitn.disi.diversicon.exceptions.InvalidStateException;
+import it.unitn.disi.diversicon.exceptions.DivValidationException;
+import it.unitn.disi.diversicon.exceptions.InterruptedImportException;
+import it.unitn.disi.diversicon.exceptions.InvalidImportException;
+import it.unitn.disi.diversicon.exceptions.InvalidSchemaException;
 import it.unitn.disi.diversicon.internal.Internals;
 
 /**
@@ -72,11 +76,15 @@ import it.unitn.disi.diversicon.internal.Internals;
  * 
  * <h3>Concurrency</h3>
  * <p>
- * A Diversicon opens a hibernate {@link org.hibernate.Session Session} with the DB 
- * upon instance creation, as Uby does.  This implies a single instance of Diversicon <i> cannot</i> be shared among concurrent processes, 
- * see <a href="https://docs.jboss.org/hibernate/orm/3.3/reference/en/html/transactions.html#transactions-basics" target="_blank">Hibernate documentation</a>.
- * TODO maybe it's possible to have one different instance per thread. 
- * </p> 
+ * A Diversicon opens a hibernate {@link org.hibernate.Session Session} with the
+ * DB
+ * upon instance creation, as Uby does. This implies a single instance of
+ * Diversicon <i> cannot</i> be shared among concurrent processes,
+ * see <a href=
+ * "https://docs.jboss.org/hibernate/orm/3.3/reference/en/html/transactions.html#transactions-basics"
+ * target="_blank">Hibernate documentation</a>.
+ * TODO maybe it's possible to have one different instance per thread.
+ * </p>
  *
  * @since 0.1.0
  */
@@ -125,7 +133,7 @@ public class Diversicon extends Uby {
     /**
      * Amount of items to flush when writing into db with Hibernate.
      */
-    protected static int COMMIT_STEP = 10000; 
+    protected static int COMMIT_STEP = 10000;
 
     private ImportLogger importLogger;
 
@@ -226,7 +234,7 @@ public class Diversicon extends Uby {
             int depth,
             Iterable<String> relNames) {
 
-        checkNotEmpty(synsetId, "Invalid synset id!");
+        checkId(synsetId, "Invalid synset id!");
         checkNotNull(relNames, "Invalid relation names!");
         checkArgument(depth >= -1, "Depth must be >= -1 , found instead: " + depth);
 
@@ -320,7 +328,8 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * Validates, normalizes and augments the synsetRelation graph with edges to speed up
+     * Validates, normalizes and augments the synsetRelation graph with edges to
+     * speed up
      * searches.
      * 
      * @throws DivValidationException
@@ -331,7 +340,7 @@ public class Diversicon extends Uby {
     public void processGraph() {
 
         validateGraph();
-        
+
         normalizeGraph();
 
         computeTransitiveClosure();
@@ -341,13 +350,15 @@ public class Diversicon extends Uby {
     /**
      * Validates input graph. For now checks are minimal.
      * 
+     * 
+     * 
      * @throws DivValidationException
      * 
      * @since 0.1.0
      */
     private void validateGraph() {
-        
-        LOG.info("Validating SynsetRelations...");               
+
+        LOG.info("Validating SynsetRelations...");
 
         Transaction tx = null;
         Date checkpoint = new Date();
@@ -355,7 +366,7 @@ public class Diversicon extends Uby {
         Date start = checkpoint;
 
         try {
-            tx = session.beginTransaction();           
+            tx = session.beginTransaction();
 
             String hql = "FROM SynsetRelation SR"
                     + "   WHERE "
@@ -364,21 +375,19 @@ public class Diversicon extends Uby {
             Query query = session.createQuery(hql);
 
             ScrollableResults synsetRelations = query
-                                             .setCacheMode(CacheMode.IGNORE)
-                                             .scroll(ScrollMode.FORWARD_ONLY);
+                                                     .setCacheMode(CacheMode.IGNORE)
+                                                     .scroll(ScrollMode.FORWARD_ONLY);
             int count = 0;
-                       
 
             while (synsetRelations.next()) {
 
                 SynsetRelation sr = (SynsetRelation) synsetRelations.get(0);
-                
+
                 LOG.error("Found transitive canonical SynsetRelation with a self loop: " + Diversicons.toString(sr));
-                count += 1;                               
+                count += 1;
             }
 
-            
-            if (count > 0){
+            if (count > 0) {
                 throw new DivValidationException("Found " + count + " invalid relations!");
             } else {
                 DbInfo dbInfo = getDbInfo();
@@ -389,10 +398,9 @@ public class Diversicon extends Uby {
 
             LOG.info("");
             LOG.info("Done validating SynsetRelations.");
-            LOG.info("");            
+            LOG.info("");
             LOG.info("   Elapsed time: " + Internals.formatInterval(start, new Date()));
             LOG.info("");
-            
 
         } catch (Exception ex) {
             LOG.error("Error while validating graph! Rolling back!");
@@ -487,10 +495,10 @@ public class Diversicon extends Uby {
      * @since 0.1.0
      */
     private void normalizeGraph() {
-        
+
         checkArgument(!getDbInfo().isToValidate(), "Tried to normalize a graph which is yet to validate!");
 
-        LOG.info("Normalizing SynsetRelations...");               
+        LOG.info("Normalizing SynsetRelations...");
 
         Transaction tx = null;
         Date checkpoint = new Date();
@@ -525,13 +533,16 @@ public class Diversicon extends Uby {
 
                 for (SynsetRelation sr : relations) {
                     DivSynsetRelation ssr = (DivSynsetRelation) sr;
-                    
+
                     if (Diversicons.hasInverse(ssr.getRelName())) {
                         String inverseRelName = Diversicons.getInverse(ssr.getRelName());
                         if (Diversicons.isCanonicalRelation(inverseRelName)
                                 && Diversicons.isTransitive(inverseRelName)
                                 // don't want to add cycles
-                                && !(ssr.getSource().getId().equals(ssr.getTarget().getId())) 
+                                && !(ssr.getSource()
+                                        .getId()
+                                        .equals(ssr.getTarget()
+                                                   .getId()))
                                 && !containsRel(ssr.getTarget(),
                                         ssr.getSource(),
                                         inverseRelName)) {
@@ -575,7 +586,6 @@ public class Diversicon extends Uby {
             LOG.info(insStats.toString());
             LOG.info("   Elapsed time: " + Internals.formatInterval(start, new Date()));
             LOG.info("");
-            
 
         } catch (Exception ex) {
             LOG.error("Error while normalizing graph! Rolling back!");
@@ -584,10 +594,6 @@ public class Diversicon extends Uby {
             }
             throw new DivException("Error while computing normalizing graph!", ex);
         }
-    }
-
-    private void checkSelfLoops() {
-        throw new UnsupportedOperationException("TODO - developer forgot to implement the method!");
     }
 
     /**
@@ -610,7 +616,7 @@ public class Diversicon extends Uby {
         }
 
         Date newTime = new Date();
-        if ((newTime.getTime() - checkpoint.getTime()) > LOG_DELAY) {                       
+        if ((newTime.getTime() - checkpoint.getTime()) > LOG_DELAY) {
             LOG.info(String.valueOf(msg) + ": " + Internals.formatInteger(count));
             return newTime;
         } else {
@@ -625,7 +631,7 @@ public class Diversicon extends Uby {
      * Before calling this, the graph has to be normalized by calling
      * {@link #normalizeGraph()}
      * 
-     * Caveats: Hibernate does not support recursive queries: 
+     * Caveats: Hibernate does not support recursive queries:
      * 
      * @throws DivException
      *             when transaction goes wrong it is automatically rolled back
@@ -633,14 +639,14 @@ public class Diversicon extends Uby {
      * 
      * @since 0.1.0
      */
-    private void computeTransitiveClosure() {                      
+    private void computeTransitiveClosure() {
         Date start = new Date();
 
         LOG.info("Computing transitive closure for SynsetRelations (may take some minutes) ...");
 
-        checkArgument(!getDbInfo().isToNormalize(), "Tried to compute transitive closure of a graph which is yet to normalize!");
+        checkArgument(!getDbInfo().isToNormalize(),
+                "Tried to compute transitive closure of a graph which is yet to normalize!");
 
-        
         Transaction tx = null;
         try {
             tx = session.beginTransaction();
@@ -649,7 +655,8 @@ public class Diversicon extends Uby {
 
             relStats.setEdgesPriorInsertion(getSynsetRelationsCount());
 
-            LOG.info("\n   Found " + Internals.formatInteger(relStats.getEdgesPriorInsertion()) + " synset relations.\n");
+            LOG.info("\n   Found " + Internals.formatInteger(relStats.getEdgesPriorInsertion())
+                    + " synset relations.\n");
 
             int count = 0;
 
@@ -676,11 +683,11 @@ public class Diversicon extends Uby {
                     + "    )"
                     + " ) ((SELECT synsetId, relName, target,  depth"
                     + " FROM  SR_A)"
-                    + " MINUS "   // doesn't remove all duplicates, but can be enough for now
+                    + " MINUS " // doesn't remove all duplicates, but can be
+                                // enough for now
                     + " (SELECT synsetId, relName, target,  depth"
                     + " FROM SynsetRelation)"
                     + " )";
-
 
             Date checkpoint = new Date();
 
@@ -689,32 +696,33 @@ public class Diversicon extends Uby {
             ScrollableResults results = query
                                              .setCacheMode(CacheMode.IGNORE)
                                              .scroll(ScrollMode.FORWARD_ONLY);
-            
-            LOG.info("\n   Elapsed time: " + Internals.formatInterval(start, new Date()) + "\n");            
+
+            LOG.info("\n   Elapsed time: " + Internals.formatInterval(start, new Date()) + "\n");
             LOG.info("\nGoing to write closure into the db...\n");
-            
+
             while (results.next()) {
 
-                Synset source = (Synset) session.get(Synset.class, (String)  results.get(0));                
+                Synset source = (Synset) session.get(Synset.class, (String) results.get(0));
                 String relName = (String) results.get(1);
                 String targetId = (String) results.get(2);
-                //Synset target = (Synset) session.get(Synset.class, (String)  results.get(2));
                 int depth;
                 Object depthCandidate = results.get(3);
-                if (depthCandidate instanceof String){
+                if (depthCandidate instanceof String) {
                     depth = Integer.parseInt((String) depthCandidate);
-                } else if (depthCandidate instanceof Integer || depthCandidate instanceof Long){
-                    depth =  (int) results.get(3);
+                } else if (depthCandidate instanceof Integer || depthCandidate instanceof Long) {
+                    depth = (int) results.get(3);
                 } else {
-                    throw new DivException("Internal error, couldn't parse depth " + depthCandidate + " its class is " + depthCandidate.getClass().getName());
+                    throw new DivException("Internal error, couldn't parse depth " + depthCandidate + " its class is "
+                            + depthCandidate.getClass()
+                                            .getName());
                 }
-                
+
                 if (depth > relStats.getMaxLevel()) {
                     relStats.setMaxLevel(depth);
                 }
-               
+
                 DivSynsetRelation ssr = new DivSynsetRelation();
-                
+
                 ssr.setDepth(depth);
                 ssr.setProvenance(Diversicon.getProvenanceId());
                 ssr.setRelName(relName);
@@ -729,7 +737,7 @@ public class Diversicon extends Uby {
                 session.save(ssr);
                 session.merge(source);
 
-                relStats.inc(relName);                
+                relStats.inc(relName);
 
                 if (++count % COMMIT_STEP == 0) {
                     // flush a batch of updates and release memory:
@@ -741,7 +749,6 @@ public class Diversicon extends Uby {
                 }
             }
 
-
             DbInfo dbInfo = getDbInfo();
             dbInfo.setToAugment(false);
             session.saveOrUpdate(dbInfo);
@@ -749,14 +756,12 @@ public class Diversicon extends Uby {
             tx.commit();
 
             LOG.info("");
-            LOG.info("Done writing transitive closure for SynsetRelations."
-                    );   
+            LOG.info("Done writing transitive closure for SynsetRelations.");
             LOG.info("");
             LOG.info(relStats.toString());
             LOG.info("Total elapsed time:  " + Internals.formatInterval(start, new Date()));
             LOG.info("");
 
-            
         } catch (Exception ex) {
             LOG.error("Error while computing transitive closure! Rolling back!");
             if (tx != null) {
@@ -767,13 +772,13 @@ public class Diversicon extends Uby {
 
     }
 
-  
-
     /**
      * @since 0.1.0
      */
     public long getSynsetRelationsCount() {
-        return ((Number) session.createCriteria(DivSynsetRelation.class)
+        // tried to put DivSynsetRelation.class but was always giving a 0 count
+        // ..
+        return ((Number) session.createCriteria(SynsetRelation.class)
                                 .setProjection(Projections.rowCount())
                                 .uniqueResult()).longValue();
 
@@ -782,7 +787,8 @@ public class Diversicon extends Uby {
     /**
      * See {@link #importFiles(ImportConfig)}
      * 
-     * For supported URL formats see {@link it.unitn.disi.diversicon.internal.Internals#readData(String, boolean)
+     * For supported URL formats see
+     * {@link it.unitn.disi.diversicon.internal.Internals#readData(String, boolean)
      * Internals.readData}
      * 
      * @since 0.1.0
@@ -811,7 +817,7 @@ public class Diversicon extends Uby {
 
         Date start = new Date();
 
-        List<ImportJob> ret = new ArrayList();
+        List<ImportJob> ret = new ArrayList<>();
 
         checkNotNull(config);
 
@@ -828,63 +834,46 @@ public class Diversicon extends Uby {
                                             .size()
                 + " files by import author " + config.getAuthor() + "...");
 
-        Transaction tx = null;
+        DbInfo oldDbInfo = prepareDbForImport();
+
         try {
-
-            tx = session.beginTransaction();
-
-            DbInfo dbInfo = getDbInfo();
-            dbInfo.setToValidate(true);
-            dbInfo.setToNormalize(true);
-            dbInfo.setToAugment(true);
-            session.saveOrUpdate(dbInfo);
-
-            tx.commit();
-        } catch (Exception ex) {
-            LOG.error("Error while setting normalize/augment flags in db, rolling back!");
-            if (tx != null) {
-                tx.rollback();
+            for (String fileUrl : config.getFileUrls()) {
+                ImportJob job = importFile(config, fileUrl);
+                ret.add(job);
             }
-
-            throw new DivException("Error while setting normalize flag in db", ex);
+        } catch (InvalidImportException ex) {
+            if (ret.isEmpty()) {
+                LOG.error("Import failed, no LexicalResource data was written to disk. "
+                        + "Aborting all imports.", ex);
+                setDbInfo(oldDbInfo);
+            }
+            throw ex;
         }
 
-        for (String fileUrl : config.getFileUrls()) {
-
-            LOG.info("Loading LMF : " + fileUrl + " ...");
-
-            String lexicalResourceName = Diversicons.extractNameFromLexicalResource(fileUrl);
-
-            ImportJob job = startImportJob(config, fileUrl, lexicalResourceName);
-
-            File file = Internals.readData(fileUrl, true)
-                                 .toTempFile();
-
-            XMLToDBTransformer trans = new XMLToDBTransformer(dbConfig);
-
+        if (config.isSkipAugment()) {
+            LOG.info("Skipping graph augmentation as requested by user.");
+        } else {
             try {
-                trans.transform(file, null);
-            } catch (Exception ex) {
-                throw new DivException("Error while loading lmf xml " + fileUrl, ex);
-            }
-
-            LOG.info("Done loading LMF : " + fileUrl + " .");
-
-            endImportJob(job);
-
-            ret.add(job);
-        }
-
-        try {
-            if (config.isSkipAugment()) {
-                LOG.info("Skipping graph augmentation as requested by user.");
-            } else {
                 processGraph();
-
+            } catch (Exception ex) {
+                throw new InterruptedImportException("Error while augmenting graph with computed edges!", ex);
             }
-        } catch (Exception ex) {
-            throw new DivException("Error while augmenting graph with computed edges!", ex);
+
         }
+
+        logImportResult(config, start, ret);
+        return ret;
+
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    private void logImportResult(ImportConfig config, Date start, List<ImportJob> jobs) {
+
+        checkNotNull(config);
+        checkNotNull(start);
+        checkNotNull(jobs);
 
         String plural = config.getFileUrls()
                               .size() > 1 ? "s" : "";
@@ -903,14 +892,125 @@ public class Diversicon extends Uby {
         LOG.info("Imported lexical resources: ");
         LOG.info("");
 
-        for (ImportJob job : ret) {
-            LOG.info("    " + job.getLexicalResourceName() + "    from    " + job.getFileUrl());
+        for (ImportJob job : jobs) {
+            LOG.info("    " + job.getResourceDescriptor()
+                                 .getName()
+                    + "    from    " + job.getFileUrl());
         }
 
-        return ret;
     }
 
     /**
+     * Imports a single LMF XML
+     * 
+     * @throws InvalidImportException
+     * @throws InterruptedImportException
+     * 
+     * @since 0.1.0
+     */
+    private ImportJob importFile(ImportConfig config, String fileUrl) {
+
+        LOG.info("Loading LMF : " + fileUrl + " ...");
+
+        File file;
+        try {
+            file = Internals.readData(fileUrl, true)
+                            .toTempFile();
+        } catch (Exception ex) {
+            throw new InvalidImportException("Couldn't read file to import: " + fileUrl, ex);
+        }
+
+        LexResPackage lexResPackage;
+
+        try {
+            lexResPackage = Diversicons.readResource(fileUrl);
+        } catch (Exception ex) {
+            throw new InvalidImportException("Couldn't extract attributes from LexicalResource " + fileUrl, ex);
+        }
+
+        ImportJob job = createImportJob(
+                config,
+                fileUrl,
+                lexResPackage);
+        
+        try {
+            DivXmlToDbTransformer trans = new DivXmlToDbTransformer(this);
+            trans.transform(file, null);
+            endImportJob(job);
+            
+        } catch (Exception ex) {
+            throw new InterruptedImportException("Error while loading lmf xml " + fileUrl, ex);
+        }
+
+        LOG.info("Done loading LMF : " + fileUrl + " .");
+
+        return job;
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    private void setDbInfo(DbInfo dbInfo) {
+        checkNotNull(dbInfo);
+
+        Transaction tx = null;
+        try {
+
+            tx = session.beginTransaction();
+
+            session.saveOrUpdate(dbInfo);
+
+            tx.commit();
+        } catch (Exception ex) {
+            LOG.error("Error while setting dbInfo!");
+            if (tx != null) {
+                tx.rollback();
+            }
+
+            throw new DivException("Error while setting dbInfo!", ex);
+        }
+
+    }
+
+    /**
+     * Writes DBInfo flags to DB.
+     * 
+     * @since 0.1.0
+     */
+    private DbInfo prepareDbForImport() {
+
+        Transaction tx = null;
+        try {
+
+            tx = session.beginTransaction();
+            DbInfo oldDbInfo = getDbInfo();
+
+            DbInfo dbInfo = getDbInfo();
+            dbInfo.setToValidate(true);
+            dbInfo.setToNormalize(true);
+            dbInfo.setToAugment(true);
+            session.saveOrUpdate(dbInfo);
+
+            tx.commit();
+            return oldDbInfo;
+        } catch (Exception ex) {
+            LOG.error("Error while setting import flags in db, rolling back!");
+            if (tx != null) {
+                tx.rollback();
+            }
+
+            throw new DivException("Error while setting import flags in db", ex);
+        }
+
+    }
+
+    /**
+     * Ends an import job. To be called after LMF data has been written to the
+     * DB.
+     * 
+     * @throws InterruptedImportException
+     *             when db is eft with pending changes.
+     * 
      * @since 0.1.0
      */
     private void endImportJob(ImportJob job) {
@@ -934,27 +1034,79 @@ public class Diversicon extends Uby {
                 tx.rollback();
             }
 
-            throw new DivException("Error while ending import job in db!", ex);
+            throw new InterruptedImportException("Error while ending import job in db!", ex);
         }
 
     }
 
     /**
+     * 
      * !!!! IMPORTANT !!!!! You are supposed to know in advance the
-     * {@code lexicalResourceName },
+     * {@code lexResName } and {@code lexResNamespaces } ,
      * which must match the {@code name} of the lexical resource inside the
      * file!!
      * 
+     * @throws InvalidImportException
+     *             if throws means some validation failed but no
+     *             LexicalResource data was written to disk.
+     * 
      * @since 0.1.0
      */
-    private ImportJob startImportJob(
+    private ImportJob createImportJob(
             ImportConfig config,
-            String filepath,
-            String lexicalResourceName) {
+            String fileUrl,
+            LexResPackage pack) {
 
-        checkNotNull(config);
-        checkNotEmpty(filepath, "Invalid filepath!");
-        checkNotEmpty(lexicalResourceName, "Invalid lexical resource name!");
+        try {
+            checkNotNull(config);
+            checkNotEmpty(fileUrl, "Invalid fileUrl!");
+            checkArgument(config.getFileUrls()
+                                .contains(fileUrl),
+                    "Couldn't find fileUrl " + fileUrl + "in importConfig!");
+
+            Internals.checkLexResPackage(pack);
+
+            List<ImportJob> jobs = getImportJobs();
+            
+            for (ImportJob job : jobs){
+                
+                if (pack.equals(job.getLexResPackage())){
+                    throw new InvalidImportException("Looks like you're trying to import the same lexical resource twice!");
+                }
+                
+                if (Objects.equals(pack.getPrefix(), job.getLexResPackage().getPrefix())){
+                    throw new InvalidImportException("Tried to import a lexical resource which "
+                            + "has the same prefix of resource:\n " + job.getLexResPackage().toString());
+                }
+            }
+            
+            
+            
+            Map<String, String> dbNss = getNamespaces();
+                       
+            for (String prefix : pack.getNamespaces()
+                                     .keySet()) {
+                if (dbNss.containsKey(prefix)) {
+                    String urlInDb = dbNss.get(prefix);
+                    String urlToImport = pack.getNamespaces()
+                                             .get(prefix);
+                    if (!Objects.equals(urlInDb, urlToImport)) {
+                        throw new InvalidImportException(
+                                "Tried to import a prefix which in the db is assigned to another url! "
+                                        + "Prefix is " + prefix + "  ; url to import = " + urlToImport
+                                        + "  ;  url in the db = " + urlInDb);
+                    }
+                }
+            }
+
+        } catch (Exception ex) {
+            throw new InvalidImportException(
+                      "Invalid import! \n"
+                      + "Tried to import file " + fileUrl +"\n"
+                      + "Representing " + pack
+                      + "Using " + config.toString(), ex);                    
+                    
+        }
 
         Transaction tx = null;
         try {
@@ -965,8 +1117,8 @@ public class Diversicon extends Uby {
             job.setAuthor(config.getAuthor());
             job.setDescription(config.getDescription());
             job.setStartDate(new Date());
-            job.setFileUrl(filepath);
-            job.setLexicalResourceName(lexicalResourceName);
+            job.setFileUrl(fileUrl);
+            job.setLexResPackage(pack);
 
             session.saveOrUpdate(job);
 
@@ -988,21 +1140,54 @@ public class Diversicon extends Uby {
     }
 
     /**
+     * Returns all registered namespaces.
      * 
-     * Saves a LexicalResource complete with all the lexicons, synsets, etc into
-     * a database. This method is suitable only for small lexical resources,
+     * @since 0.1.0
+     * 
+     */
+    public Map<String, String> getNamespaces() {
+
+        Map<String, String> ret = new HashMap<>();
+
+        for (LexResPackage pack : getLexResPackages()) {
+            ret.putAll(pack.getNamespaces());
+        }
+
+        return ret;
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    public List<LexResPackage> getLexResPackages() {
+        Criteria crit = session.createCriteria(LexResPackage.class);
+        @SuppressWarnings("unchecked")
+        List<LexResPackage> ret = crit.list();
+        return ret;
+    }
+
+    /**
+     * 
+     * Saves a {@link LexicalResource} complete with all the lexicons, synsets,
+     * etc into
+     * a database. Call is synchronous, after finishing returns a log of the
+     * import.
+     * <p>
+     * NOTE: This method is suitable only for small lexical resources,
      * generally for testing purposes. If you have a big resource, stream the
-     * loading by providing your implementation of <a href=
+     * load process by providing your implementation of <a href=
      * "https://github.com/dkpro/dkpro-uby/blob/master/de.tudarmstadt.ukp.uby.persistence.transform-asl/src/main/java/de/tudarmstadt/ukp/lmf/transform/LMFDBTransformer.java"
      * target="_blank"> LMFDBTransformer</a> and then call {@code transform()}
-     * on it
-     * instead. Call is synchronous, after finishing returns a log of the
-     * import.
+     * on it instead.
+     * </p>
      * 
-     * @param lexicalResourceId
-     *            todo don't know well the meaning
+     * @param prefix
+     *            The prefix to use within the database
+     * @param namespaces
+     *            The namespaces used by the resource
      * @param skipAugment
-     *            if false after the import the graph is normalized
+     *            if true, after the import prevents the graph froom being
+     *            normalized
      *            and augmented with transitive closure.
      * @throws DivException
      * @throws DivValidationException
@@ -1011,16 +1196,24 @@ public class Diversicon extends Uby {
      */
     public ImportJob importResource(
             LexicalResource lexicalResource,
+            LexResPackage lexResPackage,
             boolean skipAugment) {
 
         checkNotNull(lexicalResource);
+        checkNotNull(lexResPackage);
 
         LOG.info("Going to save lexical resource to database...");
 
         ImportJob job = null;
 
+        DbInfo oldDbInfo = prepareDbForImport();
+        
+        ImportConfig config; 
+        
         try {
-            ImportConfig config = new ImportConfig();
+
+            config = new ImportConfig();    
+
             config.setSkipAugment(skipAugment);
             config.setAuthor(DEFAULT_AUTHOR);
 
@@ -1028,22 +1221,32 @@ public class Diversicon extends Uby {
 
             config.addLexicalResource(fileUrl);
 
-            job = startImportJob(config, fileUrl, lexicalResource.getName());
+            job = createImportJob(config,
+                    fileUrl,
+                    lexResPackage);
 
-            new JavaToDbTransformer(dbConfig, lexicalResource).transform();
+        } catch (InvalidImportException ex) {
 
+            LOG.error("Import failed, no LexicalResource data was written to disk. "
+                    + "Aborting all imports.", ex);
+            setDbInfo(oldDbInfo);
+
+            throw ex;
+        }
+
+        try {
+            new JavaToDbTransformer(this, lexicalResource).transform();
+            if (!skipAugment) {
+                processGraph();
+            }
             endImportJob(job);
 
         } catch (Exception ex) {
-            throw new DivException("Error when importing lexical resource "
+            throw new InterruptedImportException("Error when importing lexical resource "
                     + lexicalResource.getName() + " !", ex);
         }
-        LOG.info("Done saving.");
-
-        if (!skipAugment) {
-            processGraph();
-        }
-
+        LOG.info("Done saving.");       
+        
         return job;
     }
 
@@ -1084,7 +1287,7 @@ public class Diversicon extends Uby {
      *            {@code .xml.zip}.
      *            If the path includes non-existing directories, they will be
      *            automatically created.
-     * @param lexicalResourceName
+     * @param lexResName
      *            the name of the lexical resource to export.
      * @param compress
      *            if true file is compressed to zip
@@ -1094,12 +1297,18 @@ public class Diversicon extends Uby {
      * @throws DivNotFoundException
      *             if {@code lexicalResourceName} does not exists.
      * 
+     * @throws InvalidStateException
+     *             if database is not normalized
+     * 
      * @since 0.1.0
      */
-    public void exportToXml(String outPath, String lexicalResourceName, boolean compress) {
+    public void exportToXml(
+            String outPath,
+            String lexResName,
+            boolean compress) {
 
         checkNotBlank(outPath, "invalid sql path!");
-        checkNotBlank(lexicalResourceName, "invalid lexical resource name!");
+        checkNotBlank(lexResName, "invalid lexical resource name!");
 
         File outFile = new File(outPath);
 
@@ -1113,12 +1322,18 @@ public class Diversicon extends Uby {
                     + outFile.getAbsolutePath());
         }
 
+        if (getDbInfo().isToNormalize()) {
+            LOG.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+            LOG.warn("     DATABASE WAS NOT NORMALIZED, RESULTING XML MAY HAVE ISSUES!       ");
+            LOG.warn("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+        }
+
         LOG.info("Exporting xml to " + outPath + "  ...");
 
-        LexicalResource dbLe = getLexicalResource(lexicalResourceName);
+        LexicalResource dbLe = getLexicalResource(lexResName);
 
         if (dbLe == null) {
-            throw new DivNotFoundException("Couldn't find lexical resource " + lexicalResourceName + "  !");
+            throw new DivNotFoundException("Couldn't find lexical resource " + lexResName + "  !");
         }
 
         try {
@@ -1139,7 +1354,12 @@ public class Diversicon extends Uby {
                 zar.closeArchiveEntry();
 
             } else {
-                new DBToXMLTransformer(dbConfig, outPath, null).transform(dbLe);
+                LexResPackage pack = getLexResPackageByName(lexResName);
+                new DivDbToXmlTransformer(
+                        this,
+                        new FileOutputStream(outPath),
+                        null,
+                        pack).transform(dbLe);
             }
 
         } catch (IOException | SAXException ex) {
@@ -1251,8 +1471,8 @@ public class Diversicon extends Uby {
             int depth,
             List<String> relNames) {
 
-        checkNotEmpty(sourceSynsetId, "Invalid source synset id!");
-        checkNotEmpty(targetSynsetId, "Invalid target synset id!");
+        checkId(sourceSynsetId, "Invalid source synset id!");
+        checkId(targetSynsetId, "Invalid target synset id!");
         checkNotNull(relNames, "Invalid relation names!");
 
         checkArgument(depth >= -1, "Depth must be >= -1 , found instead: " + depth);
@@ -1376,12 +1596,24 @@ public class Diversicon extends Uby {
         sb.append("IMPORT ID: ");
         sb.append(job.getId());
         sb.append("   LEXICAL RESOURCE: ");
-        sb.append(job.getLexicalResourceName());
+        sb.append(job.getResourceDescriptor()
+                     .getName());
         sb.append("   IMPORT AUTHOR: ");
         sb.append(job.getAuthor());
+        sb.append("\n");
+        sb.append("NAMESPACE: ");
+        sb.append(job.getResourceDescriptor()
+                     .getPrefix()
+                + ":" + job.getResourceDescriptor()
+                           .getNamespaces()
+                           .get(job.getResourceDescriptor()
+                                   .getPrefix()));
+        sb.append("   FROM FILE: ");
+        sb.append(job.getFileUrl());
 
         if (job.getLogMessages()
                .size() > 0) {
+            sb.append("\n");
             sb.append("   THERE WHERE " + job.getLogMessages()
                                              .size()
                     + " WARNINGS/ERRORS");
@@ -1391,8 +1623,6 @@ public class Diversicon extends Uby {
         sb.append(formatDate(job.getStartDate()));
         sb.append("   ENDED: ");
         sb.append(formatDate(job.getEndDate()));
-        sb.append("   FROM FILE: ");
-        sb.append(job.getFileUrl());
         sb.append("\n");
         sb.append(job.getDescription());
         sb.append("\n");
@@ -1428,6 +1658,7 @@ public class Diversicon extends Uby {
     public String formatImportJobs(boolean showFullLogs) {
         StringBuilder sb = new StringBuilder();
 
+        @SuppressWarnings("unchecked")
         List<ImportJob> importJobs = session.createCriteria(ImportJob.class)
                                             .addOrder(Order.desc("startDate"))
                                             .setMaxResults(50)
@@ -1451,6 +1682,7 @@ public class Diversicon extends Uby {
      */
     public List<ImportJob> getImportJobs() {
         Criteria crit = session.createCriteria(ImportJob.class);
+        @SuppressWarnings("unchecked")
         List<ImportJob> ret = crit.list();
         return ret;
     }
@@ -1494,7 +1726,9 @@ public class Diversicon extends Uby {
 
         if (importJob != null) {
             sb.append("- There is an import job in progress for lexical resource "
-                    + importJob.getLexicalResourceName() + " from file " + importJob.getFileUrl() + "\n");
+                    + importJob.getResourceDescriptor()
+                               .getName()
+                    + " from file " + importJob.getFileUrl() + "\n");
         }
         return sb.toString();
 
@@ -1535,4 +1769,81 @@ public class Diversicon extends Uby {
                                  .uniqueResult();
     }
 
+    /**
+     * @throws DivNotFoundException
+     * 
+     * @since 0.1.0
+     */
+    public LexResPackage getLexResPackageByName(String lexResName) {
+        checkNotBlank(lexResName, "Invalid lexical resource name!");
+
+        Criteria criteria = session.createCriteria(LexResPackage.class)
+                                   .add(Restrictions.like("name", lexResName));
+
+        @SuppressWarnings("unchecked")
+        LexResPackage ret = (LexResPackage) criteria.uniqueResult();
+
+        if (ret == null) {
+            throw new DivNotFoundException("Couldn't find lexical resource package with name " + lexResName);
+        }
+
+        return ret;
+    }
+
+    /**
+     * @throws DivNotFoundException
+     * 
+     * @since 0.1.0
+     */
+    public LexResPackage getLexResPackageById(String lexResId) {
+        checkNotBlank(lexResId, "Invalid lexical resource id!");
+
+        Criteria criteria = session.createCriteria(LexResPackage.class)
+                                   .add(Restrictions.like("id", lexResId));
+
+        @SuppressWarnings("unchecked")
+        LexResPackage ret = (LexResPackage) criteria.uniqueResult();
+
+        if (ret == null) {
+            throw new DivNotFoundException("Couldn't find lexical resource package with id " + lexResId);
+        }
+
+        return ret;
+    }
+
+    /**
+     * 
+     * @since 0.1.0
+     * 
+     * @throws DivNotFoundException
+     */
+    public LexicalResource getLexicalResourceById(String id) {
+        String name = getLexResPackageById(id).getName();
+        return getLexicalResource(name);
+    }
+
+    /*
+     * Returns a list of {@link Namespace namespaces} used within database.
+     * 
+     * @since 0.1.0
+     * 
+     * public Map<String, String> getNamespaces() {
+     * 
+     * Criteria criteria = session.createCriteria(Namespace.class);
+     * 
+     * @SuppressWarnings("unchecked")
+     * List<Namespace> res = criteria.list();
+     * HashMap<String, String> ret = new HashMap();
+     * 
+     * if (res == null) {
+     * ret = new HashMap<>();
+     * } else {
+     * for (Namespace ns : res) {
+     * ret.put(ns.getPrefix(), ns.getUrl());
+     * }
+     * }
+     * 
+     * return ret;
+     * }
+     */
 }

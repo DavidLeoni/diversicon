@@ -1,17 +1,19 @@
-package it.unitn.disi.diversicon;
+package it.unitn.disi.diversicon.exceptions;
 
 import it.disi.unitn.diversicon.exceptions.DivException;
 
 /**
- * A runtime exception to raise when database graph contains errors.
+ * A runtime exception raised when trying to perform
+ * an operation while database is not in the correct state.  
+ * 
  * 
  * @since 0.1.0
  */
-public class DivValidationException extends DivException {
+public class InvalidStateException extends DivException {
     
     private static final long serialVersionUID = 1L;
 
-    private DivValidationException(){
+    private InvalidStateException(){
         super();
     }
     
@@ -20,7 +22,7 @@ public class DivValidationException extends DivException {
      * 
      * @since 0.1.0
      */
-    public DivValidationException(Throwable tr) {
+    public InvalidStateException(Throwable tr) {
         super(tr);
     }
 
@@ -29,7 +31,7 @@ public class DivValidationException extends DivException {
      * 
      * @since 0.1.0
      */
-    public DivValidationException(String msg, Throwable tr) {
+    public InvalidStateException(String msg, Throwable tr) {
         super(msg, tr);
     }
 
@@ -38,7 +40,7 @@ public class DivValidationException extends DivException {
      * 
      * @since 0.1.0
      */
-    public DivValidationException(String msg) {
+    public InvalidStateException(String msg) {
         super(msg);
     }
 }

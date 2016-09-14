@@ -20,9 +20,9 @@ import org.slf4j.LoggerFactory;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
-import it.unitn.disi.diversicon.InvalidSchemaException;
 import it.unitn.disi.diversicon.data.DivWn31;
 import it.unitn.disi.diversicon.data.Smartphones;
+import it.unitn.disi.diversicon.exceptions.InvalidSchemaException;
 import it.unitn.disi.diversicon.internal.ExtractedStream;
 import it.unitn.disi.diversicon.internal.Internals;
 

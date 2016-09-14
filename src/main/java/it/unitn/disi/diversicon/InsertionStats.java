@@ -136,9 +136,9 @@ public class InsertionStats {
     /**
      * @since 0.1.0
      */
-    public void setEdgesPriorInsertion(long edgesPriorTransitiveClosure) {
-        checkArgument(maxLevel >= 0, "Invalid number of edges prior closure, must be >= 0, found instead ", edgesPriorTransitiveClosure);
-        this.edgesPriorInsertion = edgesPriorTransitiveClosure;
+    public void setEdgesPriorInsertion(long edgesPriorInsertion) {
+        checkArgument(edgesPriorInsertion >= 0, "Invalid number of edges prior closure, must be >= 0, found instead ", edgesPriorInsertion);
+        this.edgesPriorInsertion = edgesPriorInsertion;
     }   
     
 }

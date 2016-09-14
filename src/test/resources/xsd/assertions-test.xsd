@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xs:schema  xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+			xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning"
+			vc:minVersion="1.1"			
+			xmlns:fn="http://www.w3.org/2005/xpath-functions">
+ 				
+	<xs:complexType name="MyType">
+	 <xs:sequence>
+	  <xs:element name="entry" minOccurs="0" maxOccurs="unbounded"/>
+	 </xs:sequence>
+	 <xs:attribute name="my-length" type="xs:int"/>
+	 <xs:assert test="@my-length eq fn:count(./entry)"/>
+	</xs:complexType>
+	
+
+    <xs:element name="myElement" type="MyType"></xs:element>
+	
+</xs:schema>

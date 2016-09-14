@@ -13,11 +13,13 @@
     
    <property name="version" column="version" node="@version" type="string"/>
    <property name="schemaVersion" column="schemaVersion" node="@schemaVersion" type="string"/>
+   <property name="toValidate" column="toValidate" node="@toValidate" type="boolean"/>   
    <property name="toNormalize" column="toNormalize" node="@toNormalize" type="boolean"/>
-   <property name="toAugment" column="toAugment" node="@toAugment" type="boolean"/>
-      
-	<one-to-one name="currentImportJob" class="it.unitn.disi.diversicon.ImportJob"
+   <property name="toAugment" column="toAugment" node="@toAugment" type="boolean"/>         
+   
+   <one-to-one name="currentImportJob" class="it.unitn.disi.diversicon.ImportJob"
 			cascade="save-update"></one-to-one>   
+  	
   			
 </class>
 

@@ -1,45 +1,58 @@
 package it.unitn.disi.diversicon.test;
 
 
+import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static it.unitn.disi.diversicon.test.DivTester.DEFAULT_TEST_PREFIX;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Pattern;
+
 import javax.annotation.Nullable;
 
 import org.apache.commons.io.FileUtils;
+import org.dom4j.Document;
+import org.dom4j.DocumentException;
+import org.dom4j.io.SAXReader;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xml.sax.SAXException;
-
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
-import de.tudarmstadt.ukp.lmf.transform.LMFXmlWriter;
 import it.disi.unitn.diversicon.exceptions.DivIoException;
 import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
-import it.unitn.disi.diversicon.BuildInfo;
+import it.unitn.disi.diversicon.DivXmlErrorHandler;
 import it.unitn.disi.diversicon.Diversicon;
+import it.unitn.disi.diversicon.LexResPackage;
 import it.unitn.disi.diversicon.Diversicons;
+import it.unitn.disi.diversicon.data.DivWn31;
+import it.unitn.disi.diversicon.data.Examplicon;
+import it.unitn.disi.diversicon.exceptions.InvalidXmlException;
 import it.unitn.disi.diversicon.internal.ExtractedStream;
 import it.unitn.disi.diversicon.internal.Internals;
 
 
-
+/**
+ * @since 0.1.0
+ *
+ */
 public class DivUtilsTest {
        
         
     private static final Logger LOG = LoggerFactory.getLogger(DivUtilsTest.class);
     
-    private DBConfig dbConfig;
+    private DBConfig dbConfig;       
         
     @Nullable
     private String savedKeepTempFiles ;
@@ -47,7 +60,7 @@ public class DivUtilsTest {
     @Before
     public void beforeMethod(){
          savedKeepTempFiles = System.getProperty(Diversicon.PROPERTY_DEBUG_KEEP_TEMP_FILES);
-         dbConfig = DivTester.createNewDbConfig();                
+         dbConfig = DivTester.createNewDbConfig();             
     }
     
     @After
@@ -109,16 +122,21 @@ public class DivUtilsTest {
     // todo make it more extensive
     public void testBuilder(){
                 
-        LexicalResource lexicalResource1 = LmfBuilder.lmf()
+        LexicalResource lexRes1 = LmfBuilder.lmf()
                 .lexicon()
                 .synset()  
                 .definition("cool")
                 .lexicalEntry("a")
                 .synset()
                 .lexicalEntry("b")
+                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
                 .build();
 
-        LexicalResource lexicalResource2 = LmfBuilder.lmf()
+        assertEquals(1, lexRes1.getLexicons().size());
+        assertEquals(2, lexRes1.getLexicons().get(0).getSynsets().size());
+        assertEquals(1, lexRes1.getLexicons().get(0).getSynsets().get(1).getSynsetRelations().size());
+        
+        LexicalResource lexRes2 = LmfBuilder.lmf()
                 .lexicon()
                 .synset()
                 .definition("uncool")
@@ -128,12 +146,12 @@ public class DivUtilsTest {
 
         Diversicon div = Diversicon.connectToDb(dbConfig);               
         
-        div.importResource(lexicalResource1,  true);
+        DivTester.importResource(div,lexRes1,  true);
         
-        DivTester.checkDb(lexicalResource1, div);
+        DivTester.checkDb(lexRes1, div);
       
         try {
-            DivTester.checkDb(lexicalResource2, div);
+            DivTester.checkDb(lexRes2, div);
             Assert.fail("Shouldn't arrive here!");
         } catch (Exception ex){
             
@@ -142,16 +160,31 @@ public class DivUtilsTest {
         div.getSession().close();
     
     }
-    
+
+
+    /**
+     * @since 0.1.0
+     */
     @Test
-    public void testGetLexicalResourceName() throws SAXException, IOException{
-
-        File outFile = DivTester.writeXml(DivTester.GRAPH_1_HYPERNYM);
-        String name = Diversicons.extractNameFromLexicalResource(outFile.getAbsolutePath());        
-        assertEquals(DivTester.GRAPH_1_HYPERNYM.getName(), name);
-
+    public void testReadDiversiconResource() {
+        
+        LexResPackage dr = Diversicons.readResource(Examplicon.XML_URI);               
+        
+        assertEquals(Examplicon.NAME, dr.getName());
+        
+        assertEquals(Examplicon.PREFIX, dr.getPrefix());
+        
+        Map<String, String> ns = Diversicons.readResource(Examplicon.XML_URI).getNamespaces();
+        
+        assertEquals(3, ns.size());
+        assertTrue(ns.containsKey(Examplicon.PREFIX));
+        assertTrue(ns.containsKey(DivWn31.PREFIX));
+        
+        assertTrue(ns.get(Examplicon.PREFIX).contains(Examplicon.ID + ".lmf.xml"));
+        assertTrue(ns.get(DivWn31.PREFIX).contains(DivWn31.ID + ".lmf.xml"));
     }
-
+    
+    
     /**
      * @since 0.1.0
      */
@@ -183,7 +216,10 @@ public class DivUtilsTest {
     public void testDropCreateTables(){        
         Diversicons.dropCreateTables(dbConfig);
         
-        // todo improve test
+        Diversicon div = Diversicon.connectToDb(dbConfig);
+        
+        div.getSession().close();
+        
     }
     
     /**
@@ -208,24 +244,89 @@ public class DivUtilsTest {
         System.setProperty(Diversicon.PROPERTY_DEBUG_KEEP_TEMP_FILES, Boolean.toString(false));
         Internals.createTempDivDir("wont-survive-");               
     }
-
     
     /**
-     * 
-     * 
      * @since 0.1.0
      */
     @Test
-    public void testWriteXml() throws IOException{
+    @Ignore
+    public void testValidateXml(){
+        File f = Internals.readData(Examplicon.XML_URI).toTempFile();
         
-        File xml = DivTester.writeXml(DivTester.GRAPH_1_HYPERNYM);
-        
-        String str = FileUtils.readFileToString(xml, "UTF-8");
-        LOG.debug(str);
-        
-        assertTrue(!str.contains("DivSynsetRelation"));
-        
+        Diversicons.validateXml(f, LOG);
     }
+    
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    @Ignore
+    public void testValidateXmlLogLimitZero(){
+        File f = Internals.readData(Examplicon.XML_URI).toTempFile();
+        
+        Diversicons.validateXml(f, LOG, 0);
+    }
+    
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    @Ignore
+    public void testValidateXmlLogLimitOne(){
+        File f = Internals.readData(Examplicon.XML_URI).toTempFile();
+        
+        Diversicons.validateXml(f, LOG, 1);
+    }
+    
+    
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    @Ignore
+    public void testValidateXmlFatalIllFormed() throws IOException{
+        
+        File f = DivTester.writeXml("666");
+        
+        try {
+            Diversicons.validateXml(f, LOG);            
+            Assert.fail("Shouldn't arrive here!");            
+        } catch (InvalidXmlException ex){
+            LOG.debug("Catched exception:", ex);
+            assertFatal(ex);
+        }
+    }
+    
+    /**
+     * Asserts one fatal error occurred
+     * 
+     * @since 0.1.0
+     */
+    private static void assertFatal(InvalidXmlException ex) {
+        DivXmlErrorHandler errorHandler = ex.getErrorHandler();
+        assertTrue(errorHandler.isFatal());
+        assertTrue(errorHandler.issuesCount() >= 1);
+        assertTrue(errorHandler.fatalError() != null);
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    @Ignore
+    public void testValidateXmlFatalUnclosedTag() throws IOException{
+                
+        File f = DivTester.writeXml("<bla>");
+        
+        try {
+            Diversicons.validateXml(f, LOG);            
+            Assert.fail("Shouldn't arrive here!");
+        } catch (InvalidXmlException ex){
+            LOG.debug("Catched exception:", ex);
+            assertFatal(ex);
+        }
+    }
+    
 
     /**
      * @since 0.1.0
@@ -247,4 +348,125 @@ public class DivUtilsTest {
         LOG.debug("Extracted stream = " + es.toString());
     }
     
+    
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testNamespacePrefix(){
+        Pattern p = Diversicons.NAMESPACE_PREFIX_PATTERN;
+        assertFalse(p.matcher("").matches());
+        assertFalse(p.matcher(" a").matches());
+        assertFalse(p.matcher("\t").matches());
+        assertFalse(p.matcher("-").matches());
+        assertFalse(p.matcher("_").matches());
+        assertFalse(p.matcher("2").matches());
+        assertTrue(p.matcher("a").matches());
+        assertFalse(p.matcher(".").matches());
+        assertTrue(p.matcher("a.b").matches());
+        assertFalse(p.matcher("a:b").matches());
+        assertFalse(p.matcher("a:").matches());
+        assertTrue(p.matcher("a-").matches());
+    }
+ 
+    /**
+     * Shows we are much more permissive with id names than with prefixes.
+     * 
+     * @since 0.1.0
+     */
+    @Test
+    public void testIdPattern(){
+        Pattern p = Diversicons.ID_PATTERN;
+        assertFalse(p.matcher("t:").matches());
+        assertTrue(p.matcher("t: a").matches());
+        assertTrue(p.matcher("t:\t").matches());
+        assertTrue(p.matcher("t:-").matches());
+        assertTrue(p.matcher("t:_").matches());
+        assertTrue(p.matcher("t:2").matches());
+        assertTrue(p.matcher("t:a").matches());
+        assertTrue(p.matcher("t:.").matches());
+        assertTrue(p.matcher("t:a.b").matches());
+        assertTrue(p.matcher("t:a:b").matches());
+        assertTrue(p.matcher("t:a:").matches());
+        assertTrue(p.matcher("t:a-").matches());
+        assertFalse(p.matcher("a").matches()); // currently we don't support non-prefixed ids.
+    }
+ 
+    /**
+     * For comments, see  https://github.com/DavidLeoni/diversicon/issues/20
+     * 
+     * @since 0.1.0
+     */
+    @Test
+    public void testWriteLexResToXml() throws IOException, DocumentException{
+
+        // 3 dag already augmented
+        LexicalResource res = lmf().lexicon()
+        .synset()
+        .synset()        
+        .synsetRelation(ERelNameSemantics.HYPONYM, 1)        
+        .synsetRelation(ERelNameSemantics.HYPERNYM, 1,2)
+        .provenance(Diversicon.getProvenanceId())
+        .synset()
+        .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
+        .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+        .provenance(Diversicon.getProvenanceId())
+        .depth(2)
+        .build();
+        
+        File xml = DivTester.writeXml(res);
+        
+        String str = FileUtils.readFileToString(xml, "UTF-8");
+        LOG.debug(str);
+        
+        assertTrue(!str.contains("DivSynsetRelation"));
+
+        SAXReader reader = new SAXReader();
+        Document document = reader.read(xml);
+
+        assertTrue(!str.contains(ERelNameSemantics.HYPONYM));
+        assertTrue(str.contains(ERelNameSemantics.HYPERNYM));
+        
+        // this should be filtered, we don't want edges from the transitive closure
+        assertEquals(0, document
+                .selectNodes("//Synset[@id='test:synset 3']/SynsetRelation[@target='test:synset 1']" )
+                 .size());
+    }
+    
+    /**
+     * 
+     * @since 0.1.0
+     */
+    @Test
+    public void testWriteLexResToXmlWithNamespaces() throws IOException, DocumentException {
+                
+        String pref2 = DEFAULT_TEST_PREFIX + "-2";
+        
+        LexResPackage pack = new LexResPackage();
+        pack.setName(DivTester.GRAPH_1_HYPERNYM.getName());
+        pack.setPrefix(DEFAULT_TEST_PREFIX);
+        pack.setId(DEFAULT_TEST_PREFIX);
+        pack.setNamespaces(Internals.newMap(
+                DEFAULT_TEST_PREFIX, "url-1",
+                pref2, "url-2"));
+        
+        File xml = DivTester.writeXml(DivTester.GRAPH_1_HYPERNYM, pack);
+        
+        SAXReader reader = new SAXReader();
+        Document document = reader.read(xml);
+                
+        String str = FileUtils.readFileToString(xml, "UTF-8");
+        LOG.debug(str);
+        
+        assertEquals(1, document
+                    .selectNodes("//LexicalResource[namespace::*[.='url-1'] "
+                                 + " and namespace::*[.='url-2'] ]" )
+                     .size());
+        
+        // using just string matching because can't select xmlns stuff: https://www.oxygenxml.com/forum/topic4845.html 
+        assertTrue(str.contains("xmlns:test=\"url-1\""));
+        assertTrue(str.contains("xmlns:test-2=\"url-2\""));
+        assertTrue(str.contains("xmlns:xsi="));
+        assertTrue(str.contains("xsi:schemaLocation"));
+    }   
 }

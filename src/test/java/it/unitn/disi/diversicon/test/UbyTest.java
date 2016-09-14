@@ -1,6 +1,7 @@
 package it.unitn.disi.diversicon.test;
 
 import java.io.BufferedReader;
+import static it.unitn.disi.diversicon.test.DivTester.tid;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -166,7 +167,7 @@ public class UbyTest {
      * uby 0.7.0 xml transformer, even if you explicitly select an existing
      * lexical resource, see https://github.com/DavidLeoni/diversicon/issues/6
      * 
-     * See also {@link DiversiconTest#testCantMergeSameLexicon()}
+     * See also {@link DiversiconTest#testImportCantMergeSameLexicon()}
      * 
      * @since 0.1.0
      */
@@ -344,7 +345,7 @@ public class UbyTest {
         sr.setSource(syn);
 
         Synset syn2 = new Synset();
-        syn2.setId("synset 2");
+        syn2.setId(tid("synset 2"));
 
         sr.setTarget(syn2);
 
@@ -354,7 +355,7 @@ public class UbyTest {
         
         Uby uby = new Uby(dbConfig);
                
-        Synset retSyn1 = uby.getSynsetById("synset 1");                
+        Synset retSyn1 = uby.getSynsetById(tid("synset 1"));                
         
         // second synset is not created !
         assertEquals(1, uby.getLexicons().get(0).getSynsets().size());
@@ -365,7 +366,7 @@ public class UbyTest {
         SynsetRelation retSynRel = synRels.get(0); 
         Synset retSyn2 = retSynRel.getTarget();
         // shows Hibernate here does create the synset object 
-        assertEquals("synset 2", retSyn2.getId());
+        assertEquals(tid("synset 2"), retSyn2.getId());
 
     }
 
@@ -392,12 +393,12 @@ public class UbyTest {
         
         Uby uby = new Uby(dbConfig);
                
-        Synset syn = (Synset) uby.getSession().get(Synset.class, "synset 1");
+        Synset syn = (Synset) uby.getSession().get(Synset.class, tid("synset 1"));
         
         uby.getSession().delete(syn);
         uby.getSession().flush();
         
-        List<Synset> synsets = uby.getLexiconById("lexicon 1").getSynsets();        
+        List<Synset> synsets = uby.getLexiconById(tid("lexicon 1")).getSynsets();        
         assertEquals(1, synsets.size());
         Synset syn2 = synsets.get(0);
         assertEquals(1, syn2.getSynsetRelations().size());
@@ -423,18 +424,18 @@ public class UbyTest {
        
         LexicalResource lr = LmfBuilder.lmf().build();
         MetaData md = new MetaData();
-        md.setId("metadata 1");
+        md.setId(tid("metadata 1"));
         lr.setMetaData(Internals.newArrayList(md));
         
         importIntoUby(lr);
         
         Uby uby = new Uby(dbConfig);
         
-        LexicalResource lr2 = uby.getLexicalResource("lexical resource 1");
+        LexicalResource lr2 = uby.getLexicalResource(tid("lexical resource 1"));
         
         MetaData md2 = lr2.getMetaData().get(0);
         
-        assertEquals("metadata 1", md2.getId());
+        assertEquals(tid("metadata 1"), md2.getId());
         assertEquals(null, md2.getLexicalResource());
         
     }

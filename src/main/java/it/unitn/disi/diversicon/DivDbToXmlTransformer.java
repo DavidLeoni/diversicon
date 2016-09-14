@@ -2,64 +2,48 @@ package it.unitn.disi.diversicon;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 
-import java.io.FileNotFoundException;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.annotation.Nullable;
-import javax.xml.transform.OutputKeys;
 
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
 
-import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
-import de.tudarmstadt.ukp.lmf.transform.LMFXmlWriter;
-import de.tudarmstadt.ukp.lmf.transform.UBYXMLTransformer;
+import de.tudarmstadt.ukp.lmf.transform.DBConfig;
+import de.tudarmstadt.ukp.lmf.transform.DBToXMLTransformer;
 import it.unitn.disi.diversicon.internal.Internals;
 
 /**
- * 
- * Needed because {@link LMFXmlWriter} writes {@code <DivSynsetRelation>} tags
- * instead of just {@code <SynsetRelation>}
- * 
  * @since 0.1.0
+ *
  */
-class DivXmlWriter extends LMFXmlWriter {
+class DivDbToXmlTransformer extends DBToXMLTransformer {
 
     private LexResPackage lexResPackage;
 
-
     /**
-     * Constructs a LMFXmlWriter, XML will be saved to OutputStream out.   
+     * See {@link DBToXMLTransformer#DBToXMLTransformer(DBConfig, OutputStream, String)
+     *      super constructor}
+     *      
+     * @param lexResPackage Additional info about the lexical resource
      * 
      * @since 0.1.0
      */
-    public DivXmlWriter(OutputStream outputStream,
+    public DivDbToXmlTransformer(Diversicon div, 
+            OutputStream outputStream, 
             @Nullable String dtdPath,
             LexResPackage lexResPackage) throws SAXException {
-        super(outputStream, dtdPath);        
-        this.lexResPackage = checkNotNull(lexResPackage); 
-        
+        super(div.getDbConfig(), outputStream, dtdPath);
+        dbConfig = div.getDbConfig();
+        sessionFactory = div.getSessionFactory();        
+        checkNotNull(lexResPackage);
+        this.lexResPackage = lexResPackage;
     }
-
-    /**
-     * 
-     * Constructs a LMFXmlWriter, XML will be saved to file in outputPath
-     * 
-     * @param outputPath
-     * @param dtdPath
-     *            Path of the dtd-File
-     * @throws FileNotFoundException
-     *             if the writer can not to the specified outputPath
-     * @since 0.1.0
-     */
-    public DivXmlWriter(String outputPath, String dtdPath) throws FileNotFoundException, SAXException {
-        super(outputPath, dtdPath);
-    }
-
+       
     /**
      * 
      * {@inheritDoc}
@@ -67,7 +51,7 @@ class DivXmlWriter extends LMFXmlWriter {
      * <p>
      * <strong>
      * DIVERSICON NOTE: this function MUST be <i>the same</i> as 
-     * {@link DivDbToXmlTransformer#doWriteElement(Object, boolean)}<br/>
+     * {@link DivXmlWriter#doWriteElement(Object, boolean)}<br/>
      * 
      * For an explanation, see {@link Internals#prepareXmlElement(Object, boolean, Map, de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata, AttributesImpl, List)
      * Internals#prepareXmlElement} 
@@ -80,7 +64,7 @@ class DivXmlWriter extends LMFXmlWriter {
      */
     @Override
     protected void doWriteElement(Object lmfObject, boolean closeTag) throws SAXException {
-                        
+
         AttributesImpl atts = new AttributesImpl();
         List<Object> children = new ArrayList<>();
         
@@ -103,5 +87,6 @@ class DivXmlWriter extends LMFXmlWriter {
         if (closeTag) 
             th.endElement("", "", elementName);
     }
+
 
 }

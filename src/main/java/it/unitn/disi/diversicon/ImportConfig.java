@@ -13,24 +13,27 @@ import java.util.List;
  * @see ImportJob
  */
 public class ImportConfig {
+
     private List<String> fileUrls;
     private String author;
     private String description;
     private boolean skipAugment;
 
     /**
-     * Config default constructor.
+     * Default constructor.
      * 
      * By default augments graph after import.
      * 
      * @since 0.1.0
      */
     public ImportConfig() {
-        this.fileUrls = new ArrayList();
+        this.fileUrls = new ArrayList<>();
         this.author = "";
         this.description = "";
         this.skipAugment = false;
     }
+
+
 
     /**
      * The URL of the files to import. For supported URL formats see {@link it.unitn.disi.diversicon.internal.Internals#readData(String, boolean)
@@ -122,4 +125,30 @@ public class ImportConfig {
         this.fileUrls.add(fileUrl);
     }
 
+    /**
+     * 
+     * @since 0.1.0
+     */
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        
+        sb.append("ImportConfig:\n");
+        sb.append("  author      = " + author + "\n");
+        sb.append("  description = " + description + "\n");
+        sb.append("  skipAugment = " + skipAugment + "\n");
+        sb.append("  fileUrls    = ");
+        
+        if (fileUrls.isEmpty()){
+            sb.append("[]\n");
+        } else {
+            for (String s : fileUrls){
+                sb.append("    " + s + "\n");
+            }            
+        }
+        
+        return sb.toString();
+    }
+    
+    
 }

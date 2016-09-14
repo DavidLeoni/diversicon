@@ -1,10 +1,10 @@
 package it.unitn.disi.diversicon;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.StringReader;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -14,21 +14,17 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.io.FileUtils;
-import org.dom4j.Attribute;
+import org.apache.xerces.impl.Constants;
 import org.dom4j.DocumentException;
-import org.dom4j.Element;
-import org.dom4j.ElementHandler;
-import org.dom4j.ElementPath;
 import org.dom4j.io.SAXReader;
 import org.h2.tools.RunScript;
 import org.hibernate.HibernateException;
@@ -42,26 +38,30 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
-import org.xml.sax.EntityResolver;
-import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import javax.annotation.Nullable;
+import javax.xml.transform.Source;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
 
 import de.tudarmstadt.ukp.lmf.hibernate.HibernateConnect;
+import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 
 import static de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics.*;
 
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
-//import de.tudarmstadt.ukp.lmf.transform.DBConfig;
-import de.tudarmstadt.ukp.lmf.transform.StringUtils;
 import it.unitn.disi.diversicon.internal.Internals;
 import it.disi.unitn.diversicon.exceptions.DivException;
 import it.disi.unitn.diversicon.exceptions.DivIoException;
 import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.data.DivWn31;
+import it.unitn.disi.diversicon.exceptions.InvalidSchemaException;
+import it.unitn.disi.diversicon.exceptions.InvalidXmlException;
 import it.unitn.disi.diversicon.internal.ExtractedStream;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
@@ -76,22 +76,48 @@ import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
  */
 public final class Diversicons {
 
+    private static final Logger LOG = LoggerFactory.getLogger(Diversicons.class);
+
+    
+    public static final String DIVERSICON_SCHEMA_1_0_FILENAME = "diversicon-1.0.xsd";
+    public static final String DIVERSICON_SCHEMA_1_0_CLASSPATH_URL = "classpath:/" + DIVERSICON_SCHEMA_1_0_FILENAME;      
+    public static final String DIVERSICON_SCHEMA_1_0_PUBLIC_URL = "https://github.com/DavidLeoni/diversicon/tree/master/src/main/resources/" + DIVERSICON_SCHEMA_1_0_FILENAME;
+    
+    /**
+     * Suggested max length for lexical resource names, which are also prefixes like wn31, sm.
+     * 
+     * @since 0.1.0
+     */
+    public static final int LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH = 5;
+
+    /**
+     * Valid prefixes:
+     * 
+     * @since 0.1.0
+     */
+    public static final Pattern NAMESPACE_PREFIX_PATTERN = Pattern.compile("\\p{Alpha}(\\w|-|_|\\.)*");
+
+    /**
+     * @since 0.1.0
+     */
+    public static final Pattern ID_PATTERN = Pattern.compile(NAMESPACE_PREFIX_PATTERN.toString() + ":" + ".+");
+
     /**
      * Mnemonic shorthand for H2 database
      * 
      * @since 0.1.0
      */
-    public static final String H2_IDENTIFIER = "h2";    
-    
+    public static final String H2_IDENTIFIER = "h2";
+
     /**
-     * Maps a lowercased db mnemonic (like 'h2') to its driver name (like 'org.h2.Driver')
+     * Maps a lowercased db mnemonic (like 'h2') to its driver name (like
+     * 'org.h2.Driver')
      * 
      * @since 0.1.0
      */
-    private static final Map<String, String> DATABASE_DRIVERS = 
-            Collections.unmodifiableMap(Internals.newMap(H2_IDENTIFIER, "org.h2.Driver"));
+    private static final Map<String, String> DATABASE_DRIVERS = Collections.unmodifiableMap(
+            Internals.newMap(H2_IDENTIFIER, "org.h2.Driver"));
 
-    
     public static final String BUILD_PROPERTIES_PATH = "tod.commons.build.properties";
 
     /**
@@ -128,7 +154,7 @@ public final class Diversicons {
             ArchiveStreamFactory.TAR,
             ArchiveStreamFactory.ZIP };
 
-    private static final Logger LOG = LoggerFactory.getLogger(Diversicons.class);
+
 
     /**
      * List of known relations, excluding the inverses.
@@ -393,8 +419,10 @@ public final class Diversicons {
      * Returns the hibernate configuration for accessing db specified by
      * {@code dbConfig}
      * 
+     * <p>
      * NOTE: returned configuration will not do any change to an already
      * present database, nor it will create a new one if none is present.
+     * </p>
      * 
      * @param validate
      *            if true database schema is validated upon first connection.
@@ -573,9 +601,9 @@ public final class Diversicons {
 
     /**
      * 
-     * @param dbConfig
-     * 
      * @throws InvalidSchemaException
+     * 
+     * @since 0.1.0
      */
     public static Configuration checkSchema(DBConfig dbConfig) {
 
@@ -647,6 +675,8 @@ public final class Diversicons {
 
     /**
      * Returns true if {@code relName} is known to be transitive.
+     * 
+     * @since 0.1.0
      */
     public static boolean isTransitive(String relName) {
         checkNotEmpty(relName, "Invalid relation name!");
@@ -656,6 +686,8 @@ public final class Diversicons {
     /**
      * Returns the {@link #isCanonicalRelation(String) canonical} transitive
      * relations (thus inverses are not included).
+     * 
+     * @since 0.1.0
      */
     public static List<String> getCanonicalTransitiveRelations() {
         return new ArrayList(canonicalTransitiveRelations);
@@ -663,6 +695,8 @@ public final class Diversicons {
 
     /**
      * Returns all the transitive relations (inverses included).
+     * 
+     * @since 0.1.0
      */
     public static List<String> getTransitiveRelations() {
         return new ArrayList(transitiveRelations);
@@ -672,6 +706,8 @@ public final class Diversicons {
      * Returns all the {@link #isCanonicalRelation(String) canonical}
      * {@code partof}
      * relations (thus inverses are not included).
+     * 
+     * @since 0.1.0
      */
     public static List<String> getCanonicalPartOfRelations() {
         return new ArrayList(canonicalPartOfRelations);
@@ -679,108 +715,32 @@ public final class Diversicons {
 
     /**
      * Returns all the {@code partof} relations (inverses included).
+     * 
+     * @since 0.1.0
      */
     public static List<String> getPartOfRelations() {
         return new ArrayList(partOfRelations);
     }
 
+    /**
+     * @since 0.1.0
+     */
     public static boolean isPartOf(String relName) {
         checkNotEmpty(relName, "Invalid relation name!");
         return partOfRelations.contains(relName);
     }
 
-    /**
-     * Extracts a lexical resource name from an xml file
-     * 
-     * @throws DivNotFoundException
-     */
-    // implementation is unholy
-    public static String extractNameFromLexicalResource(final String lexResUrl) {
-        SAXReader reader = new SAXReader(false);
+   
 
-        ExtractedStream es = Internals.readData(lexResUrl, true);
-
-        reader.setEntityResolver(new EntityResolver() {
-            @Override
-            public InputSource resolveEntity(String publicId, String systemId)
-                    throws SAXException, IOException {
-                if (systemId.endsWith(".dtd")) {
-                    return new InputSource(new StringReader(""));
-                }
-                return null;
-            }
-        });
-        reader.setDefaultHandler(new LexicalResourceNameHandler());
-        try {
-            reader.read(es.stream());
-        } catch (DocumentException e) {
-
-            if (e.getMessage()
-                 .contains(LexicalResourceNameHandler.FOUND_NAME)) {
-
-                return e.getMessage()
-                        .substring(0, e.getMessage()
-                                       .indexOf(LexicalResourceNameHandler.FOUND_NAME));
-            } else {
-                throw new DivException("Error while extracting lexical resource name from "
-                        + lexResUrl + "!", e);
-            }
-        }
-        throw new DivNotFoundException("Couldn't find attribute name in lexical resource "
-                + lexResUrl + "  !");
-    }
 
     /**
-     * div dirty - What a horrible class
-     * 
-     * @since 0.1.0
-     */
-    private static class LexicalResourceNameHandler implements ElementHandler {
-
-        private static final String FOUND_NAME = "<--FOUNDNAME";
-
-        @Override
-        public void onStart(ElementPath elementPath) {
-            Element el = elementPath.getCurrent();
-            String elName = el.getName();
-
-            // Remove empty attributes and invalid characters.
-            Iterator<?> attrIter = el.attributeIterator();
-            while (attrIter.hasNext()) {
-                Attribute attr = (Attribute) attrIter.next();
-                if ("NULL".equals(attr.getStringValue())) {
-                    attrIter.remove();
-                } else {
-                    attr.setValue(StringUtils.replaceNonUtf8(attr.getValue()));
-                }
-            }
-
-            if ("LexicalResource".equals(elName)) {
-                // I know this is horrible, can't find better method :P
-                String ret = el.attributeValue("name");
-                if (ret == null) {
-                    throw new DivNotFoundException("Couldn't find attribute 'name' in lexical resource!");
-                } else {
-                    throw new RuntimeException(ret + FOUND_NAME);
-                }
-            }
-
-        }
-
-        @Override
-        public void onEnd(ElementPath elementPath) {
-        }
-
-    }
-    
-    /**
-     * Creates the default configuration to access a file H2 database. NOTE: if database 
-     * does not exist it is created.
+     * Creates the default configuration to access a file H2 database. NOTE: if
+     * database does not exist it is created (but tables are not!)
      * 
      * @param filePath
      *            the path to a database, which must end with just the
      *            database name
-     *            (so without the {@code .h2.db}).  
+     *            (so without the {@code .h2.db}).
      * 
      * @since 0.1.0
      */
@@ -804,12 +764,13 @@ public final class Diversicons {
 
     /**
      * 
-     * Creates the default configuration to access an in-memory H2 database. NOTE: if database 
-     * does not exist it is created.
+     * Creates the default configuration to access an in-memory H2 database.
+     * NOTE: if database does not exist it is created (but tables are not!)
      * 
      * @param dbName
      *            Uniquely identifies the db among all in-memory dbs.
-     * @param compressed if db is compressed, occupies less space but has
+     * @param compressed
+     *            if db is compressed, occupies less space but has
      *            slower access time
      * @since 0.1.0
      */
@@ -1007,11 +968,12 @@ public final class Diversicons {
     }
 
     /**
-     *  
+     * 
      * Restores a packaged H2 db to file system in user's home under
      * {@link #CACHE_PATH}. The database is intended
      * to be accessed only in read-only mode and if
-     * already present no fetch is performed. The database may be fetched from the
+     * already present no fetch is performed. The database may be fetched from
+     * the
      * internet or directly taken from a jar if on the classpath.
      *
      * @param id
@@ -1193,7 +1155,7 @@ public final class Diversicons {
     }
 
     /**
-     * Returns a java.sql.Connection to an H2 database from UBY DBConfig. 
+     * Returns a java.sql.Connection to an H2 database from UBY DBConfig.
      * 
      * @throws DivIoConnection
      * 
@@ -1283,36 +1245,35 @@ public final class Diversicons {
         checkNotEmpty(filePath, "Found an invalid filepath!");
         return filePath;
     }
-   
+
     /**
-     * Returns true if provided configuration refers to a database which could work 
+     * Returns true if provided configuration refers to a database which could
+     * work
      * with Diversicon. In order to work two conditions need to be met:
      * 
      * 1) Db driver must be present in classpath
      * 2) Database must not be blacklisted
-     *  
+     * 
      * @throws ClassNotFoundExc
      * 
      * @since 0.1.0
-     */    
+     */
     // we should ban dbs that don't support recursive queries (i.e. mysql)
     // maybe Hibernate can tell us...
     public static boolean isDatabaseSupported(String driver) {
-        checkNotNull(driver);                              
-                                  
+        checkNotNull(driver);
+
         try {
             Class.forName(driver);
         } catch (ClassNotFoundException ex) {
             LOG.debug("Couldn't find database driver class: " + driver, ex);
             return false;
         }
-        
+
         return driver.equals("org.h2.Driver");
-       
+
     }
-    
-    
-    
+
     /**
      * Returns the lowercased shorthand to identify a database (like 'h2')
      * 
@@ -1320,22 +1281,235 @@ public final class Diversicons {
      * 
      * @since 0.1.0
      */
-    // TODO Spring DatabaseType seems a good source for identifiers https://github.com/spring-projects/spring-batch/blob/master/spring-batch-infrastructure/src/main/java/org/springframework/batch/support/DatabaseType.java
+    // TODO Spring DatabaseType seems a good source for identifiers
+    // https://github.com/spring-projects/spring-batch/blob/master/spring-batch-infrastructure/src/main/java/org/springframework/batch/support/DatabaseType.java
     // also see Jdbc DatabaseMetadata: http://stackoverflow.com/a/254220
-    public static String getDatabaseId(DBConfig dbConfig){
+    public static String getDatabaseId(DBConfig dbConfig) {
         checkH2Db(dbConfig);
         return H2_IDENTIFIER;
     }
 
     /**
      * 
-     * @throws IllegalArgumentException
+     * @throws UnsupportedOperationException
+     * 
+     * @since 0.1.0
      */
     public static void checkSupportedDatabase(String databaseDriver) {
         checkNotNull(databaseDriver);
-        if (!isDatabaseSupported(databaseDriver)){
+        if (!isDatabaseSupported(databaseDriver)) {
             throw new UnsupportedOperationException("Unsupported database!");
         }
     }
 
+    /**
+     * 
+     * Extracts the namespace prefix from provided {@code id}
+     * 
+     * @param id
+     *            an identifier in {@link #ID_PATTERN} format
+     * @throws IllegalArgumentException
+     *             when id has no valid prefix
+     * 
+     * @since 0.1.0
+     */
+    public static String namespacePrefixFromId(String id) {
+        checkNotEmpty(id, "Invalid id!");
+
+        int i = id.indexOf(":");
+        if (i == -1) {
+            throw new IllegalArgumentException(
+                    "Tried to extract prefix but couldn't find colon ':' in provided id: " + id);
+        }
+
+        String ret = id.substring(0, i);
+
+        if (NAMESPACE_PREFIX_PATTERN.matcher(ret)
+                                    .matches()) {
+            return ret;
+        } else {
+            throw new IllegalArgumentException(
+                    "Provided id: " + id + " has invalid prefix! It should match " + NAMESPACE_PREFIX_PATTERN);
+        }
+
+    }   
+    
+    /**
+     * 
+     * @throws IllegalArgumentException
+     * @since 0.1.0
+     */
+    public static Map<String, String> checkNamespaces(@Nullable Map<String, String> namespaces){
+        checkNotNull(namespaces);
+        
+        for (String prefix : namespaces.keySet()){
+            checkNotNull(prefix);
+            if (!NAMESPACE_PREFIX_PATTERN.matcher(prefix).matches()){                
+                throw new IllegalArgumentException("Invalid key, it must match " + NAMESPACE_PREFIX_PATTERN.toString());
+            }
+            
+            checkNotBlank(namespaces.get(prefix), "Invalid namespace url!");
+        }
+        return namespaces;
+    }
+
+    /**
+     * 
+     * See {@link #validateXml(File, long)}
+     * 
+     * @throws InvalidXmlException
+     * 
+     * @since 0.1.0
+     * 
+     */    
+    public static void validateXml(File xmlFile, Logger log){
+        validateXml(xmlFile, log, -1);
+    }
+    
+    /**
+     * TODO put a link to this most precious cookbook somewhere: 
+     * http://www.datypic.com/books/defxmlschema/chapter14.html
+     * 
+     * See also http://www.ibm.com/developerworks/library/x-xml11pt2/
+     * 
+     * important point about child/parent deps: http://stackoverflow.com/a/25344978
+     * 
+     * @throws InvalidXmlException
+     * 
+     * @since 0.1.0
+     * 
+     */
+    public static void validateXml(File xmlFile, Logger log, long logLimit){
+        
+        checkNotNull(xmlFile);
+                
+        File xsdFile = Internals.readData(DIVERSICON_SCHEMA_1_0_CLASSPATH_URL, false).toTempFile();
+
+        // if editor can't find the constant probably default xerces is being used
+        // instead of the one supporting schema 1.1
+        
+        SchemaFactory factory = SchemaFactory.newInstance(Constants.W3C_XML_SCHEMA11_NS_URI);
+        File schemaLocation = xsdFile;
+        Schema schema;
+        try {
+            schema = factory.newSchema(schemaLocation);
+        } catch (SAXException e) {
+            throw new DivException("Error while parsing schema!", e);
+        }
+
+        Source source = new StreamSource(xmlFile);        
+        DivXmlErrorHandler errorHandler = new DivXmlErrorHandler(log, logLimit, source.getSystemId());        
+        
+        Validator validator = schema.newValidator();
+        
+        validator.setErrorHandler(errorHandler);
+        
+        
+        try {            
+            validator.validate(source);
+        } catch (SAXException | IOException e) {            
+            throw new InvalidXmlException(errorHandler, "Fatal error while validating " + xmlFile.getAbsolutePath(), e);
+        }
+        
+        
+        if (errorHandler.invalid()){
+            log.error("Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath());
+            throw new InvalidXmlException(errorHandler, "Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath());
+        }
+    }
+
+    /**
+     * Reads metadata about a given resource.
+     * 
+     * @param path A path to a file as specified by {@link Internals#readData(String, boolean)
+     * 
+     * @since 0.1.0
+     */
+    public static LexResPackage readResource(String lexResUrl) {
+        
+        LexResPackage ret = new LexResPackage();
+        
+        SAXReader reader = new SAXReader(false);
+
+        ExtractedStream es = Internals.readData(lexResUrl, true);
+        DiversiconResourceHandler handler = new DiversiconResourceHandler(ret);        
+        reader.setDefaultHandler(handler);
+        try {
+            reader.read(es.stream());
+        } catch (DocumentException e) {
+
+            if (e.getMessage().contains(DiversiconResourceHandler.FOUND)) {
+                return ret;
+            }
+        }
+        throw new DivNotFoundException("Couldn't find lexical resource tag in "
+                + lexResUrl + "  !");
+
+    }
+    
+    
+    /**
+     * Creates an xml file out of the provided lexical resource. Written 
+     * lexical resource will include provided namespaces as {@code xmlns} attributes
+     * 
+     * @param namespaces Namespaces expressed as prefix : url
+     * 
+     * @since 0.1.0
+     */
+    public static File writeLexResToXml(
+            LexicalResource lexRes, 
+            LexResPackage lexResPackage,
+            File ret) {
+        
+        checkNotNull(lexRes);
+        
+        Internals.checkLexResPackage(lexResPackage, lexRes);       
+        
+        DivXmlWriter writer;
+        try {
+            writer = new DivXmlWriter(new FileOutputStream(
+                    ret), 
+                    null, 
+                    lexResPackage);  // todo check if setting dtd means something
+            
+            writer.writeElement(lexRes);
+            writer.writeEndDocument();
+            
+        } catch (FileNotFoundException | SAXException ex) {
+            throw new DivException("Error while writing lexical resource to XML: " + ret.getAbsolutePath(), ex);
+        }
+
+        return ret;
+        
+    }
+
+    /**
+     * 
+     * Checks a prefix is valid, throwing IllegalArgumentException otherwise
+     * 
+     * @throws IllegalArgumentException
+     * 
+     * @since 0.1.0
+     */
+    public static String checkPrefix(String prefix){
+        if (!NAMESPACE_PREFIX_PATTERN.matcher(prefix).matches()){
+            throw new IllegalArgumentException("Invalid prefix!");
+        }
+        return prefix;
+    }
+
+    /**
+     * 
+     * Checks an id is valid, throwing IllegalArgumentException otherwise
+     * 
+     * @throws IllegalArgumentException
+     * 
+     * @since 0.1.0
+     */    
+    public static void checkId(String id, String string) {
+        if (!ID_PATTERN.matcher(id).matches()){
+            throw new IllegalArgumentException("Invalid id!");
+        }        
+    }
+        
 }

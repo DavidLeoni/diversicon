@@ -1,6 +1,7 @@
 package it.unitn.disi.diversicon.test;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
+import static it.unitn.disi.diversicon.internal.Internals.checkNotBlank;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 import static it.unitn.disi.diversicon.internal.Internals.createTempFile;
 import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
@@ -18,9 +19,11 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.Nullable;
@@ -47,12 +50,19 @@ import de.tudarmstadt.ukp.lmf.transform.LMFXmlWriter;
 import it.disi.unitn.diversicon.exceptions.DivException;
 import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.DivSynsetRelation;
-import it.unitn.disi.diversicon.DivXmlWriter;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
+import it.unitn.disi.diversicon.ImportJob;
+import it.unitn.disi.diversicon.LexResPackage;
+import it.unitn.disi.diversicon.exceptions.DivValidationException;
 import it.unitn.disi.diversicon.internal.Internals;
 
 public final class DivTester {
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String DEFAULT_TEST_PREFIX = "test";
     
     /**
      * @since 0.1.0
@@ -79,6 +89,8 @@ public final class DivTester {
 
     private static int dbCounter = -1;
 
+    
+    
     /**
      * 2 verteces and 1 hypernym edge
      * 
@@ -90,6 +102,21 @@ public final class DivTester {
                                                           .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
                                                           .build();
 
+    /**
+     * Graph with 3 verteces and 2 hypernym edges,  a good candidate for augmentation. 
+     * 
+     * @see #DAG_3_HYPERNYM
+     * 
+     * @since 0.1.0 
+     */
+    public static LexicalResource GRAPH_3_HYPERNYM = lmf().lexicon()
+        .synset()
+        .synset()
+        .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+        .synset()
+        .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
+        .build();
+        
     /**
      * 4 verteces, last one is connected to others by respectively hypernym
      * edge, holonym and 'hello' edge
@@ -108,6 +135,8 @@ public final class DivTester {
 
     /**
      * A full DAG, 3 verteces and 3 hypernyms
+     * 
+     * @see #GRAPH_3_HYPERNYM
      * 
      * @since 0.1.0
      */
@@ -159,6 +188,7 @@ public final class DivTester {
                 }
             }
         }
+        
         throw new DivNotFoundException("Couldn't find synset with id 'synset " + idNum);
     }
 
@@ -316,7 +346,11 @@ public final class DivTester {
      * 
      * @since 0.1.0
      */    
-    private static void checkDbSynset(Synset syn, Lexicon lex, Diversicon diversicon, Set<Flags> flags) {
+    private static void checkDbSynset(
+            Synset syn, 
+            Lexicon lex, 
+            Diversicon diversicon, 
+            Set<Flags> flags) {
         String synId = getId(syn);
         try {
             Synset dbSyn = diversicon.getSynsetById(syn.getId());
@@ -508,27 +542,100 @@ public final class DivTester {
     }
 
     /**
-     * Creates an xml file out of the provided lexical resource.
+     * Creates an xml file out of the provided lexical resource. Written 
+     * lexical resource will include provided namespaces as {@code xmlns} attributes
+     * 
+     * @param namespaces Namespaces expressed as prefix : url
      * 
      * @since 0.1.0
      */
-    public static File writeXml(LexicalResource lexicalResource) {
-        checkNotNull(lexicalResource);
-
-        File ret = createTempFile(DivTester.DIVERSICON_TEST_STRING, ".xml").toFile();
+    public static File writeXml(
+            LexicalResource lexRes, 
+            LexResPackage lexResPackage) {
+        checkNotNull(lexRes);
+        checkNotNull(lexResPackage);
         
-        DivXmlWriter writer;
-        try {
-            writer = new DivXmlWriter(new FileOutputStream(
-                    ret), null);  // todo check if setting dtd means something
-            writer.writeElement(lexicalResource);
-            writer.writeEndDocument();
-            
-        } catch (FileNotFoundException | SAXException ex) {
-            throw new DivException("Error while writing lexical resource to XML: " + ret.getAbsolutePath(), ex);
-        }
+        File ret = createTempFile(DivTester.DIVERSICON_TEST_STRING, ".xml").toFile();        
+        Diversicons.writeLexResToXml(lexRes, lexResPackage, ret);               
 
-        return ret;
+        return ret;        
+    }
+    
+    /**
+     * Creates an xml file out of the provided lexical resource and prefix.
+     * 
+     * Other required parameters will be automatcally 
+     * generated in a predictable manner.
+     * 
+     * @since 0.1.0
+     */
+    public static File writeXml(LexicalResource lexRes, String prefix) {
+        checkNotNull(lexRes);
+        Diversicons.checkPrefix(prefix);        
+        
+        LexResPackage pack = createLexResPackage(lexRes, prefix);
+        
+        return writeXml(lexRes, pack);
+    }
+    
+    /**
+     * Creates a Lexical Resource package automatically filling id, name and namespaces
+     * in a predictable manner.
+     * 
+     * @since 0.1.0
+     */
+    public static LexResPackage createLexResPackage(LexicalResource lexRes, String prefix){
+        LexResPackage pack = new LexResPackage();
+        
+        pack.setId(prefix);
+        pack.setName(lexRes.getName());
+        pack.setPrefix(prefix);
+        pack.putNamespace(prefix, "http://test-"+lexRes.hashCode() + ".xml");
+        return pack;
+    }
+    
+    /**
+     * Creates a Lexical Resource package using the default test prefix
+     * 
+     * See {@link #createLexResPackage(LexicalResource, String)}
+     * 
+     * @since 0.1.0
+     */
+    public static LexResPackage createLexResPackage(LexicalResource lexRes){
+        return createLexResPackage(lexRes, DEFAULT_TEST_PREFIX);
+    }    
+    
+    
+    
+    /**
+     * 
+     * Imports a resource automatically creating id, prefix and namespaces in a predictable way.
+     * 
+     * See {@link Diversicon#importResource(LexicalResource, LexResPackage, boolean)
+     * 
+     * @throws DivException
+     * @throws DivValidationException
+     * 
+     * @since 0.1.0
+     */
+    public static ImportJob importResource(Diversicon div,
+            LexicalResource lexRes,        
+            boolean skipAugment) {
+                       
+        return  div.importResource(lexRes,
+                createLexResPackage(lexRes), 
+                skipAugment);
+    }
+    
+    /**
+     * Creates an XML file out of the provided lexical resource and {@link #DEFAULT_TEST_PREFIX}.
+     * 
+     * Other required parameters will be automatically generated in a predictable manner.
+     * 
+     * @since 0.1.0
+     */
+    public static File writeXml(LexicalResource lexRes) {        
+        return writeXml(lexRes, DEFAULT_TEST_PREFIX);
     }
 
     /**
@@ -568,4 +675,30 @@ public final class DivTester {
         return Internals.createTempDivDir("test");
     }
 
+    /**
+     * @since 0.1.0
+     */
+    static File writeXml(String content){
+        checkNotNull(content);
+        
+        Path p = DivTester.createTestDir();
+        File f = new File(p.toFile(),"test.xml");        
+        try {
+            FileUtils.writeStringToFile(f, content);
+        } catch (IOException ex) {            
+            throw new Error("Failed writing xml string to file " + f.getAbsolutePath(), ex);
+        }
+        return f;
+    }
+    
+    /**
+     * Adds default prefix used during tests.
+     * 
+     * @since 0.1.0
+     */
+    public static String tid(String name){        
+        return DEFAULT_TEST_PREFIX + ":" + name;
+    }
+
+    
 }

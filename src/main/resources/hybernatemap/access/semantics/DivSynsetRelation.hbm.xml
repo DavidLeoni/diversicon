@@ -27,8 +27,6 @@
     <!-- diversicon end -->
     
     
-   
-    
    <property name="relType" column="relType" node="@relType">    
     	<type name="de.tudarmstadt.ukp.lmf.hibernate.EnumUserType">
          	<param name="enumClassName">de.tudarmstadt.ukp.lmf.model.enums.ERelTypeSemantics</param>         	
@@ -50,7 +48,8 @@
 	<many-to-one name="source" class="de.tudarmstadt.ukp.lmf.model.semantics.Synset" column="synsetId"
 			insert="false" update="false"/>
 	
-	<!-- Smuby: added to have our customized SmySynsetRelation  mapped to same SynsetRelation table -->				
+	<!-- diversicon start -->
+	<!-- added to have our customized SmySynsetRelation  mapped to same SynsetRelation table -->				
 	<subclass name="it.unitn.disi.diversicon.DivSynsetRelation" 
        		  extends="de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation" 
        		  discriminator-value="true">
@@ -59,7 +58,7 @@
    		</property> 	 
    		<property name="provenance" column="provenance" node="@provenance" type="string"/>
 	</subclass>	
-			
+	<!-- diversicon end -->
 </class>
 
 </hibernate-mapping>

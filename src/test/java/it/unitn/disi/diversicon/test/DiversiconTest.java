@@ -15,11 +15,12 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.io.FileUtils;
+
+import org.dom4j.DocumentException;
 import org.hibernate.exception.GenericJDBCException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,24 +38,26 @@ import it.disi.unitn.diversicon.exceptions.DivIoException;
 import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.DbInfo;
 import it.unitn.disi.diversicon.DivSynsetRelation;
-import it.unitn.disi.diversicon.DivValidationException;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
 import it.unitn.disi.diversicon.ImportConfig;
 import it.unitn.disi.diversicon.ImportJob;
-import it.unitn.disi.diversicon.InvalidSchemaException;
+import it.unitn.disi.diversicon.LexResPackage;
 import it.unitn.disi.diversicon.data.Smartphones;
+import it.unitn.disi.diversicon.exceptions.InterruptedImportException;
+import it.unitn.disi.diversicon.exceptions.InvalidImportException;
+import it.unitn.disi.diversicon.exceptions.InvalidSchemaException;
 import it.unitn.disi.diversicon.internal.Internals;
 
-import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
 import static it.unitn.disi.diversicon.test.DivTester.*;
+import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
 
 public class DiversiconTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(DiversiconTest.class);
 
     private DBConfig dbConfig;
-
+    
     @Before
     public void beforeMethod() {
         dbConfig = createNewDbConfig();
@@ -71,7 +74,7 @@ public class DiversiconTest {
      * @since 0.1.0
      */
     @Test
-    public void testDontAutoCreate() {
+    public void testConnectToDbDontAutoCreate() {
         
         try {
             Diversicon uby = Diversicon.connectToDb(dbConfig);
@@ -113,15 +116,15 @@ public class DiversiconTest {
         synset.getSynsetRelations()
               .add(synsetRelation);
 
-        Diversicon diversicon = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);
 
-        diversicon.importResource(lexicalResource, true);
+        DivTester.importResource(div, lexicalResource, true);
 
-        assertNotNull(diversicon.getLexicalResource("lexicalResource 1"));
-        assertEquals(1, diversicon.getLexicons()
+        assertNotNull(div.getLexicalResource("lexicalResource 1"));
+        assertEquals(1, div.getLexicons()
                                   .size());
 
-        Lexicon rlexicon = diversicon.getLexicons()
+        Lexicon rlexicon = div.getLexicons()
                                      .get(0);
 
         List<Synset> rsynsets = rlexicon.getSynsets();
@@ -145,7 +148,7 @@ public class DiversiconTest {
         assertEquals(3, WbRel.getDepth());
         assertEquals("a", WbRel.getProvenance());
 
-        diversicon.getSession()
+        div.getSession()
                   .close();
     };
 
@@ -165,15 +168,15 @@ public class DiversiconTest {
 
         Diversicons.dropCreateTables(dbConfig);
 
-        Diversicon diversicon = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);
 
-        diversicon.importResource(lexicalResource, true);
+        DivTester.importResource(div, lexicalResource, true);
 
-        diversicon.processGraph();
+        div.processGraph();
 
-        checkDb(expectedLexicalResource, diversicon, Internals.newHashSet(DivTester.Flags.UNORDERED_SYNSET_RELATIONS));
+        checkDb(expectedLexicalResource, div, Internals.newHashSet(DivTester.Flags.UNORDERED_SYNSET_RELATIONS));
 
-        diversicon.getSession()
+        div.getSession()
                   .close();
 
     };
@@ -229,13 +232,7 @@ public class DiversiconTest {
     @Test
     public void testTransitiveClosureDepth_2() {
 
-        assertAugmentation(lmf().lexicon()
-                                .synset()
-                                .synset()
-                                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                                .synset()
-                                .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
-                                .build(),
+        assertAugmentation(GRAPH_3_HYPERNYM,
                 DAG_3_HYPERNYM);
 
     }
@@ -310,27 +307,30 @@ public class DiversiconTest {
     }
 
     /**
-     * Checks sequence indicated by provided provided iterator contains all the
+     * Checks sequence indicated by provided iterator contains all the
      * synsets of given ids.
      * 
      * @throws DivNotFoundException
      */
-    private static void checkContainsAll(Iterator<Synset> iter, String... ids) {
-
-        Set<String> synsetIds = new HashSet();
+    private static void checkContainsAll(Iterator<Synset> iter, String firstId, String... ids) {
+        
+               
+        Set<String> synsetIds = new HashSet<>();
         while (iter.hasNext()) {
             synsetIds.add(iter.next()
                               .getId());
         }
 
-        HashSet<String> listIds = new HashSet();
+        HashSet<String> setIds = new HashSet<>();
+        setIds.add(firstId);
         for (String id : ids) {
-            listIds.add(id);
+            setIds.add(id);
         }
 
-        assertEquals(listIds, synsetIds);
+        assertEquals(setIds, synsetIds);
     }
 
+    
     /**
      * Test on simple graph
      * 
@@ -341,39 +341,39 @@ public class DiversiconTest {
 
         Diversicons.dropCreateTables(dbConfig);
 
-        Diversicon diversicon = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);
 
-        diversicon.importResource(GRAPH_1_HYPERNYM, true);
+        DivTester.importResource(div, GRAPH_1_HYPERNYM, true);
 
-        assertFalse(diversicon.getConnectedSynsets(
-                "synset 2",
+        assertFalse(div.getConnectedSynsets(
+                tid("synset 2"),
                 0,
                 ERelNameSemantics.HYPERNYM)
                               .hasNext());
 
-        assertFalse(diversicon.getConnectedSynsets(
-                "synset 2",
+        assertFalse(div.getConnectedSynsets(
+                tid("synset 2"),
                 -1)
                               .hasNext());
 
-        checkContainsAll(diversicon.getConnectedSynsets(
-                "synset 2",
+        checkContainsAll(div.getConnectedSynsets(
+                tid("synset 2"),
                 1,
                 ERelNameSemantics.HYPERNYM),
-                "synset 1");
+                tid("synset 1"));
 
-        checkContainsAll(diversicon.getConnectedSynsets(
-                "synset 2",
+        checkContainsAll(div.getConnectedSynsets(
+                tid("synset 2"),
                 -1,
                 ERelNameSemantics.HYPERNYM),
-                "synset 1");
+                tid("synset 1"));
 
-        checkContainsAll(diversicon.getConnectedSynsets(
-                "synset 2",
+        assertFalse(div.getConnectedSynsets(
+                tid("synset 2"),
                 1,
-                "hello"));
+                "hello").hasNext());
 
-        diversicon.getSession()
+        div.getSession()
                   .close();
 
     }
@@ -388,65 +388,65 @@ public class DiversiconTest {
 
         Diversicon div = Diversicon.connectToDb(dbConfig);
 
-        div.importResource(DAG_3_HYPERNYM, true);
+        DivTester.importResource(div, DAG_3_HYPERNYM, true);
 
         assertTrue(div.isConnected(
-                "synset 1",
-                "synset 1",
+                tid("synset 1"),
+                tid("synset 1"),
                 1,
                 Arrays.asList(ERelNameSemantics.HYPERNYM)));
 
         assertTrue(div.isConnected(
-                "synset 1",
-                "synset 1",
-                0, new ArrayList()));
+                tid("synset 1"),
+                tid("synset 1"),
+                0, new ArrayList<String>()));
 
         assertFalse(div.isConnected(
-                "synset 2",
-                "synset 1",
+                tid("synset 2"),
+                tid("synset 1"),
                 0,
                 Arrays.asList(ERelNameSemantics.HYPERNYM)));
 
         assertTrue(div.isConnected(
-                "synset 2",
-                "synset 1",
+                tid("synset 2"),
+                tid("synset 1"),
                 1,
                 Arrays.asList(ERelNameSemantics.HYPERNYM)));
 
         assertTrue(div.isConnected(
-                "synset 2",
-                "synset 1",
+                tid("synset 2"),
+                tid("synset 1"),
                 -1,
                 Arrays.asList(ERelNameSemantics.HYPERNYM)));
 
         assertTrue(div.isConnected(
-                "synset 1",
-                "synset 3",
+                tid("synset 1"),
+                tid("synset 3"),
                 -1,
                 Arrays.asList(ERelNameSemantics.HYPONYM)));
 
         assertFalse(div.isConnected(
-                "synset 3",
-                "synset 1",
+                tid("synset 3"),
+                tid("synset 1"),
                 -1,
                 Arrays.asList(ERelNameSemantics.HYPONYM)));
 
         assertFalse(div.isConnected(
-                "synset 1",
-                "synset 2",
+                tid("synset 1"),
+                tid("synset 2"),
                 -1,
                 Arrays.asList(ERelNameSemantics.HYPERNYM)));
 
         assertTrue(div.isConnected(
-                "synset 1",
-                "synset 1",
+                tid("synset 1"),
+                tid("synset 1"),
                 -1,
                 Arrays.asList(ERelNameSemantics.HYPERNYM)));
 
         try {
             div.isConnected(
-                    "synset 1",
-                    "synset 1",
+                    tid("synset 1"),
+                    tid("synset 1"),
                     -2,
                     Arrays.asList(ERelNameSemantics.HYPERNYM));
             Assert.fail("Shouldn't arrive here!");
@@ -457,9 +457,9 @@ public class DiversiconTest {
         try {
             div.isConnected(
                     "",
-                    "synset 1",
+                    tid("synset 1"),
                     -1,
-                    new ArrayList());
+                    new ArrayList<String>());
             Assert.fail("Shouldn't arrive here!");
         } catch (IllegalArgumentException ex) {
 
@@ -467,10 +467,10 @@ public class DiversiconTest {
 
         try {
             div.isConnected(
-                    "synset 1",
-                    "",
+                    tid("synset 1"),
+                    tid(""),
                     -1,
-                    new ArrayList());
+                    new ArrayList<String>());
             Assert.fail("Shouldn't arrive here!");
         } catch (IllegalArgumentException ex) {
 
@@ -499,7 +499,7 @@ public class DiversiconTest {
                                    .lexicalEntry("c")
                                    .build();
 
-        div.importResource(res, true);
+        DivTester.importResource(div, res, true);
 
         assertEquals(Internals.newArrayList("a"), div.getLemmaStringsByWrittenForm("a"));
         assertEquals(Internals.newArrayList("c"), div.getLemmaStringsByWrittenForm("c"));
@@ -519,43 +519,43 @@ public class DiversiconTest {
 
         Diversicon div = Diversicon.connectToDb(dbConfig);
 
-        div.importResource(DAG_3_HYPERNYM, true);
+        DivTester.importResource(div, DAG_3_HYPERNYM, true);
 
         checkContainsAll(div.getConnectedSynsets(
-                "synset 2",
+                tid("synset 2"),
                 1,
                 ERelNameSemantics.HYPERNYM),
-                "synset 1");
+                tid("synset 1"));
 
         checkContainsAll(div.getConnectedSynsets(
-                "synset 1",
+                tid("synset 1"),
                 1,
                 ERelNameSemantics.HYPONYM),
-                "synset 2");
+                tid("synset 2"));
 
         checkContainsAll(div.getConnectedSynsets(
-                "synset 3",
+                tid("synset 3"),
                 1,
                 ERelNameSemantics.HYPERNYM),
-                "synset 2");
+                tid("synset 2"));
 
         checkContainsAll(div.getConnectedSynsets(
-                "synset 2",
+                tid("synset 2"),
                 1,
                 ERelNameSemantics.HYPONYM),
-                "synset 3");
+                tid("synset 3"));
 
         checkContainsAll(div.getConnectedSynsets(
-                "synset 3",
+                tid("synset 3"),
                 2,
                 ERelNameSemantics.HYPERNYM),
-                "synset 1", "synset 2");
+                tid("synset 1"), tid("synset 2"));
 
         checkContainsAll(div.getConnectedSynsets(
-                "synset 1",
+                tid("synset 1"),
                 2,
                 ERelNameSemantics.HYPONYM),
-                "synset 2", "synset 3");
+                tid("synset 2"), tid("synset 3"));
 
         div.getSession()
            .close();
@@ -570,17 +570,17 @@ public class DiversiconTest {
 
         Diversicons.dropCreateTables(dbConfig);
 
-        Diversicon diversicon = Diversicon.connectToDb(dbConfig);
-        diversicon.importResource(GRAPH_4_HYP_HOL_HELLO, true);
-        checkContainsAll(diversicon.getConnectedSynsets(
-                "synset 4",
+        Diversicon div = Diversicon.connectToDb(dbConfig);
+        DivTester.importResource(div, GRAPH_4_HYP_HOL_HELLO, true);
+        checkContainsAll(div.getConnectedSynsets(
+                tid("synset 4"),
                 1,
                 ERelNameSemantics.HYPERNYM,
                 ERelNameSemantics.HOLONYM),
-                "synset 1",
-                "synset 2");
+                tid("synset 1"),
+                tid("synset 2"));
 
-        diversicon.getSession()
+        div.getSession()
                   .close();
     }
 
@@ -592,18 +592,18 @@ public class DiversiconTest {
 
         Diversicons.dropCreateTables(dbConfig);
 
-        Diversicon diversicon = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);
 
-        diversicon.importResource(DAG_2_MULTI_REL, true);
+        DivTester.importResource(div, DAG_2_MULTI_REL, true);
 
-        checkContainsAll(diversicon.getConnectedSynsets(
-                "synset 2",
+        checkContainsAll(div.getConnectedSynsets(
+                tid("synset 2"),
                 1,
                 ERelNameSemantics.HYPERNYM,
                 ERelNameSemantics.HOLONYM),
-                "synset 1");
+                tid("synset 1"));
 
-        diversicon.getSession()
+        div.getSession()
                   .close();
 
     }
@@ -627,10 +627,11 @@ public class DiversiconTest {
 
         assertEquals(Diversicon.DIVERSICON_SCHEMA_VERSION, dbInfo1.getSchemaVersion());
 
-        div.importResource(GRAPH_4_HYP_HOL_HELLO, true);
+        DivTester.importResource(div,GRAPH_4_HYP_HOL_HELLO, true);
 
         assertEquals(1, div.getImportJobs()
                            .size());
+        
         assertEquals(null, div.getDbInfo()
                               .getCurrentImportJob());
 
@@ -644,10 +645,10 @@ public class DiversiconTest {
         assertTrue(job.getEndDate()
                       .getTime() >= job.getStartDate()
                                        .getTime());
-        assertEquals("lexical resource 1", job.getLexicalResourceName());
+        assertEquals(tid("lexical resource 1"), job.getResourceDescriptor().getName());
         assertTrue(job.getFileUrl()
                       .startsWith(Diversicon.MEMORY_PROTOCOL + ":"));
-        /*
+        /* todo why the hell is commented?
          * LexicalResource res2 = lmf().lexicon()
          * .synset()
          * .synset()
@@ -669,7 +670,7 @@ public class DiversiconTest {
      * 
      * @since 0.1.0
      * @see #testSelfLoopNonCanonical()
-     */
+     */    
     @Test
     public void testSelfLoopCanonical(){
         LexicalResource lr = lmf().lexicon()
@@ -682,9 +683,9 @@ public class DiversiconTest {
         Diversicon div = Diversicon.connectToDb(dbConfig);
         
         try {
-            div.importResource(lr, false);
+            DivTester.importResource(div, lr, false);
             Assert.fail("Shouldn't arrive here!");
-        } catch (DivValidationException ex){
+        } catch (InterruptedImportException ex){
             
         }
     }
@@ -707,29 +708,141 @@ public class DiversiconTest {
 
         Diversicon div = Diversicon.connectToDb(dbConfig);
                 
-        div.importResource(lr, false);
+        DivTester.importResource(div, lr, false);
         
         DivTester.checkDb(lr, div);
     }
     
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testGetNamespaces(){
+                
+        Diversicons.dropCreateTables(dbConfig);
+
+        Diversicon div = Diversicon.connectToDb(dbConfig);       
+        
+        ImportJob job = DivTester.importResource(div, GRAPH_1_HYPERNYM, true);        
+        LexResPackage pack1 = job.getLexResPackage();        
+
+        assertEquals(DEFAULT_TEST_PREFIX, pack1.getPrefix());
+        
+        String nsUrl1 = pack1.getNamespaces().get(pack1.getPrefix()); 
+        Internals.checkNotBlank(nsUrl1, "Invalid url!");
+        
+        assertEquals(nsUrl1, div.getNamespaces().get(DEFAULT_TEST_PREFIX));
+
+        String prefix2 = "test2";
+        
+        /**
+         * 2 verteces and 1 hypernym edge
+         */
+        LexicalResource lexRes2 = lmf(prefix2).lexicon()
+                                              .synset()
+                                              .synset()
+                                              .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                              .build();
+        
+        ImportJob job2 = div.importResource(lexRes2,
+                createLexResPackage(lexRes2, prefix2), 
+                true);
+
+        assertEquals(2, div.getNamespaces().size());
+        
+        LexResPackage pack2 = job2.getLexResPackage();
+        assertEquals(prefix2, pack2.getPrefix());
+        String nsUrl2 = pack2.getNamespaces().get(pack2.getPrefix());
+        assertEquals(nsUrl2, div.getNamespaces().get(pack2.getPrefix()));
+        
+    }
     
     /**
-     * Was giving absurd problems for null discriminator in
-     * DivSynsetRelation.hbm.xml
+     * Shows we can calculate transitive closure using relations
+     * pointing to missing synsets
+     *  
+     * @since 0.1.0
+     */
+    @Test
+    public void testTransitiveClosureMissingSynsets(){
+        
+        Diversicons.dropCreateTables(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);               
+        String upp = "upp";
+        
+        /**
+         * 2 verteces and 1 hypernym edge, plus one hypernym to upper ontology synset
+         */
+        LexicalResource lexRes = lmf().lexicon()
+                                              .synset()
+                                              .synsetRelation(ERelNameSemantics.HYPERNYM, upp +":ss-1")
+                                              .synset()
+                                              .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                              .build();
+        LexResPackage pack = DivTester.createLexResPackage(lexRes);
+        pack.putNamespace(upp,
+                           "http://upp");
+               
+        div.importResource( lexRes, pack, false);
+        assertEquals(3, div.getSynsetRelationsCount());                                       
+        
+    }
+    
+    /**
+     * 
+     * Imports two resources. Second one assigns to the first prefix a different url.
+     * 
+     * Expected result: exception is thrown.
      * 
      * @since 0.1.0
      * 
      */
     @Test
-    public void testImportXml() {
+    public void testImportWithClashingDependencies() throws IOException {
+
+        Diversicons.dropCreateTables(dbConfig);
+
+        Diversicon div = Diversicon.connectToDb(dbConfig);       
+        
+        ImportJob job1 = DivTester.importResource(div, GRAPH_1_HYPERNYM, true);
+        job1.getLexResPackage();
+
+        String prefix2 = "test2";
+        /**
+         * 2 verteces and 1 hypernym edge
+         */
+        LexicalResource lexRes2 = lmf(prefix2).lexicon()
+                                              .synset()
+                                              .synset()
+                                              .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                              .build();
+        LexResPackage pack2 = DivTester.createLexResPackage(lexRes2, prefix2);
+        pack2.putNamespace(DEFAULT_TEST_PREFIX,
+                           "http://666");
+        
+        try {
+            div.importResource( lexRes2, pack2, true);
+                                   
+            Assert.fail("Shouldn't arrive here!");
+        } catch (InvalidImportException ex){
+            LOG.debug("Caught exception:", ex);
+        }
+        
+    }
+    
+    /**
+     * Was giving absurd problems for null discriminator in
+     * DivSynsetRelation.hbm.xml 
+     * 
+     * @since 0.1.0
+     * 
+     */
+    @Test
+    public void testImportXml() throws IOException {
 
         File xml = DivTester.writeXml(GRAPH_4_HYP_HOL_HELLO);
         
-        try {
-            LOG.debug(FileUtils.readFileToString(xml, "UTF-8"));
-        } catch (IOException e) {        
-            throw new RuntimeException("Something went wrong!", e);
-        }
+        LOG.debug("\n" + FileUtils.readFileToString(xml, "UTF-8"));
         
         Diversicons.dropCreateTables(dbConfig);
 
@@ -737,11 +850,12 @@ public class DiversiconTest {
 
         assertFalse(div.formatImportJobs(true)
                        .isEmpty());
-
         
         div.importXml(xml.getAbsolutePath());
         
-        checkDb(GRAPH_4_HYP_HOL_HELLO, div);
+        checkDb(GRAPH_4_HYP_HOL_HELLO, div);                
+        
+        div.getSession().close();
 
     }
 
@@ -755,22 +869,111 @@ public class DiversiconTest {
      * 
      */
     @Test
-    public void testImportSmartPhonesXmlWithoutWordnet() {
-                
+    public void testImportSmartPhonesXmlWithoutWordnet() {        
+        
         Diversicons.dropCreateTables(dbConfig);
 
         Diversicon div = Diversicon.connectToDb(dbConfig);
         
-        div.importXml(Smartphones.of().getXmlUri());        
+        ImportJob job = div.importXml(Smartphones.of().getXmlUri());        
                 
-        LexicalResource lr = div.getLexicalResource("sm:lr");
+        LexicalResource lr = div.getLexicalResourceById(Smartphones.ID);
         List<MetaData> metadatas = lr.getMetaData();
         assertEquals(1, metadatas.size());
         MetaData metadata = metadatas.get(0);
         assertNotNull(metadata);
         assertEquals("sm:md", metadata.getId());
         
+        assertEquals(5 + 2 + 2 + 2, div.getSynsetRelationsCount());
+        
     }    
+    
+    /** 
+     * @since 0.1.0
+     */
+    @Test
+    public void testExportToXml() throws IOException {
+        
+        Diversicons.dropCreateTables(dbConfig);
+
+        Diversicon div = Diversicon.connectToDb(dbConfig);
+        
+        DivTester.importResource(div, GRAPH_1_HYPERNYM, false);
+        
+        File dir = Internals.createTempDir(DivTester.DIVERSICON_TEST_STRING).toFile();
+        
+        File xml = new File(dir, "test.xml");
+        
+        div.exportToXml(xml.toString(), 
+                        GRAPH_1_HYPERNYM.getName(),
+                        false);
+        
+        String str = FileUtils.readFileToString(xml, "UTF-8");
+        assertTrue(!str.contains("DivSynsetRelation"));        
+    }
+   
+    
+    /**
+     * 
+     * @since 0.1.0
+     */
+    @Test
+    public void testTransformWithNamespaces() throws IOException, DocumentException {
+               
+        Assert.fail();
+        
+/**        Diversicons.dropCreateTables(dbConfig);
+
+        Diversicon div = Diversicon.connectToDb(dbConfig);
+        
+        div.importResource(GRAPH_1_HYPERNYM, false);
+        
+        File dir = Internals.createTempDir(DivTester.DIVERSICON_TEST_STRING).toFile();
+        
+        File xml = new File(dir, "test.xml");
+        
+        div.exportToXml(xml.toString(), 
+                        GRAPH_1_HYPERNYM.getName(),
+                        false);
+        
+        String str = FileUtils.readFileToString(xml, "UTF-8");
+        
+        
+        File xml = DivTester.writeXml(DivTester.GRAPH_1_HYPERNYM,
+                Internals.newMap("prefix-1", "url-1",
+                                 "prefix-2", "url-2"));
+        
+        Diversicons.dropCreateTables(dbConfig);
+
+        Diversicon div = Diversicon.connectToDb(dbConfig);
+        
+        div.importResource(GRAPH_1_HYPERNYM, false);
+        
+        File dir = Internals.createTempDir(DivTester.DIVERSICON_TEST_STRING).toFile();
+        
+        File xml = new File(dir, "test.xml");
+        
+        div.exportToXml(xml.toString(), 
+                        GRAPH_1_HYPERNYM.getName(),
+                        false,
+                        Internals.newMap("prefix-1", "url-1",
+                                "prefix-2", "url-2"));
+        
+        SAXReader reader = new SAXReader();
+        Document document = reader.read(xml);
+                
+        String str = FileUtils.readFileToString(xml, "UTF-8");
+        LOG.debug(str);
+        
+        assertEquals(1, document
+                    .selectNodes("//LexicalResource[namespace::*[.='url-1'] "
+                                 + " and namespace::*[.='url-2'] ]" )
+                     .size());
+        // using just string matching because can't select xmlns stuff: https://www.oxygenxml.com/forum/topic4845.html 
+        assertTrue(str.contains("xmlns:prefix-1=\"url-1\""));
+        assertTrue(str.contains("xmlns:prefix-2=\"url-2\""));
+   **/             
+    }
     
     
     /**
@@ -790,7 +993,8 @@ public class DiversiconTest {
                        .isEmpty());
 
         File xml1 = DivTester.writeXml(GRAPH_1_HYPERNYM);
-        File xml2 = DivTester.writeXml(lmf("2nd-").lexicon()
+        String prefix2 = "test2";
+        File xml2 = DivTester.writeXml(lmf(prefix2).lexicon()
                                                   .synset()
                                                   .synset()
                                                   .synset()
@@ -798,7 +1002,8 @@ public class DiversiconTest {
                                                   .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
                                                   .synsetRelation(ERelNameSemantics.HOLONYM, 2)
                                                   .synsetRelation("hello", 3)
-                                                  .build());
+                                                  .build(),
+                                         prefix2);
 
         ImportConfig config = new ImportConfig();
 
@@ -829,7 +1034,7 @@ public class DiversiconTest {
 
         assertTrue(output2.contains(Long.toString(job1.getId())));
         assertTrue(output2.contains(GRAPH_1_HYPERNYM.getName()));
-        assertTrue(output2.contains("2nd"));
+        assertTrue(output2.contains(prefix2));
 
     }
 
@@ -840,37 +1045,41 @@ public class DiversiconTest {
      * @since 0.1.0
      */
     @Test
-    @Ignore
-    public void testCantMergeSameLexicon() {
+    public void testImportCantMergeSameLexicon() {
 
         Diversicons.dropCreateTables(dbConfig);
 
         Diversicon div = Diversicon.connectToDb(dbConfig);
 
-        div.importResource(GRAPH_1_HYPERNYM, true);
+        DivTester.importResource(div, GRAPH_1_HYPERNYM, true);
 
-        div.importResource(GRAPH_1_HYPERNYM, true);
+        try {
+            DivTester.importResource(div, GRAPH_1_HYPERNYM, true);
+            Assert.fail("Shouldn't arrive here!");
+        } catch (InvalidImportException ex){
+            
+        } finally {
+            div.getSession()
+            .close();    
+        }
 
-        DivTester.checkDb(GRAPH_1_HYPERNYM, div);
 
-        div.getSession()
-           .close();
+        
     }
 
     /**
      * @since 0.1.0
      */
     @Test
-    public void testMergeTwoSeparateLexicalResources() {
-
-        String prefix2 = "2nd-";
+    public void testImportTwoSeparateLexicalResources() {
 
         Diversicons.dropCreateTables(dbConfig);
 
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);       
+        
+        DivTester.importResource(div, GRAPH_1_HYPERNYM, true);
 
-        div.importResource(GRAPH_1_HYPERNYM, true);
-
+        String prefix2 = "test2";
         /**
          * 2 verteces and 1 hypernym edge
          */
@@ -879,8 +1088,8 @@ public class DiversiconTest {
                                               .synset()
                                               .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
                                               .build();
-
-        div.importResource(lexRes2, true);
+        LexResPackage pack2 = DivTester.createLexResPackage(lexRes2, prefix2);
+        div.importResource( lexRes2, pack2, true);
 
         DivTester.checkDb(GRAPH_1_HYPERNYM, div);
         DivTester.checkDb(lexRes2, div);
@@ -893,10 +1102,10 @@ public class DiversiconTest {
         ImportJob import1 = div.getImportJobs()
                                .get(1);
 
-        assertEquals("lexical resource 1", import0.getLexicalResourceName());
+        assertEquals("test:lexical resource 1", import0.getResourceDescriptor().getName());
         assertNotEquals(-1, import0.getId());
 
-        assertEquals(prefix2 + "lexical resource 1", import1.getLexicalResourceName());
+        assertEquals(prefix2 + ":lexical resource 1", import1.getResourceDescriptor().getName());
         assertNotEquals(-1, import1.getId());
 
         div.getSession()
@@ -912,7 +1121,7 @@ public class DiversiconTest {
     public void testExportToSqlRestore() throws IOException {
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);
-        div.importResource(GRAPH_1_HYPERNYM, true);
+        DivTester.importResource(div, GRAPH_1_HYPERNYM, true);
         
         Path dir = DivTester.createTestDir();
         File zip = new File(dir.toString() + "/output.sql.zip");
@@ -935,7 +1144,7 @@ public class DiversiconTest {
     public void testExportToSqlToAlreadyExistingFile() throws IOException{
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);
-        div.importResource(GRAPH_1_HYPERNYM, true);
+        DivTester.importResource(div, GRAPH_1_HYPERNYM, true);
         
         Path dir = DivTester.createTestDir();
         File zip = new File(dir.toString() + "/output.sql.zip");
@@ -958,7 +1167,7 @@ public class DiversiconTest {
         
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);
-        div.importResource(GRAPH_1_HYPERNYM, true);
+        DivTester.importResource(div, GRAPH_1_HYPERNYM, true);
         
         Path dir = DivTester.createTestDir();
         File zip = new File(dir.toString() + "/output.sql.zip");
@@ -987,7 +1196,7 @@ public class DiversiconTest {
     public void testExportToSqlInNonExistingDir() throws IOException{
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);
-        div.importResource(GRAPH_1_HYPERNYM, true);
+        importResource(div, GRAPH_1_HYPERNYM, true);
         
         Path dir = DivTester.createTestDir();
         File zip = new File(dir.toString() + "123/output.sql.zip");
@@ -1010,7 +1219,7 @@ public class DiversiconTest {
      * @since 0.1.0
      */
     @Test  
-    public void testInMemoryCompressedH2(){
+    public void testConnectToDbH2InMemoryCompressed(){
         try {
             DBConfig dbConfig = Diversicons.makeDefaultH2InMemoryDbConfig("trial-" + UUID.randomUUID(), true);
             Assert.fail("Shouldn't arrive here!");
@@ -1044,12 +1253,14 @@ public class DiversiconTest {
     }
     
     /**
+     * Attempts to connect with wrong password.
+     * 
      * Test for https://github.com/DavidLeoni/diversicon/issues/13
      * 
      * @since 0.1.0
      */
     @Test
-    public void testConnectionTimeout(){
+    public void testConnectToDbTimeout(){
         
         Date start = new Date();
         
@@ -1072,6 +1283,23 @@ public class DiversiconTest {
                                                   
         }
         
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testGetSynsetRelationsCount(){
+        Diversicons.dropCreateTables(dbConfig);
+
+        Diversicon div = Diversicon.connectToDb(dbConfig);       
+
+        DivTester.importResource(div, GRAPH_1_HYPERNYM, false);
+
+        assertEquals(1, div.getSynsetRelationsCount());
+
+        div.getSession()
+           .close();        
     }
     
 }

@@ -1,13 +1,14 @@
 package it.unitn.disi.diversicon.internal;
 
 import java.io.BufferedInputStream;
-import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -16,21 +17,18 @@ import java.nio.file.Path;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.TimeUnit;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-
 import javax.annotation.Nullable;
+import javax.xml.XMLConstants;
 
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveException;
@@ -44,13 +42,23 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.AttributesImpl;
 
 import com.rits.cloning.Cloner;
 
-import de.tudarmstadt.ukp.lmf.transform.DBConfig;
+import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
+import de.tudarmstadt.ukp.lmf.model.interfaces.IHasID;
+import de.tudarmstadt.ukp.lmf.model.miscellaneous.EVarType;
+import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
+import de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata;
+import de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata.UBYLMFFieldMetadata;
 import it.disi.unitn.diversicon.exceptions.DivException;
 import it.disi.unitn.diversicon.exceptions.DivIoException;
+import it.unitn.disi.diversicon.BuildInfo;
+import it.unitn.disi.diversicon.DivSynsetRelation;
 import it.unitn.disi.diversicon.Diversicon;
+import it.unitn.disi.diversicon.LexResPackage;
 import it.unitn.disi.diversicon.Diversicons;
 
 /**
@@ -647,6 +655,19 @@ public final class Internals {
     }
 
     /**
+     * Gets input stream from a url, for more info see
+     * {@link #readData(String, boolean) readData(dataUrl, false)}
+     * 
+     * @throws DivIoException
+     *             on error.
+     * 
+     * @since 0.1.0
+     */
+    public static ExtractedStream readData(String dataUrl) {
+        return readData(dataUrl, false);
+    }
+
+    /**
      * Gets input stream from a url pointing to possibly compressed data.
      * 
      * @param dataUrl
@@ -656,7 +677,8 @@ public final class Internals {
      *            <li>{@code file:/my/path/data.zip}</li>
      *            <li>{@code http://... }</li>
      *            <li>{@code jar:file:///home/user/data.jar!/my-file.txt}</li>
-     *            <li>{@code jar:file:///home/user/data.jar!/my-file.txt.zip}</li>
+     *            <li>{@code jar:file:///home/user/data.jar!/my-file.txt.zip}
+     *            </li>
      *            <li>whatever protocol..</li>
      *            </ul>
      * @param decompress
@@ -679,9 +701,9 @@ public final class Internals {
         InputStream inputStream = null;
 
         URI uri;
-        
+
         String uriPath;
-        
+
         try {
             uri = new URI(dataUrl);
         } catch (URISyntaxException ex) {
@@ -699,31 +721,31 @@ public final class Internals {
                 try {
 
                     String candidatePathTest = "src/test/resources/" + q;
-                    LOG.trace("    Searching data in " + candidatePathTest + " ...");
+                    LOG.trace("    Searching data at " + candidatePathTest + " ...");
                     inputStream = new FileInputStream(candidatePathTest);
-                    LOG.debug("    Located data in " + candidatePathTest);
+                    LOG.debug("    Located data at " + candidatePathTest);
                 } catch (FileNotFoundException ex1) {
                     try {
                         String candidatePathMain = "src/main/resources/" + q;
-                        LOG.trace("    Searching data in " + candidatePathMain + " ...");
+                        LOG.trace("    Searching data at " + candidatePathMain + " ...");
                         inputStream = new FileInputStream(candidatePathMain);
-                        LOG.debug("    Located data in " + candidatePathMain);
+                        LOG.debug("    Located data at " + candidatePathMain);
                     } catch (FileNotFoundException ex2) {
                         throw new DivIoException("Couldn't find input stream: " + dataUrl.toString());
                     }
                 }
 
             } else {
-                LOG.debug("    Located data in " + dataUrl);
+                LOG.debug("    Located data at " + dataUrl);
             }
         } else {
-            
-            if ("jar".equals(uri.getScheme())){                
+
+            if ("jar".equals(uri.getScheme())) {
                 uriPath = getJarPath(dataUrl);
             } else {
                 uriPath = uri.getPath();
             }
-            
+
             try {
 
                 if (hasProtocol(dataUrl)) {
@@ -732,14 +754,11 @@ public final class Internals {
                     inputStream = new FileInputStream(dataUrl);
                 }
 
-                LOG.debug("    Located data in " + dataUrl);
+                LOG.debug("    Located data at " + dataUrl);
             } catch (IOException ex) {
                 throw new DivIoException("Error while opening lexical resource " + dataUrl + "  !!", ex);
             }
         }
-        
-        
-        
 
         if (decompress && isFormatSupported(uriPath, Diversicons.SUPPORTED_COMPRESSION_FORMATS)) {
 
@@ -771,23 +790,23 @@ public final class Internals {
 
             throw new DivIoException("Found empty stream in archive " + dataUrl.toString() + " !");
 
-        } else {                                        
-            return new ExtractedStream(uriPath, inputStream, dataUrl, false);                
-            
+        } else {
+            return new ExtractedStream(uriPath, inputStream, dataUrl, false);
+
         }
     }
-    
+
     /**
      * @since 0.1.0
      */
-    private static String getJarPath(String dataUrl){
+    private static String getJarPath(String dataUrl) {
         checkArgument(dataUrl.startsWith("jar:"), "Expected input to start with 'jar:', found instead " + dataUrl);
         String subDataUri = dataUrl.replace("jar:", "");
         try {
             return new URI(subDataUri).getPath();
-        } catch (URISyntaxException e) {                
+        } catch (URISyntaxException e) {
             throw new DivException("Couldn't parse subDataUrl " + subDataUri, e);
-        }        
+        }
     }
 
     /**
@@ -835,6 +854,7 @@ public final class Internals {
      *            content is extracted.
      *
      * @throws DivIoException
+     * 
      * @since 0.1.0
      */
     public static void copyDirFromJar(File jarFile, File destDir, String dirPath) {
@@ -849,8 +869,8 @@ public final class Internals {
             normalizedDirPath = dirPath;
         }
 
-        try {
-            JarFile jar = new JarFile(jarFile);
+        try (JarFile jar = new JarFile(jarFile)) {
+
             java.util.Enumeration enumEntries = jar.entries();
             while (enumEntries.hasMoreElements()) {
                 JarEntry jarEntry = (JarEntry) enumEntries.nextElement();
@@ -919,7 +939,7 @@ public final class Internals {
         if (sourceDirFile != null) {
             LOG.debug("\nCopying directory ...\n"
                     + "  from:   {} \n"
-                    + "  to  :   {}", 
+                    + "  to  :   {}",
                     sourceDirFile.getAbsolutePath(),
                     destDir.getAbsolutePath());
             try {
@@ -1180,12 +1200,16 @@ public final class Internals {
     /**
      * This method calculates edit distance between two words.
      * 
-     *  <p>
-     * There are three operations permitted on a word: replace, delete, insert. For example, the edit distance between "a" and "b" is 1, the edit distance between "abc" and "def" is 3. 
+     * <p>
+     * There are three operations permitted on a word: replace, delete, insert.
+     * For example, the edit distance between "a" and "b" is 1, the edit
+     * distance between "abc" and "def" is 3.
      * </p>
      * <p>
-     * Taken from here: http://www.programcreek.com/2013/12/edit-distance-in-java/
+     * Taken from here:
+     * http://www.programcreek.com/2013/12/edit-distance-in-java/
      * </p>
+     * 
      * @since 0.1.0
      */
     public static int editDistance(String word1, String word2) {
@@ -1226,6 +1250,310 @@ public final class Internals {
         }
 
         return dp[len1][len2];
+    }
+
+    /**
+     * Copied this from
+     * {@link de.tudarmstadt.ukp.lmf.transform.UBYXMLTransform#doWriteElement}
+     * 
+     * <p>
+     * Modified in Diversicon to
+     * <ul>
+     * <li>prevent writing wrong tag name DivSynsetRelation</li>
+     * <li>add id to the LexicalResource</li>
+     * <li>add prefix to the LexicalResource</li>
+     * <li>add namespaces to the LexicalResource</li>
+     * <li>skip computed transitive relations</li>
+     * <li>skip non-canonical relations</li>
+     * </ul>
+     * 
+     * </p>
+     * 
+     * @return the element tagname. If null, the element must be skipped.
+     * 
+     * @throws SAXException
+     * 
+     * @since 0.1.0
+     */    
+    @Nullable
+    public static String prepareXmlElement(Object inputLmfObject,
+            boolean closeTag,
+            LexResPackage lexResPackage,
+            UBYLMFClassMetadata classMetadata,
+            AttributesImpl atts,
+            List<Object> children) throws SAXException {
+
+        checkNotNull(inputLmfObject);
+        checkNotNull(atts);
+        checkNotNull(children);
+        Internals.checkLexResPackage(lexResPackage);
+
+        Object lmfObject = inputLmfObject;
+        String elementName = lmfObject.getClass()
+                .getSimpleName();
+
+        if (inputLmfObject instanceof LexicalResource) {
+
+            atts.addAttribute("", "", "id", "CDATA",
+                    lexResPackage.getId());
+
+            atts.addAttribute("", "", "prefix", "CDATA",
+                    lexResPackage.getPrefix());
+            
+            // note at the end of the method we put xmlns
+        } else if (inputLmfObject instanceof DivSynsetRelation) {
+        
+            DivSynsetRelation dsr = (DivSynsetRelation) inputLmfObject;
+            lmfObject = dsr.toSynsetRelation();
+            elementName = SynsetRelation.class.getSimpleName();
+            
+            if (Diversicon.getProvenanceId().equals(dsr.getProvenance())){
+                if (dsr.getDepth() > 1){
+                    return null;   
+                }
+                if (!Diversicons.isCanonicalRelation(dsr.getRelName())){
+                    return null;
+                }
+            }            
+        } 
+        
+        int hibernateSuffixIdx = elementName.indexOf("_$$");
+        if (hibernateSuffixIdx > 0)
+            elementName = elementName.substring(0, hibernateSuffixIdx);
+
+        for (UBYLMFFieldMetadata fieldMeta : classMetadata.getFields()) {
+            EVarType varType = fieldMeta.getVarType();
+            if (varType == EVarType.NONE)
+                continue;
+
+            String xmlFieldName = fieldMeta.getName()
+                                           .replace("_", "");
+            Method getter = fieldMeta.getGetter();
+            Object retObj;
+            try {
+                retObj = getter.invoke(lmfObject);
+            } catch (IllegalAccessException e) {
+                throw new SAXException(e);
+            } catch (InvocationTargetException e) {
+                throw new SAXException(e);
+            }
+
+            if (retObj != null) {
+                switch (fieldMeta.getVarType()) {
+                case ATTRIBUTE:
+                case ATTRIBUTE_OPTIONAL:
+                    atts.addAttribute("", "", xmlFieldName, "CDATA", retObj.toString());
+                    break;
+                case CHILD:
+                    // Transform children of the new element to XML
+                    children.add(retObj);
+                    break;
+                case CHILDREN:
+                    if (closeTag)
+                        for (Object obj : (Iterable<Object>) retObj)
+                            children.add(obj);
+                    break;
+                case IDREF:
+                    // Save IDREFs as attribute of the new element
+                    atts.addAttribute("", "", xmlFieldName, "CDATA", ((IHasID) retObj).getId());
+                    break;
+                case IDREFS:
+                    StringBuilder attrValue = new StringBuilder();
+                    for (Object obj : (Iterable<Object>) retObj)
+                        attrValue.append(attrValue.length() > 0 ? " " : "")
+                                 .append(((IHasID) obj).getId());
+                    if (attrValue.length() > 0)
+                        atts.addAttribute("", "", xmlFieldName, "CDATA", attrValue.toString());
+                    break;
+                case NONE:
+                    break;
+                }
+            }
+        }
+
+        boolean foundXsi = false;
+        String xsiPrefix = "xsi";
+        
+        if (inputLmfObject instanceof LexicalResource) {
+            
+            // note at the beginning of the method we put id and prefix
+            for (String prefix : lexResPackage.getNamespaces()
+                    .keySet()) {
+                String url = lexResPackage.getNamespaces()
+                        .get(prefix);
+                atts.addAttribute("", "", "xmlns:" + prefix, "CDATA",
+                        url);
+                
+                if (XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI.equals(url)){
+                    foundXsi = true;
+                    xsiPrefix = prefix;
+                }                
+            }
+            
+            if (!foundXsi){
+                atts.addAttribute("", "", "xmlns:" + xsiPrefix, "CDATA",
+                        XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
+            }
+            
+            atts.addAttribute("", "", xsiPrefix + ":schemaLocation", "CDATA",
+                    Diversicons.DIVERSICON_SCHEMA_1_0_PUBLIC_URL);
+            
+        }        
+        
+        return elementName;
+    }
+
+    /**
+     * Performs a coherence check on provided lexical resource package.
+     * 
+     * To match it against a LexicalResource, see {@link #checkLexResPackage(LexResPackage, LexicalResource)}
+     * 
+     * @throws IllegalArgumentException
+     * 
+     * @since 0.1.0
+     */
+    public static LexResPackage checkLexResPackage(LexResPackage lexResPackage) {
+        return checkLexResPackage(lexResPackage, null);
+    }   
+    
+    /**
+     * @throws IllegalArgumentException
+     * 
+     * @since 0.1.0
+     */
+    public static LexResPackage checkLexResPackage(
+            LexResPackage pack,
+            @Nullable LexicalResource lexRes) {
+
+        BuildInfo build = BuildInfo.of(Diversicon.class);
+
+        checkNotBlank(pack.getId(), "Invalid lexical resource id!");
+        Diversicons.checkPrefix(pack.getPrefix());
+
+        checkNotBlank(pack.getName(), "Invalid lexical resource name!");
+
+        if (pack.getPrefix()
+                .length() > Diversicons.LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH) {
+            LOG.warn("Lexical resource prefix " + pack.getPrefix() + " longer than "
+                    + Diversicons.LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH
+                    + ": this may cause memory issues.");
+        }
+
+        Diversicons.checkNamespaces(pack.getNamespaces());
+
+        if (!pack.getNamespaces()
+                 .containsKey(pack.getPrefix())) {
+            throw new IllegalArgumentException(
+                    "Couldn't find LexicalResource prefix '" + pack.getPrefix() + "' among namespace prefixes! "
+                            + "See " + build.docsAtVersion() + "/diversicon-lmf.html"
+                            + " for info on how to structure a Diversicon XML!");
+        }
+
+        if (lexRes != null) {
+
+            Internals.checkEquals("", pack.getName(), lexRes.getName());
+        }
+
+        return pack;
+    }
+
+    /**
+     * Copied from Junit 'format'
+     * 
+     * @since 0.1.0
+     */
+    static String formatCheck(String message, Object expected, Object actual) {
+        String formatted = "";
+        if (message != null && !message.equals("")) {
+            formatted = message + " ";
+        }
+        String expectedString = String.valueOf(expected);
+        String actualString = String.valueOf(actual);
+        if (expectedString.equals(actualString)) {
+            return formatted + "expected: "
+                    + formatClassAndValue(expected, expectedString)
+                    + " but was: " + formatClassAndValue(actual, actualString);
+        } else {
+            return formatted + "expected:<" + expectedString + "> but was:<"
+                    + actualString + ">";
+        }
+    }
+
+    /**
+     * Copied from Junit
+     * 
+     * @since 0.1.0
+     */
+    private static String formatClassAndValue(Object value, String valueString) {
+        String className = value == null ? "null" : value.getClass()
+                                                         .getName();
+        return className + "<" + valueString + ">";
+    }
+
+    /**
+     * Adapted from Junit
+     * 
+     * See {@link #checkEquals(String, Object, Object)}
+     * 
+     * @since 0.1.0
+     */
+    static public void checkEquals(
+            @Nullable Object expected,
+            @Nullable Object actual) {
+        checkEquals("", expected, actual);
+    }
+
+    /**
+     * Adapted from Junit
+     * 
+     * Asserts that two objects are equal. If they are not, an
+     * {@link IllegalArgumentError} is thrown with the given message. If
+     * <code>expected</code> and <code>actual</code> are <code>null</code>,
+     * they are considered equal.
+     *
+     * @param message
+     *            the identifying message for the {@link AssertionError} (
+     *            <code>null</code>
+     *            okay)
+     * @param expected
+     *            expected value
+     * @param actual
+     *            actual value
+     * 
+     * @throws IllegalArgumentException
+     * 
+     * @since 0.1.0
+     */
+    static public void checkEquals(
+            @Nullable String message,
+            @Nullable Object expected,
+            @Nullable Object actual) {
+        if (equalsRegardingNull(expected, actual)) {
+            return;
+        } else if (expected instanceof String && actual instanceof String) {
+            String cleanMessage = message == null ? "" : message;
+            throw new IllegalArgumentException(cleanMessage + " Expected:-->" + (String) expected
+                    + "<-- Found:-->" + (String) actual + "<--");
+        } else {
+            String formsg = formatCheck(message, expected, actual);
+            if (formsg == null) {
+                throw new AssertionError();
+            }
+            throw new IllegalArgumentException(formsg);
+        }
+    }
+
+    /**
+     * Copied from Junit
+     * 
+     * @since 0.1.0
+     */
+    private static boolean equalsRegardingNull(Object expected, Object actual) {
+        if (expected == null) {
+            return actual == null;
+        }
+
+        return expected.equals(actual);
     }
 
 }

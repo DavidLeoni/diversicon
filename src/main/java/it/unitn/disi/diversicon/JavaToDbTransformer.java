@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.UUID;
 
 import javax.annotation.Nullable;
 
@@ -36,7 +37,6 @@ import it.unitn.disi.diversicon.internal.Internals;
  * with all the lexicons, synsets, etc.
  * 
  * @since 0.1.0
- * @author David Leoni
  */
 class JavaToDbTransformer extends LMFDBTransformer {
 
@@ -58,24 +58,22 @@ class JavaToDbTransformer extends LMFDBTransformer {
      * 
      * @param resource
      *            a LexicalResource complete with all the lexicons, synsets,
-     *            etc.
-     *            MUST have a {@code name}
+     *            etc. MUST have a {@code name}
      * @throws FileNotFoundException
+     * 
+     * @since 0.1.0
      */
-    public JavaToDbTransformer(DBConfig dbConfig,
+    public JavaToDbTransformer(
+            Diversicon div,
             LexicalResource lexicalResource)
                     throws FileNotFoundException {
-
-        super(dbConfig);
-
+        super(div.getDbConfig());        
+        sessionFactory.close();  // div dirty but needed...       
+        sessionFactory = div.getSessionFactory();       
+                
         checkNotNull(lexicalResource);
         checkNotEmpty(lexicalResource.getName(), "Invalid lexicalResource name!");
-
-        Configuration cfg = Diversicons.getHibernateConfig(dbConfig, false);
-        sessionFactory = cfg.buildSessionFactory(
-                new ServiceRegistryBuilder().applySettings(
-                        cfg.getProperties())
-                                            .buildServiceRegistry());
+        
                 
         session = sessionFactory.openSession();
         
@@ -88,8 +86,8 @@ class JavaToDbTransformer extends LMFDBTransformer {
             /** copy to avoid double additions by LMFDBTransformer */
             LexicalResource lexicalResourceCopy = Internals.deepCopy(lexicalResource);            
             this.lexicalResource = lexicalResourceCopy;
-            this.lexicalResource.setLexicons(new ArrayList());
-            this.lexicalResource.setSenseAxes(new ArrayList());
+            this.lexicalResource.setLexicons(new ArrayList<Lexicon>());
+            this.lexicalResource.setSenseAxes(new ArrayList<SenseAxis>());
         } else {
             LOG.info("Importing into existing lexical resource " + lexicalResource.getName());
             this.lexicalResource = existingLexicalResource;            
@@ -103,12 +101,17 @@ class JavaToDbTransformer extends LMFDBTransformer {
 
     }
 
-
+    /**
+     * @since 0.1.0
+     */
     @Override
     protected LexicalResource createLexicalResource() {
         return lexicalResource;
     }
 
+    /**
+     * @since 0.1.0
+     */    
     @Override
     protected Lexicon createNextLexicon() {
         // resetting lexicon array properties to avoid double additions by
@@ -120,22 +123,22 @@ class JavaToDbTransformer extends LMFDBTransformer {
 
             subcategorizationFrameIter = lexicon.getSubcategorizationFrames()
                                                 .iterator();
-            lexicon.setSubcategorizationFrames(new ArrayList());
+            lexicon.setSubcategorizationFrames(new ArrayList<SubcategorizationFrame>());
             subcategorizationFrameSetIter = lexicon.getSubcategorizationFrameSets()
                                                    .iterator();
-            lexicon.setSubcategorizationFrameSets(new ArrayList());
+            lexicon.setSubcategorizationFrameSets(new ArrayList<SubcategorizationFrameSet>());
             lexicalEntryIter = lexicon.getLexicalEntries()
                                       .iterator();
-            lexicon.setLexicalEntries(new ArrayList());
+            lexicon.setLexicalEntries(new ArrayList<LexicalEntry>());
             semanticPredicateIter = lexicon.getSemanticPredicates()
                                            .iterator();
-            lexicon.setSemanticPredicates(new ArrayList());
+            lexicon.setSemanticPredicates(new ArrayList<SemanticPredicate>());
             synSemCorrespondenceIter = lexicon.getSynSemCorrespondences()
                                               .iterator();
-            lexicon.setSynSemCorrespondences(new ArrayList());
+            lexicon.setSynSemCorrespondences(new ArrayList<SynSemCorrespondence>());
             constraintSetIter = lexicon.getConstraintSets()
                                        .iterator();
-            lexicon.setConstraintSets(new ArrayList());
+            lexicon.setConstraintSets(new ArrayList<ConstraintSet>());
             return lexicon;
         } else {
             return null;
@@ -143,6 +146,11 @@ class JavaToDbTransformer extends LMFDBTransformer {
 
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @since 0.1.0
+     */    
     @Override
     protected LexicalEntry getNextLexicalEntry() {
         if (lexicalEntryIter.hasNext()) {
@@ -157,6 +165,8 @@ class JavaToDbTransformer extends LMFDBTransformer {
 
     /**
      * Return the next element of the iterator or {@code null} if there is none
+     * 
+     * @since 0.1.0
      */
     @Nullable
     private static <T> T next(Iterator<T> iter) {
@@ -167,46 +177,91 @@ class JavaToDbTransformer extends LMFDBTransformer {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @since 0.1.0
+     */        
     @Override
     protected SubcategorizationFrame getNextSubcategorizationFrame() {
         return next(subcategorizationFrameIter);
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @since 0.1.0
+     */        
     @Override
     protected SubcategorizationFrameSet getNextSubcategorizationFrameSet() {
         return next(subcategorizationFrameSetIter);
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @since 0.1.0
+     */        
     @Override
     protected SemanticPredicate getNextSemanticPredicate() {
         return next(semanticPredicateIter);
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @since 0.1.0
+     */        
     @Override
     protected Synset getNextSynset() {
         return next(synsetIter);
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @since 0.1.0
+     */        
     @Override
     protected SynSemCorrespondence getNextSynSemCorrespondence() {
         return next(synSemCorrespondenceIter);
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @since 0.1.0
+     */        
     @Override
     protected ConstraintSet getNextConstraintSet() {
         return next(constraintSetIter);
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @since 0.1.0
+     */        
     @Override
     protected SenseAxis getNextSenseAxis() {
         return next(senseAxisIter);
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @since 0.1.0
+     */        
     @Override
     protected void finish() {
 
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @since 0.1.0
+     */    
     @Override
     protected String getResourceAlias() {
         return lexicalResource.getName();
