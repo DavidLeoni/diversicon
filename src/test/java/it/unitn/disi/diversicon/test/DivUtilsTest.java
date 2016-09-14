@@ -5,13 +5,13 @@ import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static it.unitn.disi.diversicon.test.DivTester.DEFAULT_TEST_PREFIX;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
@@ -27,16 +27,11 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xml.sax.SAXException;
-
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
-import de.tudarmstadt.ukp.lmf.transform.LMFXmlWriter;
-import it.disi.unitn.diversicon.exceptions.DivException;
 import it.disi.unitn.diversicon.exceptions.DivIoException;
 import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
-import it.unitn.disi.diversicon.BuildInfo;
 import it.unitn.disi.diversicon.DivXmlErrorHandler;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.LexResPackage;
@@ -445,14 +440,14 @@ public class DivUtilsTest {
     @Test
     public void testWriteLexResToXmlWithNamespaces() throws IOException, DocumentException {
                 
-        String pref2 = LmfBuilder.DEFAULT_PREFIX + "-2";
+        String pref2 = DEFAULT_TEST_PREFIX + "-2";
         
         LexResPackage pack = new LexResPackage();
         pack.setName(DivTester.GRAPH_1_HYPERNYM.getName());
-        pack.setPrefix(LmfBuilder.DEFAULT_PREFIX);
-        pack.setId(LmfBuilder.DEFAULT_PREFIX);
+        pack.setPrefix(DEFAULT_TEST_PREFIX);
+        pack.setId(DEFAULT_TEST_PREFIX);
         pack.setNamespaces(Internals.newMap(
-                LmfBuilder.DEFAULT_PREFIX, "url-1",
+                DEFAULT_TEST_PREFIX, "url-1",
                 pref2, "url-2"));
         
         File xml = DivTester.writeXml(DivTester.GRAPH_1_HYPERNYM, pack);

@@ -43,12 +43,7 @@ import org.slf4j.LoggerFactory;
 // todo implement all elements builders... huge!
 public class LmfBuilder {
     
-    private static final Logger LOG = LoggerFactory.getLogger(LmfBuilder.class);
-    
-    /**
-     * @since 0.1.0
-     */
-    public static final String DEFAULT_PREFIX = "test";
+    private static final Logger LOG = LoggerFactory.getLogger(LmfBuilder.class);    
 
     private LexicalResource lexicalResource;
     private long lastSenseId;
@@ -338,7 +333,7 @@ public class LmfBuilder {
      * @since 0.1.0
      */
     public static LmfBuilder lmf() {
-        return new LmfBuilder(DEFAULT_PREFIX);
+        return new LmfBuilder(DivTester.DEFAULT_TEST_PREFIX);
     };
 
     /**

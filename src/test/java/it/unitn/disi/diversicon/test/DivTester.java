@@ -58,6 +58,11 @@ import it.unitn.disi.diversicon.exceptions.DivValidationException;
 import it.unitn.disi.diversicon.internal.Internals;
 
 public final class DivTester {
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String DEFAULT_TEST_PREFIX = "test";
     
     /**
      * @since 0.1.0
@@ -597,7 +602,7 @@ public final class DivTester {
      * @since 0.1.0
      */
     public static LexResPackage createLexResPackage(LexicalResource lexRes){
-        return createLexResPackage(lexRes, LmfBuilder.DEFAULT_PREFIX);
+        return createLexResPackage(lexRes, DEFAULT_TEST_PREFIX);
     }    
     
     
@@ -623,14 +628,14 @@ public final class DivTester {
     }
     
     /**
-     * Creates an XML file out of the provided lexical resource and {@link #DEFAULT_PREFIX}.
+     * Creates an XML file out of the provided lexical resource and {@link #DEFAULT_TEST_PREFIX}.
      * 
      * Other required parameters will be automatically generated in a predictable manner.
      * 
      * @since 0.1.0
      */
     public static File writeXml(LexicalResource lexRes) {        
-        return writeXml(lexRes, LmfBuilder.DEFAULT_PREFIX);
+        return writeXml(lexRes, DEFAULT_TEST_PREFIX);
     }
 
     /**
@@ -685,5 +690,15 @@ public final class DivTester {
         }
         return f;
     }
+    
+    /**
+     * Adds default prefix used during tests.
+     * 
+     * @since 0.1.0
+     */
+    public static String tid(String name){        
+        return DEFAULT_TEST_PREFIX + ":" + name;
+    }
+
     
 }
