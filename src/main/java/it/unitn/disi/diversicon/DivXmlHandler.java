@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Nullable;
+import javax.xml.transform.ErrorListener;
+import javax.xml.transform.TransformerException;
 
 import org.apache.xml.serialize.OutputFormat.Defaults;
 import org.slf4j.Logger;
@@ -24,7 +26,7 @@ import it.disi.unitn.diversicon.exceptions.DivException;
  * @since 0.1.0
  *
  */
-public class DivXmlErrorHandler implements ErrorHandler {
+public class DivXmlHandler implements ErrorHandler, ErrorListener {
 
     public static final int MAX_FIRST_ISSUES = 10;
 
@@ -32,12 +34,12 @@ public class DivXmlErrorHandler implements ErrorHandler {
     
     private long logLimit;
 
-    private List<SAXParseException> firstWarnings;
-    private List<SAXParseException> firstErrors;
+    private List<Exception> firstWarnings;
+    private List<Exception> firstErrors;
     private long warningCount;
     private long errorCount;
     @Nullable
-    private SAXParseException fatalError;
+    private Exception fatalError;
     private String fatalReason;
     
     private String defaultSystemId;
@@ -45,8 +47,8 @@ public class DivXmlErrorHandler implements ErrorHandler {
     /**
      * @since 0.1.0
      */
-    private DivXmlErrorHandler() {
-        this.log = LoggerFactory.getLogger(DivXmlErrorHandler.class);
+    private DivXmlHandler() {
+        this.log = LoggerFactory.getLogger(DivXmlHandler.class);
         this.warningCount = 0;
         this.errorCount = 0;
         this.firstErrors = new ArrayList<>();
@@ -64,7 +66,7 @@ public class DivXmlErrorHandler implements ErrorHandler {
      * @param logLimit if -1 all logs are outputted.
      * @since 0.1.0
      */
-    public DivXmlErrorHandler(
+    public DivXmlHandler(
             @Nullable Logger log, 
             long logLimit, 
             String defaultSystemId) {
@@ -126,7 +128,7 @@ public class DivXmlErrorHandler implements ErrorHandler {
      * 
      * @since 0.1.0
      */
-    public List<SAXParseException> getFirstWarnings() {
+    public List<Exception> getFirstWarnings() {
         return Collections.unmodifiableList(firstWarnings);
     }
 
@@ -135,7 +137,7 @@ public class DivXmlErrorHandler implements ErrorHandler {
      * 
      * @since 0.1.0
      */
-    public List<SAXParseException> getFirstErrors() {
+    public List<Exception> getFirstErrors() {
         return Collections.unmodifiableList(firstErrors);
     }
 
@@ -157,7 +159,7 @@ public class DivXmlErrorHandler implements ErrorHandler {
      * 
      * @see #isFatal()
      */
-    public SAXParseException fatalError() {
+    public Exception fatalError() {
         if (!isFatal()) {
             throw new DivException("No fatal error was raised!");
         }
@@ -190,9 +192,27 @@ public class DivXmlErrorHandler implements ErrorHandler {
      * 
      * @since 0.1.0
      */
-    public void warning(SAXParseException ex) {
+    @Override
+    public void warning(SAXParseException ex) {        
+        processWarning(ex);
+    }
 
-        
+    /**
+     * 
+     * {@inheritDoc}
+     * 
+     * @since 0.1.0
+     */    
+    @Override
+    public void warning(TransformerException ex) throws TransformerException {
+        processWarning(ex);
+    }
+
+    /**
+     * 
+     * @since 0.1.0
+     */
+    private void processWarning(Exception ex){
         if (firstWarnings.size() < MAX_FIRST_ISSUES){
             firstWarnings.add(ex);
         }
@@ -203,14 +223,26 @@ public class DivXmlErrorHandler implements ErrorHandler {
         
         this.warningCount += 1;
     }
-
+    
     /**
      * {@inheritDoc}
      * 
      * @since 0.1.0
      */
+    @Override
     public void error(SAXParseException ex) {                             
-
+        processError(ex);
+    }
+    
+    @Override
+    public void error(TransformerException ex) throws TransformerException {
+        processError(ex);
+    }   
+    
+    /**
+     * @since 0.1.0
+     */
+    private void processError(Exception ex){
         if (firstErrors.size() < MAX_FIRST_ISSUES){
             firstErrors.add(ex);
         }
@@ -219,7 +251,7 @@ public class DivXmlErrorHandler implements ErrorHandler {
             log.error(exceptionToString(ex, defaultSystemId));            
         }
 
-        this.errorCount += 1; 
+        this.errorCount += 1;
     }
 
     /**
@@ -243,6 +275,16 @@ public class DivXmlErrorHandler implements ErrorHandler {
         log.error("FATAL:  " + exceptionToString(ex, defaultSystemId));
         throw ex;
     }
+    
+    
+    @Override
+    public void fatalError(TransformerException ex) throws TransformerException {
+        this.fatalError = ex;
+
+        log.error("FATAL:  " + exceptionToString(ex, defaultSystemId));
+        throw ex;
+    }
+ 
 
     /**
      * Returns true if there were validation problems.
@@ -269,30 +311,44 @@ public class DivXmlErrorHandler implements ErrorHandler {
      * @since 0.1.0
      */
     // todo think about public id
-    private static String exceptionToString(SAXParseException ex, String defaultSystemId){
+    private static String exceptionToString(Exception ex, String defaultSystemId){
+        
+        String systemId = null;
+        long lineNumber = -1;
+        long colNumber = -1;
+        
+        if (ex instanceof SAXParseException){
+            SAXParseException spe = (SAXParseException) ex;
+            systemId = ((SAXParseException) ex).getSystemId();
+            lineNumber = spe.getLineNumber();
+            colNumber = spe.getColumnNumber();
+        } else if (ex instanceof TransformerException){
+            systemId = null;
+        }
         
         StringBuilder buf = new StringBuilder();
         String message = ex.getLocalizedMessage();
         //if (publicId!=null)    buf.append("publicId: ").append(publicId);
         
         String first;
-        if (ex.getSystemId()!=null
-                && !ex.getSystemId().equals(defaultSystemId)){
-            buf.append("; systemId: ").append(ex.getSystemId());
+        if (systemId!=null
+                && !systemId.equals(defaultSystemId)){
+            buf.append("; systemId: ").append(systemId);
             first = ";";
         } else {
             first = "";
         }
         
-        buf.append(first + " [line ").append(ex.getLineNumber());
-        buf.append(" col ").append(ex.getColumnNumber()).append("]: ");
+        buf.append(first + " [line ").append(lineNumber);
+        buf.append(" col ").append(colNumber).append("]: ");
 
         //append the exception message at the end
         if (message==null){
             buf.append("unknown problem.");
         } else {
             String fixedMessage;
-            if (message.contains("Content is not allowed in prolog")){
+
+            if (message.contains("Content is not allowed in prolog")){  
                 fixedMessage = "Unparseable XML!";
             } else {
                 fixedMessage = message;
@@ -302,5 +358,10 @@ public class DivXmlErrorHandler implements ErrorHandler {
         
         return buf.toString();        
     }
+
+
+
+
+
     
 }

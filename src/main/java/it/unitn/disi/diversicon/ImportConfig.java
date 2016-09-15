@@ -1,5 +1,6 @@
 package it.unitn.disi.diversicon;
 
+import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 
@@ -18,6 +19,7 @@ public class ImportConfig {
     private String author;
     private String description;
     private boolean skipAugment;
+    private int logLimit;
 
     /**
      * Default constructor.
@@ -31,12 +33,12 @@ public class ImportConfig {
         this.author = "";
         this.description = "";
         this.skipAugment = false;
+        this.logLimit = -1;
     }
 
-
-
     /**
-     * The URL of the files to import. For supported URL formats see {@link it.unitn.disi.diversicon.internal.Internals#readData(String, boolean)
+     * The URL of the files to import. For supported URL formats see
+     * {@link it.unitn.disi.diversicon.internal.Internals#readData(String, boolean)
      * Internals.readData}
      * 
      * @since 0.1.0
@@ -121,7 +123,7 @@ public class ImportConfig {
      * @since 0.1.0
      */
     public void addLexicalResource(String fileUrl) {
-        checkNotEmpty(fileUrl, "Invalid lexical resource file URL!");       
+        checkNotEmpty(fileUrl, "Invalid lexical resource file URL!");
         this.fileUrls.add(fileUrl);
     }
 
@@ -132,23 +134,43 @@ public class ImportConfig {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        
+
         sb.append("ImportConfig:\n");
         sb.append("  author      = " + author + "\n");
         sb.append("  description = " + description + "\n");
         sb.append("  skipAugment = " + skipAugment + "\n");
         sb.append("  fileUrls    = ");
-        
-        if (fileUrls.isEmpty()){
+
+        if (fileUrls.isEmpty()) {
             sb.append("[]\n");
         } else {
-            for (String s : fileUrls){
+            for (String s : fileUrls) {
                 sb.append("    " + s + "\n");
-            }            
+            }
         }
-        
+
         return sb.toString();
     }
-    
-    
+
+    /**
+     * A limit on the maximum number of logs occurring during the import.
+     * This number is merely an indication to Diversicon, actual output rows
+     * may vary.
+     * 
+     * @since 0.1.0
+     */
+    public int getLogLimit() {
+        return logLimit;
+    }
+
+    /**
+     * Sets the log limit, see {@link #getLogLimit()}
+     * 
+     * @since 0.1.0
+     */
+    public void setLogLimit(int logLimit) {
+        checkArgument(logLimit >= -1, "Log limit must be >= -1, found instead %s", logLimit);
+        this.logLimit = logLimit;
+    }
+
 }

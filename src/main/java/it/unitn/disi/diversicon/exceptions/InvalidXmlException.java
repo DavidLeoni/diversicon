@@ -6,7 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import it.disi.unitn.diversicon.exceptions.DivException;
-import it.unitn.disi.diversicon.DivXmlErrorHandler;
+import it.unitn.disi.diversicon.DivXmlHandler;
 
 /**
  * A runtime exception raised when Xml validation fails. 
@@ -19,12 +19,12 @@ public class InvalidXmlException extends DivException {
 
     private static final Logger LOG = LoggerFactory.getLogger(InvalidXmlException.class);
     
-    private DivXmlErrorHandler errorHandler;
+    private DivXmlHandler errorHandler;
     
     /**
      * @since 0.1.0
      */
-    public InvalidXmlException(DivXmlErrorHandler errorHandler){
+    public InvalidXmlException(DivXmlHandler errorHandler){
         super();
         setErrorHandler(errorHandler);
     }
@@ -34,7 +34,7 @@ public class InvalidXmlException extends DivException {
      * 
      * @since 0.1.0
      */
-    public InvalidXmlException(DivXmlErrorHandler errorHandler, String msg, Throwable tr) {
+    public InvalidXmlException(DivXmlHandler errorHandler, String msg, Throwable tr) {
         super(msg, tr);
         setErrorHandler(errorHandler);
     }
@@ -44,7 +44,7 @@ public class InvalidXmlException extends DivException {
      * 
      * @since 0.1.0
      */
-    public InvalidXmlException(DivXmlErrorHandler errorHandler, String msg) {
+    public InvalidXmlException(DivXmlHandler errorHandler, String msg) {
         super(msg);
         setErrorHandler(errorHandler);        
     }
@@ -54,7 +54,7 @@ public class InvalidXmlException extends DivException {
      * @since 0.1.0
      */
     @Nullable
-    public DivXmlErrorHandler getErrorHandler() {
+    public DivXmlHandler getErrorHandler() {
         return errorHandler;
     }
 
@@ -62,7 +62,7 @@ public class InvalidXmlException extends DivException {
     /**
      * 
      */
-    private void setErrorHandler(@Nullable DivXmlErrorHandler errorHandler) {
+    private void setErrorHandler(@Nullable DivXmlHandler errorHandler) {
         if (errorHandler == null){
             LOG.error("Found null error handler!!!");
         }

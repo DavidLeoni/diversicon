@@ -104,7 +104,7 @@ public class Diversicon extends Uby {
      * 
      * @since 0.1.0
      */
-    private static final Map<Integer, Diversicon> INSTANCES = new HashMap();
+    private static final Map<Integer, Diversicon> INSTANCES = new HashMap<>();
 
     /**
      * If you set this system property, temporary files won't be deleted at JVM
@@ -858,7 +858,6 @@ public class Diversicon extends Uby {
             } catch (Exception ex) {
                 throw new InterruptedImportException("Error while augmenting graph with computed edges!", ex);
             }
-
         }
 
         logImportResult(config, start, ret);
@@ -923,14 +922,15 @@ public class Diversicon extends Uby {
         LexResPackage lexResPackage;
 
         try {
-            lexResPackage = Diversicons.readResource(fileUrl);
+            lexResPackage = Diversicons.readPackageFromLexRes(fileUrl);
         } catch (Exception ex) {
             throw new InvalidImportException("Couldn't extract attributes from LexicalResource " + fileUrl, ex);
         }
 
-        ImportJob job = createImportJob(
+        ImportJob job = newImportJob(
                 config,
                 fileUrl,
+                file, 
                 lexResPackage);
         
         try {
@@ -1041,20 +1041,24 @@ public class Diversicon extends Uby {
 
     /**
      * 
-     * !!!! IMPORTANT !!!!! You are supposed to know in advance the
-     * {@code lexResName } and {@code lexResNamespaces } ,
-     * which must match the {@code name} of the lexical resource inside the
-     * file!!
+     * Creates an {@link ImportJob} Java object. No data will be written into the db.
+     * Still, db can get accessed to validate the input.
+     * 
+     * !!!! IMPORTANT !!!!! {@code pack} must already contain data about the resource!!
      * 
      * @throws InvalidImportException
-     *             if throws means some validation failed but no
+     *             if thrown means some validation failed but no
      *             LexicalResource data was written to disk.
      * 
+     * @param the phyisical source LMF XML file. If there was none, use {@code null} 
+     * @see #setCurrentImportJob(ImportJob)
      * @since 0.1.0
      */
-    private ImportJob createImportJob(
+    private ImportJob newImportJob(
             ImportConfig config,
             String fileUrl,
+            @Nullable
+            File file,
             LexResPackage pack) {
 
         try {
@@ -1065,7 +1069,16 @@ public class Diversicon extends Uby {
                     "Couldn't find fileUrl " + fileUrl + "in importConfig!");
 
             Internals.checkLexResPackage(pack);
-
+            
+            if (file != null){
+                LOG.info("Validating the XML " + file.getAbsolutePath() + "   ...");
+                try {
+                    Diversicons.validateXml(file, LOG, config.getLogLimit());
+                } catch (Exception ex){
+                    throw new InvalidImportException("Found invalid XML !", ex);
+                }                
+            }
+            
             List<ImportJob> jobs = getImportJobs();
             
             for (ImportJob job : jobs){
@@ -1092,7 +1105,7 @@ public class Diversicon extends Uby {
                                              .get(prefix);
                     if (!Objects.equals(urlInDb, urlToImport)) {
                         throw new InvalidImportException(
-                                "Tried to import a prefix which in the db is assigned to another url! "
+                                "Tried to import a prefix which is assigned to another resource url in the db! "
                                         + "Prefix is " + prefix + "  ; url to import = " + urlToImport
                                         + "  ;  url in the db = " + urlInDb);
                     }
@@ -1107,27 +1120,35 @@ public class Diversicon extends Uby {
                       + "Using " + config.toString(), ex);                    
                     
         }
+        
+        ImportJob job = new ImportJob();
 
+        job.setAuthor(config.getAuthor());
+        job.setDescription(config.getDescription());
+        job.setStartDate(new Date());
+        job.setFileUrl(fileUrl);
+        job.setLexResPackage(pack);
+
+        return job;
+        
+    }
+    
+    /**
+     * @since 0.1.0
+     * @param job
+     */
+    private void setCurrentImportJob(ImportJob job){
         Transaction tx = null;
         try {
             tx = session.beginTransaction();
-
-            ImportJob job = new ImportJob();
-
-            job.setAuthor(config.getAuthor());
-            job.setDescription(config.getDescription());
-            job.setStartDate(new Date());
-            job.setFileUrl(fileUrl);
-            job.setLexResPackage(pack);
-
+            
             session.saveOrUpdate(job);
 
             DbInfo dbInfo = getDbInfo();
             dbInfo.setCurrentImportJob(job);
             session.saveOrUpdate(dbInfo);
 
-            tx.commit();
-            return job;
+            tx.commit();            
 
         } catch (Exception ex) {
             LOG.error("Error while adding import job in db, rolling back!");
@@ -1137,6 +1158,7 @@ public class Diversicon extends Uby {
 
             throw new DivException("Error while adding import job in db!", ex);
         }
+        
     }
 
     /**
@@ -1189,8 +1211,9 @@ public class Diversicon extends Uby {
      *            if true, after the import prevents the graph froom being
      *            normalized
      *            and augmented with transitive closure.
-     * @throws DivException
-     * @throws DivValidationException
+     * @throws InvalidImportException
+     * @throws InterruptedImportException
+     * 
      * 
      * @since 0.1.0
      */
@@ -1205,46 +1228,43 @@ public class Diversicon extends Uby {
         LOG.info("Going to save lexical resource to database...");
 
         ImportJob job = null;
-
-        DbInfo oldDbInfo = prepareDbForImport();
-        
         ImportConfig config; 
+
+        config = new ImportConfig();
+        config.setSkipAugment(skipAugment);
+        config.setAuthor(DEFAULT_AUTHOR);
+        String fileUrl = MEMORY_PROTOCOL + ":" + lexicalResource.hashCode();
+        config.addLexicalResource(fileUrl);
         
         try {
-
-            config = new ImportConfig();    
-
-            config.setSkipAugment(skipAugment);
-            config.setAuthor(DEFAULT_AUTHOR);
-
-            String fileUrl = MEMORY_PROTOCOL + ":" + lexicalResource.hashCode();
-
-            config.addLexicalResource(fileUrl);
-
-            job = createImportJob(config,
+            
+            job = newImportJob(config,
                     fileUrl,
-                    lexResPackage);
+                    null,
+                    lexResPackage);            
+        
+            prepareDbForImport();
+            
+            setCurrentImportJob(job);
+            
+            new JavaToDbTransformer(this, lexicalResource).transform();
+            
+            if (!skipAugment) {
+                processGraph();
+            }
+            
+            endImportJob(job);
 
         } catch (InvalidImportException ex) {
 
             LOG.error("Import failed, no LexicalResource data was written to disk. "
                     + "Aborting all imports.", ex);
-            setDbInfo(oldDbInfo);
-
             throw ex;
-        }
-
-        try {
-            new JavaToDbTransformer(this, lexicalResource).transform();
-            if (!skipAugment) {
-                processGraph();
-            }
-            endImportJob(job);
-
         } catch (Exception ex) {
             throw new InterruptedImportException("Error when importing lexical resource "
                     + lexicalResource.getName() + " !", ex);
         }
+        
         LOG.info("Done saving.");       
         
         return job;

@@ -3,8 +3,10 @@ package it.unitn.disi.diversicon;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.StringWriter;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -24,8 +26,13 @@ import java.util.regex.Pattern;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.xerces.impl.Constants;
+import org.dom4j.Document;
 import org.dom4j.DocumentException;
+import org.dom4j.io.DocumentResult;
+import org.dom4j.io.DocumentSource;
+import org.dom4j.io.OutputFormat;
 import org.dom4j.io.SAXReader;
+import org.dom4j.io.XMLWriter;
 import org.h2.tools.RunScript;
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
@@ -34,6 +41,7 @@ import org.hibernate.Transaction;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.service.ServiceRegistryBuilder;
 import org.hibernate.tool.hbm2ddl.SchemaExport;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
@@ -41,7 +49,12 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.xml.sax.SAXException;
 
 import javax.annotation.Nullable;
+import javax.xml.transform.ErrorListener;
 import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
@@ -78,10 +91,26 @@ public final class Diversicons {
 
     private static final Logger LOG = LoggerFactory.getLogger(Diversicons.class);
 
-    
+    /**
+     * @since 0.1.0
+     */
     public static final String DIVERSICON_SCHEMA_1_0_FILENAME = "diversicon-1.0.xsd";
+    
+    /**
+     * @since 0.1.0
+     */
     public static final String DIVERSICON_SCHEMA_1_0_CLASSPATH_URL = "classpath:/" + DIVERSICON_SCHEMA_1_0_FILENAME;      
+
+    /**
+     * @since 0.1.0
+     */    
     public static final String DIVERSICON_SCHEMA_1_0_PUBLIC_URL = "https://github.com/DavidLeoni/diversicon/tree/master/src/main/resources/" + DIVERSICON_SCHEMA_1_0_FILENAME;
+    
+    /**
+     * @since 0.1.0
+     */
+    public static final String UBY_DTD_TO_DIV_SCHEMA_XSLT_CLASSPATH_URL = "classpath://uby-dtd-to-div-schema.xslt";
+    
     
     /**
      * Suggested max length for lexical resource names, which are also prefixes like wn31, sm.
@@ -1367,16 +1396,6 @@ public final class Diversicons {
     }
     
     /**
-     * TODO put a link to this most precious cookbook somewhere: 
-     * http://www.datypic.com/books/defxmlschema/chapter14.html
-     * 
-     * See also http://www.ibm.com/developerworks/library/x-xml11pt2/
-     * 
-     * important point about child/parent deps: http://stackoverflow.com/a/25344978
-     * 
-     * @throws InvalidXmlException
-     * 
-     * @since 0.1.0
      * 
      */
     public static void validateXml(File xmlFile, Logger log, long logLimit){
@@ -1398,7 +1417,7 @@ public final class Diversicons {
         }
 
         Source source = new StreamSource(xmlFile);        
-        DivXmlErrorHandler errorHandler = new DivXmlErrorHandler(log, logLimit, source.getSystemId());        
+        DivXmlHandler errorHandler = new DivXmlHandler(log, logLimit, source.getSystemId());        
         
         Validator validator = schema.newValidator();
         
@@ -1425,7 +1444,7 @@ public final class Diversicons {
      * 
      * @since 0.1.0
      */
-    public static LexResPackage readResource(String lexResUrl) {
+    public static LexResPackage readPackageFromLexRes(String lexResUrl) {
         
         LexResPackage ret = new LexResPackage();
         
@@ -1511,5 +1530,87 @@ public final class Diversicons {
             throw new IllegalArgumentException("Invalid id!");
         }        
     }
+
+    /**
+     * Parses a Diversicon DTD and creates a corresponding XML Schema,
+     * adding further constraints
+     * 
+     * @since 0.1.0
+     */    
+    public void generateXmlSchemaFromDtd(File output){
+        checkNotNull(output);
         
+        File xslt = Internals.readData(UBY_DTD_TO_DIV_SCHEMA_XSLT_CLASSPATH_URL).toTempFile();
+        
+        
+    }
+    
+    /**
+     * 
+     * @param inXml
+     * @param outXml
+     * 
+     * @since 0.1.0
+     */
+    public void transform(File inXml, File outXml, int logLimit){
+
+        checkNotNull(inXml);
+        checkNotNull(outXml);
+        
+        SAXReader reader = new SAXReader(false);
+        DivXmlHandler handler = new DivXmlHandler(
+                LOG, logLimit, 
+                "666");
+        reader.setErrorHandler(handler);
+        Document document;
+        
+        try {
+            document = reader.read(inXml);
+        } catch (DocumentException ex) {            
+            throw new InvalidXmlException(handler, "Something went wrong!", ex);
+        }
+        String stylesheet = "src/main/resources/owa-to-uby.xslt";
+
+        // load the transformer using JAXP
+        TransformerFactory factory = TransformerFactory.newInstance();
+        Transformer transformer;
+        ErrorListener d;
+        try {
+            transformer = factory.newTransformer(
+                    new StreamSource(stylesheet));            
+        } catch (TransformerConfigurationException ex) {            
+            throw new InvalidXmlException(handler, "Something went wrong!",  ex);
+        }
+        
+        transformer.setErrorListener(handler);
+
+        // now lets style the given document
+        DocumentSource source = new DocumentSource(document);
+        DocumentResult result = new DocumentResult();
+        
+        try {
+            transformer.transform(source, result);
+        } catch (TransformerException ex) {        
+            throw new InvalidXmlException(handler, "Something went wrong!", ex);
+        }
+
+        Document transformedDoc = result.getDocument();
+
+        OutputFormat format = OutputFormat.createPrettyPrint();
+       /* FileWriter fw = new FileWriter(outXml);
+        XMLWriter writer = new XMLWriter(fw, format);
+        try {
+            writer.write(transformedDoc);
+        } catch (IOException e) {
+            
+            throw new RuntimeException("Something went wrong!", e);
+        }
+
+        //LOG.debug("\n" + sw.toString());
+        */
+        
+        throw new UnsupportedOperationException("TODO IMPLEMENT ME!");
+    }
+
+    
 }

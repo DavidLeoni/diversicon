@@ -23,7 +23,6 @@ import org.dom4j.io.SAXReader;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +31,7 @@ import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import it.disi.unitn.diversicon.exceptions.DivIoException;
 import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
-import it.unitn.disi.diversicon.DivXmlErrorHandler;
+import it.unitn.disi.diversicon.DivXmlHandler;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.LexResPackage;
 import it.unitn.disi.diversicon.Diversicons;
@@ -89,17 +88,13 @@ public class DivUtilsTest {
     
     
     @Test
-    public void testExistsDb(){
-        
+    public void testExistsDb(){        
         assertFalse(Diversicons.isSchemaValid(dbConfig));
         
         Diversicons.dropCreateTables(dbConfig);
-        assertTrue(Diversicons.isSchemaValid(dbConfig));
-           
+        assertTrue(Diversicons.isSchemaValid(dbConfig));           
     }
-    
-    
-    
+
     @Test
     public void testNewMap(){
         
@@ -168,13 +163,13 @@ public class DivUtilsTest {
     @Test
     public void testReadDiversiconResource() {
         
-        LexResPackage dr = Diversicons.readResource(Examplicon.XML_URI);               
+        LexResPackage dr = Diversicons.readPackageFromLexRes(Examplicon.XML_URI);               
         
         assertEquals(Examplicon.NAME, dr.getName());
         
         assertEquals(Examplicon.PREFIX, dr.getPrefix());
         
-        Map<String, String> ns = Diversicons.readResource(Examplicon.XML_URI).getNamespaces();
+        Map<String, String> ns = Diversicons.readPackageFromLexRes(Examplicon.XML_URI).getNamespaces();
         
         assertEquals(3, ns.size());
         assertTrue(ns.containsKey(Examplicon.PREFIX));
@@ -248,8 +243,7 @@ public class DivUtilsTest {
     /**
      * @since 0.1.0
      */
-    @Test
-    @Ignore
+    @Test    
     public void testValidateXml(){
         File f = Internals.readData(Examplicon.XML_URI).toTempFile();
         
@@ -259,8 +253,7 @@ public class DivUtilsTest {
     /**
      * @since 0.1.0
      */
-    @Test
-    @Ignore
+    @Test    
     public void testValidateXmlLogLimitZero(){
         File f = Internals.readData(Examplicon.XML_URI).toTempFile();
         
@@ -271,7 +264,6 @@ public class DivUtilsTest {
      * @since 0.1.0
      */
     @Test
-    @Ignore
     public void testValidateXmlLogLimitOne(){
         File f = Internals.readData(Examplicon.XML_URI).toTempFile();
         
@@ -283,7 +275,6 @@ public class DivUtilsTest {
      * @since 0.1.0
      */
     @Test
-    @Ignore
     public void testValidateXmlFatalIllFormed() throws IOException{
         
         File f = DivTester.writeXml("666");
@@ -303,7 +294,7 @@ public class DivUtilsTest {
      * @since 0.1.0
      */
     private static void assertFatal(InvalidXmlException ex) {
-        DivXmlErrorHandler errorHandler = ex.getErrorHandler();
+        DivXmlHandler errorHandler = ex.getErrorHandler();
         assertTrue(errorHandler.isFatal());
         assertTrue(errorHandler.issuesCount() >= 1);
         assertTrue(errorHandler.fatalError() != null);
@@ -313,7 +304,6 @@ public class DivUtilsTest {
      * @since 0.1.0
      */
     @Test
-    @Ignore
     public void testValidateXmlFatalUnclosedTag() throws IOException{
                 
         File f = DivTester.writeXml("<bla>");
@@ -468,5 +458,13 @@ public class DivUtilsTest {
         assertTrue(str.contains("xmlns:test-2=\"url-2\""));
         assertTrue(str.contains("xmlns:xsi="));
         assertTrue(str.contains("xsi:schemaLocation"));
-    }   
+    } 
+    
+    /**
+     * Parses the 
+     */
+    @Test
+    public void generateXmlSchema(){
+        
+    }
 }

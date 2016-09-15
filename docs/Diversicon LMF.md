@@ -57,4 +57,3 @@ document Diversicon will complain. You have to
 TODO Each Synset must be associated to at least one Sense respective LexicalEntry
  
 
-

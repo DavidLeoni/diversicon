@@ -826,8 +826,7 @@ public class DiversiconTest {
             Assert.fail("Shouldn't arrive here!");
         } catch (InvalidImportException ex){
             LOG.debug("Caught exception:", ex);
-        }
-        
+        }        
     }
     
     /**
