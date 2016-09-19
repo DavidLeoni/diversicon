@@ -6,17 +6,14 @@
 	name="The Examplicon"
 	id="examplicon"	
 	prefix="ex"	
-
 	xmlns:ex="https://github.com/DavidLeoni/diversicon/tree/master/src/main/resources/examplicon.lmf.xml"
 	xmlns:wn31="https://github.com/DavidLeoni/diversicon-wordnet-3.1/blob/master/src/main/resources/it/unitn/disi/diversicon/data/div-wn31.lmf.xml.xz"
 	 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="https://github.com/DavidLeoni/diversicon/tree/master/src/main/resources/diversicon-1.0.xsd">
 
-	<Lexicon id="ex:lex-eng" />
-	
-	<Lexicon id="ex:elex-eng" />
-	
+	<Lexicon id="ex:lex-eng" />	
+	<Lexicon id="ex:elex-eng" />	
 	<Lexicon id="ex:qlex-eng" />
   	  	  
 

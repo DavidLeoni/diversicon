@@ -164,6 +164,11 @@ public final class DivTester {
 
     private static final Logger LOG = LoggerFactory.getLogger(DivTester.class);
 
+    /**
+     * @since 0.1.0
+     */
+    public static final String EXPERIMENTS_DIR = "src/test/resources/experiments/";
+
     private DivTester() {
     }
 

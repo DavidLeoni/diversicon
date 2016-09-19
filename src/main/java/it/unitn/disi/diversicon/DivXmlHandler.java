@@ -44,6 +44,7 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
     
     private String defaultSystemId;
 
+       
     /**
      * @since 0.1.0
      */
@@ -243,15 +244,24 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
      * @since 0.1.0
      */
     private void processError(Exception ex){
-        if (firstErrors.size() < MAX_FIRST_ISSUES){
-            firstErrors.add(ex);
-        }
         
-        if (issuesCount() < logLimit || logLimit == -1){
-            log.error(exceptionToString(ex, defaultSystemId));            
-        }
+        String msg = ex.getLocalizedMessage();
+        if (msg != null 
+                && msg.contains("every $prefixed-elem")
+                && msg.contains("for element 'LexicalResource'")){
+            log.debug("Skipping xerces id prefix assertion because line reporting is imprecise!");
+        } else {
+            if (firstErrors.size() < MAX_FIRST_ISSUES){
+                firstErrors.add(ex);
+            }
+            
+            if (issuesCount() < logLimit || logLimit == -1){
+                log.error(exceptionToString(ex, defaultSystemId));            
+            }
 
-        this.errorCount += 1;
+            this.errorCount += 1;
+            
+        }
     }
 
     /**
@@ -264,6 +274,8 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
     }
 
     /**
+     * DIVERSICON NOTICE: check also {@link #fatalError(TransformerException)}
+     * 
      * {@inheritDoc}
      * 
      * @since 0.1.0
@@ -271,17 +283,28 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
     @Override
     public void fatalError(SAXParseException ex) throws SAXException {
         this.fatalError = ex;
-
-        log.error("FATAL:  " + exceptionToString(ex, defaultSystemId));
-        throw ex;
-    }
+                
+        if (ex.getSystemId().contains(Diversicons.DIVERSICON_DTD_1_0_FILENAME)){
+            log.info("TODO: skipping DTD validation ...");
+            return;
+        } else {
+            log.error("FATAL!  " + exceptionToString(ex, defaultSystemId));
+            throw ex;
+        }
+        
+    }      
     
-    
+    /**
+     * DIVERSICON NOTICE: check also {@link #fatalError(SAXParseException)}
+     * 
+     * {@inheritDoc}
+     * 
+     * @since 0.1.0
+     */
     @Override
     public void fatalError(TransformerException ex) throws TransformerException {
         this.fatalError = ex;
-
-        log.error("FATAL:  " + exceptionToString(ex, defaultSystemId));
+        log.error("FATAL!  " + exceptionToString(ex, defaultSystemId));
         throw ex;
     }
  
@@ -329,18 +352,15 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
         StringBuilder buf = new StringBuilder();
         String message = ex.getLocalizedMessage();
         //if (publicId!=null)    buf.append("publicId: ").append(publicId);
-        
-        String first;
+                
         if (systemId!=null
                 && !systemId.equals(defaultSystemId)){
-            buf.append("; systemId: ").append(systemId);
-            first = ";";
-        } else {
-            first = "";
+            buf.append("systemId: ").append(systemId);
+            buf.append(";");
         }
         
-        buf.append(first + " [line ").append(lineNumber);
-        buf.append(" col ").append(colNumber).append("]: ");
+        buf.append(" [line ").append(lineNumber);
+        buf.append(" col ").append(colNumber).append("] ");
 
         //append the exception message at the end
         if (message==null){

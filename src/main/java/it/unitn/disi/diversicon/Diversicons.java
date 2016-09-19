@@ -1,12 +1,13 @@
 package it.unitn.disi.diversicon;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.StringWriter;
+import java.io.StringReader;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -25,14 +26,20 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.xerces.impl.Constants;
+import org.basex.core.Context;
+import org.basex.io.serial.Serializer;
+import org.basex.query.QueryException;
+import org.basex.query.QueryProcessor;
+import org.basex.query.iter.Iter;
+import org.basex.query.value.item.Item;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.io.DocumentResult;
 import org.dom4j.io.DocumentSource;
 import org.dom4j.io.OutputFormat;
 import org.dom4j.io.SAXReader;
-import org.dom4j.io.XMLWriter;
 import org.h2.tools.RunScript;
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
@@ -41,14 +48,21 @@ import org.hibernate.Transaction;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.service.ServiceRegistryBuilder;
 import org.hibernate.tool.hbm2ddl.SchemaExport;
-import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.xml.sax.EntityResolver;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
+import org.xml.sax.XMLReader;
+import org.xml.sax.helpers.DefaultHandler;
 
 import javax.annotation.Nullable;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 import javax.xml.transform.ErrorListener;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
@@ -69,10 +83,12 @@ import static de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics.*;
 
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import it.unitn.disi.diversicon.internal.Internals;
+import it.unitn.disi.diversicon.test.DivTester;
 import it.disi.unitn.diversicon.exceptions.DivException;
 import it.disi.unitn.diversicon.exceptions.DivIoException;
 import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.data.DivWn31;
+import it.unitn.disi.diversicon.data.Examplicon;
 import it.unitn.disi.diversicon.exceptions.InvalidSchemaException;
 import it.unitn.disi.diversicon.exceptions.InvalidXmlException;
 import it.unitn.disi.diversicon.internal.ExtractedStream;
@@ -94,26 +110,44 @@ public final class Diversicons {
     /**
      * @since 0.1.0
      */
-    public static final String DIVERSICON_SCHEMA_1_0_FILENAME = "diversicon-1.0.xsd";
-    
-    /**
-     * @since 0.1.0
-     */
-    public static final String DIVERSICON_SCHEMA_1_0_CLASSPATH_URL = "classpath:/" + DIVERSICON_SCHEMA_1_0_FILENAME;      
+    public static final String DIVERSICON_DTD_1_0_FILENAME = "diversicon-1.0.dtd";
 
     /**
      * @since 0.1.0
-     */    
-    public static final String DIVERSICON_SCHEMA_1_0_PUBLIC_URL = "https://github.com/DavidLeoni/diversicon/tree/master/src/main/resources/" + DIVERSICON_SCHEMA_1_0_FILENAME;
+     */
+    public static final String DIVERSICON_DTD_1_0_PUBLIC_URL = "https://github.com/DavidLeoni/diversicon/tree/master/src/main/resources/"
+            + DIVERSICON_DTD_1_0_FILENAME;
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String DIVERSICON_DTD_1_0_CLASSPATH_URL = "classpath:/" + DIVERSICON_DTD_1_0_FILENAME;
+    
     
     /**
      * @since 0.1.0
      */
-    public static final String UBY_DTD_TO_DIV_SCHEMA_XSLT_CLASSPATH_URL = "classpath://uby-dtd-to-div-schema.xslt";
-    
-    
+    public static final String DIVERSICON_SCHEMA_1_0_FILENAME = "diversicon-1.0.xsd";
+
     /**
-     * Suggested max length for lexical resource names, which are also prefixes like wn31, sm.
+     * @since 0.1.0
+     */
+    public static final String DIVERSICON_SCHEMA_1_0_CLASSPATH_URL = "classpath:/" + DIVERSICON_SCHEMA_1_0_FILENAME;
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String DIVERSICON_SCHEMA_1_0_PUBLIC_URL = "https://github.com/DavidLeoni/diversicon/tree/master/src/main/resources/"
+            + DIVERSICON_SCHEMA_1_0_FILENAME;
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String UBY_DTD_TO_SCHEMA_XQUERY_CLASSPATH_URL = "classpath://uby-dtd-to-div-schema.xql";
+
+    /**
+     * Suggested max length for lexical resource names, which are also prefixes
+     * like {@code wn31}, or {@code sm}
      * 
      * @since 0.1.0
      */
@@ -182,8 +216,6 @@ public final class Diversicons {
             // ArchiveStreamFactory.SEVEN_Z,
             ArchiveStreamFactory.TAR,
             ArchiveStreamFactory.ZIP };
-
-
 
     /**
      * List of known relations, excluding the inverses.
@@ -758,9 +790,6 @@ public final class Diversicons {
         checkNotEmpty(relName, "Invalid relation name!");
         return partOfRelations.contains(relName);
     }
-
-   
-
 
     /**
      * Creates the default configuration to access a file H2 database. NOTE: if
@@ -1361,22 +1390,23 @@ public final class Diversicons {
                     "Provided id: " + id + " has invalid prefix! It should match " + NAMESPACE_PREFIX_PATTERN);
         }
 
-    }   
-    
+    }
+
     /**
      * 
      * @throws IllegalArgumentException
      * @since 0.1.0
      */
-    public static Map<String, String> checkNamespaces(@Nullable Map<String, String> namespaces){
+    public static Map<String, String> checkNamespaces(@Nullable Map<String, String> namespaces) {
         checkNotNull(namespaces);
-        
-        for (String prefix : namespaces.keySet()){
+
+        for (String prefix : namespaces.keySet()) {
             checkNotNull(prefix);
-            if (!NAMESPACE_PREFIX_PATTERN.matcher(prefix).matches()){                
+            if (!NAMESPACE_PREFIX_PATTERN.matcher(prefix)
+                                         .matches()) {
                 throw new IllegalArgumentException("Invalid key, it must match " + NAMESPACE_PREFIX_PATTERN.toString());
             }
-            
+
             checkNotBlank(namespaces.get(prefix), "Invalid namespace url!");
         }
         return namespaces;
@@ -1384,80 +1414,66 @@ public final class Diversicons {
 
     /**
      * 
-     * See {@link #validateXml(File, long)}
+     * See {@link #validateXml(File, Logger, long)}
      * 
      * @throws InvalidXmlException
      * 
      * @since 0.1.0
      * 
-     */    
-    public static void validateXml(File xmlFile, Logger log){
+     */
+    public static void validateXml(File xmlFile, Logger log) {
         validateXml(xmlFile, log, -1);
     }
+
+
     
     /**
+     * Validates an xml file according to Xml Schema
+     * {@value #DIVERSICON_SCHEMA_1_0_CLASSPATH_URL},
+     * outputting messages to provided {@code logger}.
+     *
+     * @parameter logLimit when the number of messages roughly exceeds
+     *            {@code logLimit} they won't be outputted anymore. If -1
+     *            no limit is imposed.
      * 
+     * @throws DivException
+     * @throws InvalidXmlException
+     * 
+     * @since 0.1.0
      */
-    public static void validateXml(File xmlFile, Logger log, long logLimit){
+    public static void validateXml(File xmlFile,  Logger logger, long logLimit) {
         
-        checkNotNull(xmlFile);
-                
-        File xsdFile = Internals.readData(DIVERSICON_SCHEMA_1_0_CLASSPATH_URL, false).toTempFile();
-
-        // if editor can't find the constant probably default xerces is being used
-        // instead of the one supporting schema 1.1
+        File xsdFile = Internals.readData(Diversicons.DIVERSICON_SCHEMA_1_0_CLASSPATH_URL, false)
+                .toTempFile();
         
-        SchemaFactory factory = SchemaFactory.newInstance(Constants.W3C_XML_SCHEMA11_NS_URI);
-        File schemaLocation = xsdFile;
-        Schema schema;
-        try {
-            schema = factory.newSchema(schemaLocation);
-        } catch (SAXException e) {
-            throw new DivException("Error while parsing schema!", e);
-        }
-
-        Source source = new StreamSource(xmlFile);        
-        DivXmlHandler errorHandler = new DivXmlHandler(log, logLimit, source.getSystemId());        
-        
-        Validator validator = schema.newValidator();
-        
-        validator.setErrorHandler(errorHandler);
-        
-        
-        try {            
-            validator.validate(source);
-        } catch (SAXException | IOException e) {            
-            throw new InvalidXmlException(errorHandler, "Fatal error while validating " + xmlFile.getAbsolutePath(), e);
-        }
-        
-        
-        if (errorHandler.invalid()){
-            log.error("Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath());
-            throw new InvalidXmlException(errorHandler, "Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath());
-        }
+        Internals.validateXml(xmlFile, xsdFile, logger, logLimit);
     }
+
 
     /**
      * Reads metadata about a given resource.
      * 
-     * @param path A path to a file as specified by {@link Internals#readData(String, boolean)
+     * @param path
+     *            A path to a file as specified by
+     *            {@link Internals#readData(String, boolean)
      * 
      * @since 0.1.0
      */
     public static LexResPackage readPackageFromLexRes(String lexResUrl) {
-        
+
         LexResPackage ret = new LexResPackage();
-        
+
         SAXReader reader = new SAXReader(false);
 
         ExtractedStream es = Internals.readData(lexResUrl, true);
-        DiversiconResourceHandler handler = new DiversiconResourceHandler(ret);        
+        DivXmlExtractor handler = new DivXmlExtractor(ret);
         reader.setDefaultHandler(handler);
         try {
             reader.read(es.stream());
         } catch (DocumentException e) {
 
-            if (e.getMessage().contains(DiversiconResourceHandler.FOUND)) {
+            if (e.getMessage()
+                 .contains(DivXmlExtractor.FOUND)) {
                 return ret;
             }
         }
@@ -1465,41 +1481,42 @@ public final class Diversicons {
                 + lexResUrl + "  !");
 
     }
-    
-    
+
     /**
-     * Creates an xml file out of the provided lexical resource. Written 
-     * lexical resource will include provided namespaces as {@code xmlns} attributes
+     * Creates an xml file out of the provided lexical resource. Written
+     * lexical resource will include provided namespaces as {@code xmlns}
+     * attributes
      * 
-     * @param namespaces Namespaces expressed as prefix : url
+     * @param namespaces
+     *            Namespaces expressed as prefix : url
      * 
      * @since 0.1.0
      */
     public static File writeLexResToXml(
-            LexicalResource lexRes, 
+            LexicalResource lexRes,
             LexResPackage lexResPackage,
             File ret) {
-        
+
         checkNotNull(lexRes);
-        
-        Internals.checkLexResPackage(lexResPackage, lexRes);       
-        
+
+        Internals.checkLexResPackage(lexResPackage, lexRes);
+
         DivXmlWriter writer;
         try {
             writer = new DivXmlWriter(new FileOutputStream(
-                    ret), 
-                    null, 
-                    lexResPackage);  // todo check if setting dtd means something
-            
+                    ret),
+                    null,
+                    lexResPackage); // todo check if setting dtd means something
+
             writer.writeElement(lexRes);
             writer.writeEndDocument();
-            
+
         } catch (FileNotFoundException | SAXException ex) {
             throw new DivException("Error while writing lexical resource to XML: " + ret.getAbsolutePath(), ex);
         }
 
         return ret;
-        
+
     }
 
     /**
@@ -1510,8 +1527,9 @@ public final class Diversicons {
      * 
      * @since 0.1.0
      */
-    public static String checkPrefix(String prefix){
-        if (!NAMESPACE_PREFIX_PATTERN.matcher(prefix).matches()){
+    public static String checkPrefix(String prefix) {
+        if (!NAMESPACE_PREFIX_PATTERN.matcher(prefix)
+                                     .matches()) {
             throw new IllegalArgumentException("Invalid prefix!");
         }
         return prefix;
@@ -1524,27 +1542,58 @@ public final class Diversicons {
      * @throws IllegalArgumentException
      * 
      * @since 0.1.0
-     */    
+     */
     public static void checkId(String id, String string) {
-        if (!ID_PATTERN.matcher(id).matches()){
+        if (!ID_PATTERN.matcher(id)
+                       .matches()) {
             throw new IllegalArgumentException("Invalid id!");
-        }        
+        }
     }
 
+
     /**
-     * Parses a Diversicon DTD and creates a corresponding XML Schema,
-     * adding further constraints
+     * @throws DivException
      * 
      * @since 0.1.0
-     */    
-    public void generateXmlSchemaFromDtd(File output){
-        checkNotNull(output);
+     */
+    public static void transform(
+            String xquery,
+            File inXml,             
+            File outXml) {
         
-        File xslt = Internals.readData(UBY_DTD_TO_DIV_SCHEMA_XSLT_CLASSPATH_URL).toTempFile();
+        checkNotBlank(xquery, "Invalid query!");
+        checkNotNull(inXml);
+        checkNotNull(outXml);
         
         
+        Context context = new Context();
+
+        // Create a query processor
+        try (QueryProcessor proc = new QueryProcessor(xquery, context)) {
+
+            // Store the pointer to the result in an iterator:
+            Iter iter;
+            try {
+                iter = proc.iter();
+            } catch (QueryException ex) {
+                throw new DivException(ex);
+            }
+
+            try (FileOutputStream ostream = new FileOutputStream(outXml);
+                Serializer ser = proc.getSerializer(ostream)) {
+
+                // Iterate through all items and serialize contents
+                for (Item item; (item = iter.next()) != null;) {
+
+                    ser.serialize(item);
+                }
+            } catch (IOException | QueryException ex) {
+                throw new DivException(ex);
+            }                      
+        }
+
     }
-    
+
     /**
      * 
      * @param inXml
@@ -1552,21 +1601,22 @@ public final class Diversicons {
      * 
      * @since 0.1.0
      */
-    public void transform(File inXml, File outXml, int logLimit){
+    public void transformOwa(File inXml, File outXml, int logLimit) {
 
         checkNotNull(inXml);
         checkNotNull(outXml);
         
+
         SAXReader reader = new SAXReader(false);
         DivXmlHandler handler = new DivXmlHandler(
-                LOG, logLimit, 
+                LOG, logLimit,
                 "666");
         reader.setErrorHandler(handler);
         Document document;
-        
+
         try {
             document = reader.read(inXml);
-        } catch (DocumentException ex) {            
+        } catch (DocumentException ex) {
             throw new InvalidXmlException(handler, "Something went wrong!", ex);
         }
         String stylesheet = "src/main/resources/owa-to-uby.xslt";
@@ -1577,40 +1627,40 @@ public final class Diversicons {
         ErrorListener d;
         try {
             transformer = factory.newTransformer(
-                    new StreamSource(stylesheet));            
-        } catch (TransformerConfigurationException ex) {            
-            throw new InvalidXmlException(handler, "Something went wrong!",  ex);
+                    new StreamSource(stylesheet));
+        } catch (TransformerConfigurationException ex) {
+            throw new InvalidXmlException(handler, "Something went wrong!", ex);
         }
-        
+
         transformer.setErrorListener(handler);
 
         // now lets style the given document
         DocumentSource source = new DocumentSource(document);
         DocumentResult result = new DocumentResult();
-        
+
         try {
             transformer.transform(source, result);
-        } catch (TransformerException ex) {        
+        } catch (TransformerException ex) {
             throw new InvalidXmlException(handler, "Something went wrong!", ex);
         }
 
         Document transformedDoc = result.getDocument();
 
         OutputFormat format = OutputFormat.createPrettyPrint();
-       /* FileWriter fw = new FileWriter(outXml);
-        XMLWriter writer = new XMLWriter(fw, format);
-        try {
-            writer.write(transformedDoc);
-        } catch (IOException e) {
-            
-            throw new RuntimeException("Something went wrong!", e);
-        }
+        /*
+         * FileWriter fw = new FileWriter(outXml);
+         * XMLWriter writer = new XMLWriter(fw, format);
+         * try {
+         * writer.write(transformedDoc);
+         * } catch (IOException e) {
+         * 
+         * throw new RuntimeException("Something went wrong!", e);
+         * }
+         * 
+         * //LOG.debug("\n" + sw.toString());
+         */
 
-        //LOG.debug("\n" + sw.toString());
-        */
-        
         throw new UnsupportedOperationException("TODO IMPLEMENT ME!");
     }
 
-    
 }

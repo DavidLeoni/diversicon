@@ -45,6 +45,12 @@
 			<url>http://zoidberg.ukp.informatik.tu-darmstadt.de/artifactory/public-releases</url>
 		</repository>
 
+     	<repository>
+	     	<id>basex</id>
+	     	<name>BaseX Maven Repository</name>
+	     	<url>http://files.basex.org/maven</url>
+	   	</repository>
+
 	</repositories>
 
 
@@ -241,7 +247,19 @@
 		</dependency>
 
 		 
-
+		<dependency>
+		  	<groupId>org.basex</groupId>
+		  	<artifactId>basex</artifactId>
+		  	<version>8.5</version>
+		</dependency>
+		
+		<dependency>
+		    <groupId>com.thaiopensource</groupId>
+		    <artifactId>trang</artifactId>
+		    <version>20091111</version>
+		</dependency>
+	
+	
 		<!-- ****************** TEST DEPENDENCIES ****************** -->
 
 		<dependency>

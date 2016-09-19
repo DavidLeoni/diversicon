@@ -1,4 +1,4 @@
-package it.unitn.disi.diversicon.test;
+package it.unitn.disi.diversicon.test.experiments;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
@@ -20,6 +20,8 @@ import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
+import it.unitn.disi.diversicon.test.DivTester;
+
 import java.io.File;
 import java.io.IOException;
 
@@ -36,9 +38,9 @@ import org.xml.sax.SAXException;
  *
  * @since 0.1.0
  */
-public class ExperimentsTest {
+public class HibernateExperimentsTest {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ExperimentsTest.class);
+    private static final Logger LOG = LoggerFactory.getLogger(HibernateExperimentsTest.class);
 
     /**
      * Adds missing edges for relations we consider as canonical
@@ -244,35 +246,9 @@ public class ExperimentsTest {
         logger.info("zumzum");
     }
 
-    /**
-     * @since 0.1.0
-     */
-    @Test
-    public void testXsd11Validation() throws SAXException, IOException {               
-        
-        
-        File xsdFile = new File("src/test/resources/xsd/assertions-test.xsd");
-
-        // if editor can't find the constant probably default xerces is being used
-        // instead of the one supporting schema 1.1
-        
-        SchemaFactory factory = SchemaFactory.newInstance(Constants.W3C_XML_SCHEMA11_NS_URI);
-        File schemaLocation = xsdFile;
-        Schema schema = factory.newSchema(schemaLocation);
-        
-        Validator validator = schema.newValidator();
-        Source sourcePass = new StreamSource(new File("src/test/resources/xsd/test-pass.xml"));
-        validator.validate(sourcePass);
-
-        Source sourceFail = new StreamSource(new File("src/test/resources/xsd/test-fail.xml"));
-        
-        try {
-            validator.validate(sourceFail);
-            Assert.fail("Shouldn't arrive here!");
-        } catch (SAXException ex){
-            
-        }
-
-    }
+  
+    
+    
+    
 
 }

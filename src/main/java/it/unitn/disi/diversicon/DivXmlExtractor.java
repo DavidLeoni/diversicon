@@ -8,20 +8,25 @@ import org.dom4j.ElementPath;
 import org.dom4j.Namespace;
 
 /**
- * Extracts stuff from a LexicalResource XML structured according to Diversicon Schema
+ * Extracts stuff from a LexicalResource XML structured according to Diversicon schema
  *  
  * @since 0.1.0
  */
-class DiversiconResourceHandler implements ElementHandler {
+class DivXmlExtractor implements ElementHandler {
     
+    /**
+     * String contained in excpetion messages when the handler signals to stop the parse.
+     * 
+     * @since 0.1.0
+     */
     public static final String FOUND = "** FOUND LEXICAL RESOURCE **";
 
-    LexResPackage divRes;
+    private LexResPackage divRes;
     
-    private DiversiconResourceHandler(){            
+    private DivXmlExtractor(){            
     }
     
-    public DiversiconResourceHandler(LexResPackage divRes) {
+    public DivXmlExtractor(LexResPackage divRes) {
         checkNotNull(divRes);
         
         this.divRes = divRes;

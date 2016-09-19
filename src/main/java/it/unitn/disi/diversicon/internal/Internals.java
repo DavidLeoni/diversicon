@@ -1,12 +1,17 @@
 package it.unitn.disi.diversicon.internal;
 
+import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
+
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
@@ -23,12 +28,18 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Scanner;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import javax.xml.XMLConstants;
+import javax.xml.transform.Source;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
 
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveException;
@@ -40,12 +51,21 @@ import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.xerces.impl.Constants;
+import org.apache.xerces.impl.dtd.DTDGrammar;
+import org.apache.xerces.impl.dtd.XMLDTDLoader;
+import org.apache.xerces.util.SAXInputSource;
+import org.apache.xerces.xni.XNIException;
+import org.apache.xerces.xni.parser.XMLInputSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
 
 import com.rits.cloning.Cloner;
+import com.thaiopensource.relaxng.output.OutputFormat;
+import com.thaiopensource.relaxng.translate.Formats;
 
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.interfaces.IHasID;
@@ -55,10 +75,13 @@ import de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata;
 import de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata.UBYLMFFieldMetadata;
 import it.disi.unitn.diversicon.exceptions.DivException;
 import it.disi.unitn.diversicon.exceptions.DivIoException;
+import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.BuildInfo;
 import it.unitn.disi.diversicon.DivSynsetRelation;
+import it.unitn.disi.diversicon.DivXmlHandler;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.LexResPackage;
+import it.unitn.disi.diversicon.exceptions.InvalidXmlException;
 import it.unitn.disi.diversicon.Diversicons;
 
 /**
@@ -1274,7 +1297,7 @@ public final class Internals {
      * @throws SAXException
      * 
      * @since 0.1.0
-     */    
+     */
     @Nullable
     public static String prepareXmlElement(Object inputLmfObject,
             boolean closeTag,
@@ -1290,7 +1313,7 @@ public final class Internals {
 
         Object lmfObject = inputLmfObject;
         String elementName = lmfObject.getClass()
-                .getSimpleName();
+                                      .getSimpleName();
 
         if (inputLmfObject instanceof LexicalResource) {
 
@@ -1299,24 +1322,25 @@ public final class Internals {
 
             atts.addAttribute("", "", "prefix", "CDATA",
                     lexResPackage.getPrefix());
-            
+
             // note at the end of the method we put xmlns
         } else if (inputLmfObject instanceof DivSynsetRelation) {
-        
+
             DivSynsetRelation dsr = (DivSynsetRelation) inputLmfObject;
             lmfObject = dsr.toSynsetRelation();
             elementName = SynsetRelation.class.getSimpleName();
-            
-            if (Diversicon.getProvenanceId().equals(dsr.getProvenance())){
-                if (dsr.getDepth() > 1){
-                    return null;   
-                }
-                if (!Diversicons.isCanonicalRelation(dsr.getRelName())){
+
+            if (Diversicon.getProvenanceId()
+                          .equals(dsr.getProvenance())) {
+                if (dsr.getDepth() > 1) {
                     return null;
                 }
-            }            
-        } 
-        
+                if (!Diversicons.isCanonicalRelation(dsr.getRelName())) {
+                    return null;
+                }
+            }
+        }
+
         int hibernateSuffixIdx = elementName.indexOf("_$$");
         if (hibernateSuffixIdx > 0)
             elementName = elementName.substring(0, hibernateSuffixIdx);
@@ -1373,40 +1397,41 @@ public final class Internals {
 
         boolean foundXsi = false;
         String xsiPrefix = "xsi";
-        
+
         if (inputLmfObject instanceof LexicalResource) {
-            
+
             // note at the beginning of the method we put id and prefix
             for (String prefix : lexResPackage.getNamespaces()
-                    .keySet()) {
+                                              .keySet()) {
                 String url = lexResPackage.getNamespaces()
-                        .get(prefix);
+                                          .get(prefix);
                 atts.addAttribute("", "", "xmlns:" + prefix, "CDATA",
                         url);
-                
-                if (XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI.equals(url)){
+
+                if (XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI.equals(url)) {
                     foundXsi = true;
                     xsiPrefix = prefix;
-                }                
+                }
             }
-            
-            if (!foundXsi){
+
+            if (!foundXsi) {
                 atts.addAttribute("", "", "xmlns:" + xsiPrefix, "CDATA",
                         XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
             }
-            
+
             atts.addAttribute("", "", xsiPrefix + ":schemaLocation", "CDATA",
                     Diversicons.DIVERSICON_SCHEMA_1_0_PUBLIC_URL);
-            
-        }        
-        
+
+        }
+
         return elementName;
     }
 
     /**
      * Performs a coherence check on provided lexical resource package.
      * 
-     * To match it against a LexicalResource, see {@link #checkLexResPackage(LexResPackage, LexicalResource)}
+     * To match it against a LexicalResource, see
+     * {@link #checkLexResPackage(LexResPackage, LexicalResource)}
      * 
      * @throws IllegalArgumentException
      * 
@@ -1414,8 +1439,8 @@ public final class Internals {
      */
     public static LexResPackage checkLexResPackage(LexResPackage lexResPackage) {
         return checkLexResPackage(lexResPackage, null);
-    }   
-    
+    }
+
     /**
      * @throws IllegalArgumentException
      * 
@@ -1554,6 +1579,134 @@ public final class Internals {
         }
 
         return expected.equals(actual);
+    }
+
+    /**
+     * Parses a Diversicon DTD and creates a corresponding XML Schema,
+     * adding further constraints
+     * 
+     * @throws DivNotFoundException
+     * 
+     * @since 0.1.0
+     */
+    public static void generateXmlSchemaFromDtd(File output) {               
+        
+        LOG.info("Going to generate xsd file:  " + output.getAbsolutePath() + "   ...");
+        
+        checkNotNull(output);
+        
+        File dtd = Internals.readData(Diversicons.DIVERSICON_DTD_1_0_CLASSPATH_URL)
+                .toTempFile();
+        
+        
+        
+        new com.thaiopensource.relaxng.translate.Driver().run(new String[]{"-I", "dtd", "-O", "xsd", dtd.getAbsolutePath(), output.getAbsolutePath()});
+               
+        if (!dtd.exists()){
+            throw new DivNotFoundException("Seems like trang didn't generate the xsd file!!");
+        }
+        
+        LOG.info("Done.");
+        
+        /*
+        
+
+        String query;
+        try {
+            query = IOUtils.toString(Internals.readData(Diversicons.UBY_DTD_TO_SCHEMA_XQUERY_CLASSPATH_URL)
+                                              .stream());
+        } catch (IOException e) {
+            throw new DivIoException("Error while reading xquery !", e);
+        }
+
+        Diversicons.transform(query, file, output);
+        */
+                       
+        
+    }
+
+    /**
+     * See {@link #validateXml(File, File, Logger, long)}
+     * 
+     * @since 0.1.0
+     */
+    public static void validateXml(File xmlFile, File xsdFile, Logger logger, long logLimit) {
+        checkNotNull(xmlFile);
+
+        // if editor can't find the constant probably default xerces is being
+        // used instead of the one supporting schema 1.1
+
+        SchemaFactory factory = SchemaFactory.newInstance(Constants.W3C_XML_SCHEMA11_NS_URI);
+        File schemaLocation = xsdFile;
+        Schema schema;
+        try {
+            schema = factory.newSchema(schemaLocation);
+        } catch (SAXException e) {
+            throw new DivException(e);
+        }
+
+        Source source = new StreamSource(xmlFile);
+        DivXmlHandler errorHandler = new DivXmlHandler(logger, logLimit, source.getSystemId());
+
+        Validator validator = schema.newValidator();
+
+        validator.setErrorHandler(errorHandler);
+
+        try {
+            validator.validate(source);
+        } catch (SAXException | IOException e) {
+            throw new InvalidXmlException(errorHandler, "Fatal error while validating " + xmlFile.getAbsolutePath(), e);
+        }
+
+        DivXmlValidator.validate(xmlFile, errorHandler);
+
+        if (errorHandler.invalid()) {
+            logger.error("Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath());
+            throw new InvalidXmlException(errorHandler,
+                    "Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath());
+        }
+
+    }
+
+    
+    
+    
+    /**
+     * @since 0.1.0
+     */
+    // Taken from here: http://stackoverflow.com/a/26414914
+    public static DTDGrammar parseDtdWithXerces(String dtdText)  {
+        
+     //   LOG.debug("dtdText= " + dtdText);
+        
+
+        // read DTD
+        // InputStream dtdStream = new ByteArrayInputStream(sw.toString()
+        //  .getBytes());
+        // InputStream dtdStream =
+        // So26391485.class.getResourceAsStream("your.dtd");
+        /* Scanner scanner = new Scanner(dtdStream);
+        String dtdText = scanner.useDelimiter("\\z")
+                                .next();
+        scanner.close();
+         */
+        
+        // DIRTY: use Xerces internals to parse the DTD
+        Pattern dtdPattern = Pattern.compile("^\\s*<!DOCTYPE\\s+(.*?)>(.*)", Pattern.DOTALL);
+        Matcher m = dtdPattern.matcher(dtdText);
+        if (m.matches()) {
+            String docType = m.group(1);            
+            InputSource is = new InputSource(new StringReader(m.group(2)));
+            XMLInputSource source = new SAXInputSource(is);
+            XMLDTDLoader d = new XMLDTDLoader();
+            try {
+                return (DTDGrammar) d.loadGrammar(source);
+            } catch (XNIException | IOException e) {            
+                throw new DivException(e);
+            }            
+        } else {
+            throw new DivException("Couldn't find DTD banner in DTD!"  );
+        }
     }
 
 }

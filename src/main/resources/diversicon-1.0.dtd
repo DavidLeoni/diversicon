@@ -1,5 +1,3 @@
-<?xml version='1.0' encoding="UTF-8"?>
-
 <!--
 /*******************************************************************************
  * Copyright 2013
@@ -24,6 +22,18 @@
  *
  ******************************************************************************/
 -->  
+
+<!--
+
+Changes made in Diversicon:
+
+- removed initial ?xml tag,  because a DTD is not an xml file (at most a DTD can be embedded inside
+  an xml, see https://en.wikipedia.org/wiki/Document_type_definition#Examples
+- added to LexicalResource: 	
+	name ID #REQUIRED
+	prefix ID #REQUIRED
+-->
+
 
                        <!--#################### Core package -->
 <!ELEMENT Definition (Statement*, TextRepresentation+)>
@@ -129,6 +139,8 @@ separableParticle 	http://www.isocat.org/datcat/DC-3546
 
 <!ELEMENT LexicalResource (SenseAxis*|PredicateArgumentAxis*|MetaData*|Lexicon+)>
 <!ATTLIST LexicalResource	id ID #REQUIRED
+							name ID #REQUIRED
+							prefix ID #REQUIRED
     						dtdVersion CDATA #IMPLIED   						
     						globalInformationId IDREF #IMPLIED>
     						   

@@ -1,9 +1,8 @@
-<?xml version="1.0" encoding="UTF-8" ?>
 <xs:schema  xmlns:xs="http://www.w3.org/2001/XMLSchema" 			
  			xmlns:fn="http://www.w3.org/2005/xpath-functions"
 			xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning"
 			vc:minVersion="1.1">
- 				
+			
 	<xs:annotation>
 	    <xs:documentation xml:lang="en">
 	     	XML Schema for Diversicon LMF XMLs
@@ -22,9 +21,9 @@
  				
 	<xs:complexType name="Lexicon" >
 		<xs:attribute name="id" type="xs:string"/>
-	</xs:complexType> 				
- 				
-	<xs:complexType name="LexicalResource" >
+	</xs:complexType>
+
+		<xs:complexType name="LexicalResource" >
 	 		 	 		
 		<xs:sequence>
 			<xs:element name="Lexicon" type="Lexicon" minOccurs="1" maxOccurs="unbounded">				
@@ -49,6 +48,6 @@
 	 	
 	</xs:complexType>
 	
-	<xs:element name="LexicalResource" type="LexicalResource" ></xs:element>
-	
-</xs:schema>
+	<xs:element name="LexicalResource" type="LexicalResource" ></xs:element> 			
+			
+</xs:schema> 				

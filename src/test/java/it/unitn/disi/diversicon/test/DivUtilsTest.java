@@ -17,6 +17,9 @@ import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.xerces.impl.dtd.DTDGrammar;
+import org.apache.xerces.impl.dtd.XMLContentSpec;
+import org.apache.xerces.impl.dtd.XMLElementDecl;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.io.SAXReader;
@@ -239,6 +242,8 @@ public class DivUtilsTest {
         System.setProperty(Diversicon.PROPERTY_DEBUG_KEEP_TEMP_FILES, Boolean.toString(false));
         Internals.createTempDivDir("wont-survive-");               
     }
+        
+    
     
     /**
      * @since 0.1.0
@@ -460,11 +465,55 @@ public class DivUtilsTest {
         assertTrue(str.contains("xsi:schemaLocation"));
     } 
     
-    /**
-     * Parses the 
-     */
+
     @Test
-    public void generateXmlSchema(){
+    public void testGenerateXmlSchema() throws IOException{
+        
+        File xsd = new File(DivTester.createTestDir().toFile(),"test-diversicon.xsd");        
+        Internals.generateXmlSchemaFromDtd(xsd);
+        
+        LOG.debug("GENERATED SCHEMA IS:\n" + FileUtils.readFileToString(xsd));
+        /*
+        File f = Internals.readData(Examplicon.XML_URI).toTempFile();
+        
+        Diversicons.validateXml(f, LOG);
+        
+        Internals.validateXml(f, xsd, LOG, -1);
+        */
         
     }
+    
+    @Test
+    public void parseDtdTest() throws IOException{
+        
+        File dtd = Internals.readData(Diversicons.DIVERSICON_DTD_1_0_CLASSPATH_URL, false)
+                .toTempFile();
+        DTDGrammar g = Internals.parseDtd(FileUtils.readFileToString(dtd));
+        g.printElements();
+        int elementDeclIndex = 0;
+        XMLElementDecl elementDecl = new XMLElementDecl();
+        LOG.debug("Diversicon DTD:\n ");
+        
+        while (g.getElementDecl(elementDeclIndex++, elementDecl)) {            
+            LOG.debug("element decl: "+elementDecl.name+
+                               ", "+ elementDecl.name.rawname  );
+            LOG.debug(g.getContentSpecAsString(elementDeclIndex));
+        }
+        
+        int contentDeclIndex = 0;
+        XMLContentSpec contentSpec = new XMLContentSpec();
+        LOG.debug("Diversicon DTD:\n ");
+        
+/*        while (g.getContentSpecAsString(elementDeclIndex)(contentDeclIndex++, contentSpec)) {            
+            LOG.debug("content spec: "+contentSpec.type);
+        }
+
+        while (g.getNotationDecl(notationDeclIndex, notationDecl)ContentSpec(contentDeclIndex++, contentSpec)) {            
+            LOG.debug("content spec: "+contentSpec.type);
+        }*/
+        
+        
+    }
+
+   
 }
