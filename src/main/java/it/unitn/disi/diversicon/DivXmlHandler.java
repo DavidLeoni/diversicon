@@ -248,7 +248,7 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
         String msg = ex.getLocalizedMessage();
         
           if (msg != null 
-                && msg.contains("every $prefixed-elem")
+                && msg.contains("every $prefixed-id")
                 && msg.contains("for element 'LexicalResource'")){            
             log.debug("Skipping xerces id prefix assertion because line reporting is imprecise!");
             log.debug("Xerces message was -> " + msg);
