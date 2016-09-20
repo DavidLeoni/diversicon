@@ -1,6 +1,7 @@
 package it.unitn.disi.diversicon.test;
 
 import de.tudarmstadt.ukp.lmf.model.core.Definition;
+
 import de.tudarmstadt.ukp.lmf.model.core.LexicalEntry;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
@@ -17,7 +18,7 @@ import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 import static it.unitn.disi.diversicon.internal.Internals.newArrayList;
-import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
+import static it.unitn.disi.diversicon.test.DivTester.pid;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -66,7 +67,7 @@ public class LmfBuilder {
 
         this.prefix = prefix;
         this.lexicalResource = new LexicalResource();
-        this.lexicalResource.setName(prefix + ":lexical resource 1");
+        this.lexicalResource.setName(pid(prefix , "lexical resource 1"));
         this.built = false;
         this.lastSenseId = 0;
 
@@ -128,7 +129,7 @@ public class LmfBuilder {
         if (name.startsWith(" ") || name.endsWith(" ")){
             LOG.warn("Found name with spaces at the beginning / end: -->" + name + "<--");
         }
-        return prefix + ":" + name + " " + num;
+        return pid(prefix  , name + " " + num);
     }
 
     /**
@@ -316,7 +317,7 @@ public class LmfBuilder {
     /**
      * @since 0.1.0
      */
-    public Lexicon getCurLexicon() {
+    private Lexicon getCurLexicon() {
         checkBuilt();
         int size = lexicalResource.getLexicons()
                                   .size();

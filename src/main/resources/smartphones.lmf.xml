@@ -6,21 +6,21 @@
   Simple example of an LMF file, formalizing smartphones taken from 
   an imaginary terminology file "smartphones.csv", and linking them to WordNet 3.1.
   
-			                wn31:cellphone     wn31:computer    
+			                wn31_cellphone     wn31_computer    
 						           ^                 ^
 						           |                 |
-						     sm:smartphone       sm:tablet
+						     sm_smartphone       sm_tablet
 						            ^               ^
 						            \              /         
 						             \            /
-						               sm:phablet  
+						               sm_phablet  
 						                    ^
 						                    |
-						              sm:phoneborg
+						              sm_phoneborg
 	
 	
   Since in UBY IDs are global, when merging multiple sources into the db we
-  must prepend everything with a prefix. In this example we chose 'sm',
+  must prepend everything with a prefix, followed by an underscore '_'. In this example we chose 'sm',
   while for Wordnet 3.1 we used 'wn31'. You can find Wordnet synsets here:          
   
   http://wordnetweb.princeton.edu/perl/webwn?s=cellphone&i=0 
@@ -39,7 +39,7 @@
                  	
     <GlobalInformation label="Example smartphone terminology linked to Wordnet 3.1"/>       
     
-    <MetaData id="sm:md"
+    <MetaData id="sm_md"
     		  creationDate=""
     		  creationTool="text editor"
     		  version="1.0"   
@@ -49,66 +49,66 @@
     
     <!-- 
     	
-    	lexicalResourceId="sm:lr"
+    	lexicalResourceId="sm_lr"
      -->
-    <Lexicon id="sm:lex-eng"
+    <Lexicon id="sm_lex-eng"
     		 languageIdentifier="eng" 
     		 name="Smartphone English lexicon">
     		 
-        <LexicalEntry id="sm:le-smartphone" 
+        <LexicalEntry id="sm_le-smartphone" 
         			  partOfSpeech="noun">
             <Lemma>
                 <FormRepresentation languageIdentifier="eng" 
                 					writtenForm="smartphone"/>
             </Lemma>
-            <Sense id="sm:s-smartphone" 
-            	   synset="sm:ss-phablet">
+            <Sense id="sm_s-smartphone" 
+            	   synset="sm_ss-phablet">
                 <MonolingualExternalRef externalSystem="smartphones" 
                 						externalReference="3rd row, fourth column in CSV"/>
             </Sense>
         </LexicalEntry>
-        <LexicalEntry id="sm:le-phablet" 
+        <LexicalEntry id="sm_le-phablet" 
         			  partOfSpeech="noun">
             <Lemma>
                 <FormRepresentation languageIdentifier="eng" 
                 					writtenForm="phablet"/>
             </Lemma>
-            <Sense id="sm:s-phablet" 
-            	   synset="sm:ss-phablet">
+            <Sense id="sm_s-phablet" 
+            	   synset="sm_ss-phablet">
                 <MonolingualExternalRef externalSystem="smartphones" 
                 						externalReference="2nd row 5th column in csv of origin"/>
             </Sense>
         </LexicalEntry>
 
-        <LexicalEntry id="sm:le-tablet"
+        <LexicalEntry id="sm_le-tablet"
         			  partOfSpeech="noun">
             <Lemma>
                 <FormRepresentation languageIdentifier="eng" 
                 					writtenForm="tablet"/>
             </Lemma>
-            <Sense id="sm:s-tablet" 
-            	   synset="sm:ss-tablet">
+            <Sense id="sm_s-tablet" 
+            	   synset="sm_ss-tablet">
                 <MonolingualExternalRef externalSystem="smartphones" 
                 						externalReference="4nd row 2th column in csv of origin"/>
             </Sense>
         </LexicalEntry>
 
 
-        <LexicalEntry id="sm:le-phoneborg" 
+        <LexicalEntry id="sm_le-phoneborg" 
                       partOfSpeech="noun">
             <Lemma>
                 <FormRepresentation languageIdentifier="eng"
                 				    writtenForm="phoneborg"/>
             </Lemma>
-            <Sense id="sm:s-phoneborg" index="1" 
-            						   synset="sm:ss-phoneborg">
+            <Sense id="sm_s-phoneborg" index="1" 
+            						   synset="sm_ss-phoneborg">
                 <MonolingualExternalRef externalSystem="smartphones" 
                 						externalReference="1st row 3rd column in csv of origin"/>
             </Sense>
         </LexicalEntry>
 
        
-        <Synset id="sm:ss-smartphone">
+        <Synset id="sm_ss-smartphone">
             <Definition>
                 <TextRepresentation languageIdentifier="eng" 
                 					writtenText="A cellphone designed to keep your eyes always locked to a screen."/>
@@ -117,7 +117,7 @@
             	 http://wordnetweb.princeton.edu/perl/webwn?s=cellphone
             	 which is defined in an external file
             -->
-            <SynsetRelation target="wn31:ss-2995984" 
+            <SynsetRelation target="wn31_ss-2995984" 
             				relType="taxonomic" 
             				relName="hypernym"/>
             <MonolingualExternalRef externalSystem="smartphones" 
@@ -125,27 +125,27 @@
 
         </Synset>
 
-        <Synset id="sm:ss-phablet">
+        <Synset id="sm_ss-phablet">
             <Definition>
                 <TextRepresentation languageIdentifier="eng" 
                 					writtenText="An unholy union between a smartphone and a tablet"/>
             </Definition>			           
-            <SynsetRelation target="sm:ss-smartphone" 
+            <SynsetRelation target="sm_ss-smartphone" 
             				relType="taxonomic" 
             				relName="hypernym"/>
-            <SynsetRelation target="sm:ss-tablet" 
+            <SynsetRelation target="sm_ss-tablet" 
             				relType="taxonomic" 
             				relName="hypernym"/>            				
             <MonolingualExternalRef externalSystem="smartphones" 
               						externalReference="6st row 2rd column in csv of origin"/>
         </Synset>
         
-        <Synset id="sm:ss-tablet">
+        <Synset id="sm_ss-tablet">
             <Definition>
                 <TextRepresentation languageIdentifier="eng" 
                 					writtenText="Yet another device to charge."/>
             </Definition>			           
-            <SynsetRelation target="wn31:ss-3086983" 
+            <SynsetRelation target="wn31_ss-3086983" 
             				relType="taxonomic" 
             				relName="hypernym"/>
            <MonolingualExternalRef externalSystem="smartphones" 
@@ -153,12 +153,12 @@
         </Synset>
         
 
-        <Synset id="sm:ss-phoneborg">
+        <Synset id="sm_ss-phoneborg">
             <Definition>
                 <TextRepresentation languageIdentifier="eng"
                 				    writtenText="The ultimate handheld that will completely replace your mind."/>
             </Definition>			            
-            <SynsetRelation target="sm:ss-phablet" 
+            <SynsetRelation target="sm_ss-phablet" 
             				relType="taxonomic" 
             				relName="hypernym"/>
 			<MonolingualExternalRef externalSystem="wn31" 

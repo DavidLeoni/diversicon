@@ -22,6 +22,7 @@ import org.xml.sax.helpers.DefaultHandler;
 
 import it.disi.unitn.diversicon.exceptions.DivException;
 import it.unitn.disi.diversicon.DivXmlHandler;
+import it.unitn.disi.diversicon.Diversicons;
 import it.unitn.disi.diversicon.LexResPackage;
 
 // from here
@@ -93,9 +94,10 @@ class DivXmlValidator extends DefaultHandler {
             @Nullable
             String id = attrs.getValue("id");
             if (id != null) {                                
-                if (!id.startsWith(pack.getPrefix() + ":")) {
+                if (!id.startsWith(pack.getPrefix() + Diversicons.NAMESPACE_SEPARATOR)) {
                     errorHandler.error(new SAXParseException("Found " + n + " id " + id
-                            + " not starting with LexicalResource prefix " + pack.getPrefix(), locator));
+                            + " not starting with LexicalResource prefix '" + pack.getPrefix() + "'", 
+                            locator));
                 }
             }
 

@@ -702,8 +702,16 @@ public final class DivTester {
      * @since 0.1.0
      */
     public static String tid(String name){        
-        return DEFAULT_TEST_PREFIX + ":" + name;
+        return pid(DEFAULT_TEST_PREFIX, name);
     }
-
+        
+    /**
+     * Adds default prefix used during tests.
+     * 
+     * @since 0.1.0
+     */
+    public static String pid(String prefix, String name){        
+        return prefix + Diversicons.NAMESPACE_SEPARATOR + name;
+    }
     
 }

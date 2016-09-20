@@ -1,6 +1,6 @@
 package it.unitn.disi.diversicon.test;
 
-
+import static it.unitn.disi.diversicon.test.DivTester.*;
 import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -358,7 +358,7 @@ public class DivUtilsTest {
         assertFalse(p.matcher("2").matches());
         assertTrue(p.matcher("a").matches());
         assertFalse(p.matcher(".").matches());
-        assertTrue(p.matcher("a.b").matches());
+        assertFalse(p.matcher("a.b").matches());
         assertFalse(p.matcher("a:b").matches());
         assertFalse(p.matcher("a:").matches());
         assertTrue(p.matcher("a-").matches());
@@ -372,18 +372,20 @@ public class DivUtilsTest {
     @Test
     public void testIdPattern(){
         Pattern p = Diversicons.ID_PATTERN;
-        assertFalse(p.matcher("t:").matches());
-        assertTrue(p.matcher("t: a").matches());
-        assertTrue(p.matcher("t:\t").matches());
-        assertTrue(p.matcher("t:-").matches());
-        assertTrue(p.matcher("t:_").matches());
-        assertTrue(p.matcher("t:2").matches());
-        assertTrue(p.matcher("t:a").matches());
-        assertTrue(p.matcher("t:.").matches());
-        assertTrue(p.matcher("t:a.b").matches());
-        assertTrue(p.matcher("t:a:b").matches());
-        assertTrue(p.matcher("t:a:").matches());
-        assertTrue(p.matcher("t:a-").matches());
+        
+        assertFalse(p.matcher("t").matches());        
+        assertFalse(p.matcher(pid("t"," a")).matches());
+        assertTrue(p.matcher(pid("t","a")).matches());
+        assertFalse(p.matcher(pid("t","\t")).matches());
+        assertFalse(p.matcher(pid("t","-")).matches());
+        assertFalse(p.matcher(pid("t","_")).matches());
+        assertFalse(p.matcher(pid("t","2")).matches());
+        assertTrue(p.matcher(pid("t","a2")).matches());
+        assertFalse(p.matcher(pid("t",".")).matches());
+        assertTrue(p.matcher(pid("t","a.b")).matches());
+        assertFalse(p.matcher(pid("t","a:b")).matches());
+        assertFalse(p.matcher(pid("t","a:")).matches());
+        assertTrue(p.matcher(pid("t","a-")).matches());
         assertFalse(p.matcher("a").matches()); // currently we don't support non-prefixed ids.
     }
  
@@ -470,6 +472,8 @@ public class DivUtilsTest {
     /**
      * @deprecated 
      * @throws IOException
+     * 
+     * @since 0.1.0
      */
     @Test
     public void testParseDtd() throws IOException{

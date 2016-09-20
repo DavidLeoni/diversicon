@@ -151,8 +151,7 @@ separableParticle 	http://www.isocat.org/datcat/DC-3546
 <!ELEMENT Lexicon (LexicalEntry+|SubcategorizationFrame*|SubcategorizationFrameSet*|SemanticPredicate*|Synset*|SynSemCorrespondence*)>
 <!ATTLIST Lexicon	id ID #REQUIRED
     				lexiconName CDATA #IMPLIED
-    				languageIdentifier CDATA #IMPLIED  
-    				lexicalResourceId IDREF #REQUIRED>
+    				languageIdentifier CDATA #IMPLIED>
 <!--
 languageIdentifier 	http://www.isocat.org/datcat/DC-279
 -->    
@@ -660,8 +659,7 @@ translation 	http://www.isocat.org/datcat/DC-4020
 								lexiconOne CDATA #IMPLIED
 								lexiconTwo CDATA #IMPLIED
 								confidence CDATA #IMPLIED
-								metaDataId CDATA #IMPLIED
-								lexicalResourceId IDREF #REQUIRED													
+								metaDataId CDATA #IMPLIED													
 								idx CDATA #IMPLIED>
 <!ELEMENT SenseAxis (SenseAxisRelation+)>
 <!ATTLIST SenseAxis	senseAxisId ID #REQUIRED
@@ -674,7 +672,6 @@ translation 	http://www.isocat.org/datcat/DC-4020
 					lexiconTwo CDATA #IMPLIED
 					metaDataId CDATA #IMPLIED
 					confidence CDATA #IMPLIED
-					lexicalResourceId IDREF #REQUIRED
 					idx CDATA #IMPLIED>
 					
 <!ELEMENT SenseAxisRelation EMPTY>
@@ -723,8 +720,7 @@ generator	http://www.isocat.org/datcat/DC-2511
 					creationTool CDATA #IMPLIED
 					version CDATA #IMPLIED
 					creationProcess IDREF #REQUIRED	
-					automatic CDATA #IMPLIED
-					lexicalResourceId IDREF #REQUIRED>
+					automatic CDATA #IMPLIED>
     
 <!ELEMENT SemanticLabel (MonolingualExternalRef*)>
 <!ATTLIST SemanticLabel 

@@ -22,7 +22,7 @@ modify (
     ) as first into $root/xs:schema,
     
     insert node (
-    <xs:assert test="every $prefixed-elem in .//* satisfies fn:starts-with($prefixed-elem/@id, fn:concat(@prefix, ':'))">		
+    <xs:assert test="every $prefixed-elem in .//* satisfies fn:starts-with($prefixed-elem/@id, fn:concat(@prefix, '_'))">		
         <xs:annotation>
                 <xs:appinfo>
                 Value of the "min" attribute can not be greater than that of the "max"

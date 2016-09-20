@@ -176,20 +176,30 @@ public final class Diversicons {
      * @since 0.1.0
      */
     public static final int LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH = 5;
-
+    
     /**
-     * Valid prefixes:
+     * Pattern for valid prefixes.
      * 
      * @since 0.1.0
      */
-    public static final Pattern NAMESPACE_PREFIX_PATTERN = Pattern.compile("\\p{Alpha}(\\w|-|_|\\.)*");
+    public static final Pattern NAMESPACE_PREFIX_PATTERN = Pattern.compile("\\p{Alpha}(\\w|-)*");
 
     /**
      * @since 0.1.0
      */
-    public static final Pattern ID_PATTERN = Pattern.compile(NAMESPACE_PREFIX_PATTERN.toString() + ":" + ".+");
+    public static final String NAMESPACE_SEPARATOR = "_";
+    
+    /**
+     * 
+     * @since 0.1.0
+     */
+    public static final Pattern ID_PATTERN = Pattern.compile(
+                                          NAMESPACE_PREFIX_PATTERN.toString() 
+                                        + NAMESPACE_SEPARATOR 
+                                        + "\\p{Alpha}(\\w|-|_|\\.)*");
 
     /**
+     * 
      * Mnemonic shorthand for H2 database
      * 
      * @since 0.1.0
@@ -244,7 +254,7 @@ public final class Diversicons {
     /**
      * List of known relations, excluding the inverses.
      */
-    private static final Set<String> canonicalRelations = new LinkedHashSet();
+    private static final Set<String> canonicalRelations = new LinkedHashSet<>();
 
     /**
      * List of known relations, (including the inverses)
@@ -268,6 +278,7 @@ public final class Diversicons {
      * @since 0.1.0
      */
     private static final String XQUERY_IN_FILE_VAR = "in-file";
+
 
     private static Map<String, String> inverseRelations = new HashMap<>();
 
@@ -1406,10 +1417,11 @@ public final class Diversicons {
     public static String namespacePrefixFromId(String id) {
         checkNotEmpty(id, "Invalid id!");
 
-        int i = id.indexOf(":");
+        int i = id.indexOf(NAMESPACE_SEPARATOR);
         if (i == -1) {
             throw new IllegalArgumentException(
-                    "Tried to extract prefix but couldn't find colon ':' in provided id: " + id);
+                    "Tried to extract prefix but couldn't find separator '" + Diversicons.NAMESPACE_SEPARATOR
+                    + "' in provided id: " + id);
         }
 
         String ret = id.substring(0, i);
