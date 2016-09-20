@@ -27,22 +27,85 @@
 
 Changes made in Diversicon:
 
-- removed initial ?xml tag,  because a DTD is not an xml file (at most a DTD can be embedded inside
+* changed all (foo|baz|...) forms into (foo,baz,...) 
+* removed initial ?xml tag,  because a DTD is not an xml file (at most a DTD can be embedded inside
   an xml, see https://en.wikipedia.org/wiki/Document_type_definition#Examples
-- LexicalResource:
+* removed backlinks, they were all #REQUIRED  
+  
+* LexicalResource:
+  converted elements list from
+   	(SenseAxis*|PredicateArgumentAxis*|MetaData*|Lexicon+)>
+ 	to  (MetaData*, Lexicon+, SenseAxis*, PredicateArgumentAxis*)>
   added  	
-	id ID #REQUIRED
-	prefix CDATA #REQUIRED
+  - id ID #REQUIRED
+  - prefix CDATA #REQUIRED
   modified 
-  	name from ID to CDATA
-	
+  - name from ID to CDATA
+
+
+* Lexicon
+  modified
+  - converted elements list from  
+    (LexicalEntry+|SubcategorizationFrame*|SubcategorizationFrameSet*|SemanticPredicate*|Synset*|SynSemCorrespondence*)
+  to
+    (LexicalEntry+,Synset*,SubcategorizationFrame*,SubcategorizationFrameSet*,SemanticPredicate*,SynSemCorrespondence*)
+  removed 
+  - LexicalResourceId IDREF #REQUIRED
+  
+  renamed
+  - lexiconName -> name
+
+* LexicalEntry
+  removed
+  - lexiconId IDREF #REQUIRED
+
+* Sense
+  - converted elements list from  
+	(Sense|Context|PredicativeRepresentation|SenseExample
+	|Definition|SenseRelation|Equivalent|MonolingualExternalRef
+	|Frequency|SemanticLabel)*
+  to
+	(Definition*, SenseExample*, MonolingualExternalRef*, Frequency*, 
+	 Context*,PredicativeRepresentation*,SenseRelation*,Equivalent*,
+	 SemanticLabel*, Sense*)
+
+
+  removed
+  - lexicalEntryId IDREF #REQUIRED
+  	
+* FormRepresentation
+  removed
+  - backlink lemmaId IDREF #REQUIRED
+  - backlink relatedFormId IDREF #REQUIRED
+  
+* Lemma
+  modified
+  - id  from #REQUIRED to #IMPLIED
+  
+* Synset
+  removed
+  - lexiconId IDREF #REQUIRED
+
+* Definition
+  modified
+  - id 	from #REQUIRED to #IMPLIED
+
+* TextRepresentation
+  modified
+  - id 	from #REQUIRED to #IMPLIED
+
+* WordForm
+  modified
+  - id 	from #REQUIRED to #IMPLIED
+  removed
+  - backlink lexicalEntryId IDREF #REQUIRED	  
 -->
 
 
                        <!--#################### Core package -->
 <!ELEMENT Definition (Statement*, TextRepresentation+)>
 <!ATTLIST Definition
-	id 	ID #REQUIRED
+	id 	ID #IMPLIED
 	definitionType (extensionalDefinition|intensionalDefinition|partitiveDefinition|translatedDefinition) #IMPLIED
 	synsetId IDREF #IMPLIED
 	semanticArgumentId IDREF #IMPLIED
@@ -73,8 +136,7 @@ translatedDefinition 	http://www.isocat.org/datcat/DC-173
     								  verbAuxiliary|verbModal|verbMain|verb|
     								  abbreviation|abbreviationAcronym|abbreviationInitialism|contraction|
     								  affix|affixPrefix|affixSuffix) #REQUIRED
-    					separableParticle CDATA #IMPLIED
-    					lexiconId IDREF #REQUIRED>  
+    					separableParticle CDATA #IMPLIED>  
   
 <!-- 
 partOfSpeech	http://www.isocat.org/datcat/DC-396
@@ -141,32 +203,31 @@ affixSuffix					http://www.isocat.org/datcat/DC-1395
 separableParticle 	http://www.isocat.org/datcat/DC-3546
 -->            
 
-<!ELEMENT LexicalResource (SenseAxis*|PredicateArgumentAxis*|MetaData*|Lexicon+)>
+<!ELEMENT LexicalResource (MetaData*, Lexicon+, SenseAxis*, PredicateArgumentAxis*)>
 <!ATTLIST LexicalResource	id ID #REQUIRED
 							name CDATA #REQUIRED
 							prefix CDATA #REQUIRED
     						dtdVersion CDATA #IMPLIED   						
     						globalInformationId IDREF #IMPLIED>
     						   
-<!ELEMENT Lexicon (LexicalEntry+|SubcategorizationFrame*|SubcategorizationFrameSet*|SemanticPredicate*|Synset*|SynSemCorrespondence*)>
+<!ELEMENT Lexicon (LexicalEntry+,Synset*,SubcategorizationFrame*,SubcategorizationFrameSet*,SemanticPredicate*,SynSemCorrespondence*)>
 <!ATTLIST Lexicon	id ID #REQUIRED
-    				lexiconName CDATA #IMPLIED
+    				name CDATA #IMPLIED
     				languageIdentifier CDATA #IMPLIED>
 <!--
 languageIdentifier 	http://www.isocat.org/datcat/DC-279
 -->    
                                 
 
-<!ELEMENT Sense (Sense|Context|PredicativeRepresentation|SenseExample
-	|Definition|SenseRelation|Equivalent|MonolingualExternalRef
-	|Frequency|SemanticLabel)*>
+<!ELEMENT Sense (Definition*, SenseExample*, MonolingualExternalRef*, Frequency*, 
+	 Context*,PredicativeRepresentation*,SenseRelation*,Equivalent*,
+	 SemanticLabel*, Sense*)>
 <!ATTLIST Sense
     id     ID #REQUIRED
     index  CDATA #IMPLIED
     synset               IDREF #IMPLIED
     incorporatedSemArg IDREF #IMPLIED 
-    transparentMeaning (true|false) #IMPLIED
-    lexicalEntryId IDREF #REQUIRED>
+    transparentMeaning (true|false) #IMPLIED>
 <!--
 index 	http://www.isocat.org/datcat/DC-233
 synset	http://www.isocat.org/datcat/DC-4613 	
@@ -193,7 +254,7 @@ externalReference	http://www.isocat.org/datcat/DC-164
 
 <!ELEMENT TextRepresentation EMPTY>
 <!ATTLIST TextRepresentation
-	id     ID #REQUIRED
+	id     ID #IMPLIED
     languageIdentifier CDATA #IMPLIED
     orthographyName CDATA #IMPLIED
     geographicalVariant CDATA #IMPLIED
@@ -211,22 +272,21 @@ writtenText	http://www.isocat.org/datcat/DC-1847
             <!--#################### Package for Morphology -->
 <!ELEMENT Lemma (FormRepresentation+)>
 <!ATTLIST Lemma
-	id     ID #REQUIRED>
+	id     ID #IMPLIED>
 <!--
 lemma	http://www.isocat.org/datcat/DC-286
 --> 
 
 <!ELEMENT WordForm (FormRepresentation+, Frequency*)>
 <!ATTLIST WordForm
-	id     ID #REQUIRED
+	id     ID #IMPLIED
     grammaticalNumber (singular|plural) #IMPLIED
     grammaticalGender (feminine|masculine|neuter) #IMPLIED
     case (nominative|genitive|dative|accusative) #IMPLIED
     person (first|second|third) #IMPLIED
     tense (present|past) #IMPLIED
     verbFormMood  (infinitive|infinitiveZu|participle|indicative|subjunctive|imperative|ingForm) #IMPLIED
-    degree (positive|comparative|superlative) #IMPLIED
-    lexicalEntryId IDREF #REQUIRED>
+    degree (positive|comparative|superlative) #IMPLIED>
 <!--
 grammaticalNumber 		http://www.isocat.org/datcat/DC-251
 singular 	http://www.isocat.org/datcat/DC-252
@@ -275,9 +335,7 @@ superlative 	http://www.isocat.org/datcat/DC-2782
     sound CDATA #IMPLIED
     geographicalVariant CDATA #IMPLIED
     hyphenation CDATA #IMPLIED
-    orthographyName CDATA #IMPLIED
-    relatedFormId IDREF #REQUIRED
-    lemmaId IDREF #REQUIRED>
+    orthographyName CDATA #IMPLIED>
 <!--
 languageIdentifier 	http://www.isocat.org/datcat/DC-279
 writtenForm 	http://www.isocat.org/datcat/DC-1836
@@ -594,8 +652,7 @@ idiomaticExpression 	http://www.isocat.org/datcat/DC-351
     
 <!ELEMENT Synset (Definition*, SynsetRelation*, MonolingualExternalRef*)>
 <!ATTLIST Synset
-    id               ID #REQUIRED
-    lexiconId IDREF #REQUIRED>
+    id               ID #REQUIRED>
    
 <!ELEMENT SynsetRelation (Frequency*)>
 <!ATTLIST SynsetRelation

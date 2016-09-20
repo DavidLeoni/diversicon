@@ -12,9 +12,35 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="https://github.com/DavidLeoni/diversicon/tree/master/src/main/resources/diversicon-1.0.xsd">
 
-	<Lexicon id="ex_alex-eng" />	
-	<Lexicon id="ex_blex-eng" />	
-	<Lexicon id="ex_clex-eng" />
-  	  	  
+    <Lexicon id="ex_lex-eng"
+    		 languageIdentifier="eng" 
+    		 name="Examplicon English lexicon">
+    		 
+        <LexicalEntry id="ex_le-car" 
+        			  partOfSpeech="noun">
+            <Lemma>
+                <FormRepresentation languageIdentifier="eng" 
+                					writtenForm="car"/>
+            </Lemma>
+            <Sense id="ex_s-car" 
+            	   synset="ex_ss-car">
+                <MonolingualExternalRef externalSystem="car" 
+                						externalReference="3rd row, fourth column in CSV"/>
+            </Sense>
+        </LexicalEntry>
+
+		        
+		<Synset id="ex_ss-car">
+            <Definition>
+                <TextRepresentation languageIdentifier="eng" 
+                					writtenText="A vehicle"/>
+            </Definition>
+            <MonolingualExternalRef externalSystem="the-world" 
+              						externalReference="7st row 2rd column in csv of origin"/>
+        </Synset>        
+	</Lexicon>	
+	
+		
+	  	  
 
 </LexicalResource>
