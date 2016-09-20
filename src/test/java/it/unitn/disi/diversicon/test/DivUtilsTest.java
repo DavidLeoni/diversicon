@@ -466,25 +466,13 @@ public class DivUtilsTest {
     } 
     
 
-    @Test
-    public void testGenerateXmlSchema() throws IOException{
-        
-        File xsd = new File(DivTester.createTestDir().toFile(),"test-diversicon.xsd");        
-        Internals.generateXmlSchemaFromDtd(xsd);
-        
-        LOG.debug("GENERATED SCHEMA IS:\n" + FileUtils.readFileToString(xsd));
-        /*
-        File f = Internals.readData(Examplicon.XML_URI).toTempFile();
-        
-        Diversicons.validateXml(f, LOG);
-        
-        Internals.validateXml(f, xsd, LOG, -1);
-        */
-        
-    }
     
+    /**
+     * @deprecated 
+     * @throws IOException
+     */
     @Test
-    public void parseDtdTest() throws IOException{
+    public void testParseDtd() throws IOException{
         
         File dtd = Internals.readData(Diversicons.DIVERSICON_DTD_1_0_CLASSPATH_URL, false)
                 .toTempFile();
@@ -515,5 +503,55 @@ public class DivUtilsTest {
         
     }
 
+    
+    @Test
+    public void testGenerateXmlSchema() throws IOException{
+        
+        File xsd = new File("target","diversicon-1.0-SNAPSHOT.xsd");
+        
+        // extra security check
+        if (xsd.getAbsolutePath().endsWith("target/diversicon-1.0-SNAPSHOT.xsd")){
+            FileUtils.deleteQuietly(xsd);
+            LOG.info("cleaned " + xsd.getAbsolutePath());
+        }
+        
+        Internals.generateXmlSchemaFromDtd(xsd);
+        
+        LOG.debug("GENERATED SCHEMA IS:\n" + FileUtils.readFileToString(xsd));
+        
+        File f = Internals.readData(Examplicon.XML_URI).toTempFile();
+        
+        Diversicons.validateXml(f, LOG);
+        
+        Internals.validateXml(f, xsd, LOG, -1);
+        
+        
+    }
+    
+    
+    /** 
+     * @since 0.1.0
+     */
+    @Test
+    public void testTransformXml() throws IOException{
+        
+        String xquery = Diversicons.XQUERY_UPDATE_PROLOGUE
+                + "  for $a in $root//a"
+                + "  return replace value of node $a with 'b'"
+                + Diversicons.XQUERY_UPDATE_END;
+        
+        File dir = DivTester.createTestDir().toFile();
+        File inXml = new File(dir, "in.xml");
+        File outXml = new File(dir, "out.xml");
+        
+        FileUtils.writeStringToFile(inXml, "<a></a>");        
+        
+        Diversicons.transformXml(xquery, inXml, outXml);
+        
+        assertTrue(outXml.exists());
+        
+        String output = FileUtils.readFileToString(outXml);
+        assertEquals("<a>b</a>", output);
+    }
    
 }

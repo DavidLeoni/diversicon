@@ -29,9 +29,13 @@ Changes made in Diversicon:
 
 - removed initial ?xml tag,  because a DTD is not an xml file (at most a DTD can be embedded inside
   an xml, see https://en.wikipedia.org/wiki/Document_type_definition#Examples
-- added to LexicalResource: 	
-	name ID #REQUIRED
-	prefix ID #REQUIRED
+- LexicalResource:
+  added  	
+	id ID #REQUIRED
+	prefix CDATA #REQUIRED
+  modified 
+  	name from ID to CDATA
+	
 -->
 
 
@@ -139,13 +143,13 @@ separableParticle 	http://www.isocat.org/datcat/DC-3546
 
 <!ELEMENT LexicalResource (SenseAxis*|PredicateArgumentAxis*|MetaData*|Lexicon+)>
 <!ATTLIST LexicalResource	id ID #REQUIRED
-							name ID #REQUIRED
-							prefix ID #REQUIRED
+							name CDATA #REQUIRED
+							prefix CDATA #REQUIRED
     						dtdVersion CDATA #IMPLIED   						
     						globalInformationId IDREF #IMPLIED>
     						   
 <!ELEMENT Lexicon (LexicalEntry+|SubcategorizationFrame*|SubcategorizationFrameSet*|SemanticPredicate*|Synset*|SynSemCorrespondence*)>
- <!ATTLIST Lexicon	id ID #REQUIRED
+<!ATTLIST Lexicon	id ID #REQUIRED
     				lexiconName CDATA #IMPLIED
     				languageIdentifier CDATA #IMPLIED  
     				lexicalResourceId IDREF #REQUIRED>

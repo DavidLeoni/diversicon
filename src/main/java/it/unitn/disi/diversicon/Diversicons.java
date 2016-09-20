@@ -110,6 +110,30 @@ public final class Diversicons {
     /**
      * @since 0.1.0
      */
+    public static final String XQUERY_IN_FILE_DECLARATION = "declare variable $in-file external;\n";
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String XQUERY_ROOT_VAR = "$root";
+        
+    /**
+     * @since 0.1.0
+     */    
+    public static final String XQUERY_UPDATE_PROLOGUE = XQUERY_IN_FILE_DECLARATION 
+    + "    copy " + XQUERY_ROOT_VAR + " := doc($in-file) "
+    + "\n    modify (   ";
+    
+    /**
+     * @since 0.1.0
+     */    
+    public static final String  XQUERY_UPDATE_END = ") return $root";
+
+    
+    
+    /**
+     * @since 0.1.0
+     */
     public static final String DIVERSICON_DTD_1_0_FILENAME = "diversicon-1.0.dtd";
 
     /**
@@ -237,7 +261,15 @@ public final class Diversicons {
 
     private static final String DEFAULT_PASSWORD = "pass";
 
-    private static Map<String, String> inverseRelations = new HashMap();
+    /**
+     * 
+     * Couldn't find a smarter default way to provide input files in scripts. 
+     * 
+     * @since 0.1.0
+     */
+    private static final String XQUERY_IN_FILE_VAR = "in-file";
+
+    private static Map<String, String> inverseRelations = new HashMap<>();
 
     /**
      * Mappings from Uby classes to out own custom ones.
@@ -1550,27 +1582,36 @@ public final class Diversicons {
         }
     }
 
+    
+
 
     /**
+     * Executes an XQuery script on {@code inXml} and writes output to {@code outXml} 
+     *
+     * Currently the processing occurs completely in-memory.
+     *
      * @throws DivException
      * 
      * @since 0.1.0
      */
-    public static void transform(
+    // todo make it work with large xmls
+    public static void transformXml(
             String xquery,
-            File inXml,             
+            File inXml,
             File outXml) {
         
         checkNotBlank(xquery, "Invalid query!");
         checkNotNull(inXml);
         checkNotNull(outXml);
-        
-        
-        Context context = new Context();
+        checkArgument(!inXml.equals(outXml), "Target file must be different from input file, instead they point both to %s", inXml.getAbsolutePath());
+               
+        Context context = new Context();        
 
         // Create a query processor
         try (QueryProcessor proc = new QueryProcessor(xquery, context)) {
 
+            proc.bind(XQUERY_IN_FILE_VAR, inXml.getAbsolutePath());
+            
             // Store the pointer to the result in an iterator:
             Iter iter;
             try {
@@ -1587,9 +1628,9 @@ public final class Diversicons {
 
                     ser.serialize(item);
                 }
-            } catch (IOException | QueryException ex) {
-                throw new DivException(ex);
-            }                      
+            }
+        } catch (IOException | QueryException ex) {
+            throw new DivException(ex);
         }
 
     }

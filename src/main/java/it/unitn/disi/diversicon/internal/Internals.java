@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
@@ -57,6 +58,8 @@ import org.apache.xerces.impl.dtd.XMLDTDLoader;
 import org.apache.xerces.util.SAXInputSource;
 import org.apache.xerces.xni.XNIException;
 import org.apache.xerces.xni.parser.XMLInputSource;
+import org.dom4j.DocumentException;
+import org.dom4j.io.SAXReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.InputSource;
@@ -88,13 +91,19 @@ import it.unitn.disi.diversicon.Diversicons;
  * 
  * Utility toolbox for Diversicon internal usage.
  * 
- * DO NOT USE THIS CLASS OUTSIDE OF DIVERSICON PROJECT. THANKS.
- *
+ * <p><strong>DO NOT USE THIS CLASS OUTSIDE OF DIVERSICON PROJECT. THANKS.</strong></p>
+ * 
+ * @since 0.1.0
  */
 public final class Internals {
 
     public final static String DIVERSICON_STRING = "diversicon";
 
+    /**
+     * TODO !!!! CHANGE THE PATH!
+     */
+    private final static String FIX_DIV_SCHEMA_XQL = "src/main/resources/internals/fix-div-schema.xql";
+    
     private static final Logger LOG = LoggerFactory.getLogger(Internals.class);
 
     private static final @Nullable Cloner cloner = new Cloner();
@@ -1586,31 +1595,78 @@ public final class Internals {
      * adding further constraints
      * 
      * @throws DivNotFoundException
+     * @throws DivIoException 
      * 
      * @since 0.1.0
      */
+    // NOTE: you can't add namespace declarations with Xquery update! 
+    // See  http://stackoverflow.com/questions/36865118/add-namespace-declaration-to-xml-element-using-xquery
     public static void generateXmlSchemaFromDtd(File output) {               
         
         LOG.info("Going to generate xsd file:  " + output.getAbsolutePath() + "   ...");
+                       
         
         checkNotNull(output);
         
         File dtd = Internals.readData(Diversicons.DIVERSICON_DTD_1_0_CLASSPATH_URL)
                 .toTempFile();
         
+        File tempDir = createTempDivDir("trang").toFile();
         
+        /**
+         * First pass to generate first crude xsd 
+         */
+        File firstPass = new File(tempDir, "first-pass.xsd");
         
-        new com.thaiopensource.relaxng.translate.Driver().run(new String[]{"-I", "dtd", "-O", "xsd", dtd.getAbsolutePath(), output.getAbsolutePath()});
+        // xmlns:fn="http://www.w3.org/2005/xpath-functions"
+        // xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning"
+        // vc:minVersion="1.1"
+        
+        new com.thaiopensource.relaxng.translate.Driver().run(new String[]{"-I", "dtd", "-O", "xsd",
+                "-i", "xmlns:fn=http://www.w3.org/2005/xpath-functions",
+                "-i", "xmlns:vc=http://www.w3.org/2007/XMLSchema-versioning",                   
+                dtd.getAbsolutePath(), 
+                firstPass.getAbsolutePath()});
                
-        if (!dtd.exists()){
-            throw new DivNotFoundException("Seems like trang didn't generate the xsd file!!");
+        if (!firstPass.exists()){
+            throw new DivException("Failed first transformation pass!!"
+                    + "             Check the console for errors emitted by trang module!");
         }
+
+        /**
+         * Second pass is needed because Trang is soo smart to remove unused namespaces :-/
+         */        
+        File secondPass = new File(tempDir, "second-pass.xsd");
+                
+        SAXReader reader = new SAXReader();
+        try {
+            org.dom4j.Document document = reader.read(firstPass);
+            document.getRootElement().addAttribute("xmlns:fn", "http://www.w3.org/2005/xpath-functions" );
+            document.getRootElement().addAttribute("xmlns:vc", "http://www.w3.org/2007/XMLSchema-versioning");
+            document.getRootElement().addAttribute("vc:minVersion", "1.1");
+            org.dom4j.io.XMLWriter writer = new org.dom4j.io.XMLWriter( new FileOutputStream(secondPass), 
+                    org.dom4j.io.OutputFormat.createPrettyPrint() );
+            writer.write(document);
+            LOG.debug("Wrote second pass to " + secondPass.getAbsolutePath());
+        } catch (DocumentException | IOException ex) {            
+            throw new DivException("Error while adding namespaces in second pass!", ex);
+        }
+                
+        // last pass! 
+        
+        String xquery;
+        try {
+            xquery = IOUtils.toString(Internals.readData(Internals.FIX_DIV_SCHEMA_XQL).stream());
+        } catch (IOException ex) {            
+            throw new DivIoException(ex);
+        }
+                
+        Diversicons.transformXml(xquery, secondPass, output);
         
         LOG.info("Done.");
         
         /*
         
-
         String query;
         try {
             query = IOUtils.toString(Internals.readData(Diversicons.UBY_DTD_TO_SCHEMA_XQUERY_CLASSPATH_URL)
@@ -1672,10 +1728,12 @@ public final class Internals {
     
     
     /**
+     * @deprecated we don't really use it, it's here just as an experiment
+     * 
      * @since 0.1.0
      */
     // Taken from here: http://stackoverflow.com/a/26414914
-    public static DTDGrammar parseDtdWithXerces(String dtdText)  {
+    public static DTDGrammar parseDtd(String dtdText)  {
         
      //   LOG.debug("dtdText= " + dtdText);
         

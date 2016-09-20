@@ -3,8 +3,8 @@
 <!-- Complex example of an LMF file, containing all possible tags -->
 
 <LexicalResource
-	name="The Examplicon"
 	id="examplicon"	
+	name="The Examplicon"
 	prefix="ex"	
 	xmlns:ex="https://github.com/DavidLeoni/diversicon/tree/master/src/main/resources/examplicon.lmf.xml"
 	xmlns:wn31="https://github.com/DavidLeoni/diversicon-wordnet-3.1/blob/master/src/main/resources/it/unitn/disi/diversicon/data/div-wn31.lmf.xml.xz"
