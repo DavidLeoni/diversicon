@@ -91,19 +91,24 @@ import it.unitn.disi.diversicon.Diversicons;
  * 
  * Utility toolbox for Diversicon internal usage.
  * 
- * <p><strong>DO NOT USE THIS CLASS OUTSIDE OF DIVERSICON PROJECT. THANKS.</strong></p>
+ * <p>
+ * <strong>DO NOT USE THIS CLASS OUTSIDE OF DIVERSICON PROJECT. THANKS.</strong>
+ * </p>
  * 
  * @since 0.1.0
  */
 public final class Internals {
 
+    /**
+     * @since 0.1.0
+     */
     public final static String DIVERSICON_STRING = "diversicon";
 
     /**
-     * TODO !!!! CHANGE THE PATH!
+     * @since 0.1.0
      */
-    private final static String FIX_DIV_SCHEMA_XQL = "src/main/resources/internals/fix-div-schema.xql";
-    
+    private final static String FIX_DIV_SCHEMA_XQL = "classpath:/internals/fix-div-schema.xql";
+
     private static final Logger LOG = LoggerFactory.getLogger(Internals.class);
 
     private static final @Nullable Cloner cloner = new Cloner();
@@ -745,31 +750,40 @@ public final class Internals {
         LOG.trace("reading data from " + dataUrl + " ...");
 
         if ("classpath".equals(uri.getScheme())) {
-            String q = dataUrl.substring("classpath:".length());
-            uriPath = q;
-            inputStream = Diversicons.class.getResourceAsStream(q);
-            if (inputStream == null) {
+            uriPath = dataUrl.substring("classpath:".length());
+            String q;
 
+            Pattern p = Pattern.compile("/*");
+            Matcher m = p.matcher(uriPath);
+
+            if (m.find()) {
+                q = uriPath.substring(m.end(), uriPath.length());
+            } else {
+                q = uriPath;
+            }
+
+            try {
+
+                String candidatePathTest = "src/test/resources/" + q;
+                LOG.trace("    Searching data at " + candidatePathTest + " ...");
+                inputStream = new FileInputStream(candidatePathTest);
+                LOG.debug("    Located data at " + candidatePathTest);
+            } catch (FileNotFoundException ex1) {
                 try {
-
-                    String candidatePathTest = "src/test/resources/" + q;
-                    LOG.trace("    Searching data at " + candidatePathTest + " ...");
-                    inputStream = new FileInputStream(candidatePathTest);
-                    LOG.debug("    Located data at " + candidatePathTest);
-                } catch (FileNotFoundException ex1) {
-                    try {
-                        String candidatePathMain = "src/main/resources/" + q;
-                        LOG.trace("    Searching data at " + candidatePathMain + " ...");
-                        inputStream = new FileInputStream(candidatePathMain);
-                        LOG.debug("    Located data at " + candidatePathMain);
-                    } catch (FileNotFoundException ex2) {
+                    String candidatePathMain = "src/main/resources/" + q;
+                    LOG.trace("    Searching data at " + candidatePathMain + " ...");
+                    inputStream = new FileInputStream(candidatePathMain);
+                    LOG.debug("    Located data at " + candidatePathMain);
+                } catch (FileNotFoundException ex2) {
+                    inputStream = Diversicons.class.getResourceAsStream(q);
+                    if (inputStream == null) {
                         throw new DivIoException("Couldn't find input stream: " + dataUrl.toString());
+                    } else {
+                        LOG.debug("    Located data at " + dataUrl);
                     }
                 }
-
-            } else {
-                LOG.debug("    Located data at " + dataUrl);
             }
+
         } else {
 
             if ("jar".equals(uri.getScheme())) {
@@ -1595,90 +1609,95 @@ public final class Internals {
      * adding further constraints
      * 
      * @throws DivNotFoundException
-     * @throws DivIoException 
+     * @throws DivIoException
      * 
      * @since 0.1.0
      */
-    // NOTE: you can't add namespace declarations with Xquery update! 
-    // See  http://stackoverflow.com/questions/36865118/add-namespace-declaration-to-xml-element-using-xquery
-    public static void generateXmlSchemaFromDtd(File output) {               
-        
+    // NOTE: you can't add namespace declarations with Xquery update!
+    // See
+    // http://stackoverflow.com/questions/36865118/add-namespace-declaration-to-xml-element-using-xquery
+    public static void generateXmlSchemaFromDtd(File output) {
+
         LOG.info("Going to generate xsd file:  " + output.getAbsolutePath() + "   ...");
-                       
-        
+
         checkNotNull(output);
-        
+
         File dtd = Internals.readData(Diversicons.DIVERSICON_DTD_1_0_CLASSPATH_URL)
-                .toTempFile();
-        
+                            .toTempFile();
+
         File tempDir = createTempDivDir("trang").toFile();
-        
+
         /**
-         * First pass to generate first crude xsd 
+         * First pass to generate first crude xsd
          */
         File firstPass = new File(tempDir, "first-pass.xsd");
-        
+
         // xmlns:fn="http://www.w3.org/2005/xpath-functions"
         // xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning"
         // vc:minVersion="1.1"
-        
-        new com.thaiopensource.relaxng.translate.Driver().run(new String[]{"-I", "dtd", "-O", "xsd",
+
+        new com.thaiopensource.relaxng.translate.Driver().run(new String[] { "-I", "dtd", "-O", "xsd",
                 "-i", "xmlns:fn=http://www.w3.org/2005/xpath-functions",
-                "-i", "xmlns:vc=http://www.w3.org/2007/XMLSchema-versioning",                   
-                dtd.getAbsolutePath(), 
-                firstPass.getAbsolutePath()});
-               
-        if (!firstPass.exists()){
+                "-i", "xmlns:vc=http://www.w3.org/2007/XMLSchema-versioning",
+                dtd.getAbsolutePath(),
+                firstPass.getAbsolutePath() });
+
+        if (!firstPass.exists()) {
             throw new DivException("Failed first transformation pass!!"
                     + "             Check the console for errors emitted by trang module!");
         }
 
         /**
-         * Second pass is needed because Trang is soo smart to remove unused namespaces :-/
-         */        
+         * Second pass is needed because Trang is soo smart to remove unused
+         * namespaces :-/
+         */
         File secondPass = new File(tempDir, "second-pass.xsd");
-                
+
         SAXReader reader = new SAXReader();
         try {
             org.dom4j.Document document = reader.read(firstPass);
-            document.getRootElement().addAttribute("xmlns:fn", "http://www.w3.org/2005/xpath-functions" );
-            document.getRootElement().addAttribute("xmlns:vc", "http://www.w3.org/2007/XMLSchema-versioning");
-            document.getRootElement().addAttribute("vc:minVersion", "1.1");
-            org.dom4j.io.XMLWriter writer = new org.dom4j.io.XMLWriter( new FileOutputStream(secondPass), 
-                    org.dom4j.io.OutputFormat.createPrettyPrint() );
+            document.getRootElement()
+                    .addAttribute("xmlns:fn", "http://www.w3.org/2005/xpath-functions");
+            document.getRootElement()
+                    .addAttribute("xmlns:vc", "http://www.w3.org/2007/XMLSchema-versioning");
+            document.getRootElement()
+                    .addAttribute("vc:minVersion", "1.1");
+            org.dom4j.io.XMLWriter writer = new org.dom4j.io.XMLWriter(new FileOutputStream(secondPass),
+                    org.dom4j.io.OutputFormat.createPrettyPrint());
             writer.write(document);
             LOG.debug("Wrote second pass to " + secondPass.getAbsolutePath());
-        } catch (DocumentException | IOException ex) {            
+        } catch (DocumentException | IOException ex) {
             throw new DivException("Error while adding namespaces in second pass!", ex);
         }
-                
-        // last pass! 
-        
+
+        // last pass!
+
         String xquery;
         try {
-            xquery = IOUtils.toString(Internals.readData(Internals.FIX_DIV_SCHEMA_XQL).stream());
-        } catch (IOException ex) {            
+            xquery = IOUtils.toString(Internals.readData(Internals.FIX_DIV_SCHEMA_XQL)
+                                               .stream());
+        } catch (IOException ex) {
             throw new DivIoException(ex);
         }
-                
-        Diversicons.transformXml(xquery, secondPass, output);
-        
-        LOG.info("Done.");
-        
-        /*
-        
-        String query;
-        try {
-            query = IOUtils.toString(Internals.readData(Diversicons.UBY_DTD_TO_SCHEMA_XQUERY_CLASSPATH_URL)
-                                              .stream());
-        } catch (IOException e) {
-            throw new DivIoException("Error while reading xquery !", e);
-        }
 
-        Diversicons.transform(query, file, output);
-        */
-                       
-        
+        Diversicons.transformXml(xquery, secondPass, output);
+
+        LOG.info("Done.");
+
+        /*
+         * 
+         * String query;
+         * try {
+         * query = IOUtils.toString(Internals.readData(Diversicons.
+         * UBY_DTD_TO_SCHEMA_XQUERY_CLASSPATH_URL)
+         * .stream());
+         * } catch (IOException e) {
+         * throw new DivIoException("Error while reading xquery !", e);
+         * }
+         * 
+         * Diversicons.transform(query, file, output);
+         */
+
     }
 
     /**
@@ -1724,46 +1743,43 @@ public final class Internals {
 
     }
 
-    
-    
-    
     /**
      * @deprecated we don't really use it, it's here just as an experiment
      * 
      * @since 0.1.0
      */
     // Taken from here: http://stackoverflow.com/a/26414914
-    public static DTDGrammar parseDtd(String dtdText)  {
-        
-     //   LOG.debug("dtdText= " + dtdText);
-        
+    public static DTDGrammar parseDtd(String dtdText) {
+
+        // LOG.debug("dtdText= " + dtdText);
 
         // read DTD
         // InputStream dtdStream = new ByteArrayInputStream(sw.toString()
-        //  .getBytes());
+        // .getBytes());
         // InputStream dtdStream =
         // So26391485.class.getResourceAsStream("your.dtd");
-        /* Scanner scanner = new Scanner(dtdStream);
-        String dtdText = scanner.useDelimiter("\\z")
-                                .next();
-        scanner.close();
+        /*
+         * Scanner scanner = new Scanner(dtdStream);
+         * String dtdText = scanner.useDelimiter("\\z")
+         * .next();
+         * scanner.close();
          */
-        
+
         // DIRTY: use Xerces internals to parse the DTD
         Pattern dtdPattern = Pattern.compile("^\\s*<!DOCTYPE\\s+(.*?)>(.*)", Pattern.DOTALL);
         Matcher m = dtdPattern.matcher(dtdText);
         if (m.matches()) {
-            String docType = m.group(1);            
+            String docType = m.group(1);
             InputSource is = new InputSource(new StringReader(m.group(2)));
             XMLInputSource source = new SAXInputSource(is);
             XMLDTDLoader d = new XMLDTDLoader();
             try {
                 return (DTDGrammar) d.loadGrammar(source);
-            } catch (XNIException | IOException e) {            
+            } catch (XNIException | IOException e) {
                 throw new DivException(e);
-            }            
+            }
         } else {
-            throw new DivException("Couldn't find DTD banner in DTD!"  );
+            throw new DivException("Couldn't find DTD banner in DTD!");
         }
     }
 

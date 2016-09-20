@@ -507,7 +507,9 @@ public class DivUtilsTest {
         
     }
 
-    
+    /**
+     * @since 0.1.0
+     */
     @Test
     public void testGenerateXmlSchema() throws IOException{
         
@@ -524,11 +526,8 @@ public class DivUtilsTest {
         LOG.debug("GENERATED SCHEMA IS:\n" + FileUtils.readFileToString(xsd));
         
         File f = Internals.readData(Examplicon.XML_URI).toTempFile();
-        
-        Diversicons.validateXml(f, LOG);
-        
-        Internals.validateXml(f, xsd, LOG, -1);
-        
+                
+        Internals.validateXml(f, xsd, LOG, -1);        
         
     }
     
