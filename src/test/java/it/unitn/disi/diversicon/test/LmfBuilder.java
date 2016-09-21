@@ -31,8 +31,8 @@ import org.slf4j.LoggerFactory;
  * Experimental builder helper for {@link LexicalResource} data structures, to
  * use for testing purposes.
  * 
- * The builder will automatically create necessary ids for you, like 'lexical
- * resource 1', 'synset 3', ... according to the order of insertion.
+ * The builder will automatically create necessary ids for you, like 'lexical-resource 1'
+ * , 'synset-3', ... according to the order of insertion.
  * 
  * Start building with {@link #lmf()} or {@link #lmf(String)} and finish with
  * {@link #build()}. Each builder instance can build only one object.
@@ -64,13 +64,13 @@ public class LmfBuilder {
      */
     private LmfBuilder(String prefix) {
         checkNotNull(prefix);
-        String name = pid(prefix , "lexical resource 1");
+        String name = pid(prefix , "lexical-resource-1");
         
         this.prefix = prefix;
         this.lexicalResource = new LexicalResource();
         this.lexicalResource.setName(name);
         GlobalInformation globInfo = new GlobalInformation();
-        globInfo.setLabel(name + ": a lexical resource for testing");
+        globInfo.setLabel("Lexical Resource 1");
         this.lexicalResource.setGlobalInformation(globInfo);
         
         this.built = false;
@@ -115,7 +115,7 @@ public class LmfBuilder {
     }
 
     /**
-     * Returns something like {@code myprefix-name 3} where 3 is the collection
+     * Returns something like {@code myprefix_name-3} where 3 is the collection
      * size
      * 
      * @since 0.1.0
@@ -125,7 +125,7 @@ public class LmfBuilder {
     }
 
     /**
-     * Returns something like {@code myprefix:name 3}
+     * Returns something like {@code myprefix-name-3}
      * 
      * @since 0.1.0
      */
@@ -134,11 +134,11 @@ public class LmfBuilder {
         if (name.startsWith(" ") || name.endsWith(" ")){
             LOG.warn("Found name with spaces at the beginning / end: -->" + name + "<--");
         }
-        return pid(prefix  , name + " " + num);
+        return pid(prefix, name + "-" + num);
     }
 
     /**
-     * Creates synset with id like 'synset n'
+     * Creates synset with id like 'synset-n'
      * 
      * @since 0.1.0
      */

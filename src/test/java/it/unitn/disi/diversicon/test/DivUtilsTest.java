@@ -415,7 +415,7 @@ public class DivUtilsTest {
         File xml = DivTester.writeXml(res);
         
         String str = FileUtils.readFileToString(xml, "UTF-8");
-        LOG.debug(str);
+        LOG.debug("\n" +str);
         
         assertTrue(!str.contains("DivSynsetRelation"));
 
@@ -478,11 +478,11 @@ public class DivUtilsTest {
      * @since 0.1.0
      */
     @Test
-    public void testParseDtd() throws IOException{
+    public void testParseDtd() {
         
-        File dtd = Internals.readData(Diversicons.DIVERSICON_DTD_1_0_CLASSPATH_URL, false)
-                .toTempFile();
-        DTDGrammar g = Internals.parseDtd(FileUtils.readFileToString(dtd));
+        String dtd = Internals.readData(Diversicons.DIVERSICON_DTD_1_0_CLASSPATH_URL)
+                    .streamToString();
+        DTDGrammar g = Internals.parseDtd(dtd);
         g.printElements();
         int elementDeclIndex = 0;
         XMLElementDecl elementDecl = new XMLElementDecl();
@@ -491,12 +491,12 @@ public class DivUtilsTest {
         while (g.getElementDecl(elementDeclIndex++, elementDecl)) {            
             LOG.debug("element decl: "+elementDecl.name+
                                ", "+ elementDecl.name.rawname  );
-            LOG.debug(g.getContentSpecAsString(elementDeclIndex));
+            LOG.debug(g.getContentSpecAsString(elementDeclIndex-1));
         }
         
         int contentDeclIndex = 0;
         XMLContentSpec contentSpec = new XMLContentSpec();
-        LOG.debug("Diversicon DTD:\n ");
+        
         
 /*        while (g.getContentSpecAsString(elementDeclIndex)(contentDeclIndex++, contentSpec)) {            
             LOG.debug("content spec: "+contentSpec.type);

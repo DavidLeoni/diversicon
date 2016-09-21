@@ -313,7 +313,7 @@ public class UbyTest {
         
         Uby uby = new Uby(dbConfig);
                
-        Synset retSyn1 = uby.getSynsetById(tid("synset 1"));                
+        Synset retSyn1 = uby.getSynsetById(tid("synset-1"));                
         
         // second synset is not created !
         assertEquals(1, uby.getLexicons().get(0).getSynsets().size());
@@ -351,12 +351,12 @@ public class UbyTest {
         
         Uby uby = new Uby(dbConfig);
                
-        Synset syn = (Synset) uby.getSession().get(Synset.class, tid("synset 1"));
+        Synset syn = (Synset) uby.getSession().get(Synset.class, tid("synset-1"));
         
         uby.getSession().delete(syn);
         uby.getSession().flush();
         
-        List<Synset> synsets = uby.getLexiconById(tid("lexicon 1")).getSynsets();        
+        List<Synset> synsets = uby.getLexiconById(tid("lexicon-1")).getSynsets();        
         assertEquals(1, synsets.size());
         Synset syn2 = synsets.get(0);
         assertEquals(1, syn2.getSynsetRelations().size());
@@ -382,18 +382,18 @@ public class UbyTest {
        
         LexicalResource lr = LmfBuilder.lmf().build();
         MetaData md = new MetaData();
-        md.setId(tid("metadata 1"));
+        md.setId(tid("metadata-1"));
         lr.setMetaData(Internals.newArrayList(md));
         
         importIntoUby(lr);
         
         Uby uby = new Uby(dbConfig);
         
-        LexicalResource lr2 = uby.getLexicalResource(tid("lexical resource 1"));
+        LexicalResource lr2 = uby.getLexicalResource(tid("lexical-resource-1"));
         
         MetaData md2 = lr2.getMetaData().get(0);
         
-        assertEquals(tid("metadata 1"), md2.getId());
+        assertEquals(tid("metadata-1"), md2.getId());
         assertEquals(null, md2.getLexicalResource());
         
     }

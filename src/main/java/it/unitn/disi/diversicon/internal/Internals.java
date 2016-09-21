@@ -23,12 +23,15 @@ import java.nio.file.Path;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -54,7 +57,9 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.xerces.impl.Constants;
 import org.apache.xerces.impl.dtd.DTDGrammar;
+import org.apache.xerces.impl.dtd.XMLContentSpec;
 import org.apache.xerces.impl.dtd.XMLDTDLoader;
+import org.apache.xerces.impl.dtd.XMLElementDecl;
 import org.apache.xerces.util.SAXInputSource;
 import org.apache.xerces.xni.XNIException;
 import org.apache.xerces.xni.parser.XMLInputSource;
@@ -98,6 +103,12 @@ import it.unitn.disi.diversicon.Diversicons;
  * @since 0.1.0
  */
 public final class Internals {
+
+    @Nullable
+    private static Map<Class, List<UBYLMFFieldMetadata>> ORDER_TABLE = new HashMap<>();
+
+    @Nullable
+    private static DTDGrammar DTD_GRAMMAR;
 
     /**
      * @since 0.1.0
@@ -1306,7 +1317,6 @@ public final class Internals {
      * Modified in Diversicon to
      * <ul>
      * <li>prevent writing wrong tag name DivSynsetRelation</li>
-     * <li>add id to the LexicalResource</li>
      * <li>add prefix to the LexicalResource</li>
      * <li>add namespaces to the LexicalResource</li>
      * <li>skip computed transitive relations</li>
@@ -1315,7 +1325,8 @@ public final class Internals {
      * 
      * </p>
      * 
-     * @return the element tagname. If null, the element must be skipped.
+     * @return the element tagname. If {@code null}, the element must be
+     *         skipped.
      * 
      * @throws SAXException
      * 
@@ -1365,7 +1376,7 @@ public final class Internals {
         if (hibernateSuffixIdx > 0)
             elementName = elementName.substring(0, hibernateSuffixIdx);
 
-        for (UBYLMFFieldMetadata fieldMeta : classMetadata.getFields()) {
+        for (UBYLMFFieldMetadata fieldMeta : extractFieldsInDtdOrder(classMetadata)) {
             EVarType varType = fieldMeta.getVarType();
             if (varType == EVarType.NONE)
                 continue;
@@ -1445,6 +1456,94 @@ public final class Internals {
         }
 
         return elementName;
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    private static List<UBYLMFFieldMetadata> extractFieldsInDtdOrder(UBYLMFClassMetadata classMetadata) {
+
+        if (DTD_GRAMMAR == null) {
+            String dtdText = readData(Diversicons.DIVERSICON_DTD_1_0_CLASSPATH_URL).streamToString();
+            DTD_GRAMMAR = parseDtd(dtdText);
+        }
+
+        if (ORDER_TABLE.containsKey(classMetadata.getClazz())) {
+            return ORDER_TABLE.get(classMetadata.getClazz());
+        } else {
+            int elementDeclIndex = 0;
+            XMLElementDecl elDec = new XMLElementDecl();
+
+            List<UBYLMFFieldMetadata> ret = new ArrayList<>(10);
+            UBYLMFFieldMetadata[] elems = new UBYLMFFieldMetadata[]{};
+            int elemsFound = 0;
+            List<UBYLMFFieldMetadata> attrs = new ArrayList<>();
+            
+            String[] elementNames = new String[]{};            
+
+            while (DTD_GRAMMAR.getElementDecl(elementDeclIndex++, elDec)) {
+
+                // LOG.debug("elDec.name.rawname = " + elDec.name.rawname);
+                // LOG.debug("simpleName = " +
+                // classMetadata.getClass().getSimpleName());
+
+                if (elDec.name.rawname.equals(classMetadata.getClazz()
+                                                           .getSimpleName())) {
+
+                    String s = DTD_GRAMMAR.getContentSpecAsString(elementDeclIndex - 1);
+                    if (s == null) {
+                        elementNames = new String[] {};
+                    } else {
+                        elementNames = s.replace("(", "")
+                                        .replace(")", "")
+                                        .replace("+", "")
+                                        .replace("*", "")
+                                        .split(",");
+                    }
+
+                    elems = new UBYLMFFieldMetadata[elementNames.length];
+                    for (UBYLMFFieldMetadata fm : classMetadata.getFields()) {
+                        Class clazz;
+                        if (Collection.class.isAssignableFrom(fm.getType())) {
+                            clazz = fm.getGenericElementType();
+                        } else {
+                            clazz = fm.getType();
+                        }
+
+                        checkNotNull(clazz, "Found null clazz for UBYLMFFieldMetadata " + fm.getName());
+                        
+                       
+                        boolean found = false;
+                        
+                        for (int i = 0; i < elementNames.length; i++) {                            
+                            if (clazz.getSimpleName().equals(elementNames[i])) {
+                                elemsFound += 1;
+                                found = true;
+                                elems[i] = fm;
+                                break;
+                            }
+                        }
+                        
+                        if (!found){
+                            attrs.add(fm);
+                        }
+                    }
+
+                    break;
+                }
+
+            }
+
+            if (elemsFound != elementNames.length){
+                throw new DivException("found : " + elemsFound + " Expected: " + elementNames.length);
+            }
+            ret.addAll(attrs);
+            ret.addAll(Arrays.asList(elems));
+            
+            ORDER_TABLE.put(classMetadata.getClazz(), ret);
+
+            return ret;
+        }
     }
 
     /**
@@ -1760,19 +1859,23 @@ public final class Internals {
         // DIRTY: use Xerces internals to parse the DTD
         Pattern dtdPattern = Pattern.compile("^\\s*<!DOCTYPE\\s+(.*?)>(.*)", Pattern.DOTALL);
         Matcher m = dtdPattern.matcher(dtdText);
+        InputSource is;
+        String docType;
         if (m.matches()) {
-            String docType = m.group(1);
-            InputSource is = new InputSource(new StringReader(m.group(2)));
-            XMLInputSource source = new SAXInputSource(is);
-            XMLDTDLoader d = new XMLDTDLoader();
-            try {
-                return (DTDGrammar) d.loadGrammar(source);
-            } catch (XNIException | IOException e) {
-                throw new DivException(e);
-            }
+            docType = m.group(1);
+            is = new InputSource(new StringReader(m.group(2)));
         } else {
-            throw new DivException("Couldn't find DTD banner in DTD!");
+            docType = null;
+            is = new InputSource(new StringReader(dtdText));
         }
+        XMLInputSource source = new SAXInputSource(is);
+        XMLDTDLoader d = new XMLDTDLoader();
+        try {
+            return (DTDGrammar) d.loadGrammar(source);
+        } catch (XNIException | IOException e) {
+            throw new DivException(e);
+        }
+
     }
 
 }

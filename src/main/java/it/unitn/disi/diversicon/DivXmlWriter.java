@@ -17,6 +17,7 @@ import org.xml.sax.helpers.AttributesImpl;
 
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.transform.LMFXmlWriter;
+import de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata;
 import de.tudarmstadt.ukp.lmf.transform.UBYXMLTransformer;
 import it.unitn.disi.diversicon.internal.Internals;
 
@@ -109,5 +110,6 @@ class DivXmlWriter extends LMFXmlWriter {
         if (closeTag) 
             th.endElement("", "", elementName);
     }
+        
 
 }
