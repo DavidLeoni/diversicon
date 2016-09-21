@@ -1521,7 +1521,7 @@ public final class Diversicons {
                 return ret;
             }
         }
-        throw new DivNotFoundException("Couldn't find lexical resource tag in "
+        throw new DivNotFoundException("Couldn't find required tags in "
                 + lexResUrl + "  !");
 
     }

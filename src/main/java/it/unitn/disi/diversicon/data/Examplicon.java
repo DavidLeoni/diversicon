@@ -22,7 +22,7 @@ public class Examplicon extends LexResPackage {
      * 
      * @since 0.1.0
      */
-    public static final String NAME = "The Examplicon";    
+    public static final String LABEL = "The Examplicon";    
     
     /**
      * @since 0.1.0
@@ -63,7 +63,7 @@ public class Examplicon extends LexResPackage {
     static {
         INSTANCE.setId(ID);
         INSTANCE.setPrefix(PREFIX);
-        INSTANCE.setName(NAME);
+        INSTANCE.setLabel(LABEL);
         INSTANCE.setH2DbUri(CLASSPATH + ".h2.db");
         INSTANCE.setSqlUri(CLASSPATH + ".sql");
         INSTANCE.setXmlUri(CLASSPATH + ".xml");

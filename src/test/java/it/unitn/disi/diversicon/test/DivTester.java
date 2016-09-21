@@ -593,7 +593,11 @@ public final class DivTester {
         LexResPackage pack = new LexResPackage();
         
         pack.setId(prefix);
-        pack.setName(lexRes.getName());
+        if (lexRes.getGlobalInformation() == null){           
+            pack.setLabel(prefix);
+        } else {            
+            pack.setLabel(lexRes.getGlobalInformation().getLabel());    
+        }        
         pack.setPrefix(prefix);
         pack.putNamespace(prefix, "http://test-"+lexRes.hashCode() + ".xml");
         return pack;

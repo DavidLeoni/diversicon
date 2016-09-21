@@ -80,7 +80,13 @@ class DivXmlWriter extends LMFXmlWriter {
      */
     @Override
     protected void doWriteElement(Object lmfObject, boolean closeTag) throws SAXException {
-                        
+        /*  
+        th.getTransformer().setParameter("http://xml.org/sax/features/namespaces"
+                , false);
+        th.getTransformer().setParameter("http://xml.org/sax/features/namespace-prefixes"
+                , false);
+        */
+        
         AttributesImpl atts = new AttributesImpl();
         List<Object> children = new ArrayList<>();
         

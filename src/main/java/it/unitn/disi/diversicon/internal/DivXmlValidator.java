@@ -72,7 +72,7 @@ class DivXmlValidator extends DefaultHandler {
 
         if ("LexicalResource".equals(n)) {
             
-            pack.setName(attrs.getValue("name"));
+            pack.setLabel(attrs.getValue("name"));
             pack.setId(attrs.getValue("id"));
             pack.setPrefix(attrs.getValue("prefix"));                        
 

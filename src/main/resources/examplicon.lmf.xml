@@ -3,14 +3,15 @@
 <!-- Complex example of an LMF file, containing all possible tags -->
 
 <LexicalResource
-	id="examplicon"	
-	name="The Examplicon"
+	name="examplicon"		
 	prefix="ex"	
 	xmlns:ex="https://github.com/DavidLeoni/diversicon/tree/master/src/main/resources/examplicon.lmf.xml"
 	xmlns:wn31="https://github.com/DavidLeoni/diversicon-wordnet-3.1/blob/master/src/main/resources/it/unitn/disi/diversicon/data/div-wn31.lmf.xml.xz"
 	 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="https://github.com/DavidLeoni/diversicon/tree/master/src/main/resources/diversicon-1.0.xsd">
+
+	<GlobalInformation label="The Examplicon"></GlobalInformation>
 
     <Lexicon id="ex_lex-eng"
     		 languageIdentifier="eng" 
@@ -54,8 +55,7 @@
               						
             <SynsetRelation target="wn31_ss-6666666" 
             				relType="taxonomic" 
-            				relName="hypernym"/>
-            				
+            				relName="hypernym"/>            				
             				
         </Synset>
         

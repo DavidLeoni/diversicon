@@ -257,6 +257,18 @@
 		    <groupId>com.thaiopensource</groupId>
 		    <artifactId>trang</artifactId>
 		    <version>20091111</version>
+		    <exclusions>
+		    	<exclusion>
+		    		  <groupId>net.sf.saxon</groupId>
+					  <artifactId>saxon</artifactId>
+		    	</exclusion>
+		    	
+		    	<exclusion>
+			    	  <groupId>xerces</groupId>
+  					  <artifactId>xercesImpl</artifactId>
+		    	</exclusion>
+		    	
+		    </exclusions>
 		</dependency>
 	
 	

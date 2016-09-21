@@ -61,7 +61,7 @@ public class Smartphones extends LexResPackage {
     
     static {
         INSTANCE.setId(ID);
-        INSTANCE.setName(NAME);
+        INSTANCE.setLabel(NAME);
         INSTANCE.setPrefix(PREFIX);
         INSTANCE.setH2DbUri(CLASSPATH + ".h2.db");
         INSTANCE.setSqlUri(CLASSPATH + ".sql");

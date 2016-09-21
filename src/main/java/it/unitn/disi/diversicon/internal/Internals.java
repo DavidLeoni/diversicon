@@ -1478,7 +1478,7 @@ public final class Internals {
         checkNotBlank(pack.getId(), "Invalid lexical resource id!");
         Diversicons.checkPrefix(pack.getPrefix());
 
-        checkNotBlank(pack.getName(), "Invalid lexical resource name!");
+        checkNotBlank(pack.getLabel(), "Invalid lexical resource label!");
 
         if (pack.getPrefix()
                 .length() > Diversicons.LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH) {
@@ -1495,11 +1495,6 @@ public final class Internals {
                     "Couldn't find LexicalResource prefix '" + pack.getPrefix() + "' among namespace prefixes! "
                             + "See " + build.docsAtVersion() + "/diversicon-lmf.html"
                             + " for info on how to structure a Diversicon XML!");
-        }
-
-        if (lexRes != null) {
-
-            Internals.checkEquals("", pack.getName(), lexRes.getName());
         }
 
         return pack;

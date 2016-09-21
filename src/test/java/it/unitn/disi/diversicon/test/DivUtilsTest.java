@@ -168,7 +168,7 @@ public class DivUtilsTest {
         
         LexResPackage dr = Diversicons.readPackageFromLexRes(Examplicon.XML_URI);               
         
-        assertEquals(Examplicon.NAME, dr.getName());
+        assertEquals(Examplicon.LABEL, dr.getLabel());
         
         assertEquals(Examplicon.PREFIX, dr.getPrefix());
         
@@ -440,9 +440,10 @@ public class DivUtilsTest {
         String pref2 = DEFAULT_TEST_PREFIX + "-2";
         
         LexResPackage pack = new LexResPackage();
-        pack.setName(DivTester.GRAPH_1_HYPERNYM.getName());
-        pack.setPrefix(DEFAULT_TEST_PREFIX);
+        
         pack.setId(DEFAULT_TEST_PREFIX);
+        pack.setPrefix(DEFAULT_TEST_PREFIX);
+        pack.setLabel(DivTester.GRAPH_1_HYPERNYM.getName());
         pack.setNamespaces(Internals.newMap(
                 DEFAULT_TEST_PREFIX, "url-1",
                 pref2, "url-2"));

@@ -645,7 +645,7 @@ public class DiversiconTest {
         assertTrue(job.getEndDate()
                       .getTime() >= job.getStartDate()
                                        .getTime());
-        assertEquals(tid("lexical resource 1"), job.getResourceDescriptor().getName());
+        assertEquals(tid("lexical resource 1"), job.getResourceDescriptor().getLabel());
         assertTrue(job.getFileUrl()
                       .startsWith(Diversicon.MEMORY_PROTOCOL + ":"));
         /* todo why the hell is commented?
@@ -1101,10 +1101,10 @@ public class DiversiconTest {
         ImportJob import1 = div.getImportJobs()
                                .get(1);
 
-        assertEquals("test:lexical resource 1", import0.getResourceDescriptor().getName());
+        assertEquals("test:lexical resource 1", import0.getResourceDescriptor().getLabel());
         assertNotEquals(-1, import0.getId());
 
-        assertEquals(prefix2 + ":lexical resource 1", import1.getResourceDescriptor().getName());
+        assertEquals(prefix2 + ":lexical resource 1", import1.getResourceDescriptor().getLabel());
         assertNotEquals(-1, import1.getId());
 
         div.getSession()

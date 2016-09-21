@@ -35,13 +35,19 @@ Changes made in Diversicon:
 * LexicalResource:
   converted elements list from
    	(SenseAxis*|PredicateArgumentAxis*|MetaData*|Lexicon+)>
- 	to  (MetaData*, Lexicon+, SenseAxis*, PredicateArgumentAxis*)>
-  added  	
+ 	to  (GlobalInformation, MetaData*, Lexicon+, SenseAxis*, PredicateArgumentAxis*)>
+  removed 
+  - attribute GlobalInformationId
+  
+  added    TODO REVIEW!!
   - id ID #REQUIRED
   - prefix CDATA #REQUIRED
-  modified 
+  modified  TODO REVIEW!!
   - name from ID to CDATA
 
+* GlobalInformation
+  removed
+  - id ID #REQUIRED
 
 * Lexicon
   modified
@@ -140,8 +146,7 @@ partitiveDefinition 	http://www.isocat.org/datcat/DC-172
 translatedDefinition 	http://www.isocat.org/datcat/DC-173
 --> 
 <!ELEMENT GlobalInformation EMPTY>
-<!ATTLIST GlobalInformation	id ID #REQUIRED
-    						label CDATA #IMPLIED>
+<!ATTLIST GlobalInformation	label CDATA #IMPLIED>
     						
 <!ELEMENT LexicalEntry (Lemma, WordForm*, RelatedForm*, Sense*, SyntacticBehaviour*, ListOfComponents?, Frequency*)>
 <!ATTLIST LexicalEntry	id ID #REQUIRED
@@ -226,12 +231,10 @@ affixSuffix					http://www.isocat.org/datcat/DC-1395
 separableParticle 	http://www.isocat.org/datcat/DC-3546
 -->            
 
-<!ELEMENT LexicalResource (MetaData*, Lexicon+, SenseAxis*, PredicateArgumentAxis*)>
-<!ATTLIST LexicalResource	id ID #REQUIRED
-							name CDATA #REQUIRED
+<!ELEMENT LexicalResource (GlobalInformation, MetaData*, Lexicon+, SenseAxis*, PredicateArgumentAxis*)>
+<!ATTLIST LexicalResource	name ID #REQUIRED							
 							prefix CDATA #REQUIRED
-    						dtdVersion CDATA #IMPLIED   						
-    						globalInformationId IDREF #IMPLIED>
+    						dtdVersion CDATA #IMPLIED>
     						   
 <!ELEMENT Lexicon (LexicalEntry+,Synset*,SubcategorizationFrame*,SubcategorizationFrameSet*,SemanticPredicate*,SynSemCorrespondence*)>
 <!ATTLIST Lexicon	id ID #REQUIRED
@@ -669,13 +672,13 @@ senseInstance 	http://www.isocat.org/datcat/DC-3778
 idiomaticExpression 	http://www.isocat.org/datcat/DC-351
 --> 
     
-<!ELEMENT Synset (Definition*, SynsetRelation*, MonolingualExternalRef*)>
+<!ELEMENT Synset (Definition*, MonolingualExternalRef*, SynsetRelation*)>
 <!ATTLIST Synset
     id               ID #REQUIRED>
    
 <!ELEMENT SynsetRelation (Frequency*)>
 <!ATTLIST SynsetRelation
-    target      IDREF #REQUIRED
+    target  IDREF #REQUIRED
     relName CDATA #IMPLIED
     relType (taxonomic|partWhole|association|label|predicative) #IMPLIED>
 <!--

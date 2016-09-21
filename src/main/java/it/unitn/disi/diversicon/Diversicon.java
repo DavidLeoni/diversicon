@@ -893,7 +893,7 @@ public class Diversicon extends Uby {
 
         for (ImportJob job : jobs) {
             LOG.info("    " + job.getResourceDescriptor()
-                                 .getName()
+                                 .getLabel()
                     + "    from    " + job.getFileUrl());
         }
 
@@ -919,10 +919,10 @@ public class Diversicon extends Uby {
             throw new InvalidImportException("Couldn't read file to import: " + fileUrl, ex);
         }
 
-        LexResPackage lexResPackage;
+        LexResPackage pack;
 
         try {
-            lexResPackage = Diversicons.readPackageFromLexRes(fileUrl);
+            pack = Diversicons.readPackageFromLexRes(fileUrl);
         } catch (Exception ex) {
             throw new InvalidImportException("Couldn't extract attributes from LexicalResource " + fileUrl, ex);
         }
@@ -931,7 +931,7 @@ public class Diversicon extends Uby {
                 config,
                 fileUrl,
                 file, 
-                lexResPackage);
+                pack);
         
         try {
             DivXmlToDbTransformer trans = new DivXmlToDbTransformer(this);
@@ -1617,7 +1617,7 @@ public class Diversicon extends Uby {
         sb.append(job.getId());
         sb.append("   LEXICAL RESOURCE: ");
         sb.append(job.getResourceDescriptor()
-                     .getName());
+                     .getLabel());
         sb.append("   IMPORT AUTHOR: ");
         sb.append(job.getAuthor());
         sb.append("\n");
@@ -1747,7 +1747,7 @@ public class Diversicon extends Uby {
         if (importJob != null) {
             sb.append("- There is an import job in progress for lexical resource "
                     + importJob.getResourceDescriptor()
-                               .getName()
+                               .getLabel()
                     + " from file " + importJob.getFileUrl() + "\n");
         }
         return sb.toString();
@@ -1838,7 +1838,7 @@ public class Diversicon extends Uby {
      * @throws DivNotFoundException
      */
     public LexicalResource getLexicalResourceById(String id) {
-        String name = getLexResPackageById(id).getName();
+        String name = getLexResPackageById(id).getLabel();
         return getLexicalResource(name);
     }
 
