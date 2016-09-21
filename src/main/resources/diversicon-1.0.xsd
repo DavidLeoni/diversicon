@@ -1,18 +1,1299 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<xs:schema  xmlns:xs="http://www.w3.org/2001/XMLSchema" 			
- 			xmlns:fn="http://www.w3.org/2005/xpath-functions"
-			xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning"
-			vc:minVersion="1.1">
- 				
-	<xs:annotation>
-	    <xs:documentation xml:lang="en">
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	     	TODO REPLACE THIS XSD WITH GENERATED ONE
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!	     	
-	     	     		     
+<!--
+  /*******************************************************************************
+   * Copyright 2013
+   * Ubiquitous Knowledge Processing (UKP) Lab
+   * Technische Universität Darmstadt
+   * 
+   * All rights reserved. The DTD is made available under a 
+   * Creative Commons Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0) license
+   * which is available at http://creativecommons.org/licenses/by-sa/3.0/
+   * You are free to share (copy, distribute and transmit) the work, 
+   * to develop your own extensions (adapt, remix) of the work, 
+   * and to make commercial use of the work 
+   * under the condition that you give attribution along the following lines:
+   *
+   * Iryna Gurevych, Judith Eckle-Kohler, Silvana Hartmann, Michael Matuschek, Christian M. Meyer and Christian Wirth, 2012,
+   * Uby - A Large-Scale Unified Lexical-Semantic Resource,
+   * Proceedings of the 13th Conference of the European Chapter of the Association for Computational Linguistics (EACL 2012),
+   * Avignon, France, pages 580-590.
+   *
+   * If you alter, transform, or build upon this work, 
+   * you may distribute the resulting work only under the same or similar license to this one. 
+   *
+   ******************************************************************************/
+-->
+<!--
+  
+  Changes made in Diversicon:
+  
+  * changed all (foo|baz|...) forms into (foo,baz,...) 
+  * removed initial ?xml tag,  because a DTD is not an xml file (at most a DTD can be embedded inside
+    an xml, see https://en.wikipedia.org/wiki/Document_type_definition#Examples
+  * removed backlinks, they were all #REQUIRED  
+  
+  * LexicalResource:
+    converted elements list from
+  	(SenseAxis*|PredicateArgumentAxis*|MetaData*|Lexicon+)>
+  	to  (GlobalInformation, MetaData*, Lexicon+, SenseAxis*, PredicateArgumentAxis*)>
+    removed 
+    - attribute GlobalInformationId
+  
+    added    TODO REVIEW!!
+    - id ID #REQUIRED
+    - prefix CDATA #REQUIRED
+    modified  TODO REVIEW!!
+    - name from ID to CDATA
+  
+  * GlobalInformation
+    removed
+    - id ID #REQUIRED
+  
+  * Lexicon
+    modified
+    - converted elements list from  
+      (LexicalEntry+|SubcategorizationFrame*|SubcategorizationFrameSet*|SemanticPredicate*|Synset*|SynSemCorrespondence*)
+    to
+      (LexicalEntry+,Synset*,SubcategorizationFrame*,SubcategorizationFrameSet*,SemanticPredicate*,SynSemCorrespondence*)
+    removed 
+    - LexicalResourceId IDREF #REQUIRED
+  
+    renamed
+    - lexiconName -> name
+  
+  * LexicalEntry
+    removed
+    - lexiconId IDREF #REQUIRED
+  
+  * Sense
+    - converted elements list from  
+  	(Sense|Context|PredicativeRepresentation|SenseExample
+  	|Definition|SenseRelation|Equivalent|MonolingualExternalRef
+  	|Frequency|SemanticLabel)*
+    to
+  	(Definition*, SenseExample*, MonolingualExternalRef*, Frequency*, 
+  	 Context*,PredicativeRepresentation*,SenseRelation*,Equivalent*,
+  	 SemanticLabel*, Sense*)
+  
+  
+    removed
+    - lexicalEntryId IDREF #REQUIRED
+  
+  * FormRepresentation
+    removed
+    - backlink lemmaId IDREF #REQUIRED
+    - backlink relatedFormId IDREF #REQUIRED
+  
+  * Lemma
+    modified
+    - id  from #REQUIRED to #IMPLIED
+  
+  * Synset
+    removed
+    - lexiconId IDREF #REQUIRED
+  
+  * Definition
+    modified
+    - id 	from #REQUIRED to #IMPLIED
+  
+  * TextRepresentation
+    modified
+    - id 	from #REQUIRED to #IMPLIED
+  
+  * WordForm
+    modified
+    - id 	from #REQUIRED to #IMPLIED
+    removed
+    - backlink lexicalEntryId IDREF #REQUIRED	  
+  
+  * SubcategorizationFrame
+    removed redundant id  
+  
+  * SynsetRelation
+    removed 	
+    - id ID #REQUIRED
+    - synsetId  IDREF #REQUIRED
+  
+  * SemanticArgument
+  
+  * Definition
+  
+    removed 
+    - backlinks:
+  		synsetId IDREF #IMPLIED
+  		semanticArgumentId IDREF #IMPLIED
+  		semanticPredicateId IDREF #IMPLIED
+  
+  * TextRepresentation
+    removed 
+    -backlinks: 
+  		definitionId IDREF #IMPLIED
+  	senseExampleId IDREF #IMPLIED
+  	contextId IDREF #IMPLIED 
+  
+-->
+<!-- #################### Core package -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:fn="http://www.w3.org/2005/xpath-functions" xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning" elementFormDefault="qualified" vc:minVersion="1.1">
+  <xs:annotation>
+    <xs:documentation xml:lang="en">
+	     	XML Schema for Diversicon LMF XMLs
+	     	
+	     	Note it uses assertions to check constraints among *values*, so it requires XSD 1.1 
+	     	compatible parsers. 
+	     		     	
+	     	Derived from DTD
+	     	https://github.com/DavidLeoni/diversicon/blob/master/src/main/resources/diversicon-1.0.dtd
+	     	
+	     	Which in turn is derived from original UBY DTD at v0.7.0:
+	     	https://github.com/dkpro/dkpro-uby/blob/de.tudarmstadt.ukp.uby-0.7.0/de.tudarmstadt.ukp.uby.lmf.model-asl/src/main/resources/dtd/UBY_LMF.dtd
+	     		     		     
 	    </xs:documentation>
-    </xs:annotation> 				
- 				
-
+  </xs:annotation>
+  <xs:element name="Definition">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="Statement"/>
+        <xs:element maxOccurs="unbounded" ref="TextRepresentation"/>
+      </xs:sequence>
+      <xs:attribute name="id" type="xs:ID"/>
+      <xs:attribute name="definitionType">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="extensionalDefinition"/>
+            <xs:enumeration value="intensionalDefinition"/>
+            <xs:enumeration value="partitiveDefinition"/>
+            <xs:enumeration value="translatedDefinition"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    extensionalDefinition 	http://www.isocat.org/datcat/DC-171
+    intensionalDefinition 	http://www.isocat.org/datcat/DC-170
+    partitiveDefinition 	http://www.isocat.org/datcat/DC-172
+    translatedDefinition 	http://www.isocat.org/datcat/DC-173
+  -->
+  <xs:element name="GlobalInformation">
+    <xs:complexType>
+      <xs:attribute name="label"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="LexicalEntry">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="Lemma"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="WordForm"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="RelatedForm"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="Sense"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="SyntacticBehaviour"/>
+        <xs:element minOccurs="0" ref="ListOfComponents"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="Frequency"/>
+      </xs:sequence>
+      <xs:attribute name="id" use="required" type="xs:ID"/>
+      <xs:attribute name="partOfSpeech" use="required">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="adjective"/>
+            <xs:enumeration value="adverb"/>
+            <xs:enumeration value="adverbPronominal"/>
+            <xs:enumeration value="adpositionPreposition"/>
+            <xs:enumeration value="adpositionPostposition"/>
+            <xs:enumeration value="adpositionCircumposition"/>
+            <xs:enumeration value="determiner"/>
+            <xs:enumeration value="determinerDefinite"/>
+            <xs:enumeration value="determinerPossessive"/>
+            <xs:enumeration value="determinerIndefinite"/>
+            <xs:enumeration value="determinerDemonstrative"/>
+            <xs:enumeration value="determinerInterrogative"/>
+            <xs:enumeration value="numeral"/>
+            <xs:enumeration value="interjection"/>
+            <xs:enumeration value="phraseme"/>
+            <xs:enumeration value="symbol"/>
+            <xs:enumeration value="conjunction"/>
+            <xs:enumeration value="conjunctionCoordinating"/>
+            <xs:enumeration value="conjunctionSubordinating"/>
+            <xs:enumeration value="noun"/>
+            <xs:enumeration value="nounCommon"/>
+            <xs:enumeration value="nounProper"/>
+            <xs:enumeration value="nounProperFirstName"/>
+            <xs:enumeration value="nounProperLastName"/>
+            <xs:enumeration value="pronoun"/>
+            <xs:enumeration value="pronounPersonal"/>
+            <xs:enumeration value="pronounPossessive"/>
+            <xs:enumeration value="pronounDemonstrative"/>
+            <xs:enumeration value="pronounRelative"/>
+            <xs:enumeration value="pronounIndefinite"/>
+            <xs:enumeration value="pronounPersonalReflexive"/>
+            <xs:enumeration value="pronounPersonalIrreflexive"/>
+            <xs:enumeration value="pronounInterrogative"/>
+            <xs:enumeration value="particle"/>
+            <xs:enumeration value="particleNegative"/>
+            <xs:enumeration value="particleInfinitive"/>
+            <xs:enumeration value="particleComparative"/>
+            <xs:enumeration value="particleAnswer"/>
+            <xs:enumeration value="verbAuxiliary"/>
+            <xs:enumeration value="verbModal"/>
+            <xs:enumeration value="verbMain"/>
+            <xs:enumeration value="verb"/>
+            <xs:enumeration value="abbreviation"/>
+            <xs:enumeration value="abbreviationAcronym"/>
+            <xs:enumeration value="abbreviationInitialism"/>
+            <xs:enumeration value="contraction"/>
+            <xs:enumeration value="affix"/>
+            <xs:enumeration value="affixPrefix"/>
+            <xs:enumeration value="affixSuffix"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="separableParticle"/>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    partOfSpeech	http://www.isocat.org/datcat/DC-396
+    
+    adjective	http://www.isocat.org/datcat/DC-1230
+    adverb	http://www.isocat.org/datcat/DC-1232
+    adverbPronominal http://www.isocat.org/datcat/DC-2998
+    adpositionPreposition 	http://www.isocat.org/datcat/DC-1366
+    adpositionPostposition 	http://www.isocat.org/datcat/DC-1360
+    adpositionCircumposition 	http://www.isocat.org/datcat/DC-1906
+    
+    determiner 	http://www.isocat.org/datcat/DC-1272
+    determinerPossessive 	http://www.isocat.org/datcat/DC-1357
+    determinerIndefinite 	http://www.isocat.org/datcat/DC-1307
+    determinerDefinite 	http://www.isocat.org/datcat/DC-1430 	
+    determinerDemonstrative 	http://www.isocat.org/datcat/DC-1269
+    determinerInterrogative 	http://www.isocat.org/datcat/DC-1320
+    numeral 	http://www.isocat.org/datcat/DC-1334
+    
+    interjection 	http://www.isocat.org/datcat/DC-1318
+    phraseme		http://www.isocat.org/datcat/DC-339
+    symbol			http://www.isocat.org/datcat/DC-1398
+    
+    conjunction 	http://www.isocat.org/datcat/DC-3132
+    conjunctionCoordinating 	http://www.isocat.org/datcat/DC-1262
+    conjunctionSubordinating 	http://www.isocat.org/datcat/DC-1393
+    
+    noun 					http://www.isocat.org/datcat/DC-3347
+    nounCommon 				http://www.isocat.org/datcat/DC-385
+    nounProper 				http://www.isocat.org/datcat/DC-1371
+    nounProperFirstName		http://www.isocat.org/datcat/DC-4194
+    nounProperLastName		http://www.isocat.org/datcat/DC-4195
+    
+    pronoun 	http://www.isocat.org/datcat/DC-1370
+    pronounPersonal 	http://www.isocat.org/datcat/DC-3013
+    pronounPersonalReflexive 	http://www.isocat.org/datcat/DC-3014
+    pronounPersonalIrreflexive 	http://www.isocat.org/datcat/DC-3013
+    pronounPossessive 	http://www.isocat.org/datcat/DC-1359
+    pronounDemonstrative 	http://www.isocat.org/datcat/DC-1270
+    pronounIndefinite 	http://www.isocat.org/datcat/DC-1309
+    pronounRelative 	http://www.isocat.org/datcat/DC-1380
+    pronounInterrogative 	http://www.isocat.org/datcat/DC-1321
+    
+    particle 	http://www.isocat.org/datcat/DC-3372
+    particleNegative 	http://www.isocat.org/datcat/DC-1894
+    particleInfinitive 	http://www.isocat.org/datcat/DC-1896
+    particleComparative 	http://www.isocat.org/datcat/DC-1922
+    particleAnswer 	http://www.isocat.org/datcat/DC-2891
+    
+    verbAuxiliary 	http://www.isocat.org/datcat/DC-1244
+    verbModal 	http://www.isocat.org/datcat/DC-1329
+    verbMain 	http://www.isocat.org/datcat/DC-1400
+    verb 	http://www.isocat.org/datcat/DC-1424
+    
+    abbreviation				http://www.isocat.org/datcat/DC-329
+    abbreviationAcronym			http://www.isocat.org/datcat/DC-334
+    abbreviationInitialism		http://www.isocat.org/datcat/DC-333
+    contraction					http://www.isocat.org/datcat/DC-354
+    
+    affix						http://www.isocat.org/datcat/DC-1234
+    affixPrefix					http://www.isocat.org/datcat/DC-1365
+    affixSuffix					http://www.isocat.org/datcat/DC-1395
+    
+    separableParticle 	http://www.isocat.org/datcat/DC-3546
+  -->
+  <xs:element name="LexicalResource">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="GlobalInformation"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="MetaData"/>
+        <xs:element maxOccurs="unbounded" ref="Lexicon"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="SenseAxis"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="PredicateArgumentAxis"/>
+      </xs:sequence>
+      <xs:attribute name="name" use="required" type="xs:ID"/>
+      <xs:attribute name="prefix" use="required"/>
+      <xs:attribute name="dtdVersion"/>
+      <xs:assert test="every $prefixed-id in ./*//@id satisfies fn:starts-with($prefixed-id, fn:concat(@prefix, '_'))">
+        <xs:annotation>
+          <xs:appinfo>
+                Value of the "min" attribute can not be greater than that of the "max"
+                attribute.
+                </xs:appinfo>
+          <xs:documentation>
+                When this assertion fails, the content of the above "appinfo" is used
+                to produce the error message.
+                </xs:documentation>
+        </xs:annotation>
+      </xs:assert>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="Lexicon">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element maxOccurs="unbounded" ref="LexicalEntry"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="Synset"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="SubcategorizationFrame"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="SubcategorizationFrameSet"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="SemanticPredicate"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="SynSemCorrespondence"/>
+      </xs:sequence>
+      <xs:attribute name="id" use="required" type="xs:ID"/>
+      <xs:attribute name="name"/>
+      <xs:attribute name="languageIdentifier"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- languageIdentifier 	http://www.isocat.org/datcat/DC-279 -->
+  <xs:element name="Sense">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="Definition"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="SenseExample"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="MonolingualExternalRef"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="Frequency"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="Context"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="PredicativeRepresentation"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="SenseRelation"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="Equivalent"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="SemanticLabel"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="Sense"/>
+      </xs:sequence>
+      <xs:attribute name="id" use="required" type="xs:ID"/>
+      <xs:attribute name="index"/>
+      <xs:attribute name="synset" type="xs:IDREF"/>
+      <xs:attribute name="incorporatedSemArg" type="xs:IDREF"/>
+      <xs:attribute name="transparentMeaning">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="true"/>
+            <xs:enumeration value="false"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    index 	http://www.isocat.org/datcat/DC-233
+    synset	http://www.isocat.org/datcat/DC-4613 	
+    incorporatedSemArg 	http://www.isocat.org/datcat/DC-4151
+    transparentMeaning 	http://www.isocat.org/datcat/DC-4390
+  -->
+  <xs:element name="Statement">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="TextRepresentation"/>
+      </xs:sequence>
+      <xs:attribute name="id" use="required" type="xs:ID"/>
+      <xs:attribute name="definition"/>
+      <xs:attribute name="statementType">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="usageNote"/>
+            <xs:enumeration value="encyclopedicInformation"/>
+            <xs:enumeration value="etymology"/>
+            <xs:enumeration value="backgroundText"/>
+            <xs:enumeration value="externalReference"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+  <!-- Statement	http://www.isocat.org/datcat/DC-382 -->
+  <!--
+    usageNote 	http://www.isocat.org/datcat/DC-526
+    encyclopedicInformation 		http://www.isocat.org/datcat/DC-3705
+    etymology 	http://www.isocat.org/datcat/DC-221
+    backgroundText	http://www.isocat.org/datcat/DC-149
+    externalReference	http://www.isocat.org/datcat/DC-164
+  -->
+  <xs:element name="TextRepresentation">
+    <xs:complexType>
+      <xs:attribute name="id" type="xs:ID"/>
+      <xs:attribute name="languageIdentifier"/>
+      <xs:attribute name="orthographyName"/>
+      <xs:attribute name="geographicalVariant"/>
+      <xs:attribute name="writtenText" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    languageIdentifier 	http://www.isocat.org/datcat/DC-279
+    orthographyName 	http://www.isocat.org/datcat/DC-2176
+    geographicalVariant 	http://www.isocat.org/datcat/DC-1851
+    writtenText	http://www.isocat.org/datcat/DC-1847
+  -->
+  <!-- #################### Package for Morphology -->
+  <xs:element name="Lemma">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element maxOccurs="unbounded" ref="FormRepresentation"/>
+      </xs:sequence>
+      <xs:attribute name="id" type="xs:ID"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- lemma	http://www.isocat.org/datcat/DC-286 -->
+  <xs:element name="WordForm">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element maxOccurs="unbounded" ref="FormRepresentation"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="Frequency"/>
+      </xs:sequence>
+      <xs:attribute name="id" type="xs:ID"/>
+      <xs:attribute name="grammaticalNumber">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="singular"/>
+            <xs:enumeration value="plural"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="grammaticalGender">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="feminine"/>
+            <xs:enumeration value="masculine"/>
+            <xs:enumeration value="neuter"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="case">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="nominative"/>
+            <xs:enumeration value="genitive"/>
+            <xs:enumeration value="dative"/>
+            <xs:enumeration value="accusative"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="person">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="first"/>
+            <xs:enumeration value="second"/>
+            <xs:enumeration value="third"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="tense">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="present"/>
+            <xs:enumeration value="past"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="verbFormMood">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="infinitive"/>
+            <xs:enumeration value="infinitiveZu"/>
+            <xs:enumeration value="participle"/>
+            <xs:enumeration value="indicative"/>
+            <xs:enumeration value="subjunctive"/>
+            <xs:enumeration value="imperative"/>
+            <xs:enumeration value="ingForm"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="degree">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="positive"/>
+            <xs:enumeration value="comparative"/>
+            <xs:enumeration value="superlative"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    grammaticalNumber 		http://www.isocat.org/datcat/DC-251
+    singular 	http://www.isocat.org/datcat/DC-252
+    plural 	http://www.isocat.org/datcat/DC-253
+    
+    grammaticalGender 	http://www.isocat.org/datcat/DC-3217
+    feminine 	http://www.isocat.org/datcat/DC-3197
+    masculine 	http://www.isocat.org/datcat/DC-3312
+    neuter 	http://www.isocat.org/datcat/DC-3336
+    
+    case 	http://www.isocat.org/datcat/DC-2720
+    nominative 	http://www.isocat.org/datcat/DC-2721
+    genitive 	http://www.isocat.org/datcat/DC-2722
+    dative 	http://www.isocat.org/datcat/DC-2723
+    accusative 	http://www.isocat.org/datcat/DC-2724
+    
+    person 	http://www.isocat.org/datcat/DC-3385
+    first 	http://www.isocat.org/datcat/DC-3198
+    second 	http://www.isocat.org/datcat/DC-3464
+    third 	http://www.isocat.org/datcat/DC-3526
+    
+    tense 	http://www.isocat.org/datcat/DC-3519
+    present 	http://www.isocat.org/datcat/DC-3421
+    past 	http://www.isocat.org/datcat/DC-3378
+    
+    verbFormMood 	http://www.isocat.org/datcat/DC-1427
+    infinitive 	http://www.isocat.org/datcat/DC-1312
+    infinitiveZu 	http://www.isocat.org/datcat/DC-2897
+    participle http://www.isocat.org/datcat/DC-3371
+    indicative 	http://www.isocat.org/datcat/DC-1885
+    subjunctive 	http://www.isocat.org/datcat/DC-1843
+    imperative 	http://www.isocat.org/datcat/DC-1844
+    ingForm http://www.isocat.org/datcat/DC-4108
+    
+    degree 	http://www.isocat.org/datcat/DC-2779
+    positive 	http://www.isocat.org/datcat/DC-2780
+    comparative 	http://www.isocat.org/datcat/DC-2781
+    superlative 	http://www.isocat.org/datcat/DC-2782
+  -->
+  <xs:element name="FormRepresentation">
+    <xs:complexType>
+      <xs:attribute name="languageIdentifier"/>
+      <xs:attribute name="writtenForm"/>
+      <xs:attribute name="phoneticForm"/>
+      <xs:attribute name="sound"/>
+      <xs:attribute name="geographicalVariant"/>
+      <xs:attribute name="hyphenation"/>
+      <xs:attribute name="orthographyName"/>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    languageIdentifier 	http://www.isocat.org/datcat/DC-279
+    writtenForm 	http://www.isocat.org/datcat/DC-1836
+    phoneticForm 	http://www.isocat.org/datcat/DC-1837
+    sound 	http://www.isocat.org/datcat/DC-2250
+    geographicalVariant 	http://www.isocat.org/datcat/DC-1851
+    hyphenation 	http://www.isocat.org/datcat/DC-264
+    orthographyName 	http://www.isocat.org/datcat/
+  -->
+  <xs:element name="RelatedForm">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="FormRepresentation"/>
+      </xs:sequence>
+      <xs:attribute name="id" use="required" type="xs:ID"/>
+      <xs:attribute name="targetLexicalEntryId" use="required" type="xs:IDREF"/>
+      <xs:attribute name="targetSense" type="xs:IDREF"/>
+      <xs:attribute name="relType">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="etymology"/>
+            <xs:enumeration value="compound"/>
+            <xs:enumeration value="compoundRoot"/>
+            <xs:enumeration value="derivative"/>
+            <xs:enumeration value="derivationBase"/>
+            <xs:enumeration value="derivationBaseNoun"/>
+            <xs:enumeration value="derivationBaseVerb"/>
+            <xs:enumeration value="derivationBaseAdj"/>
+            <xs:enumeration value="derivationBaseVerbAdj"/>
+            <xs:enumeration value="loanWord"/>
+            <xs:enumeration value="supports"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    etymology http://www.isocat.org/datcat/DC-221
+    compound 	http://www.isocat.org/datcat/DC-3127
+    compoundRoot 	http://www.isocat.org/datcat/DC-357
+    derivative	http://www.isocat.org/datcat/DC-4611
+    derivationBase	http://www.isocat.org/datcat/DC-4612
+    derivationBaseNoun	http://www.isocat.org/datcat/DC-4615
+    derivationBaseVerb	http://www.isocat.org/datcat/DC-4614
+    derivationBaseAdj	http://www.isocat.org/datcat/DC-4616
+    loanWord 	http://www.isocat.org/datcat/DC-511
+    supports	http://www.isocat.org/datcat/DC-3003
+  -->
+  <xs:element name="ListOfComponents">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element maxOccurs="unbounded" ref="Component"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="Component">
+    <xs:complexType>
+      <xs:attribute name="id" use="required" type="xs:ID"/>
+      <xs:attribute name="isHead">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="yes"/>
+            <xs:enumeration value="no"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="position"/>
+      <xs:attribute name="isBreakBefore">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="yes"/>
+            <xs:enumeration value="no"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="targetLexicalEntry" use="required" type="xs:IDREF"/>
+      <xs:attribute name="componentsId" use="required" type="xs:IDREF"/>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    isHead	http://www.isocat.org/datcat/DC-4617
+    position	http://www.isocat.org/datcat/DC-2237
+    isBreakBefore	http://www.isocat.org/datcat/DC-4626
+  -->
+  <!-- #################### Package for MRD -->
+  <xs:element name="Context">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="TextRepresentation"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="MonolingualExternalRef"/>
+      </xs:sequence>
+      <xs:attribute name="contextType">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="corpusEvidence"/>
+            <xs:enumeration value="citation"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="source"/>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    corpusEvidence 	http://www.isocat.org/datcat/DC-3092
+    citation 	http://www.isocat.org/datcat/DC-3111
+    
+    source 	http://www.isocat.org/datcat/DC-471
+  -->
+  <xs:element name="Equivalent">
+    <xs:complexType>
+      <xs:attribute name="id" use="required" type="xs:ID"/>
+      <xs:attribute name="languageIdentifier"/>
+      <xs:attribute name="writtenForm"/>
+      <xs:attribute name="transliteration"/>
+      <xs:attribute name="usage"/>
+      <xs:attribute name="senseId" type="xs:IDREF"/>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    languageIdentifier  http://www.isocat.org/datcat/DC-279
+    writtenForm         http://www.isocat.org/datcat/DC-1836
+    geographicalVariant http://www.isocat.org/datcat/DC-1851
+    orthographyName     http://www.isocat.org/datcat/DC-2176
+    transliteration     http://www.isocat.org/datcat/DC-1848
+    usage               http://www.isocat.org/datcat/DC-3764
+  -->
+  <!-- #################### Package for Syntax -->
+  <xs:element name="SyntacticBehaviour">
+    <xs:complexType>
+      <xs:attribute name="id" use="required" type="xs:ID"/>
+      <xs:attribute name="senseId" type="xs:IDREF"/>
+      <xs:attribute name="subcategorizationFrame" type="xs:IDREF"/>
+      <xs:attribute name="subcategorizationFrameSet" type="xs:IDREF"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- subcategorizationFrameSet	http://www.isocat.org/datcat/DC-4620 -->
+  <xs:element name="SubcategorizationFrame">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="LexemeProperty"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="SyntacticArgument"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="Frequency"/>
+      </xs:sequence>
+      <xs:attribute name="id" use="required" type="xs:ID"/>
+      <xs:attribute name="parentSubcatFrame" type="xs:IDREF"/>
+      <xs:attribute name="subcatLabel"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- subcatLabel	http://www.isocat.org/datcat/DC-1857 -->
+  <xs:element name="LexemeProperty">
+    <xs:complexType>
+      <xs:attribute name="auxiliary">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="haben"/>
+            <xs:enumeration value="sein"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="syntacticProperty">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="subjectControl"/>
+            <xs:enumeration value="objectControl"/>
+            <xs:enumeration value="subjectRaising"/>
+            <xs:enumeration value="objectRaising"/>
+            <xs:enumeration value="nonPredicativeAdjective"/>
+            <xs:enumeration value="predicativeAdjective"/>
+            <xs:enumeration value="postpositiveAdjective"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="subcategorizationFrameId" use="required" type="xs:IDREF"/>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    auxiliary	http://www.isocat.org/datcat/DC-1244
+    haben 	http://www.isocat.org/datcat/DC-1299
+    sein	http://www.isocat.org/datcat/DC-1246
+    
+    subjectControl 	http://www.isocat.org/datcat/DC-4187
+    objectControl 	http://www.isocat.org/datcat/DC-4189
+    subjectRaising 	http://www.isocat.org/datcat/DC-4188
+    objectRaising 	http://www.isocat.org/datcat/DC-4190
+    
+    nonPredicativeAdjective	http://www.isocat.org/datcat/DC-4618
+    predicativeAdjective 	http://www.isocat.org/datcat/DC-2710
+    postpositiveAdjective	http://www.isocat.org/datcat/DC-4619
+  -->
+  <xs:element name="SyntacticArgument">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="Frequency"/>
+      </xs:sequence>
+      <xs:attribute name="id" use="required" type="xs:ID"/>
+      <xs:attribute name="optional">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="yes"/>
+            <xs:enumeration value="no"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="grammaticalFunction">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="subject"/>
+            <xs:enumeration value="subjectComplement"/>
+            <xs:enumeration value="directObject"/>
+            <xs:enumeration value="objectComplement"/>
+            <xs:enumeration value="complement"/>
+            <xs:enumeration value="adverbialComplement"/>
+            <xs:enumeration value="prepositionalComplement"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="syntacticCategory">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="nounPhrase"/>
+            <xs:enumeration value="reflexive"/>
+            <xs:enumeration value="expletive"/>
+            <xs:enumeration value="prepositionalPhrase"/>
+            <xs:enumeration value="adverbPhrase"/>
+            <xs:enumeration value="adjectivePhrase"/>
+            <xs:enumeration value="verbPhrase"/>
+            <xs:enumeration value="declarativeClause"/>
+            <xs:enumeration value="subordinateClause"/>
+            <xs:enumeration value="adverbPhrase_prepositionalPhrase_nounPhrase"/>
+            <xs:enumeration value="adverbPhrase_prepositionalPhrase"/>
+            <xs:enumeration value="adjectivePhrase_nounPhrase"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="case">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="nominative"/>
+            <xs:enumeration value="genitive"/>
+            <xs:enumeration value="dative"/>
+            <xs:enumeration value="accusative"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="determiner">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="possessive"/>
+            <xs:enumeration value="indefinite"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="preposition"/>
+      <xs:attribute name="prepositionType"/>
+      <xs:attribute name="number">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="singular"/>
+            <xs:enumeration value="plural"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="lexeme"/>
+      <xs:attribute name="verbForm">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="toInfinitive"/>
+            <xs:enumeration value="bareInfinitive"/>
+            <xs:enumeration value="participle"/>
+            <xs:enumeration value="ingForm"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="tense">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="present"/>
+            <xs:enumeration value="past"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="complementizer">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="thatType"/>
+            <xs:enumeration value="whType"/>
+            <xs:enumeration value="yesNoType"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="subcategorizationFrameId" use="required" type="xs:IDREF"/>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    optional	http://www.isocat.org/datcat/DC-4622
+    
+    grammaticalFunction 	http://www.isocat.org/datcat/DC-1296
+    subject 	http://www.isocat.org/datcat/DC-1391
+    subjectComplement	http://www.isocat.org/datcat/DC-4624
+    directObject 	http://www.isocat.org/datcat/DC-1274
+    objectComplement	http://www.isocat.org/datcat/DC-4625
+    complement 	http://www.isocat.org/datcat/DC-1257
+    adverbialComplement	http://www.isocat.org/datcat/DC-4639
+    prepositionalComplement	http://www.isocat.org/datcat/DC-4638
+    
+    syntacticCategory 	http://www.isocat.org/datcat/DC-1506
+    nounPhrase 	http://www.isocat.org/datcat/DC-2256
+    reflexive 	http://www.isocat.org/datcat/DC-3014
+    expletive 	http://www.isocat.org/datcat/DC-3187
+    prepositionalPhrase 	http://www.isocat.org/datcat/DC-2257
+    adverbPhrase 	http://www.isocat.org/datcat/DC-2259
+    adjectivePhrase 	http://www.isocat.org/datcat/DC-2258
+    
+    verbPhrase 	http://www.isocat.org/datcat/DC-2255
+    declarativeClause 	http://www.isocat.org/datcat/DC-2300
+    subordinateClause 	http://www.isocat.org/datcat/DC-3496
+    
+    case 	http://www.isocat.org/datcat/DC-2720
+    nominative 	http://www.isocat.org/datcat/DC-2721
+    genitive 	http://www.isocat.org/datcat/DC-2722
+    dative 	http://www.isocat.org/datcat/DC-2723
+    accusative 	http://www.isocat.org/datcat/DC-2724
+    
+    determiner 	http://www.isocat.org/datcat/DC-3159
+    possessive 	http://www.isocat.org/datcat/DC-1357
+    indefinite 	http://www.isocat.org/datcat/DC-1307
+    
+    preposition 	http://www.isocat.org/datcat/DC-1366
+    prepositionType	http://www.isocat.org/datcat/DC-4621
+    lexeme 	http://www.isocat.org/datcat/DC-1325
+    
+    number 		http://www.isocat.org/datcat/DC-251
+    singular 	http://www.isocat.org/datcat/DC-252
+    plural 	http://www.isocat.org/datcat/DC-253
+    
+    verbForm	http://www.isocat.org/datcat/DC-1427
+    toInfinitive 	http://www.isocat.org/datcat/DC-4162
+    bareInfinitive 	http://www.isocat.org/datcat/DC-4163
+    participle 	http://www.isocat.org/datcat/DC-3371
+    ingForm 	http://www.isocat.org/datcat/DC-4108
+    
+    tense 	http://www.isocat.org/datcat/DC-3519
+    present 	http://www.isocat.org/datcat/DC-3421
+    past 	http://www.isocat.org/datcat/DC-3378
+    
+    complementizer 	http://www.isocat.org/datcat/DC-3124
+    thatType	http://www.isocat.org/datcat/DC-4623
+    whType 	http://www.isocat.org/datcat/DC-2296
+    yesNoType 	http://www.isocat.org/datcat/DC-2297
+  -->
+  <xs:element name="SubcategorizationFrameSet">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="SubcatFrameSetElement"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="SynArgMap"/>
+      </xs:sequence>
+      <xs:attribute name="id" use="required" type="xs:ID"/>
+      <xs:attribute name="name"/>
+      <xs:attribute name="parentSubcatFrameSet" type="xs:IDREF"/>
+      <xs:attribute name="lexiconId" use="required" type="xs:IDREF"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- SubcategorizationFrameSet	http://www.isocat.org/datcat/DC-4620 -->
+  <xs:element name="SubcatFrameSetElement">
+    <xs:complexType>
+      <xs:attribute name="id" use="required" type="xs:ID"/>
+      <xs:attribute name="element" type="xs:IDREF"/>
+      <xs:attribute name="subcategorizationFrameSetId" use="required" type="xs:IDREF"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="SynArgMap">
+    <xs:complexType>
+      <xs:attribute name="id" use="required" type="xs:ID"/>
+      <xs:attribute name="arg1" use="required" type="xs:IDREF"/>
+      <xs:attribute name="arg2" use="required" type="xs:IDREF"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- #################### Package for Semantics -->
+  <xs:element name="PredicativeRepresentation">
+    <xs:complexType>
+      <xs:attribute name="id" use="required" type="xs:ID"/>
+      <xs:attribute name="predicate" use="required" type="xs:IDREF"/>
+      <xs:attribute name="senseId" use="required" type="xs:IDREF"/>
+    </xs:complexType>
+  </xs:element>
+  <!-- predicate	http://www.isocat.org/datcat/DC-3415 -->
+  <xs:element name="SemanticPredicate">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element maxOccurs="unbounded" ref="Definition"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="SemanticArgument"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="PredicateRelation"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="Frequency"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="SemanticLabel"/>
+      </xs:sequence>
+      <xs:attribute name="id" use="required" type="xs:ID"/>
+      <xs:attribute name="label"/>
+      <xs:attribute name="lexicalized">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="yes"/>
+            <xs:enumeration value="no"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="perspectivalized">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="yes"/>
+            <xs:enumeration value="no"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="lexiconId" use="required" type="xs:IDREF"/>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    label	http://www.isocat.org/datcat/DC-1857
+    lexicalized 	http://www.isocat.org/datcat/DC-3295
+    perspectivalized 	http://www.isocat.org/datcat/DC-4391
+  -->
+  <xs:element name="SemanticArgument">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="ArgumentRelation"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="Frequency"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="SemanticLabel"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="Definition"/>
+      </xs:sequence>
+      <xs:attribute name="id" use="required" type="xs:ID"/>
+      <xs:attribute name="semanticRole"/>
+      <xs:attribute name="isIncorporated">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="yes"/>
+            <xs:enumeration value="no"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="coreType">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="core"/>
+            <xs:enumeration value="peripheral"/>
+            <xs:enumeration value="coreUnexpressed"/>
+            <xs:enumeration value="extraThematic"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="semanticPredicateId" use="required" type="xs:IDREF"/>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    semanticRole	http://www.isocat.org/datcat/DC-3466
+    isIncorporated 	http://www.isocat.org/datcat/DC-4151
+    
+    coreType 	http://www.isocat.org/datcat/DC-4461
+    core http://www.isocat.org/datcat/DC-4462
+    peripheral http://www.isocat.org/datcat/DC-4463
+    coreUnexpressed http://www.isocat.org/datcat/DC-4464
+    extraThematic 	http://www.isocat.org/datcat/DC-4465
+  -->
+  <xs:element name="ArgumentRelation">
+    <xs:complexType>
+      <xs:attribute name="id" use="required" type="xs:ID"/>
+      <xs:attribute name="target" type="xs:IDREF"/>
+      <xs:attribute name="relType"/>
+      <xs:attribute name="relName"/>
+      <xs:attribute name="semanticArgumentId" use="required" type="xs:IDREF"/>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    target	http://www.isocat.org/datcat/DC-435
+    relName	http://www.isocat.org/datcat/DC-1857
+    relType	http://www.isocat.org/datcat/DC-1971
+  -->
+  <xs:element name="SynSemCorrespondence">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="SynSemArgMap"/>
+      </xs:sequence>
+      <xs:attribute name="id" use="required" type="xs:ID"/>
+      <xs:attribute name="lexiconId" use="required" type="xs:IDREF"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="SynSemArgMap">
+    <xs:complexType>
+      <xs:attribute name="id" use="required" type="xs:ID"/>
+      <xs:attribute name="syntacticArgument" use="required" type="xs:IDREF"/>
+      <xs:attribute name="semanticArgument" use="required" type="xs:IDREF"/>
+      <xs:attribute name="synSemCorrespondenceId" use="required" type="xs:IDREF"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="PredicateRelation">
+    <xs:complexType>
+      <xs:attribute name="id" use="required" type="xs:ID"/>
+      <xs:attribute name="target" type="xs:IDREF"/>
+      <xs:attribute name="semanticPredicateId" use="required" type="xs:IDREF"/>
+      <xs:attribute name="relType"/>
+      <xs:attribute name="relName"/>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    target	http://www.isocat.org/datcat/DC-435
+    relName	http://www.isocat.org/datcat/DC-1857
+    relType	http://www.isocat.org/datcat/DC-1971
+    
+    relevantSemanticPredicate 	http://www.isocat.org/datcat/DC-4392
+  -->
+  <xs:element name="SenseExample">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="TextRepresentation"/>
+      </xs:sequence>
+      <xs:attribute name="id" use="required" type="xs:ID"/>
+      <xs:attribute name="senseId" use="required" type="xs:IDREF"/>
+      <xs:attribute name="exampleType">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="subcatFrame"/>
+            <xs:enumeration value="syntacticUsage"/>
+            <xs:enumeration value="senseInstance"/>
+            <xs:enumeration value="idiomaticExpression"/>
+            <xs:enumeration value="other"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    subcatFrame	http://www.isocat.org/datcat/DC-4630
+    syntacticUsage	http://www.isocat.org/datcat/DC-455
+    senseInstance 	http://www.isocat.org/datcat/DC-3778
+    idiomaticExpression 	http://www.isocat.org/datcat/DC-351
+  -->
+  <xs:element name="Synset">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="Definition"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="MonolingualExternalRef"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="SynsetRelation"/>
+      </xs:sequence>
+      <xs:attribute name="id" use="required" type="xs:ID"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="SynsetRelation">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="Frequency"/>
+      </xs:sequence>
+      <xs:attribute name="target" use="required" type="xs:IDREF"/>
+      <xs:attribute name="relName"/>
+      <xs:attribute name="relType">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="taxonomic"/>
+            <xs:enumeration value="partWhole"/>
+            <xs:enumeration value="association"/>
+            <xs:enumeration value="label"/>
+            <xs:enumeration value="predicative"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    target	http://www.isocat.org/datcat/DC-435
+    relName	http://www.isocat.org/datcat/DC-1857
+    relType	http://www.isocat.org/datcat/DC-1971
+    
+    taxonomic 	http://www.isocat.org/datcat/DC-4039
+    partWhole 	http://www.isocat.org/datcat/DC-397
+    association 	http://www.isocat.org/datcat/DC-438
+    label	http://www.isocat.org/datcat/DC-1857
+    predicative	http://www.isocat.org/datcat/DC-3415
+  -->
+  <xs:element name="MonolingualExternalRef">
+    <xs:complexType>
+      <xs:attribute name="externalSystem" use="required"/>
+      <xs:attribute name="externalReference" use="required"/>
+      <xs:attribute name="senseId" type="xs:IDREF"/>
+      <xs:attribute name="contextId" type="xs:IDREF"/>
+      <xs:attribute name="SynsetId" type="xs:IDREF"/>
+      <xs:attribute name="semanticLabel" type="xs:IDREF"/>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    externalSystem	http://www.isocat.org/datcat/DC-1974
+    externalReference	http://www.isocat.org/datcat/DC-1975
+  -->
+  <xs:element name="SenseRelation">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="FormRepresentation"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="Frequency"/>
+      </xs:sequence>
+      <xs:attribute name="id" use="required" type="xs:ID"/>
+      <xs:attribute name="senseId" use="required" type="xs:IDREF"/>
+      <xs:attribute name="target" type="xs:IDREF"/>
+      <xs:attribute name="relName" use="required"/>
+      <xs:attribute name="relType">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="taxonomic"/>
+            <xs:enumeration value="partWhole"/>
+            <xs:enumeration value="association"/>
+            <xs:enumeration value="complementary"/>
+            <xs:enumeration value="translation"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    target	http://www.isocat.org/datcat/DC-435
+    relName	http://www.isocat.org/datcat/DC-1857
+    relType	http://www.isocat.org/datcat/DC-1971
+    
+    taxonomic 	http://www.isocat.org/datcat/DC-4039
+    partWhole 	http://www.isocat.org/datcat/DC-397
+    association 	http://www.isocat.org/datcat/DC-438
+    complementary 	http://www.isocat.org/datcat/DC-83
+    translation 	http://www.isocat.org/datcat/DC-4020
+  -->
+  <!-- #################### Package for Multilingual notations -->
+  <xs:element name="PredicateArgumentAxis">
+    <xs:complexType>
+      <xs:attribute name="predicateArgumentAxisId" use="required" type="xs:ID"/>
+      <xs:attribute name="axisType"/>
+      <xs:attribute name="semanticPredicateOne"/>
+      <xs:attribute name="semanticPredicateTwo"/>
+      <xs:attribute name="semanticArgumentOne"/>
+      <xs:attribute name="semanticArgumentTwo"/>
+      <xs:attribute name="lexiconOne"/>
+      <xs:attribute name="lexiconTwo"/>
+      <xs:attribute name="confidence"/>
+      <xs:attribute name="metaDataId"/>
+      <xs:attribute name="idx"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="SenseAxis">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element maxOccurs="unbounded" ref="SenseAxisRelation"/>
+      </xs:sequence>
+      <xs:attribute name="senseAxisId" use="required" type="xs:ID"/>
+      <xs:attribute name="senseAxisType"/>
+      <xs:attribute name="senseOneId"/>
+      <xs:attribute name="senseTwoId"/>
+      <xs:attribute name="synsetOneId"/>
+      <xs:attribute name="synsetTwoId"/>
+      <xs:attribute name="lexiconOne"/>
+      <xs:attribute name="lexiconTwo"/>
+      <xs:attribute name="metaDataId"/>
+      <xs:attribute name="confidence"/>
+      <xs:attribute name="idx"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="SenseAxisRelation">
+    <xs:complexType>
+      <xs:attribute name="senseAxisRelationId" use="required" type="xs:ID"/>
+      <xs:attribute name="relType"/>
+      <xs:attribute name="relName"/>
+      <xs:attribute name="target"/>
+      <xs:attribute name="senseAxisId" use="required" type="xs:IDREF"/>
+      <xs:attribute name="idx"/>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    target	http://www.isocat.org/datcat/DC-435
+    relName	http://www.isocat.org/datcat/DC-1857
+    relType	http://www.isocat.org/datcat/DC-1971
+  -->
+  <xs:element name="ConstraintSet">
+    <xs:complexType/>
+  </xs:element>
+  <!-- #################### Meta Classes -->
+  <xs:element name="Frequency">
+    <xs:complexType>
+      <xs:attribute name="corpus"/>
+      <xs:attribute name="frequency"/>
+      <xs:attribute name="generator"/>
+      <xs:attribute name="semanticArgumentId" type="xs:IDREF"/>
+      <xs:attribute name="senseRelationId" type="xs:IDREF"/>
+      <xs:attribute name="semanticPredicateId" type="xs:IDREF"/>
+      <xs:attribute name="senseId" type="xs:IDREF"/>
+      <xs:attribute name="lexicalEntryId" type="xs:IDREF"/>
+      <xs:attribute name="wordFormId" type="xs:IDREF"/>
+      <xs:attribute name="syntacticArgumentId" type="xs:IDREF"/>
+      <xs:attribute name="subcatFrameId" type="xs:IDREF"/>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    corpus		http://www.isocat.org/datcat/DC-4361
+    frequency 	http://www.isocat.org/datcat/DC-238
+    generator	http://www.isocat.org/datcat/DC-2511
+  -->
+  <xs:element name="MetaData">
+    <xs:complexType>
+      <xs:attribute name="metaDataId" use="required" type="xs:ID"/>
+      <xs:attribute name="creationDate"/>
+      <xs:attribute name="creationTool"/>
+      <xs:attribute name="version"/>
+      <xs:attribute name="creationProcess" use="required" type="xs:IDREF"/>
+      <xs:attribute name="automatic"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="SemanticLabel">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="MonolingualExternalRef"/>
+      </xs:sequence>
+      <xs:attribute name="label"/>
+      <xs:attribute name="type"/>
+      <xs:attribute name="quantification"/>
+      <xs:attribute name="semanticArgumentId" type="xs:IDREF"/>
+      <xs:attribute name="semanticPredicateId" type="xs:IDREF"/>
+      <xs:attribute name="senseId" type="xs:IDREF"/>
+    </xs:complexType>
+  </xs:element>
 </xs:schema>
+<!--
+  label	http://www.isocat.org/datcat/DC-1857
+  type	http://www.isocat.org/datcat/DC-1971
+  quantification	http://www.isocat.org/datcat/DC-2211
+-->
+<!--
+  monolingualSenseAlignment	http://www.isocat.org/datcat/DC-4627
+  crosslingualSenseAlignment	http://www.isocat.org/datcat/DC-4628
+  definedMeaning	http://www.isocat.org/datcat/DC-4629
+-->

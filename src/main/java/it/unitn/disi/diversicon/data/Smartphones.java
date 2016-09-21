@@ -16,12 +16,12 @@ public class Smartphones extends LexResPackage {
     /**
      * @since 0.1.0
      */
-    public static final String ID = "smartphones";
+    public static final String NAME = "smartphones";
     
     /**
      * @since 0.1.0
      */
-    public static final String NAME = "Smartphones";
+    public static final String LABEL = "Smartphones";
     
     /**
      * @since 0.1.0
@@ -31,7 +31,7 @@ public class Smartphones extends LexResPackage {
     /**
      * @since 0.1.0
      */
-    private static final String CLASSPATH = "classpath:/" + ID + ".lmf";
+    private static final String CLASSPATH = "classpath:/" + NAME + ".lmf";
     
     /**
      * @since 0.1.0
@@ -60,8 +60,8 @@ public class Smartphones extends LexResPackage {
     private static final Smartphones INSTANCE = new Smartphones();   
     
     static {
-        INSTANCE.setId(ID);
-        INSTANCE.setLabel(NAME);
+        INSTANCE.setName(NAME);
+        INSTANCE.setLabel(LABEL);
         INSTANCE.setPrefix(PREFIX);
         INSTANCE.setH2DbUri(CLASSPATH + ".h2.db");
         INSTANCE.setSqlUri(CLASSPATH + ".sql");

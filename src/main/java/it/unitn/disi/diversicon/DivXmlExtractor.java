@@ -58,9 +58,9 @@ class DivXmlExtractor implements ElementHandler {
 
             foundLexRes = true;
 
-            String candId = el.attributeValue("id");
-            if (candId != null) {
-                divRes.setId(candId);
+            String candName = el.attributeValue("name");
+            if (candName != null) {
+                divRes.setName(candName);
             }
 
             String candPrefix = el.attributeValue("prefix");

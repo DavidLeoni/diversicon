@@ -271,49 +271,7 @@ public class UbyTest {
 
     }
 
-    /**
-     * Inputs:
-     * 
-     * <pre>
-     *      e FILEPATH : Extracts relType from SynsetRelation rows of OWA XML at FILEPATH
-     * </pre>
-     *
-     * @since 0.1.0
-     */
-    public static void main(String[] args) {
-
-        switch (args[0]) {
-        case "e":
-            try {
-                File file = new File(args[1]);
-
-                Pattern p = Pattern.compile("(.*)<SynsetRelation(.*)relType='(.*)'/>");
-
-                HashSet<String> set = new HashSet();
-
-                try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-                    String line;
-                    while ((line = br.readLine()) != null) {
-                        Matcher m = p.matcher(line);
-                        if (m.matches()) {
-                            set.add(m.group(3));
-                        }
-                    }
-                }
-
-                for (String s : set) {
-                    System.out.println(s);
-                }
-            } catch (Exception ex) {
-                throw new DivException(ex);
-            }
-            break;
-        default:
-            throw new IllegalArgumentException("Unknown command: " + args[0]);
-        }
-
-    }
-    
+       
     /**
      * Shows you can import a synset relation pointing to a non-existing synset, and 
      * such synset is not automatically created in the db. Still when 

@@ -1079,7 +1079,7 @@ public final class Diversicons {
      *
      * @param id
      *            the worldwide unique identifier for the resource, in a format
-     *            like {@link it.unitn.disi.diversicon.data.DivWn31#ID}
+     *            like {@link it.unitn.disi.diversicon.data.DivWn31#NAME}
      * @param version
      *            the version of the resource, in X.Y.Z-SOMETHING format a la
      *            Maven.
@@ -1092,8 +1092,8 @@ public final class Diversicons {
     public static DBConfig fetchH2Db(String id, String version) {
         checkNotBlank(id, "Invalid resource id!");
         checkNotBlank(id, "Invalid version!");
-        checkArgument(DivWn31.ID.equals(id), "Currently only supported id is "
-                + DivWn31.ID + ", found instead " + id + "  !");
+        checkArgument(DivWn31.NAME.equals(id), "Currently only supported id is "
+                + DivWn31.NAME + ", found instead " + id + "  !");
         checkArgument(DivWn31.of()
                              .getVersion()
                              .replace("-SNAPSHOT", "")

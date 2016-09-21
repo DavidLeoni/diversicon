@@ -179,7 +179,7 @@ public class DivUtilsTest {
         assertTrue(ns.containsKey(DivWn31.PREFIX));
         
         assertTrue(ns.get(Examplicon.PREFIX).contains(Examplicon.ID + ".lmf.xml"));
-        assertTrue(ns.get(DivWn31.PREFIX).contains(DivWn31.ID + ".lmf.xml"));
+        assertTrue(ns.get(DivWn31.PREFIX).contains(DivWn31.NAME + ".lmf.xml"));
     }
     
     
@@ -255,6 +255,7 @@ public class DivUtilsTest {
         Diversicons.validateXml(f, LOG);
     }
     
+      
     /**
      * @since 0.1.0
      */
@@ -441,7 +442,7 @@ public class DivUtilsTest {
         
         LexResPackage pack = new LexResPackage();
         
-        pack.setId(DEFAULT_TEST_PREFIX);
+        pack.setName(DEFAULT_TEST_PREFIX);
         pack.setPrefix(DEFAULT_TEST_PREFIX);
         pack.setLabel(DivTester.GRAPH_1_HYPERNYM.getName());
         pack.setNamespaces(Internals.newMap(
@@ -512,7 +513,7 @@ public class DivUtilsTest {
      * @since 0.1.0
      */
     @Test
-    public void testGenerateXmlSchema() throws IOException{
+    public void testGenerateXmlSchema() throws IOException {
         
         File xsd = new File("target","diversicon-1.0-SNAPSHOT.xsd");
         

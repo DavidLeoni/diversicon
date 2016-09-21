@@ -1340,9 +1340,6 @@ public final class Internals {
 
         if (inputLmfObject instanceof LexicalResource) {
 
-            atts.addAttribute("", "", "id", "CDATA",
-                    lexResPackage.getId());
-
             atts.addAttribute("", "", "prefix", "CDATA",
                     lexResPackage.getPrefix());
 
@@ -1475,7 +1472,7 @@ public final class Internals {
 
         BuildInfo build = BuildInfo.of(Diversicon.class);
 
-        checkNotBlank(pack.getId(), "Invalid lexical resource id!");
+        checkNotBlank(pack.getName(), "Invalid lexical resource name!");
         Diversicons.checkPrefix(pack.getPrefix());
 
         checkNotBlank(pack.getLabel(), "Invalid lexical resource label!");

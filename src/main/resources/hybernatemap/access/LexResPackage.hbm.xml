@@ -7,8 +7,8 @@
 	   node="LexResPackage"
 	   dynamic-insert="true">
    
-   <id name="id" type="string" node="@id">
-    	<column name="id" />   
+   <id name="name" type="string" node="@name">
+    	<column name="name" />   
     </id>
     
    <property name="prefix" column="prefix" node="@prefix" type="string"/>                              

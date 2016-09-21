@@ -152,10 +152,10 @@ public class DivUtilsIT {
     public void testFetchH2Db(){
         
         assertFalse(Diversicons.getCacheDir().exists());
-        Diversicons.fetchH2Db(DivWn31.ID, DivWn31.of().getVersion());        
-        assertTrue(Diversicons.getCachedH2DbDir(DivWn31.ID, DivWn31.of().getVersion()).exists());
+        Diversicons.fetchH2Db(DivWn31.NAME, DivWn31.of().getVersion());        
+        assertTrue(Diversicons.getCachedH2DbDir(DivWn31.NAME, DivWn31.of().getVersion()).exists());
         // should be faster ...
-        DBConfig config = Diversicons.fetchH2Db(DivWn31.ID, DivWn31.of().getVersion());
+        DBConfig config = Diversicons.fetchH2Db(DivWn31.NAME, DivWn31.of().getVersion());
         
         // should allow multiple connections ...
         

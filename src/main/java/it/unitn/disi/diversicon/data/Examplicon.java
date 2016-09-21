@@ -61,7 +61,7 @@ public class Examplicon extends LexResPackage {
     private static final Examplicon INSTANCE = new Examplicon();   
     
     static {
-        INSTANCE.setId(ID);
+        INSTANCE.setName(ID);
         INSTANCE.setPrefix(PREFIX);
         INSTANCE.setLabel(LABEL);
         INSTANCE.setH2DbUri(CLASSPATH + ".h2.db");

@@ -72,8 +72,7 @@ class DivXmlValidator extends DefaultHandler {
 
         if ("LexicalResource".equals(n)) {
             
-            pack.setLabel(attrs.getValue("name"));
-            pack.setId(attrs.getValue("id"));
+            pack.setName(attrs.getValue("name"));            
             pack.setPrefix(attrs.getValue("prefix"));                        
 
             for (int i = 0; i < attrs.getLength(); i++) {
@@ -118,9 +117,8 @@ class DivXmlValidator extends DefaultHandler {
             InputSource is = new InputSource(new FileInputStream(file));
 
             parser.parse(is, handler);
-        } catch (ParserConfigurationException | SAXException | IOException e) {
-            // TODO Auto-generated catch block
-            throw new DivException("Something went wrong!", e);
+        } catch (ParserConfigurationException | SAXException | IOException e) {            
+            throw new DivException(e);
         }
 
     }
