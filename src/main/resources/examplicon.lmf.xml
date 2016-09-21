@@ -16,31 +16,63 @@
     		 languageIdentifier="eng" 
     		 name="Examplicon English lexicon">
     		 
-        <LexicalEntry id="ex_le-car" 
+        <LexicalEntry id="ex_le-electric-car" 
         			  partOfSpeech="noun">
             <Lemma>
                 <FormRepresentation languageIdentifier="eng" 
-                					writtenForm="car"/>
+                					writtenForm="electric car"/>
             </Lemma>
-            <Sense id="ex_s-car" 
-            	   synset="ex_ss-car">
-                <MonolingualExternalRef externalSystem="car" 
+            <Sense id="ex_s-electric-car" 
+            	   synset="ex_ss-electric-car">
+                <MonolingualExternalRef externalSystem="cars" 
+                						externalReference="3rd row, fourth column in CSV"/>
+            </Sense>
+        </LexicalEntry>
+
+		<LexicalEntry id="ex_le-tesla-car" 
+        			  partOfSpeech="noun">
+            <Lemma>
+                <FormRepresentation languageIdentifier="eng" 
+                					writtenForm="tesla car"/>
+            </Lemma>
+            <Sense id="ex_s-tesla-car" 
+            	   synset="ex_ss-tesla-car">
+                <MonolingualExternalRef externalSystem="cars" 
                 						externalReference="3rd row, fourth column in CSV"/>
             </Sense>
         </LexicalEntry>
 
 		        
-		<Synset id="ex_ss-car">
+		<Synset id="ex_ss-electric-car">
             <Definition>
                 <TextRepresentation languageIdentifier="eng" 
-                					writtenText="A vehicle"/>
+                					writtenText="A car that doesn't poison you."/>
             </Definition>
-            <MonolingualExternalRef externalSystem="the-world" 
+
+            <MonolingualExternalRef externalSystem="cars" 
               						externalReference="7st row 2rd column in csv of origin"/>
+              						
+            <SynsetRelation target="wn31_ss-6666666" 
+            				relType="taxonomic" 
+            				relName="hypernym"/>
+            				
+            				
+        </Synset>
+        
+        <Synset id="ex_ss-tesla-car">
+            <Definition>
+                <TextRepresentation languageIdentifier="eng" 
+                					writtenText="A car from Tesla Motors company."/>
+            </Definition>
+            <MonolingualExternalRef externalSystem="cars" 
+              						externalReference="7st row 2rd column in csv of origin"/>
+              						
+            <SynsetRelation target="ex_ss-electric-car"
+            				relType="taxonomic" 
+            				relName="hypernym"/>
         </Synset>        
+                
 	</Lexicon>	
 	
-		
-	  	  
-
+			  	  
 </LexicalResource>

@@ -99,6 +99,32 @@ Changes made in Diversicon:
   - id 	from #REQUIRED to #IMPLIED
   removed
   - backlink lexicalEntryId IDREF #REQUIRED	  
+
+* SubcategorizationFrame
+  removed redundant id  
+ 
+* SynsetRelation
+  removed 	
+  - id ID #REQUIRED
+  - synsetId  IDREF #REQUIRED
+  
+* SemanticArgument
+
+* Definition
+
+  removed 
+  - backlinks:
+		synsetId IDREF #IMPLIED
+		semanticArgumentId IDREF #IMPLIED
+		semanticPredicateId IDREF #IMPLIED
+ 
+* TextRepresentation
+  removed 
+  -backlinks: 
+  		definitionId IDREF #IMPLIED
+    	senseExampleId IDREF #IMPLIED
+    	contextId IDREF #IMPLIED 
+  
 -->
 
 
@@ -106,10 +132,7 @@ Changes made in Diversicon:
 <!ELEMENT Definition (Statement*, TextRepresentation+)>
 <!ATTLIST Definition
 	id 	ID #IMPLIED
-	definitionType (extensionalDefinition|intensionalDefinition|partitiveDefinition|translatedDefinition) #IMPLIED
-	synsetId IDREF #IMPLIED
-	semanticArgumentId IDREF #IMPLIED
-	semanticPredicateId IDREF #IMPLIED>
+	definitionType (extensionalDefinition|intensionalDefinition|partitiveDefinition|translatedDefinition) #IMPLIED>
 <!--
 extensionalDefinition 	http://www.isocat.org/datcat/DC-171
 intensionalDefinition 	http://www.isocat.org/datcat/DC-170
@@ -258,10 +281,7 @@ externalReference	http://www.isocat.org/datcat/DC-164
     languageIdentifier CDATA #IMPLIED
     orthographyName CDATA #IMPLIED
     geographicalVariant CDATA #IMPLIED
-    writtenText CDATA #REQUIRED
-    definitionId IDREF #IMPLIED
-    senseExampleId IDREF #IMPLIED
-    contextId IDREF #IMPLIED>
+    writtenText CDATA #REQUIRED>
 <!--
 languageIdentifier 	http://www.isocat.org/datcat/DC-279
 orthographyName 	http://www.isocat.org/datcat/DC-2176
@@ -427,8 +447,7 @@ subcategorizationFrameSet	http://www.isocat.org/datcat/DC-4620
 <!ELEMENT SubcategorizationFrame (LexemeProperty?, SyntacticArgument*, Frequency*)> 
 <!ATTLIST SubcategorizationFrame
     id               ID #REQUIRED
-    parentSubcatFrame IDREF #IMPLIED
-    id               IDREF #REQUIRED
+    parentSubcatFrame IDREF #IMPLIED    
     subcatLabel CDATA #IMPLIED>
 <!--
 subcatLabel	http://www.isocat.org/datcat/DC-1857
@@ -656,8 +675,6 @@ idiomaticExpression 	http://www.isocat.org/datcat/DC-351
    
 <!ELEMENT SynsetRelation (Frequency*)>
 <!ATTLIST SynsetRelation
-	id               ID #REQUIRED
-	synsetId  IDREF #REQUIRED
     target      IDREF #REQUIRED
     relName CDATA #IMPLIED
     relType (taxonomic|partWhole|association|label|predicative) #IMPLIED>

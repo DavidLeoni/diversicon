@@ -113,6 +113,10 @@
                 <TextRepresentation languageIdentifier="eng" 
                 					writtenText="A cellphone designed to keep your eyes always locked to a screen."/>
             </Definition>
+            
+            <MonolingualExternalRef externalSystem="smartphones" 
+              						externalReference="7st row 2rd column in csv of origin"/>
+            
             <!-- here we state our fat cellphone has as hypernym Wordnet 3.1 'cellphone':
             	 http://wordnetweb.princeton.edu/perl/webwn?s=cellphone
             	 which is defined in an external file
@@ -120,8 +124,6 @@
             <SynsetRelation target="wn31_ss-2995984" 
             				relType="taxonomic" 
             				relName="hypernym"/>
-            <MonolingualExternalRef externalSystem="smartphones" 
-              						externalReference="7st row 2rd column in csv of origin"/>
 
         </Synset>
 
@@ -129,27 +131,30 @@
             <Definition>
                 <TextRepresentation languageIdentifier="eng" 
                 					writtenText="An unholy union between a smartphone and a tablet"/>
-            </Definition>			           
+            </Definition>
+            
+			<MonolingualExternalRef externalSystem="smartphones" 
+             						externalReference="6st row 2rd column in csv of origin"/>
+            			           
             <SynsetRelation target="sm_ss-smartphone" 
             				relType="taxonomic" 
             				relName="hypernym"/>
             <SynsetRelation target="sm_ss-tablet" 
             				relType="taxonomic" 
             				relName="hypernym"/>            				
-            <MonolingualExternalRef externalSystem="smartphones" 
-              						externalReference="6st row 2rd column in csv of origin"/>
         </Synset>
         
         <Synset id="sm_ss-tablet">
             <Definition>
                 <TextRepresentation languageIdentifier="eng" 
                 					writtenText="Yet another device to charge."/>
-            </Definition>			           
+            </Definition>
+			<MonolingualExternalRef externalSystem="smartphones" 
+               					   externalReference="8st row 3rd column in csv of origin"/>
+            			           
             <SynsetRelation target="wn31_ss-3086983" 
             				relType="taxonomic" 
             				relName="hypernym"/>
-           <MonolingualExternalRef externalSystem="smartphones" 
-             					   externalReference="8st row 3rd column in csv of origin"/>
         </Synset>
         
 
@@ -157,12 +162,15 @@
             <Definition>
                 <TextRepresentation languageIdentifier="eng"
                 				    writtenText="The ultimate handheld that will completely replace your mind."/>
-            </Definition>			            
+            </Definition>
+
+			<MonolingualExternalRef externalSystem="wn31" 
+									externalReference="[POS: noun] 2123649"/>
+            
+            			            
             <SynsetRelation target="sm_ss-phablet" 
             				relType="taxonomic" 
             				relName="hypernym"/>
-			<MonolingualExternalRef externalSystem="wn31" 
-									externalReference="[POS: noun] 2123649"/>
         </Synset>
 
        
