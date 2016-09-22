@@ -364,11 +364,11 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
                 && !systemId.equals(defaultSystemId)){
             buf.append("systemId: ").append(systemId);
             buf.append(";");
-        }
+        }                     
         
-        buf.append(" [line ").append(lineNumber);
-        buf.append(" col ").append(colNumber).append("] ");
-
+        buf.append("").append(lineNumber);
+        buf.append("," + colNumber).append(": ");
+        
         //append the exception message at the end
         if (message==null){
             buf.append("unknown problem.");
@@ -382,6 +382,7 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
             }
             buf.append(fixedMessage);            
         }
+        
         
         return buf.toString();        
     }

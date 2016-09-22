@@ -65,6 +65,11 @@ Changes made in Diversicon:
   removed
   - lexiconId IDREF #REQUIRED
 
+* Metadata
+  modified
+  - renamed metadataId to id
+  - set creationProcess from IDREF to CDATA 
+
 * Sense
   - converted elements list from  
 	(Sense|Context|PredicativeRepresentation|SenseExample
@@ -794,11 +799,11 @@ generator	http://www.isocat.org/datcat/DC-2511
 --> 
 
 <!ELEMENT MetaData EMPTY>
-<!ATTLIST MetaData	metaDataId ID #REQUIRED
+<!ATTLIST MetaData	id ID #REQUIRED
 					creationDate CDATA #IMPLIED
 					creationTool CDATA #IMPLIED
 					version CDATA #IMPLIED
-					creationProcess IDREF #REQUIRED	
+					creationProcess CDATA #REQUIRED	
 					automatic CDATA #IMPLIED>
     
 <!ELEMENT SemanticLabel (MonolingualExternalRef*)>

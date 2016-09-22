@@ -70,6 +70,11 @@
     removed
     - lexiconId IDREF #REQUIRED
   
+  * Metadata
+    modified
+    - renamed metadataId to id
+    - set creationProcess from IDREF to CDATA 
+  
   * Sense
     - converted elements list from  
   	(Sense|Context|PredicativeRepresentation|SenseExample
@@ -1273,11 +1278,11 @@
   -->
   <xs:element name="MetaData">
     <xs:complexType>
-      <xs:attribute name="metaDataId" use="required" type="xs:ID"/>
+      <xs:attribute name="id" use="required" type="xs:ID"/>
       <xs:attribute name="creationDate"/>
       <xs:attribute name="creationTool"/>
       <xs:attribute name="version"/>
-      <xs:attribute name="creationProcess" use="required" type="xs:IDREF"/>
+      <xs:attribute name="creationProcess" use="required"/>
       <xs:attribute name="automatic"/>
     </xs:complexType>
   </xs:element>

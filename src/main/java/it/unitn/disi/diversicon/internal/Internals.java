@@ -1583,6 +1583,8 @@ public final class Internals {
     }
 
     /**
+     * Checks provided {@code LexicalResourcePackage} matches fields in {@code LexicalResource}
+     * 
      * @throws IllegalArgumentException
      * 
      * @since 0.1.0

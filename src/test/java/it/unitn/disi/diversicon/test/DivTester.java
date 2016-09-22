@@ -588,7 +588,7 @@ public final class DivTester {
     public static LexResPackage createLexResPackage(LexicalResource lexRes, String prefix){
         LexResPackage pack = new LexResPackage();
         
-        pack.setName(prefix);
+        pack.setName(lexRes.getName());
         if (lexRes.getGlobalInformation() == null){           
             pack.setLabel(prefix);
         } else {            
@@ -736,7 +736,7 @@ public final class DivTester {
 
                 Pattern p = Pattern.compile("(.*)<SynsetRelation(.*)relType='(.*)'/>");
 
-                HashSet<String> set = new HashSet();
+                HashSet<String> set = new HashSet<>();
 
                 try (BufferedReader br = new BufferedReader(new FileReader(file))) {
                     String line;

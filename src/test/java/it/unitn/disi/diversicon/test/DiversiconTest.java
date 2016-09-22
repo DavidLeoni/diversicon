@@ -352,13 +352,13 @@ public class DiversiconTest {
         DivTester.importResource(div, GRAPH_1_HYPERNYM, true);
 
         assertFalse(div.getConnectedSynsets(
-                tid("synset 2"),
+                tid("synset-2"),
                 0,
                 ERelNameSemantics.HYPERNYM)
                               .hasNext());
 
         assertFalse(div.getConnectedSynsets(
-                tid("synset 2"),
+                tid("synset-2"),
                 -1)
                               .hasNext());
 
@@ -619,6 +619,8 @@ public class DiversiconTest {
      */
     @Test
     public void testGetDbInfo() {
+        
+        LexicalResource g = GRAPH_4_HYP_HOL_HELLO;
 
         Diversicons.dropCreateTables(dbConfig);
 
@@ -633,7 +635,7 @@ public class DiversiconTest {
 
         assertEquals(Diversicon.DIVERSICON_SCHEMA_VERSION, dbInfo1.getSchemaVersion());
 
-        DivTester.importResource(div,GRAPH_4_HYP_HOL_HELLO, true);
+        DivTester.importResource(div,g, true);
 
         assertEquals(1, div.getImportJobs()
                            .size());
@@ -651,7 +653,8 @@ public class DiversiconTest {
         assertTrue(job.getEndDate()
                       .getTime() >= job.getStartDate()
                                        .getTime());
-        assertEquals(tid("lexical-resource-1"), job.getResourceDescriptor().getLabel());
+        assertEquals(g.getName(), job.getLexResPackage().getName());
+        assertEquals(g.getGlobalInformation().getLabel(), job.getLexResPackage().getLabel());
         assertTrue(job.getFileUrl()
                       .startsWith(Diversicon.MEMORY_PROTOCOL + ":"));
         /* todo why the hell is commented?
@@ -1114,10 +1117,10 @@ public class DiversiconTest {
         ImportJob import1 = div.getImportJobs()
                                .get(1);
 
-        assertEquals("test:lexical-resource-1", import0.getResourceDescriptor().getLabel());
+        assertEquals("test lexical resource", import0.getLexResPackage().getLabel());
         assertNotEquals(-1, import0.getId());
 
-        assertEquals(prefix2 + ":lexical-resource-1", import1.getResourceDescriptor().getLabel());
+        assertEquals(prefix2 + " lexical resource", import1.getLexResPackage().getLabel());
         assertNotEquals(-1, import1.getId());
 
         div.getSession()

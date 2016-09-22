@@ -45,11 +45,13 @@ public class ImportJob {
         
         this.startDate = null;
         this.endDate = null;
-        this.logMessages = new ArrayList();
+        this.logMessages = new ArrayList<>();
     }
 
     
     /**
+     * Identifiers used within the resource.
+     * 
      * @since 0.1.0
      */
     public LexResPackage getLexResPackage() {
@@ -97,17 +99,7 @@ public class ImportJob {
         checkNotNull(description);
         this.description = description;
     }
-
-    
-    
-    /**
-     * Identifiers used within the resource.
-     * 
-     * @since 0.1.0
-     */
-    public LexResPackage getResourceDescriptor() {
-        return lexResPackage;
-    }
+          
     
     
     /**

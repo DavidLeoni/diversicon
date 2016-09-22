@@ -2,6 +2,7 @@ package it.unitn.disi.diversicon;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
 import static it.unitn.disi.diversicon.internal.Internals.checkEquals;
+import static it.unitn.disi.diversicon.internal.Internals.checkLexResPackage;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotBlank;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
 import static it.unitn.disi.diversicon.Diversicons.checkId;
@@ -892,8 +893,8 @@ public class Diversicon extends Uby {
         LOG.info("");
 
         for (ImportJob job : jobs) {
-            LOG.info("    " + job.getResourceDescriptor()
-                                 .getLabel()
+            LOG.info("    " + job.getLexResPackage()
+                                 .getName()
                     + "    from    " + job.getFileUrl());
         }
 
@@ -1222,8 +1223,7 @@ public class Diversicon extends Uby {
             LexResPackage lexResPackage,
             boolean skipAugment) {
 
-        checkNotNull(lexicalResource);
-        checkNotNull(lexResPackage);
+        checkLexResPackage(lexResPackage, lexicalResource);
 
         LOG.info("Going to save lexical resource to database...");
 
@@ -1616,17 +1616,17 @@ public class Diversicon extends Uby {
         sb.append("IMPORT ID: ");
         sb.append(job.getId());
         sb.append("   LEXICAL RESOURCE: ");
-        sb.append(job.getResourceDescriptor()
-                     .getLabel());
+        sb.append(job.getLexResPackage()
+                     .getName());
         sb.append("   IMPORT AUTHOR: ");
         sb.append(job.getAuthor());
         sb.append("\n");
         sb.append("NAMESPACE: ");
-        sb.append(job.getResourceDescriptor()
+        sb.append(job.getLexResPackage()
                      .getPrefix()
-                + ":" + job.getResourceDescriptor()
+                + ":" + job.getLexResPackage()
                            .getNamespaces()
-                           .get(job.getResourceDescriptor()
+                           .get(job.getLexResPackage()
                                    .getPrefix()));
         sb.append("   FROM FILE: ");
         sb.append(job.getFileUrl());
@@ -1746,7 +1746,7 @@ public class Diversicon extends Uby {
 
         if (importJob != null) {
             sb.append("- There is an import job in progress for lexical resource "
-                    + importJob.getResourceDescriptor()
+                    + importJob.getLexResPackage()
                                .getLabel()
                     + " from file " + importJob.getFileUrl() + "\n");
         }

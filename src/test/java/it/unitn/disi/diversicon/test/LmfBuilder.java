@@ -66,13 +66,13 @@ public class LmfBuilder {
      */
     private LmfBuilder(String prefix) {
         checkNotNull(prefix);
-        String name = pid(prefix, "lexical-resource-1");
+        String name = pid(prefix, "lexical-resource");
 
         this.prefix = prefix;
         this.lexicalResource = new LexicalResource();
         this.lexicalResource.setName(name);
         GlobalInformation globInfo = new GlobalInformation();
-        globInfo.setLabel("Lexical Resource 1");
+        globInfo.setLabel(prefix + " lexical resource");
         this.lexicalResource.setGlobalInformation(globInfo);
  
         this.built = false;

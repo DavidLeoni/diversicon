@@ -155,13 +155,24 @@ public final class Diversicons {
      * @since 0.1.0
      */
     public static final int LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH = 5;
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String NAMESPACE_PREFIX_PATTERN_DESCRIPTION = "A diversicon prefix"
+            + " is an XML NCName with the further restriction"
+            + " of having a prefix (like 'wn31') followed by an underscore '_' and a word"
+            + " beginning with a unicode letter. The rest of the word may only contain"
+            + " unicode letters, dots '.', dashes '-', underscores '_'. Spaces "
+            + " or are not allowed.";
+
     
     /**
-     * Pattern for valid prefixes.
+     * {@value #NAMESPACE_PREFIX_PATTERN_DESCRIPTION}
      * 
      * @since 0.1.0
      */
-    public static final Pattern NAMESPACE_PREFIX_PATTERN = Pattern.compile("\\p{Alpha}(\\w|-)*");
+    public static final Pattern NAMESPACE_PREFIX_PATTERN = Pattern.compile("\\p{L}(\\w|-|\\.)*", Pattern.UNICODE_CASE );
 
     /**
      * @since 0.1.0
@@ -170,12 +181,26 @@ public final class Diversicons {
     
     /**
      * 
+     * 
+     * @since 0.1.0
+     */
+    public static final String NAMESPACE_ID_PATTERN_DESCRIPTION = "A diversicon ID "
+            + " should look something like 'wn31_blabla', with the first part being a prefix (i.e. 'wn31'),"
+            + " followed by an underscore '_'. More technically, it should be"
+            + " an XML NCName with the further restriction"
+            + " of having a prefix followed by an underscore and a word"
+            + " beginning with a unicode letter. The rest of the word may contain"
+            + " unicode letters, dots '.', dashes '-', underscores '_', but no spaces."; 
+    
+    /**
+     * {@value #NAMESPACE_ID_PATTERN_DESCRIPTION}
+     * 
      * @since 0.1.0
      */
     public static final Pattern ID_PATTERN = Pattern.compile(
                                           NAMESPACE_PREFIX_PATTERN.toString() 
                                         + NAMESPACE_SEPARATOR 
-                                        + "\\p{Alpha}(\\w|-|_|\\.)*");
+                                        + "\\p{L}(\\w|-|_|\\.)*");
 
     /**
      * 
@@ -1566,10 +1591,11 @@ public final class Diversicons {
      * 
      * @since 0.1.0
      */
-    public static void checkId(String id, String string) {
+    public static void checkId(String id, @Nullable String prependedMsg) {
         if (!ID_PATTERN.matcher(id)
                        .matches()) {
-            throw new IllegalArgumentException("Invalid id!");
+            throw new IllegalArgumentException(String.valueOf(prependedMsg) 
+                    + " '" + id + "' doesn't match Diversicon ID pattern. " + NAMESPACE_ID_PATTERN_DESCRIPTION.toString());
         }
     }
 
