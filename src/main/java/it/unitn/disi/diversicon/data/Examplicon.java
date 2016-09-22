@@ -16,7 +16,7 @@ public class Examplicon extends LexResPackage {
     /**
      * @since 0.1.0
      */
-    public static final String ID = "examplicon";
+    public static final String NAME = "examplicon";
     
     /**
      * 
@@ -32,7 +32,7 @@ public class Examplicon extends LexResPackage {
     /**
      * @since 0.1.0
      */
-    private static final String CLASSPATH = "classpath:/" + ID + ".lmf";
+    private static final String CLASSPATH = "classpath:/" + NAME + ".lmf";
     
     /**
      * @since 0.1.0
@@ -61,7 +61,7 @@ public class Examplicon extends LexResPackage {
     private static final Examplicon INSTANCE = new Examplicon();   
     
     static {
-        INSTANCE.setName(ID);
+        INSTANCE.setName(NAME);
         INSTANCE.setPrefix(PREFIX);
         INSTANCE.setLabel(LABEL);
         INSTANCE.setH2DbUri(CLASSPATH + ".h2.db");

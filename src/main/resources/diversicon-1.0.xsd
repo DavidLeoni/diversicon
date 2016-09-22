@@ -1,3 +1,9 @@
+<!-- 
+       SCHEMA GENERATED FROM DIVERSICON DTD ON 2016-09-22
+       DO *NOT* EDIT DIRECTLY.
+       FOR CHANGES MADE TO ORIGINAL UBY DTD AND COPYRIGHT, SEE BELOW 
+
+-->
 <!--
   /*******************************************************************************
    * Copyright 2013
@@ -112,6 +118,8 @@
     removed 	
     - id ID #REQUIRED
     - synsetId  IDREF #REQUIRED
+    modified
+    - set relName from #IMPLIED to #REQUIRED
   
   * SemanticArgument
   
@@ -1117,7 +1125,7 @@
         <xs:element minOccurs="0" maxOccurs="unbounded" ref="Frequency"/>
       </xs:sequence>
       <xs:attribute name="target" use="required" type="xs:IDREF"/>
-      <xs:attribute name="relName"/>
+      <xs:attribute name="relName" use="required"/>
       <xs:attribute name="relType">
         <xs:simpleType>
           <xs:restriction base="xs:token">
