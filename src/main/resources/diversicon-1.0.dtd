@@ -113,6 +113,8 @@ Changes made in Diversicon:
   removed 	
   - id ID #REQUIRED
   - synsetId  IDREF #REQUIRED
+  modified
+  - set relName from #IMPLIED to #REQUIRED
   
 * SemanticArgument
 
@@ -679,7 +681,7 @@ idiomaticExpression 	http://www.isocat.org/datcat/DC-351
 <!ELEMENT SynsetRelation (Frequency*)>
 <!ATTLIST SynsetRelation
     target  IDREF #REQUIRED
-    relName CDATA #IMPLIED
+    relName CDATA #REQUIRED
     relType (taxonomic|partWhole|association|label|predicative) #IMPLIED>
 <!--
 target	http://www.isocat.org/datcat/DC-435

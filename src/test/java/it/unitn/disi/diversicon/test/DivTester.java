@@ -69,7 +69,7 @@ public final class DivTester {
 
     private static final String TEST_RESOURCES_PATH = "it/unitn/disi/diversicon/test/";
 
-    static final String DIVERSICON_TEST_STRING = Internals.DIVERSICON_STRING + "-test";
+    static final String DIVERSICON_TEST_STRING = Internals.DIVERSICON_STRING + "-test-";
 
     /**
      * Max amount of time for connection problems during tests, in millisecs.
@@ -89,6 +89,7 @@ public final class DivTester {
      */
     public static LexicalResource GRAPH_1_HYPERNYM = lmf().lexicon()
                                                           .synset()
+                                                          .lexicalEntry()
                                                           .synset()
                                                           .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
                                                           .build();
@@ -102,6 +103,7 @@ public final class DivTester {
      */
     public static LexicalResource GRAPH_3_HYPERNYM = lmf().lexicon()
         .synset()
+        .lexicalEntry()
         .synset()
         .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
         .synset()
@@ -116,6 +118,7 @@ public final class DivTester {
      */
     public static LexicalResource GRAPH_4_HYP_HOL_HELLO = lmf().lexicon()
                                                                .synset()
+                                                               .lexicalEntry()
                                                                .synset()
                                                                .synset()
                                                                .synset()
@@ -133,6 +136,7 @@ public final class DivTester {
      */
     public static final LexicalResource DAG_3_HYPERNYM = lmf().lexicon()
                                                               .synset()
+                                                              .lexicalEntry()
                                                               .synset()
                                                               .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
                                                               .synset()
@@ -148,6 +152,7 @@ public final class DivTester {
      */
     public static final LexicalResource DAG_2_MULTI_REL = lmf().lexicon()
                                                                .synset()
+                                                               .lexicalEntry()
                                                                .synset()
                                                                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
                                                                .synsetRelation(ERelNameSemantics.HOLONYM, 1)

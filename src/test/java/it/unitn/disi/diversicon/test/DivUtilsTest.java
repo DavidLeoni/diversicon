@@ -137,6 +137,7 @@ public class DivUtilsTest {
         LexicalResource lexRes2 = LmfBuilder.lmf()
                 .lexicon()
                 .synset()
+                .lexicalEntry()                
                 .definition("uncool")
                 .build();                
         
@@ -396,20 +397,21 @@ public class DivUtilsTest {
      * @since 0.1.0
      */
     @Test
-    public void testWriteLexResToXml() throws IOException, DocumentException{
+    public void testWriteLexResToXml() throws IOException, DocumentException {
 
         // 3 dag already augmented
         LexicalResource res = lmf().lexicon()
         .synset()
-        .synset()        
+        .lexicalEntry()
+        .synset()
         .synsetRelation(ERelNameSemantics.HYPONYM, 1)        
-        .synsetRelation(ERelNameSemantics.HYPERNYM, 1,2)
-        .provenance(Diversicon.getProvenanceId())
+        .synsetRelation(ERelNameSemantics.HYPERNYM, 1, 2)
+        .provenance(Diversicon.getProvenanceId())  // included even if provenance = "div" because canonical 
         .synset()
         .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
-        .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-        .provenance(Diversicon.getProvenanceId())
+        .synsetRelation(ERelNameSemantics.HYPERNYM, 1) // skipped, provenance = "div" and depth > 1
         .depth(2)
+        .provenance(Diversicon.getProvenanceId())
         .build();
         
         File xml = DivTester.writeXml(res);

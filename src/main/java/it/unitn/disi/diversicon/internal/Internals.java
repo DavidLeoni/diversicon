@@ -78,6 +78,7 @@ import com.thaiopensource.relaxng.translate.Formats;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.interfaces.IHasID;
 import de.tudarmstadt.ukp.lmf.model.miscellaneous.EVarType;
+import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata;
 import de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata.UBYLMFFieldMetadata;
@@ -1376,7 +1377,7 @@ public final class Internals {
         if (hibernateSuffixIdx > 0)
             elementName = elementName.substring(0, hibernateSuffixIdx);
 
-        for (UBYLMFFieldMetadata fieldMeta : extractFieldsInDtdOrder(classMetadata)) {
+        for (UBYLMFFieldMetadata fieldMeta : extractFieldsInDtdOrder(classMetadata, elementName)) {
             EVarType varType = fieldMeta.getVarType();
             if (varType == EVarType.NONE)
                 continue;
@@ -1409,6 +1410,10 @@ public final class Internals {
                             children.add(obj);
                     break;
                 case IDREF:
+                    if (lmfObject instanceof Lemma 
+                            && xmlFieldName.equals("lexicalEntry")){
+                        break; // workaround for https://github.com/DavidLeoni/diversicon/issues/22
+                    }
                     // Save IDREFs as attribute of the new element
                     atts.addAttribute("", "", xmlFieldName, "CDATA", ((IHasID) retObj).getId());
                     break;
@@ -1458,10 +1463,19 @@ public final class Internals {
         return elementName;
     }
 
+    
+    
     /**
+     * 
+     * @param normalizedElementName
+     *            the normalized elementName,
+     *            i.e. DivSynsetRelation should be SynsetRelation
+     * 
      * @since 0.1.0
      */
-    private static List<UBYLMFFieldMetadata> extractFieldsInDtdOrder(UBYLMFClassMetadata classMetadata) {
+    private static List<UBYLMFFieldMetadata> extractFieldsInDtdOrder(
+            UBYLMFClassMetadata classMetadata,
+            String normalizedElementName) {
 
         if (DTD_GRAMMAR == null) {
             String dtdText = readData(Diversicons.DIVERSICON_DTD_1_0_CLASSPATH_URL).streamToString();
@@ -1475,33 +1489,34 @@ public final class Internals {
             XMLElementDecl elDec = new XMLElementDecl();
 
             List<UBYLMFFieldMetadata> ret = new ArrayList<>(10);
-            UBYLMFFieldMetadata[] elems = new UBYLMFFieldMetadata[]{};
-            int elemsFound = 0;
-            List<UBYLMFFieldMetadata> attrs = new ArrayList<>();
+            UBYLMFFieldMetadata[] reorderedSubelems = new UBYLMFFieldMetadata[] {};
+            String[] reorderedSubelemsNames = new String[]{};
             
-            String[] elementNames = new String[]{};            
+            int nSubElemsFound = 0;
+            List<UBYLMFFieldMetadata> attrs = new ArrayList<>();
+
+            String[] dtdSubElementNames = new String[] {};
 
             while (DTD_GRAMMAR.getElementDecl(elementDeclIndex++, elDec)) {
 
-                // LOG.debug("elDec.name.rawname = " + elDec.name.rawname);
-                // LOG.debug("simpleName = " +
-                // classMetadata.getClass().getSimpleName());
 
-                if (elDec.name.rawname.equals(classMetadata.getClazz()
-                                                           .getSimpleName())) {
+                if (elDec.name.rawname.equals(normalizedElementName)) {
 
-                    String s = DTD_GRAMMAR.getContentSpecAsString(elementDeclIndex - 1);
-                    if (s == null) {
-                        elementNames = new String[] {};
+                    String dtdContentSpec = DTD_GRAMMAR.getContentSpecAsString(elementDeclIndex - 1);
+                    if (dtdContentSpec == null) {
+                        dtdSubElementNames = new String[] {};
                     } else {
-                        elementNames = s.replace("(", "")
-                                        .replace(")", "")
-                                        .replace("+", "")
-                                        .replace("*", "")
-                                        .split(",");
+                        dtdSubElementNames = dtdContentSpec.replace("(", "")
+                                                        .replace(")", "")
+                                                        .replace("?", "")
+                                                        .replace("+", "")
+                                                        .replace("*", "")
+                                                        .split(",");
                     }
 
-                    elems = new UBYLMFFieldMetadata[elementNames.length];
+                    reorderedSubelems = new UBYLMFFieldMetadata[dtdSubElementNames.length];
+                    reorderedSubelemsNames = new String[dtdSubElementNames.length];
+                    
                     for (UBYLMFFieldMetadata fm : classMetadata.getFields()) {
                         Class clazz;
                         if (Collection.class.isAssignableFrom(fm.getType())) {
@@ -1511,20 +1526,21 @@ public final class Internals {
                         }
 
                         checkNotNull(clazz, "Found null clazz for UBYLMFFieldMetadata " + fm.getName());
-                        
-                       
+
                         boolean found = false;
-                        
-                        for (int i = 0; i < elementNames.length; i++) {                            
-                            if (clazz.getSimpleName().equals(elementNames[i])) {
-                                elemsFound += 1;
+
+                        for (int i = 0; i < dtdSubElementNames.length; i++) {
+                            if (clazz.getSimpleName()
+                                     .equals(dtdSubElementNames[i])) {
+                                nSubElemsFound += 1;
                                 found = true;
-                                elems[i] = fm;
+                                reorderedSubelems[i] = fm;
+                                reorderedSubelemsNames[i] = dtdSubElementNames[i];
                                 break;
                             }
                         }
-                        
-                        if (!found){
+
+                        if (!found) {
                             attrs.add(fm);
                         }
                     }
@@ -1534,12 +1550,18 @@ public final class Internals {
 
             }
 
-            if (elemsFound != elementNames.length){
-                throw new DivException("found : " + elemsFound + " Expected: " + elementNames.length);
+            if (nSubElemsFound != dtdSubElementNames.length) {
+                throw new DivException("Error while reordering elements according to DTD!"
+                        + " \nDTD declares " + dtdSubElementNames.length + " fields, found " + nSubElemsFound 
+                        + " \nin classMetadata = " + 
+                        classMetadata.getClazz()+ ", normalizedElementName = " + 
+            normalizedElementName 
+                        + "\nDTD fields   :  " + Arrays.toString(dtdSubElementNames)
+                        + "\nFound fields :  " + Arrays.toString(reorderedSubelemsNames));
             }
             ret.addAll(attrs);
-            ret.addAll(Arrays.asList(elems));
-            
+            ret.addAll(Arrays.asList(reorderedSubelems));
+
             ORDER_TABLE.put(classMetadata.getClazz(), ret);
 
             return ret;
@@ -1829,7 +1851,8 @@ public final class Internals {
         if (errorHandler.invalid()) {
             logger.error("Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath());
             throw new InvalidXmlException(errorHandler,
-                    "Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath());
+                    "Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath() 
+                    + "\n" + errorHandler.firstIssueAsString());
         }
 
     }

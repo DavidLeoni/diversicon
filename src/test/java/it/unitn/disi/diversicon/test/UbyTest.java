@@ -125,6 +125,7 @@ public class UbyTest {
                 
         LexicalResource lexRes = lmf().lexicon()
                 .synset()
+                .lexicalEntry()
                 .build();
        
         importIntoUby(lexRes);
@@ -207,6 +208,7 @@ public class UbyTest {
 
         LexicalResource lexRes = lmf().lexicon()
                                       .synset(1)
+                                      .lexicalEntry()
                                       .synset(1)
                                       .build();
 
@@ -290,6 +292,7 @@ public class UbyTest {
 
         LexicalResource lexRes = lmf().lexicon()
                                       .synset()
+                                      .lexicalEntry()
                                       .build();
         
         Synset syn = lexRes.getLexicons()
@@ -343,6 +346,7 @@ public class UbyTest {
 
         LexicalResource lexRes= lmf().lexicon()
                 .synset()
+                .lexicalEntry()
                 .synset()
                 .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
                 .build();

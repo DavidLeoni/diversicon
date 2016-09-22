@@ -191,12 +191,14 @@ public class DiversiconTest {
 
                 lmf().lexicon()
                      .synset()
+                     .lexicalEntry()
                      .synset()
                      .synsetRelation(ERelNameSemantics.HYPONYM, 1)
                      .build(),
 
                 lmf().lexicon()
                      .synset()
+                     .lexicalEntry()
                      .synset()
                      .synsetRelation(ERelNameSemantics.HYPONYM, 1)
                      .synsetRelation(ERelNameSemantics.HYPERNYM, 1, 2)
@@ -219,6 +221,7 @@ public class DiversiconTest {
 
         LexicalResource lexicalResource = lmf().lexicon()
                                                .synset()
+                                               .lexicalEntry()
                                                .synset()
                                                .synsetRelation("hello", 1)
                                                .build();
@@ -245,6 +248,7 @@ public class DiversiconTest {
 
         assertAugmentation(lmf().lexicon()
                                 .synset()
+                                .lexicalEntry()
                                 .synset()
                                 .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
                                 .synset()
@@ -256,6 +260,7 @@ public class DiversiconTest {
 
                 lmf().lexicon()
                      .synset()
+                     .lexicalEntry()
                      .synset()
                      .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
                      .synset()                                          
@@ -289,6 +294,7 @@ public class DiversiconTest {
 
         assertNoAugmentation(lmf().lexicon()
                                   .synset()
+                                  .lexicalEntry()
                                   .synset()
                                   .synsetRelation("a", 1)
                                   .synset()
@@ -674,7 +680,8 @@ public class DiversiconTest {
     @Test
     public void testSelfLoopCanonical(){
         LexicalResource lr = lmf().lexicon()
-             .synset()             
+             .synset()           
+             .lexicalEntry()
              .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
              .build();
         
@@ -700,7 +707,8 @@ public class DiversiconTest {
     @Test
     public void testSelfLoopNonCanonical(){        
         LexicalResource lr = lmf().lexicon()
-             .synset()             
+             .synset()      
+             .lexicalEntry()
              .synsetRelation(ERelNameSemantics.HYPONYM, 1)
              .build();
         
@@ -740,6 +748,7 @@ public class DiversiconTest {
          */
         LexicalResource lexRes2 = lmf(prefix2).lexicon()
                                               .synset()
+                                              .lexicalEntry()
                                               .synset()
                                               .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
                                               .build();
@@ -775,6 +784,7 @@ public class DiversiconTest {
          */
         LexicalResource lexRes = lmf().lexicon()
                                               .synset()
+                                              .lexicalEntry()
                                               .synsetRelation(ERelNameSemantics.HYPERNYM, upp +":ss-1")
                                               .synset()
                                               .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
@@ -813,6 +823,7 @@ public class DiversiconTest {
          */
         LexicalResource lexRes2 = lmf(prefix2).lexicon()
                                               .synset()
+                                              .lexicalEntry()
                                               .synset()
                                               .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
                                               .build();
@@ -921,7 +932,7 @@ public class DiversiconTest {
                
         Assert.fail();
         
-/**        Diversicons.dropCreateTables(dbConfig);
+/**     Diversicons.dropCreateTables(dbConfig);
 
         Diversicon div = Diversicon.connectToDb(dbConfig);
         
@@ -995,6 +1006,7 @@ public class DiversiconTest {
         String prefix2 = "test2";
         File xml2 = DivTester.writeXml(lmf(prefix2).lexicon()
                                                   .synset()
+                                                  .lexicalEntry()
                                                   .synset()
                                                   .synset()
                                                   .synset()
@@ -1084,6 +1096,7 @@ public class DiversiconTest {
          */
         LexicalResource lexRes2 = lmf(prefix2).lexicon()
                                               .synset()
+                                              .lexicalEntry()
                                               .synset()
                                               .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
                                               .build();

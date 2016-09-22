@@ -338,6 +338,11 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
     // todo think about public id
     private static String exceptionToString(Exception ex, String defaultSystemId){
         
+        if (ex == null){
+            return "#ERROR IN EXCEPTION REPORTING, FOUND NULL EXCEPTION#";
+        }
+        
+        
         String systemId = null;
         long lineNumber = -1;
         long colNumber = -1;
@@ -379,6 +384,39 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
         }
         
         return buf.toString();        
+    }
+
+    /**
+     * Return the first found issue as a string. If no issue was found 
+     * returns the empty string.
+     * 
+     * @since 0.1.0
+     */
+    public String firstIssueAsString() {
+        String prefix;
+        
+        if (isFatal()){            
+            return "Fatal error was: " + exceptionToString(fatalError, defaultSystemId);
+        }
+        if (!getFirstErrors().isEmpty()){
+            
+            if (getFirstErrors().size() == 1){
+                prefix = "Error was: ";                               
+            } else {
+                prefix = "First error was: ";
+                
+            }
+            return  prefix + exceptionToString(getFirstErrors().get(0), defaultSystemId);
+        } else if (!getFirstWarnings().isEmpty()){
+            if (getFirstWarnings().size() == 1){
+                prefix = "Wrror was: ";                               
+            } else {
+                prefix = "First warning was: ";                
+            }            
+            return prefix + exceptionToString(getFirstWarnings().get(0), defaultSystemId);
+        } else {
+            return "";
+        }
     }
 
 
