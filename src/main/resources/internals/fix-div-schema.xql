@@ -2,6 +2,14 @@ declare variable $in-file external;
 
 copy $root := doc($in-file)
 modify (    
+    
+    insert node comment{concat(
+" 
+       SCHEMA GENERATED FROM DIVERSICON DTD ON ", fn:adjust-date-to-timezone(current-date(), ()),"
+       DO *NOT* EDIT DIRECTLY.
+       FOR CHANGES MADE TO ORIGINAL UBY DTD AND COPYRIGHT, SEE BELOW 
+
+")} as first into $root,
 
 	insert node (      	
 	<xs:annotation>

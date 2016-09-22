@@ -1768,7 +1768,7 @@ public final class Internals {
 
         SAXReader reader = new SAXReader();
         try {
-            org.dom4j.Document document = reader.read(firstPass);
+            org.dom4j.Document document = reader.read(firstPass);            
             document.getRootElement()
                     .addAttribute("xmlns:fn", "http://www.w3.org/2005/xpath-functions");
             document.getRootElement()
