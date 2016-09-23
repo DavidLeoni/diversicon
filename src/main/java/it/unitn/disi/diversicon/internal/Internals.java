@@ -76,6 +76,7 @@ import com.thaiopensource.relaxng.output.OutputFormat;
 import com.thaiopensource.relaxng.translate.Formats;
 
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
+import de.tudarmstadt.ukp.lmf.model.core.Sense;
 import de.tudarmstadt.ukp.lmf.model.interfaces.IHasID;
 import de.tudarmstadt.ukp.lmf.model.miscellaneous.EVarType;
 import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
@@ -1398,6 +1399,11 @@ public final class Internals {
                 switch (fieldMeta.getVarType()) {
                 case ATTRIBUTE:
                 case ATTRIBUTE_OPTIONAL:
+                    if (lmfObject instanceof Sense 
+                            && xmlFieldName.equals("index")
+                            && "0".equals(retObj.toString()) ){
+                        break; // workaround for https://github.com/DavidLeoni/diversicon/issues/24
+                    }
                     atts.addAttribute("", "", xmlFieldName, "CDATA", retObj.toString());
                     break;
                 case CHILD:
