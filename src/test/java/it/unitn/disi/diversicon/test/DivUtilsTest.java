@@ -159,6 +159,7 @@ public class DivUtilsTest {
         div.getSession().close();
     
     }
+        
 
 
     /**
@@ -365,7 +366,7 @@ public class DivUtilsTest {
         assertFalse(p.matcher("a:").matches());
         assertTrue(p.matcher("a-").matches());
         assertTrue(p.matcher("æ").matches()); // unicode *letters* are allowed
-        assertTrue(p.matcher("€").matches()); // unicode *symbols* are *not* allowed
+        assertFalse(p.matcher("€").matches()); // unicode *symbols* are *not* allowed
     }
  
     /**
@@ -392,7 +393,7 @@ public class DivUtilsTest {
         assertTrue(p.matcher(pid("t","a-")).matches());
         assertTrue(p.matcher(pid("a","æ")).matches()); // unicode *letters* are allowed
         assertTrue(p.matcher(pid("æ","æ")).matches()); 
-        assertTrue(p.matcher(pid("a","€")).matches()); // unicode *symbols* are *not* allowed
+        assertFalse(p.matcher(pid("a","€")).matches()); // unicode *symbols* are *not* allowed
 
         // 
         assertFalse(p.matcher("a").matches()); // currently we don't support non-prefixed ids.

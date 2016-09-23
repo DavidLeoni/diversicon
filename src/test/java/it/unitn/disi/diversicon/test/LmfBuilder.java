@@ -52,7 +52,8 @@ public class LmfBuilder {
     private long lastSenseId;
 
     private boolean built;
-    private String prefix;   
+    private String prefix;
+    private boolean uby;
 
     /**
      * @since 0.1.0
@@ -77,7 +78,19 @@ public class LmfBuilder {
  
         this.built = false;
         this.lastSenseId = 0;
+        this.uby = false;
 
+    }
+    
+    /**
+     * Tells the builder to use Uby only classes (so for example
+     * will alwyas use  {@link SynsetRelation} instead of {@link DivSynsetRelation})
+     * 
+     * @since 0.1.0
+     */
+    public LmfBuilder uby(){
+       this.uby = true;
+       return this;
     }
 
     /**
@@ -198,7 +211,13 @@ public class LmfBuilder {
         checkNotEmpty(relName, "Invalid relation name!");
         Internals.checkArgument(targetIdNum > 0,
                 "Expected idNum greater than zero, found " + targetIdNum + " instead!");
-        DivSynsetRelation sr = new DivSynsetRelation();
+        SynsetRelation sr;
+        if (uby){
+            sr = new SynsetRelation();
+        } else {
+            sr = new DivSynsetRelation();
+        }
+        
         sr.setTarget(getSynset(targetIdNum));
         Synset curSynset = getCurSynset();
         sr.setSource(curSynset);
@@ -221,7 +240,13 @@ public class LmfBuilder {
         checkNotEmpty(relName, "Invalid relation name!");
         checkNotNull(targetId);
 
-        DivSynsetRelation sr = new DivSynsetRelation();
+        SynsetRelation sr;
+        if (uby){
+            sr = new SynsetRelation();
+        } else {
+            sr = new DivSynsetRelation();
+        }
+        
         Synset ts = new Synset();
         ts.setId(targetId);
         sr.setTarget(ts);
@@ -244,9 +269,11 @@ public class LmfBuilder {
             DivSynsetRelation dsr = (DivSynsetRelation) sr;
             dsr.setDepth(i);
         } else {
-            throw new IllegalStateException(
-                    "Expected " + DivSynsetRelation.class.getCanonicalName() + " Found instead: " + sr.getClass()
-                                                                                                      .getCanonicalName());
+            if (i != 1){
+                throw new IllegalStateException(
+                        "Expected " + DivSynsetRelation.class.getCanonicalName()
+                        + " Found instead: " + sr.getClass().getCanonicalName());
+            }
         }
 
         return this;
@@ -473,9 +500,12 @@ public class LmfBuilder {
             DivSynsetRelation dsr = (DivSynsetRelation) sr;
             dsr.setProvenance(provenanceId);
         } else {
-            throw new IllegalStateException(
-                    "Expected " + DivSynsetRelation.class.getCanonicalName() + " Found instead: " + sr.getClass()
-                                                                                                      .getCanonicalName());
+            if (!(provenanceId == null || provenanceId.isEmpty())){
+                throw new IllegalStateException(
+                        "Expected " + DivSynsetRelation.class.getCanonicalName()
+                        + " Found instead: " + sr.getClass());
+            }
+         
         }
 
         return this;

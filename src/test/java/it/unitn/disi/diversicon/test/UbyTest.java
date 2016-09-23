@@ -1,18 +1,13 @@
 package it.unitn.disi.diversicon.test;
 
-import java.io.BufferedReader;
 import static it.unitn.disi.diversicon.test.DivTester.tid;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
@@ -46,15 +41,18 @@ import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import de.tudarmstadt.ukp.lmf.transform.LMFDBUtils;
+import de.tudarmstadt.ukp.lmf.transform.LMFXmlWriter;
 import de.tudarmstadt.ukp.lmf.transform.XMLToDBTransformer;
 import it.disi.unitn.diversicon.exceptions.DivException;
+import it.unitn.disi.diversicon.DivSynsetRelation;
 import it.unitn.disi.diversicon.Diversicons;
 import it.unitn.disi.diversicon.internal.Internals;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
-import static it.unitn.disi.diversicon.test.DivTester.GRAPH_1_HYPERNYM;
+
 import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -68,12 +66,25 @@ public class UbyTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(UbyTest.class);
 
+    /**
+     * 2 verteces and 1 hypernym edge
+     * 
+     * @since 0.1.0
+     */
+    public static LexicalResource UBY_GRAPH_1_HYPERNYM = lmf()
+                                                              .uby()
+                                                              .lexicon()
+                                                              .synset()
+                                                              .lexicalEntry()
+                                                              .synset()
+                                                              .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                                              .build();
+
     private DBConfig dbConfig;
 
-    @Rule 
-    public TemporaryFolder folder= new TemporaryFolder();
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 
-    
     @Before
     public void beforeMethod() {
         dbConfig = DivTester.createNewDbConfig();
@@ -84,6 +95,15 @@ public class UbyTest {
         dbConfig = null;
     }
 
+    @Test
+    public void testBuilderUby(){
+        SynsetRelation sr = UBY_GRAPH_1_HYPERNYM.getLexicons()
+                .get(0).getSynsets().get(1).getSynsetRelations().get(0);
+                
+        assertNotNull(sr);
+        assertFalse(sr instanceof DivSynsetRelation);        
+    }
+    
     /**
      * Uby bug to report. Shows getSynsetById as of Uby 0.7 throws
      * IndexOutOfBoundsException
@@ -111,7 +131,8 @@ public class UbyTest {
     }
 
     /**
-     * Seems like calling Uby.getSynsetIterator(null).next()  always throws NullPointerException:
+     * Seems like calling Uby.getSynsetIterator(null).next() always throws
+     * NullPointerException:
      * 
      * See https://github.com/DavidLeoni/diversicon/issues/16
      * 
@@ -119,17 +140,19 @@ public class UbyTest {
      * @since 0.1.0
      */
     @Test
-    public void testGetSynsetIterator() throws FileNotFoundException  {
+    public void testGetSynsetIterator() throws FileNotFoundException {
 
         LMFDBUtils.createTables(dbConfig);
-                
-        LexicalResource lexRes = lmf().lexicon()
-                .synset()
-                .lexicalEntry()
-                .build();
-       
+
+        LexicalResource lexRes = lmf()
+                                      .uby()
+                                      .lexicon()
+                                      .synset()
+                                      .lexicalEntry()
+                                      .build();
+
         importIntoUby(lexRes);
-                
+
         Uby uby = new Uby(dbConfig);
         try {
             Iterator<Synset> iter = uby.getSynsetIterator(null);
@@ -139,21 +162,26 @@ public class UbyTest {
         } catch (NullPointerException ex) {
 
         }
-        
 
         uby.getSession()
            .close();
     }
-    
-    
-    /**    
+
+    /**
      * Transforms res into an XML and then imports it into UBY
+     * 
      * @since 0.1.0
      */
     private File importIntoUby(LexicalResource lexRes) {
         File xml;
         try {
-             xml = DivTester.writeXml(lexRes);
+            xml = new File(DivTester.createTestDir()
+                                    .toFile(),
+                    "test.xml");
+
+            LMFXmlWriter w = new LMFXmlWriter(new FileOutputStream(xml), null);
+            w.writeElement(lexRes);
+            w.writeEndDocument();
 
             new XMLToDBTransformer(dbConfig).transform(xml, null);
             return xml;
@@ -176,11 +204,11 @@ public class UbyTest {
     public void testCantMergeSameLexicon() throws FileNotFoundException, IllegalArgumentException, DocumentException {
 
         LMFDBUtils.createTables(dbConfig);
-        
-        File xml = importIntoUby(GRAPH_1_HYPERNYM);       
+
+        File xml = importIntoUby(UBY_GRAPH_1_HYPERNYM);
 
         try {
-            new XMLToDBTransformer(dbConfig).transform(xml, GRAPH_1_HYPERNYM.getName());
+            new XMLToDBTransformer(dbConfig).transform(xml, UBY_GRAPH_1_HYPERNYM.getName());
         } catch (ConstraintViolationException ex) {
             assertTrue(ex.getMessage()
                          .contains(
@@ -206,14 +234,15 @@ public class UbyTest {
 
         LMFDBUtils.createTables(dbConfig);
 
-        LexicalResource lexRes = lmf().lexicon()
+        LexicalResource lexRes = lmf().uby()
+                                      .lexicon()
                                       .synset(1)
                                       .lexicalEntry()
                                       .synset(1)
                                       .build();
 
         importIntoUby(lexRes);
-        
+
     }
 
     /**
@@ -240,9 +269,9 @@ public class UbyTest {
         new XMLToDBTransformer(dbConfig).transform(xml, null);
 
     }
-    
+
     /**
-     * @since 0.1.0 
+     * @since 0.1.0
      */
     @Test
     public void testOwaToUby() throws DocumentException, TransformerException, IOException {
@@ -273,11 +302,11 @@ public class UbyTest {
 
     }
 
-       
     /**
-     * Shows you can import a synset relation pointing to a non-existing synset, and 
-     * such synset is not automatically created in the db. Still when 
-     * in the API there is Synset to return, Hibernate  creates a 
+     * Shows you can import a synset relation pointing to a non-existing synset,
+     * and
+     * such synset is not automatically created in the db. Still when
+     * in the API there is Synset to return, Hibernate creates a
      * Java object on the fly.
      *
      * @since 0.1.0
@@ -285,16 +314,14 @@ public class UbyTest {
     @Test
     public void testSynsetRelationNonExistingTarget() throws FileNotFoundException {
 
-        Diversicons.createTables(dbConfig); // Diversicons, otherwise
-                                            // JavaTransformer
-                                            // complains about missing
-                                            // DivSynsetRelation column
+        LMFDBUtils.createTables(dbConfig); 
 
-        LexicalResource lexRes = lmf().lexicon()
+        LexicalResource lexRes = lmf().uby()
+                                      .lexicon()
                                       .synset()
                                       .lexicalEntry()
                                       .build();
-        
+
         Synset syn = lexRes.getLexicons()
                            .get(0)
                            .getSynsets()
@@ -312,95 +339,104 @@ public class UbyTest {
 
         syn.setSynsetRelations(Internals.newArrayList(sr));
 
-        importIntoUby(lexRes);        
-        
+        importIntoUby(lexRes);
+
         Uby uby = new Uby(dbConfig);
-               
-        Synset retSyn1 = uby.getSynsetById(tid("synset-1"));                
-        
+
+        Synset retSyn1 = uby.getSynsetById(tid("synset-1"));
+
         // second synset is not created !
-        assertEquals(1, uby.getLexicons().get(0).getSynsets().size());
-        
+        assertEquals(1, uby.getLexicons()
+                           .get(0)
+                           .getSynsets()
+                           .size());
+
         List<SynsetRelation> synRels = retSyn1.getSynsetRelations();
-        checkNotNull(synRels);        
+        checkNotNull(synRels);
         assertEquals(1, synRels.size());
-        SynsetRelation retSynRel = synRels.get(0); 
+        SynsetRelation retSynRel = synRels.get(0);
         Synset retSyn2 = retSynRel.getTarget();
-        // shows Hibernate here does create the synset object 
+        // shows Hibernate here does create the synset object
         assertEquals(tid("synset 2"), retSyn2.getId());
 
     }
 
     /**
-     * Shows in UBY synset relations are not removed on cascade if target synset is deleted.
+     * Shows in UBY synset relations are not removed on cascade if target synset
+     * is deleted.
      *
      * @since 0.1.0
      */
     @Test
     public void testSynsetConstraints() throws FileNotFoundException {
 
-        Diversicons.createTables(dbConfig); // Diversicons, otherwise
-                                            // JavaTransformer
-                                            // complains about missing
-                                            // DivSynsetRelation column
+        LMFDBUtils.createTables(dbConfig); 
 
-        LexicalResource lexRes= lmf().lexicon()
-                .synset()
-                .lexicalEntry()
-                .synset()
-                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-                .build();
-        
-        importIntoUby(lexRes);               
-        
+        LexicalResource lexRes = lmf()
+                                      .uby()
+                                      .lexicon()
+                                      .synset()
+                                      .lexicalEntry()
+                                      .synset()
+                                      .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                      .build();
+
+        importIntoUby(lexRes);
+
         Uby uby = new Uby(dbConfig);
-               
-        Synset syn = (Synset) uby.getSession().get(Synset.class, tid("synset-1"));
-        
-        uby.getSession().delete(syn);
-        uby.getSession().flush();
-        
-        List<Synset> synsets = uby.getLexiconById(tid("lexicon-1")).getSynsets();        
+
+        Synset syn = (Synset) uby.getSession()
+                                 .get(Synset.class, tid("synset-1"));
+
+        uby.getSession()
+           .delete(syn);
+        uby.getSession()
+           .flush();
+
+        List<Synset> synsets = uby.getLexiconById(tid("lexicon-1"))
+                                  .getSynsets();
         assertEquals(1, synsets.size());
         Synset syn2 = synsets.get(0);
-        assertEquals(1, syn2.getSynsetRelations().size());
-               
+        assertEquals(1, syn2.getSynsetRelations()
+                            .size());
+
     }
 
     /**
      * Test for https://github.com/DavidLeoni/diversicon/issues/17
      * 
-     * MetaData can be an element of a LexicalResource. In UBY 0.7.0 DTD, 
-     * MetaData has lexicalResourceId as required field, but it's not necessary, 
+     * MetaData can be an element of a LexicalResource. In UBY 0.7.0 DTD,
+     * MetaData has lexicalResourceId as required field, but it's not necessary,
      * importer should automatically determine it (although currently doesn't).
      * 
      * @since 0.1.0
      */
     @Test
-    public void testMetadataResource(){
-        
-        Diversicons.createTables(dbConfig); // Diversicons, otherwise
-        // JavaTransformer
-        // complains about missing
-        // DivSynsetRelation column        
-       
-        LexicalResource lr = LmfBuilder.lmf().build();
+    public void testMetadataResource() throws IOException {
+
+        LMFDBUtils.createTables(dbConfig);
+
+        LexicalResource lr = LmfBuilder.lmf()
+                                       .uby()
+                                       .build();
         MetaData md = new MetaData();
         md.setId(tid("metadata-1"));
         lr.setMetaData(Internals.newArrayList(md));
-        
-        importIntoUby(lr);
-        
+
+        File xml = importIntoUby(lr);
+
+        LOG.debug("xml = \n" + FileUtils.readFileToString(xml));
+
         Uby uby = new Uby(dbConfig);
-        
-        LexicalResource lr2 = uby.getLexicalResource(tid("lexical-resource-1"));
-        
-        MetaData md2 = lr2.getMetaData().get(0);
-        
+
+        LexicalResource lr2 = uby.getLexicalResource(lr.getName());
+
+        MetaData md2 = lr2.getMetaData()
+                          .get(0);
+
         assertEquals(tid("metadata-1"), md2.getId());
         assertEquals(null, md2.getLexicalResource());
-        
+
     }
 
-  
 }
