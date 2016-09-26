@@ -181,7 +181,7 @@ public class DivUtilsTest {
         assertTrue(ns.containsKey(Examplicon.PREFIX));
         assertTrue(ns.containsKey(DivWn31.PREFIX));
         
-        assertTrue(ns.get(Examplicon.PREFIX).contains(Examplicon.NAME + ".lmf.xml"));
+        assertTrue(ns.get(Examplicon.PREFIX).contains(Examplicon.SHORT_NAME + ".lmf.xml"));
         assertTrue(ns.get(DivWn31.PREFIX).contains(DivWn31.NAME + ".lmf.xml"));
     }
     

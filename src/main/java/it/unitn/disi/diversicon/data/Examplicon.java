@@ -17,7 +17,7 @@ public class Examplicon extends LexResPackage {
     /**
      * @since 0.1.0
      */
-    private static final String SHORT_NAME = "examplicon";
+    public static final String SHORT_NAME = "examplicon";
     
     /**
      * @since 0.1.0

@@ -13,7 +13,10 @@ import it.unitn.disi.diversicon.LexResPackage;
  */
 public class Smartphones extends LexResPackage {
 
-    private static final String SHORT_NAME = "smartphones";
+    /**
+     * @since 0.1.0
+     */    
+    public static final String SHORT_NAME = "smartphones";
     
     /**
      * @since 0.1.0

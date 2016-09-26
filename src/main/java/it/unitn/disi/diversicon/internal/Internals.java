@@ -788,7 +788,7 @@ public final class Internals {
                     inputStream = new FileInputStream(candidatePathMain);
                     LOG.debug("    Located data at " + candidatePathMain);
                 } catch (FileNotFoundException ex2) {
-                    inputStream = Diversicons.class.getResourceAsStream(q);
+                    inputStream = Diversicons.class.getResourceAsStream("/" + q);
                     if (inputStream == null) {
                         throw new DivIoException("Couldn't find input stream: " + dataUrl.toString());
                     } else {
