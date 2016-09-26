@@ -143,7 +143,7 @@
 
 		<dependency>
 			<groupId>it.unitn.disi</groupId>
-			<artifactId>diversicon-wordnet-3.1</artifactId>		
+			<artifactId>div-wn31-model</artifactId>		
 		</dependency>
 
 		<dependency>
@@ -300,6 +300,27 @@
 			<artifactId>logback-classic</artifactId>
 			<scope>test</scope>
 		</dependency>
+		
+		<dependency>
+			<groupId>it.unitn.disi</groupId>
+			<artifactId>div-wn31-h2db</artifactId>
+			<scope>test</scope>
+		</dependency>
+		
+		<dependency>
+			<groupId>it.unitn.disi</groupId>
+			<artifactId>div-wn31-xml</artifactId>
+			<scope>test</scope>
+		</dependency>
+		
+		<dependency>
+			<groupId>it.unitn.disi</groupId>
+			<artifactId>div-wn31-sql</artifactId>
+			<scope>test</scope>
+		</dependency>
+		
+		
+		
 
 	</dependencies>
 

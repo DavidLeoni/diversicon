@@ -1532,18 +1532,15 @@ public final class Diversicons {
 
     /**
      * Creates an xml file out of the provided lexical resource. Written
-     * lexical resource will include provided namespaces as {@code xmlns}
-     * attributes
+     * lexical resource will include info from provided {@code lexResPackage}.
      * 
-     * @param namespaces
-     *            Namespaces expressed as prefix : url
      * 
      * @since 0.1.0
      */
     public static File writeLexResToXml(
             LexicalResource lexRes,
             LexResPackage lexResPackage,
-            File ret) {
+            File xmlFile) {
 
         checkNotNull(lexRes);
 
@@ -1552,7 +1549,7 @@ public final class Diversicons {
         DivXmlWriter writer;
         try {
             writer = new DivXmlWriter(new FileOutputStream(
-                    ret),
+                    xmlFile),
                     null,
                     lexResPackage); // todo check if setting dtd means something
 
@@ -1560,10 +1557,10 @@ public final class Diversicons {
             writer.writeEndDocument();
 
         } catch (FileNotFoundException | SAXException ex) {
-            throw new DivException("Error while writing lexical resource to XML: " + ret.getAbsolutePath(), ex);
+            throw new DivException("Error while writing lexical resource to XML: " + xmlFile.getAbsolutePath(), ex);
         }
 
-        return ret;
+        return xmlFile;
 
     }
 
