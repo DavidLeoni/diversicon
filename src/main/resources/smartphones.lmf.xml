@@ -28,7 +28,7 @@
 	 
 -->
 
-<LexicalResource name="smartphones"				 
+<LexicalResource name="div-smartphones"				 
 				 prefix="sm"				 
   				 xmlns:sm="https://github.com/DavidLeoni/diversicon/tree/master/src/main/resources/smartphones-lmf.xml"
   				 xmlns:wn31="https://github.com/DavidLeoni/diversicon-wordnet-3.1/blob/master/src/main/resources/it/unitn/disi/diversicon/data/div-wn31.xml.xz"
@@ -39,7 +39,7 @@
     <GlobalInformation label="Smartphone terminology"/>       
     
     <MetaData id="sm_md"
-    		  creationDate=""
+    		  creationDate="2016-09-26"
     		  creationTool="text editor"
     		  version="1.0"   
     		  creationProcess="by hand"
@@ -62,7 +62,7 @@
             </Lemma>
             <Sense id="sm_s-smartphone" 
             	   synset="sm_ss-phablet">
-                <MonolingualExternalRef externalSystem="smartphones" 
+                <MonolingualExternalRef externalSystem="smartphones-encyclopedia" 
                 						externalReference="3rd row, fourth column in CSV"/>
             </Sense>
         </LexicalEntry>
@@ -74,7 +74,7 @@
             </Lemma>
             <Sense id="sm_s-phablet" 
             	   synset="sm_ss-phablet">
-                <MonolingualExternalRef externalSystem="smartphones" 
+                <MonolingualExternalRef externalSystem="smartphones-encyclopedia" 
                 						externalReference="2nd row 5th column in csv of origin"/>
             </Sense>
         </LexicalEntry>
@@ -87,7 +87,7 @@
             </Lemma>
             <Sense id="sm_s-tablet" 
             	   synset="sm_ss-tablet">
-                <MonolingualExternalRef externalSystem="smartphones" 
+                <MonolingualExternalRef externalSystem="smartphones-encyclopedia" 
                 						externalReference="4nd row 2th column in csv of origin"/>
             </Sense>
         </LexicalEntry>
@@ -101,7 +101,7 @@
             </Lemma>
             <Sense id="sm_s-phoneborg" index="1" 
             						   synset="sm_ss-phoneborg">
-                <MonolingualExternalRef externalSystem="smartphones" 
+                <MonolingualExternalRef externalSystem="smartphones-encyclopedia" 
                 						externalReference="1st row 3rd column in csv of origin"/>
             </Sense>
         </LexicalEntry>
@@ -113,14 +113,14 @@
                 					writtenText="A cellphone designed to keep your eyes always locked to a screen."/>
             </Definition>
             
-            <MonolingualExternalRef externalSystem="smartphones" 
+            <MonolingualExternalRef externalSystem="smartphones-encyclopedia" 
               						externalReference="7st row 2rd column in csv of origin"/>
             
             <!-- here we state our fat cellphone has as hypernym Wordnet 3.1 'cellphone':
             	 http://wordnetweb.princeton.edu/perl/webwn?s=cellphone
             	 which is defined in an external file
             -->
-            <SynsetRelation target="wn31_ss-2995984" 
+            <SynsetRelation target="wn31_ss-n2995984" 
             				relType="taxonomic" 
             				relName="hypernym"/>
 
@@ -132,7 +132,7 @@
                 					writtenText="An unholy union between a smartphone and a tablet"/>
             </Definition>
             
-			<MonolingualExternalRef externalSystem="smartphones" 
+			<MonolingualExternalRef externalSystem="smartphones-encyclopedia" 
              						externalReference="6st row 2rd column in csv of origin"/>
             			           
             <SynsetRelation target="sm_ss-smartphone" 
@@ -148,10 +148,10 @@
                 <TextRepresentation languageIdentifier="eng" 
                 					writtenText="Yet another device to charge."/>
             </Definition>
-			<MonolingualExternalRef externalSystem="smartphones" 
+			<MonolingualExternalRef externalSystem="smartphones-encyclopedia" 
                					   externalReference="8st row 3rd column in csv of origin"/>
             			           
-            <SynsetRelation target="wn31_ss-3086983" 
+            <SynsetRelation target="wn31_ss-n3086983" 
             				relType="taxonomic" 
             				relName="hypernym"/>
         </Synset>
@@ -163,8 +163,8 @@
                 				    writtenText="The ultimate handheld that will completely replace your mind."/>
             </Definition>
 
-			<MonolingualExternalRef externalSystem="wn31" 
-									externalReference="[POS: noun] 2123649"/>
+			<MonolingualExternalRef externalSystem="smartphones-encyclopedia" 
+               					   externalReference="8st row 3rd column in csv of origin"/>
             
             			            
             <SynsetRelation target="sm_ss-phablet" 

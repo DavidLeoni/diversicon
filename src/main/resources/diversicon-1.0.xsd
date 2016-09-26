@@ -1,5 +1,5 @@
 <!-- 
-       SCHEMA GENERATED FROM DIVERSICON DTD ON 2016-09-22
+       SCHEMA GENERATED FROM DIVERSICON DTD ON 2016-09-26
        DO *NOT* EDIT DIRECTLY.
        FOR CHANGES MADE TO ORIGINAL UBY DTD AND COPYRIGHT, SEE BELOW 
 
@@ -142,6 +142,36 @@
   		definitionId IDREF #IMPLIED
   	senseExampleId IDREF #IMPLIED
   	contextId IDREF #IMPLIED 
+  
+  * MonolingualExternalRef
+    removed 
+    - backlinks  
+      senseId      IDREF #IMPLIED
+      contextId      IDREF #IMPLIED
+      SynsetId      IDREF #IMPLIED
+  
+  * SenseRelation
+  	removed
+  	- backlinks 
+  		  senseId IDREF #REQUIRED  
+  
+  * Frequency
+  	removed
+  	- backlinks  
+  	    semanticArgumentId IDREF #IMPLIED
+  	    senseRelationId IDREF #IMPLIED
+  	    semanticPredicateId IDREF #IMPLIED
+  	    senseId IDREF #IMPLIED
+  	    lexicalEntryId IDREF #IMPLIED
+  	    wordFormId IDREF #IMPLIED
+  	    syntacticArgumentId IDREF #IMPLIED
+  
+  * SemanticLabel
+  	removed
+  	- backlinks
+  		semanticArgumentId IDREF #IMPLIED
+  	    semanticPredicateId IDREF #IMPLIED
+  	    senseId IDREF #IMPLIED  
   
 -->
 <!-- #################### Core package -->
@@ -383,8 +413,8 @@
       </xs:sequence>
       <xs:attribute name="id" use="required" type="xs:ID"/>
       <xs:attribute name="index"/>
-      <xs:attribute name="synset" type="xs:IDREF"/>
-      <xs:attribute name="incorporatedSemArg" type="xs:IDREF"/>
+      <xs:attribute name="synset"/>
+      <xs:attribute name="incorporatedSemArg"/>
       <xs:attribute name="transparentMeaning">
         <xs:simpleType>
           <xs:restriction base="xs:token">
@@ -594,8 +624,8 @@
         <xs:element minOccurs="0" maxOccurs="unbounded" ref="FormRepresentation"/>
       </xs:sequence>
       <xs:attribute name="id" use="required" type="xs:ID"/>
-      <xs:attribute name="targetLexicalEntryId" use="required" type="xs:IDREF"/>
-      <xs:attribute name="targetSense" type="xs:IDREF"/>
+      <xs:attribute name="targetLexicalEntryId" use="required"/>
+      <xs:attribute name="targetSense"/>
       <xs:attribute name="relType">
         <xs:simpleType>
           <xs:restriction base="xs:token">
@@ -654,8 +684,8 @@
           </xs:restriction>
         </xs:simpleType>
       </xs:attribute>
-      <xs:attribute name="targetLexicalEntry" use="required" type="xs:IDREF"/>
-      <xs:attribute name="componentsId" use="required" type="xs:IDREF"/>
+      <xs:attribute name="targetLexicalEntry" use="required"/>
+      <xs:attribute name="componentsId" use="required"/>
     </xs:complexType>
   </xs:element>
   <!--
@@ -694,7 +724,7 @@
       <xs:attribute name="writtenForm"/>
       <xs:attribute name="transliteration"/>
       <xs:attribute name="usage"/>
-      <xs:attribute name="senseId" type="xs:IDREF"/>
+      <xs:attribute name="senseId"/>
     </xs:complexType>
   </xs:element>
   <!--
@@ -709,9 +739,9 @@
   <xs:element name="SyntacticBehaviour">
     <xs:complexType>
       <xs:attribute name="id" use="required" type="xs:ID"/>
-      <xs:attribute name="senseId" type="xs:IDREF"/>
-      <xs:attribute name="subcategorizationFrame" type="xs:IDREF"/>
-      <xs:attribute name="subcategorizationFrameSet" type="xs:IDREF"/>
+      <xs:attribute name="senseId"/>
+      <xs:attribute name="subcategorizationFrame"/>
+      <xs:attribute name="subcategorizationFrameSet"/>
     </xs:complexType>
   </xs:element>
   <!-- subcategorizationFrameSet	http://www.isocat.org/datcat/DC-4620 -->
@@ -723,7 +753,7 @@
         <xs:element minOccurs="0" maxOccurs="unbounded" ref="Frequency"/>
       </xs:sequence>
       <xs:attribute name="id" use="required" type="xs:ID"/>
-      <xs:attribute name="parentSubcatFrame" type="xs:IDREF"/>
+      <xs:attribute name="parentSubcatFrame"/>
       <xs:attribute name="subcatLabel"/>
     </xs:complexType>
   </xs:element>
@@ -751,7 +781,7 @@
           </xs:restriction>
         </xs:simpleType>
       </xs:attribute>
-      <xs:attribute name="subcategorizationFrameId" use="required" type="xs:IDREF"/>
+      <xs:attribute name="subcategorizationFrameId" use="required"/>
     </xs:complexType>
   </xs:element>
   <!--
@@ -869,7 +899,7 @@
           </xs:restriction>
         </xs:simpleType>
       </xs:attribute>
-      <xs:attribute name="subcategorizationFrameId" use="required" type="xs:IDREF"/>
+      <xs:attribute name="subcategorizationFrameId" use="required"/>
     </xs:complexType>
   </xs:element>
   <!--
@@ -937,31 +967,31 @@
       </xs:sequence>
       <xs:attribute name="id" use="required" type="xs:ID"/>
       <xs:attribute name="name"/>
-      <xs:attribute name="parentSubcatFrameSet" type="xs:IDREF"/>
-      <xs:attribute name="lexiconId" use="required" type="xs:IDREF"/>
+      <xs:attribute name="parentSubcatFrameSet"/>
+      <xs:attribute name="lexiconId" use="required"/>
     </xs:complexType>
   </xs:element>
   <!-- SubcategorizationFrameSet	http://www.isocat.org/datcat/DC-4620 -->
   <xs:element name="SubcatFrameSetElement">
     <xs:complexType>
       <xs:attribute name="id" use="required" type="xs:ID"/>
-      <xs:attribute name="element" type="xs:IDREF"/>
-      <xs:attribute name="subcategorizationFrameSetId" use="required" type="xs:IDREF"/>
+      <xs:attribute name="element"/>
+      <xs:attribute name="subcategorizationFrameSetId" use="required"/>
     </xs:complexType>
   </xs:element>
   <xs:element name="SynArgMap">
     <xs:complexType>
       <xs:attribute name="id" use="required" type="xs:ID"/>
-      <xs:attribute name="arg1" use="required" type="xs:IDREF"/>
-      <xs:attribute name="arg2" use="required" type="xs:IDREF"/>
+      <xs:attribute name="arg1" use="required"/>
+      <xs:attribute name="arg2" use="required"/>
     </xs:complexType>
   </xs:element>
   <!-- #################### Package for Semantics -->
   <xs:element name="PredicativeRepresentation">
     <xs:complexType>
       <xs:attribute name="id" use="required" type="xs:ID"/>
-      <xs:attribute name="predicate" use="required" type="xs:IDREF"/>
-      <xs:attribute name="senseId" use="required" type="xs:IDREF"/>
+      <xs:attribute name="predicate" use="required"/>
+      <xs:attribute name="senseId" use="required"/>
     </xs:complexType>
   </xs:element>
   <!-- predicate	http://www.isocat.org/datcat/DC-3415 -->
@@ -992,7 +1022,7 @@
           </xs:restriction>
         </xs:simpleType>
       </xs:attribute>
-      <xs:attribute name="lexiconId" use="required" type="xs:IDREF"/>
+      <xs:attribute name="lexiconId" use="required"/>
     </xs:complexType>
   </xs:element>
   <!--
@@ -1028,7 +1058,7 @@
           </xs:restriction>
         </xs:simpleType>
       </xs:attribute>
-      <xs:attribute name="semanticPredicateId" use="required" type="xs:IDREF"/>
+      <xs:attribute name="semanticPredicateId" use="required"/>
     </xs:complexType>
   </xs:element>
   <!--
@@ -1044,10 +1074,10 @@
   <xs:element name="ArgumentRelation">
     <xs:complexType>
       <xs:attribute name="id" use="required" type="xs:ID"/>
-      <xs:attribute name="target" type="xs:IDREF"/>
+      <xs:attribute name="target"/>
       <xs:attribute name="relType"/>
       <xs:attribute name="relName"/>
-      <xs:attribute name="semanticArgumentId" use="required" type="xs:IDREF"/>
+      <xs:attribute name="semanticArgumentId" use="required"/>
     </xs:complexType>
   </xs:element>
   <!--
@@ -1061,22 +1091,22 @@
         <xs:element minOccurs="0" maxOccurs="unbounded" ref="SynSemArgMap"/>
       </xs:sequence>
       <xs:attribute name="id" use="required" type="xs:ID"/>
-      <xs:attribute name="lexiconId" use="required" type="xs:IDREF"/>
+      <xs:attribute name="lexiconId" use="required"/>
     </xs:complexType>
   </xs:element>
   <xs:element name="SynSemArgMap">
     <xs:complexType>
       <xs:attribute name="id" use="required" type="xs:ID"/>
-      <xs:attribute name="syntacticArgument" use="required" type="xs:IDREF"/>
-      <xs:attribute name="semanticArgument" use="required" type="xs:IDREF"/>
-      <xs:attribute name="synSemCorrespondenceId" use="required" type="xs:IDREF"/>
+      <xs:attribute name="syntacticArgument" use="required"/>
+      <xs:attribute name="semanticArgument" use="required"/>
+      <xs:attribute name="synSemCorrespondenceId" use="required"/>
     </xs:complexType>
   </xs:element>
   <xs:element name="PredicateRelation">
     <xs:complexType>
       <xs:attribute name="id" use="required" type="xs:ID"/>
-      <xs:attribute name="target" type="xs:IDREF"/>
-      <xs:attribute name="semanticPredicateId" use="required" type="xs:IDREF"/>
+      <xs:attribute name="target"/>
+      <xs:attribute name="semanticPredicateId" use="required"/>
       <xs:attribute name="relType"/>
       <xs:attribute name="relName"/>
     </xs:complexType>
@@ -1094,7 +1124,7 @@
         <xs:element minOccurs="0" maxOccurs="unbounded" ref="TextRepresentation"/>
       </xs:sequence>
       <xs:attribute name="id" use="required" type="xs:ID"/>
-      <xs:attribute name="senseId" use="required" type="xs:IDREF"/>
+      <xs:attribute name="senseId" use="required"/>
       <xs:attribute name="exampleType">
         <xs:simpleType>
           <xs:restriction base="xs:token">
@@ -1129,7 +1159,7 @@
       <xs:sequence>
         <xs:element minOccurs="0" maxOccurs="unbounded" ref="Frequency"/>
       </xs:sequence>
-      <xs:attribute name="target" use="required" type="xs:IDREF"/>
+      <xs:attribute name="target" use="required"/>
       <xs:attribute name="relName" use="required"/>
       <xs:attribute name="relType">
         <xs:simpleType>
@@ -1159,10 +1189,7 @@
     <xs:complexType>
       <xs:attribute name="externalSystem" use="required"/>
       <xs:attribute name="externalReference" use="required"/>
-      <xs:attribute name="senseId" type="xs:IDREF"/>
-      <xs:attribute name="contextId" type="xs:IDREF"/>
-      <xs:attribute name="SynsetId" type="xs:IDREF"/>
-      <xs:attribute name="semanticLabel" type="xs:IDREF"/>
+      <xs:attribute name="semanticLabel"/>
     </xs:complexType>
   </xs:element>
   <!--
@@ -1176,8 +1203,7 @@
         <xs:element minOccurs="0" maxOccurs="unbounded" ref="Frequency"/>
       </xs:sequence>
       <xs:attribute name="id" use="required" type="xs:ID"/>
-      <xs:attribute name="senseId" use="required" type="xs:IDREF"/>
-      <xs:attribute name="target" type="xs:IDREF"/>
+      <xs:attribute name="target"/>
       <xs:attribute name="relName" use="required"/>
       <xs:attribute name="relType">
         <xs:simpleType>
@@ -1243,7 +1269,7 @@
       <xs:attribute name="relType"/>
       <xs:attribute name="relName"/>
       <xs:attribute name="target"/>
-      <xs:attribute name="senseAxisId" use="required" type="xs:IDREF"/>
+      <xs:attribute name="senseAxisId" use="required"/>
       <xs:attribute name="idx"/>
     </xs:complexType>
   </xs:element>
@@ -1261,14 +1287,6 @@
       <xs:attribute name="corpus"/>
       <xs:attribute name="frequency"/>
       <xs:attribute name="generator"/>
-      <xs:attribute name="semanticArgumentId" type="xs:IDREF"/>
-      <xs:attribute name="senseRelationId" type="xs:IDREF"/>
-      <xs:attribute name="semanticPredicateId" type="xs:IDREF"/>
-      <xs:attribute name="senseId" type="xs:IDREF"/>
-      <xs:attribute name="lexicalEntryId" type="xs:IDREF"/>
-      <xs:attribute name="wordFormId" type="xs:IDREF"/>
-      <xs:attribute name="syntacticArgumentId" type="xs:IDREF"/>
-      <xs:attribute name="subcatFrameId" type="xs:IDREF"/>
     </xs:complexType>
   </xs:element>
   <!--
@@ -1294,9 +1312,6 @@
       <xs:attribute name="label"/>
       <xs:attribute name="type"/>
       <xs:attribute name="quantification"/>
-      <xs:attribute name="semanticArgumentId" type="xs:IDREF"/>
-      <xs:attribute name="semanticPredicateId" type="xs:IDREF"/>
-      <xs:attribute name="senseId" type="xs:IDREF"/>
     </xs:complexType>
   </xs:element>
 </xs:schema>

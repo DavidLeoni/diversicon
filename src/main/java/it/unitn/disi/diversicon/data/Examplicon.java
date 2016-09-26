@@ -13,10 +13,16 @@ import it.unitn.disi.diversicon.LexResPackage;
  */
 public class Examplicon extends LexResPackage {
 
+    
     /**
      * @since 0.1.0
      */
-    public static final String NAME = "examplicon";
+    private static final String SHORT_NAME = "examplicon";
+    
+    /**
+     * @since 0.1.0
+     */
+    public static final String NAME = "div-" + SHORT_NAME;
     
     /**
      * 
@@ -32,7 +38,7 @@ public class Examplicon extends LexResPackage {
     /**
      * @since 0.1.0
      */
-    private static final String CLASSPATH = "classpath:/" + NAME + ".lmf";
+    private static final String CLASSPATH = "classpath:/" + SHORT_NAME + ".lmf";
     
     /**
      * @since 0.1.0

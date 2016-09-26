@@ -13,10 +13,12 @@ import it.unitn.disi.diversicon.LexResPackage;
  */
 public class Smartphones extends LexResPackage {
 
+    private static final String SHORT_NAME = "smartphones";
+    
     /**
      * @since 0.1.0
      */
-    public static final String NAME = "smartphones";
+    public static final String NAME = "div-" + SHORT_NAME;
     
     /**
      * @since 0.1.0
@@ -31,7 +33,7 @@ public class Smartphones extends LexResPackage {
     /**
      * @since 0.1.0
      */
-    private static final String CLASSPATH = "classpath:/" + NAME + ".lmf";
+    private static final String CLASSPATH = "classpath:/" + SHORT_NAME + ".lmf";
     
     /**
      * @since 0.1.0

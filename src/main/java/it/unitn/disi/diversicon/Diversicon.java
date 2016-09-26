@@ -1830,17 +1830,7 @@ public class Diversicon extends Uby {
 
         return ret;
     }
-
-    /**
-     * 
-     * @since 0.1.0
-     * 
-     * @throws DivNotFoundException
-     */
-    public LexicalResource getLexicalResourceById(String id) {
-        String name = getLexResPackageById(id).getLabel();
-        return getLexicalResource(name);
-    }
+    
 
     /*
      * Returns a list of {@link Namespace namespaces} used within database.

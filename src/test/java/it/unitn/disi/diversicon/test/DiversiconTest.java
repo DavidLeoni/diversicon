@@ -890,12 +890,12 @@ public class DiversiconTest {
         
         ImportJob job = div.importXml(Smartphones.of().getXmlUri());        
                 
-        LexicalResource lr = div.getLexicalResourceById(Smartphones.NAME);
+        LexicalResource lr = div.getLexicalResource(Smartphones.NAME);
         List<MetaData> metadatas = lr.getMetaData();
         assertEquals(1, metadatas.size());
         MetaData metadata = metadatas.get(0);
         assertNotNull(metadata);
-        assertEquals("sm:md", metadata.getId());
+        assertEquals("sm_md", metadata.getId());
         
         assertEquals(5 + 2 + 2 + 2, div.getSynsetRelationsCount());
         

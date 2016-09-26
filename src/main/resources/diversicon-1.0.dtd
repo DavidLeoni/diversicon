@@ -137,6 +137,36 @@ Changes made in Diversicon:
   		definitionId IDREF #IMPLIED
     	senseExampleId IDREF #IMPLIED
     	contextId IDREF #IMPLIED 
+
+* MonolingualExternalRef
+  removed 
+  - backlinks  
+    senseId      IDREF #IMPLIED
+    contextId      IDREF #IMPLIED
+    SynsetId      IDREF #IMPLIED
+  
+* SenseRelation
+	removed
+	- backlinks 
+		  senseId IDREF #REQUIRED  
+
+* Frequency
+	removed
+	- backlinks  
+	    semanticArgumentId IDREF #IMPLIED
+	    senseRelationId IDREF #IMPLIED
+	    semanticPredicateId IDREF #IMPLIED
+	    senseId IDREF #IMPLIED
+	    lexicalEntryId IDREF #IMPLIED
+	    wordFormId IDREF #IMPLIED
+	    syntacticArgumentId IDREF #IMPLIED
+
+* SemanticLabel
+	removed
+	- backlinks
+		semanticArgumentId IDREF #IMPLIED
+	    semanticPredicateId IDREF #IMPLIED
+	    senseId IDREF #IMPLIED  
   
 -->
 
@@ -258,8 +288,8 @@ languageIdentifier 	http://www.isocat.org/datcat/DC-279
 <!ATTLIST Sense
     id     ID #REQUIRED
     index  CDATA #IMPLIED
-    synset               IDREF #IMPLIED
-    incorporatedSemArg IDREF #IMPLIED 
+    synset               CDATA #IMPLIED
+    incorporatedSemArg CDATA #IMPLIED 
     transparentMeaning (true|false) #IMPLIED>
 <!--
 index 	http://www.isocat.org/datcat/DC-233
@@ -379,8 +409,8 @@ orthographyName 	http://www.isocat.org/datcat/
 <!ELEMENT RelatedForm (FormRepresentation*)>
 <!ATTLIST RelatedForm
 	id ID #REQUIRED 
-    targetLexicalEntryId      IDREF #REQUIRED
-    targetSense IDREF #IMPLIED
+    targetLexicalEntryId      CDATA #REQUIRED
+    targetSense CDATA #IMPLIED
     relType (etymology|compound|compoundRoot|derivative|derivationBase|derivationBaseNoun|derivationBaseVerb|derivationBaseAdj|derivationBaseVerbAdj|loanWord|supports) #IMPLIED>
 <!--
 etymology http://www.isocat.org/datcat/DC-221
@@ -405,8 +435,8 @@ supports	http://www.isocat.org/datcat/DC-3003
     isHead (yes|no) #IMPLIED
     position CDATA #IMPLIED
     isBreakBefore (yes|no) #IMPLIED
-    targetLexicalEntry IDREF #REQUIRED
-    componentsId IDREF #REQUIRED>
+    targetLexicalEntry CDATA #REQUIRED
+    componentsId CDATA #REQUIRED>
 <!--
 isHead	http://www.isocat.org/datcat/DC-4617
 position	http://www.isocat.org/datcat/DC-2237
@@ -432,7 +462,7 @@ source 	http://www.isocat.org/datcat/DC-471
     writtenForm CDATA #IMPLIED
     transliteration CDATA #IMPLIED
     usage CDATA #IMPLIED
-    senseId IDREF #IMPLIED>    
+    senseId CDATA #IMPLIED>    
 <!--
 languageIdentifier  http://www.isocat.org/datcat/DC-279
 writtenForm         http://www.isocat.org/datcat/DC-1836
@@ -446,9 +476,9 @@ usage               http://www.isocat.org/datcat/DC-3764
 <!ELEMENT SyntacticBehaviour EMPTY>
 <!ATTLIST SyntacticBehaviour
     id					ID #REQUIRED
-    senseId				IDREF #IMPLIED
-    subcategorizationFrame	IDREF #IMPLIED
-    subcategorizationFrameSet	IDREF #IMPLIED>
+    senseId				CDATA #IMPLIED
+    subcategorizationFrame	CDATA #IMPLIED
+    subcategorizationFrameSet	CDATA #IMPLIED>
 <!--
 subcategorizationFrameSet	http://www.isocat.org/datcat/DC-4620
 --> 
@@ -457,7 +487,7 @@ subcategorizationFrameSet	http://www.isocat.org/datcat/DC-4620
 <!ELEMENT SubcategorizationFrame (LexemeProperty?, SyntacticArgument*, Frequency*)> 
 <!ATTLIST SubcategorizationFrame
     id               ID #REQUIRED
-    parentSubcatFrame IDREF #IMPLIED    
+    parentSubcatFrame CDATA #IMPLIED    
     subcatLabel CDATA #IMPLIED>
 <!--
 subcatLabel	http://www.isocat.org/datcat/DC-1857
@@ -468,7 +498,7 @@ subcatLabel	http://www.isocat.org/datcat/DC-1857
     auxiliary (haben|sein) #IMPLIED
     syntacticProperty (subjectControl|objectControl|subjectRaising|objectRaising|
     nonPredicativeAdjective|predicativeAdjective|postpositiveAdjective) #IMPLIED
-    subcategorizationFrameId IDREF #REQUIRED>
+    subcategorizationFrameId CDATA #REQUIRED>
 <!--
 auxiliary	http://www.isocat.org/datcat/DC-1244
 haben 	http://www.isocat.org/datcat/DC-1299
@@ -504,7 +534,7 @@ postpositiveAdjective	http://www.isocat.org/datcat/DC-4619
     verbForm (toInfinitive|bareInfinitive|participle|ingForm) #IMPLIED
     tense (present|past) #IMPLIED
     complementizer (thatType|whType|yesNoType) #IMPLIED
-    subcategorizationFrameId IDREF #REQUIRED>
+    subcategorizationFrameId CDATA #REQUIRED>
 <!--
 optional	http://www.isocat.org/datcat/DC-4622
 
@@ -567,8 +597,8 @@ yesNoType 	http://www.isocat.org/datcat/DC-2297
 <!ATTLIST SubcategorizationFrameSet
     id               ID #REQUIRED
     name             CDATA #IMPLIED
-    parentSubcatFrameSet	IDREF #IMPLIED
-    lexiconId	IDREF #REQUIRED>
+    parentSubcatFrameSet	CDATA #IMPLIED
+    lexiconId	CDATA #REQUIRED>
 <!--
 SubcategorizationFrameSet	http://www.isocat.org/datcat/DC-4620
 --> 
@@ -576,21 +606,21 @@ SubcategorizationFrameSet	http://www.isocat.org/datcat/DC-4620
 <!ELEMENT SubcatFrameSetElement EMPTY>
 <!ATTLIST SubcatFrameSetElement
 	id               ID #REQUIRED
-    element          IDREF #IMPLIED
-    subcategorizationFrameSetId IDREF #REQUIRED> 
+    element          CDATA #IMPLIED
+    subcategorizationFrameSetId CDATA #REQUIRED> 
 
 <!ELEMENT SynArgMap EMPTY>
 <!ATTLIST SynArgMap
 	id               ID #REQUIRED
-    arg1	IDREF #REQUIRED
-    arg2	IDREF #REQUIRED>
+    arg1	CDATA #REQUIRED
+    arg2	CDATA #REQUIRED>
 
             <!--#################### Package for Semantics -->
 <!ELEMENT PredicativeRepresentation EMPTY>
 <!ATTLIST PredicativeRepresentation
 	id               ID #REQUIRED
-   predicate              IDREF #REQUIRED
-   senseId             IDREF #REQUIRED>
+   predicate              CDATA #REQUIRED
+   senseId             CDATA #REQUIRED>
 <!--
 predicate	http://www.isocat.org/datcat/DC-3415
 --> 
@@ -601,7 +631,7 @@ predicate	http://www.isocat.org/datcat/DC-3415
     label CDATA #IMPLIED
     lexicalized (yes|no) #IMPLIED 
     perspectivalized (yes|no) #IMPLIED
-    lexiconId IDREF #REQUIRED>
+    lexiconId CDATA #REQUIRED>
 <!--
 label	http://www.isocat.org/datcat/DC-1857
 lexicalized 	http://www.isocat.org/datcat/DC-3295
@@ -614,7 +644,7 @@ perspectivalized 	http://www.isocat.org/datcat/DC-4391
     semanticRole  CDATA #IMPLIED
     isIncorporated (yes|no) #IMPLIED
     coreType (core|peripheral|coreUnexpressed|extraThematic) #IMPLIED
-    semanticPredicateId  IDREF #REQUIRED>
+    semanticPredicateId  CDATA #REQUIRED>
 <!--
 semanticRole	http://www.isocat.org/datcat/DC-3466
 isIncorporated 	http://www.isocat.org/datcat/DC-4151
@@ -629,10 +659,10 @@ extraThematic 	http://www.isocat.org/datcat/DC-4465
 <!ELEMENT ArgumentRelation EMPTY>
 <!ATTLIST ArgumentRelation
 	id               ID #REQUIRED
-    target      IDREF #IMPLIED
+    target      CDATA #IMPLIED
     relType    CDATA #IMPLIED
     relName  CDATA #IMPLIED
-    semanticArgumentId  IDREF #REQUIRED>
+    semanticArgumentId  CDATA #REQUIRED>
 <!--
 target	http://www.isocat.org/datcat/DC-435
 relName	http://www.isocat.org/datcat/DC-1857
@@ -642,21 +672,21 @@ relType	http://www.isocat.org/datcat/DC-1971
 <!ELEMENT SynSemCorrespondence (SynSemArgMap*)>
 <!ATTLIST SynSemCorrespondence
     id              ID #REQUIRED
-    lexiconId  IDREF #REQUIRED>
+    lexiconId  CDATA #REQUIRED>
     
 <!ELEMENT SynSemArgMap EMPTY>
 <!ATTLIST SynSemArgMap
 	id              ID #REQUIRED
-    syntacticArgument	IDREF #REQUIRED
-    semanticArgument	IDREF #REQUIRED
-    synSemCorrespondenceId	IDREF #REQUIRED>
+    syntacticArgument	CDATA #REQUIRED
+    semanticArgument	CDATA #REQUIRED
+    synSemCorrespondenceId	CDATA #REQUIRED>
     
 
 <!ELEMENT PredicateRelation EMPTY>
 <!ATTLIST PredicateRelation
 	id              ID #REQUIRED
-    target         IDREF #IMPLIED
-    semanticPredicateId IDREF #REQUIRED  
+    target         CDATA #IMPLIED
+    semanticPredicateId CDATA #REQUIRED  
     relType    CDATA #IMPLIED
     relName  CDATA #IMPLIED>
 <!--
@@ -670,7 +700,7 @@ relevantSemanticPredicate 	http://www.isocat.org/datcat/DC-4392
 <!ELEMENT SenseExample (TextRepresentation*)>
 <!ATTLIST SenseExample
     id	ID #REQUIRED
-    senseId IDREF #REQUIRED
+    senseId CDATA #REQUIRED
     exampleType (subcatFrame|syntacticUsage|senseInstance|idiomaticExpression|other) #IMPLIED>
 <!--
 subcatFrame	http://www.isocat.org/datcat/DC-4630
@@ -685,7 +715,7 @@ idiomaticExpression 	http://www.isocat.org/datcat/DC-351
    
 <!ELEMENT SynsetRelation (Frequency*)>
 <!ATTLIST SynsetRelation
-    target  IDREF #REQUIRED
+    target  CDATA #REQUIRED
     relName CDATA #REQUIRED
     relType (taxonomic|partWhole|association|label|predicative) #IMPLIED>
 <!--
@@ -704,10 +734,7 @@ predicative	http://www.isocat.org/datcat/DC-3415
 <!ATTLIST MonolingualExternalRef
     externalSystem CDATA #REQUIRED
     externalReference CDATA #REQUIRED
-    senseId      IDREF #IMPLIED
-    contextId      IDREF #IMPLIED
-    SynsetId      IDREF #IMPLIED
-    semanticLabel      IDREF #IMPLIED>
+    semanticLabel      CDATA #IMPLIED>
 <!--
 externalSystem	http://www.isocat.org/datcat/DC-1974
 externalReference	http://www.isocat.org/datcat/DC-1975
@@ -716,8 +743,7 @@ externalReference	http://www.isocat.org/datcat/DC-1975
 <!ELEMENT SenseRelation (FormRepresentation, Frequency*)>
 <!ATTLIST SenseRelation
 	id ID #REQUIRED
-	senseId IDREF #REQUIRED
-    target      IDREF #IMPLIED
+    target      CDATA #IMPLIED
     relName CDATA #REQUIRED
     relType  (taxonomic|partWhole|association|complementary|translation) #IMPLIED>
 <!--
@@ -763,7 +789,7 @@ translation 	http://www.isocat.org/datcat/DC-4020
 							relType CDATA #IMPLIED
 							relName CDATA #IMPLIED
 							target CDATA #IMPLIED
-							senseAxisId IDREF #REQUIRED					
+							senseAxisId CDATA #REQUIRED					
 							idx CDATA #IMPLIED>
 <!--
 target	http://www.isocat.org/datcat/DC-435
@@ -783,15 +809,7 @@ relType	http://www.isocat.org/datcat/DC-1971
 <!ATTLIST Frequency
     corpus CDATA #IMPLIED
     frequency CDATA #IMPLIED
-    generator CDATA #IMPLIED
-    semanticArgumentId IDREF #IMPLIED
-    senseRelationId IDREF #IMPLIED
-    semanticPredicateId IDREF #IMPLIED
-    senseId IDREF #IMPLIED
-    lexicalEntryId IDREF #IMPLIED
-    wordFormId IDREF #IMPLIED
-    syntacticArgumentId IDREF #IMPLIED
-    subcatFrameId IDREF #IMPLIED>
+    generator CDATA #IMPLIED>
 <!--
 corpus		http://www.isocat.org/datcat/DC-4361
 frequency 	http://www.isocat.org/datcat/DC-238
@@ -810,10 +828,7 @@ generator	http://www.isocat.org/datcat/DC-2511
 <!ATTLIST SemanticLabel 
     label CDATA #IMPLIED
     type CDATA #IMPLIED 
-    quantification CDATA #IMPLIED
-    semanticArgumentId IDREF #IMPLIED
-    semanticPredicateId IDREF #IMPLIED
-    senseId IDREF #IMPLIED>
+    quantification CDATA #IMPLIED>
 <!--
 label	http://www.isocat.org/datcat/DC-1857
 type	http://www.isocat.org/datcat/DC-1971
