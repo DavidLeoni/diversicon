@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
+import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import it.disi.unitn.diversicon.exceptions.DivIoException;
 import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
@@ -251,7 +252,7 @@ public class DivUtilsTest {
      * @since 0.1.0
      */
     @Test    
-    public void testValidateXml(){
+    public void testValidateExamplicon(){
         File f = Internals.readData(Examplicon.XML_URI).toTempFile();
         
         Diversicons.validateXml(f, LOG);
@@ -295,6 +296,83 @@ public class DivUtilsTest {
             assertFatal(ex);
         }
     }
+    
+    
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testValidateXmlUndeclaredPrefix() throws IOException{
+        
+        LexicalResource lexRes = 
+                lmf()
+                .lexicon()
+                .synset()
+                .lexicalEntry()
+                .synset()
+                .build();
+        
+        lexRes.getLexicons().get(0).getSynsets().get(1).setId("prefix666_synset-2");                
+        File xml = DivTester.writeXml(lexRes);
+
+        try {
+            Diversicons.validateXml(xml, LOG);
+            Assert.fail("Shouldn't arrive here!");
+        } catch (InvalidXmlException ex){
+            
+        }                
+    }
+    
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testValidateXmlWrongSynsetRelationInternalTarget() throws IOException{
+        
+        LexicalResource lexRes = 
+                lmf()
+                .lexicon()
+                .synset()
+                .lexicalEntry()
+                .synset()
+                .synsetRelation("a", 3)
+                .build();
+                               
+        File xml = DivTester.writeXml(lexRes);
+
+        LOG.debug("\n" + FileUtils.readFileToString(xml));        
+        
+        try {
+            Diversicons.validateXml(xml, LOG);
+            Assert.fail("Shouldn't arrive here!");
+        } catch (InvalidXmlException ex){
+            
+        }                
+    }    
+    
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testValidateXmlWrongSenseInternalSynset() throws IOException{
+        
+        LexicalResource lexRes = LmfBuilder.simpleLexicalResource();
+        
+        Synset syn = new Synset();
+        syn.setId(tid("syn666"));
+        lexRes.getLexicons().get(0).getLexicalEntries().get(0).getSenses().get(0).setSynset(syn);
+                               
+        File xml = DivTester.writeXml(lexRes);
+
+        LOG.debug("\n" + FileUtils.readFileToString(xml));        
+        
+        try {
+            Diversicons.validateXml(xml, LOG);
+            Assert.fail("Shouldn't arrive here!");
+        } catch (InvalidXmlException ex){
+            
+        }                
+    }    
     
     /**
      * Asserts one fatal error occurred

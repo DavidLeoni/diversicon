@@ -29,19 +29,69 @@ modify (
 	  </xs:annotation> 				
     ) as first into $root/xs:schema,        
 
+
+
+
+
     insert node (
     <xs:assert test="every $prefixed-id in ./*//@id satisfies fn:starts-with($prefixed-id, fn:concat(@prefix, '_'))">		
-        <xs:annotation>
+        <xs:annotation>        
                 <xs:appinfo>
-                Value of the "min" attribute can not be greater than that of the "max"
-                attribute.
+                    Internal ids must begin with the "prefix" assigned to the "LexicalResource"
                 </xs:appinfo>
                 <xs:documentation>
-                When this assertion fails, the content of the above "appinfo" is used
-                to produce the error message.
+                    When this assertion fails, the content of the above "appinfo" is used
+                    to produce the error message.
                 </xs:documentation>
         </xs:annotation>		
     </xs:assert>
-    ) as last into $root//xs:element[@name="LexicalResource"]/xs:complexType
+    ) as last into $root//xs:element[@name="LexicalResource"]/xs:complexType,
+
+    
+    insert node (    
+    <xs:assert test="every $target in .//SynsetRelation[fn:starts-with(@target, fn:concat(../../../@prefix, '_'))]/@target satisfies fn:boolean(.//Synset[@id=$target])">
+
+        <!--
+            We can't use keyrefs as tests are not allowed in keyref selector, see
+            9.2.5. Permitted XPath Expressions in
+            http://docstore.mik.ua/orelly/xml/schema/ch09_02.htm
+
+            Also, notice that above I couldn't use /@prefix nor /LexicalResource/@prefix to acess the root 
+        --> 
+            		
+        <xs:annotation>
+                <xs:appinfo>
+                    SynsetRelation target that begins with document prefix must point to a Synset declared within the document  
+                </xs:appinfo>
+                <xs:documentation>
+                TODO
+                </xs:documentation>
+        </xs:annotation>		
+    </xs:assert>                     
+    ) as last into $root//xs:element[@name="LexicalResource"]/xs:complexType,    
+
+    insert node (    
+    <xs:assert test="every $synset in .//Sense[fn:starts-with(@synset, fn:concat(../../../@prefix, '_'))]/@synset satisfies fn:boolean(.//Synset[@id=$synset])">
+
+        <!--
+            We can't use keyrefs as tests are not allowed in keyref selector, see
+            9.2.5. Permitted XPath Expressions in
+            http://docstore.mik.ua/orelly/xml/schema/ch09_02.htm
+
+            Also, notice that above I couldn't use /@prefix nor /LexicalResource/@prefix to acess the root 
+        --> 
+            		
+        <xs:annotation>
+                <xs:appinfo>
+                    SynsetRelation target that begins with document prefix must point to a Synset declared within the document  
+                </xs:appinfo>
+                <xs:documentation>
+                TODO
+                </xs:documentation>
+        </xs:annotation>		
+    </xs:assert>                     
+    ) as last into $root//xs:element[@name="LexicalResource"]/xs:complexType    
+
+
 )
 return $root 

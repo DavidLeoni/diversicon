@@ -126,7 +126,10 @@ public class LmfBuilder {
                 }
             }
         }
-        throw new IllegalStateException("Couldn't find a synset with id: '" + synsetId + "'");
+        LOG.debug("Couldn't find synset with id " + synsetId + ", returning fake synset");
+        Synset ret = new Synset();
+        ret.setId(synsetId);
+        return ret;
     }
 
     /**
