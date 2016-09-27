@@ -91,41 +91,10 @@ import it.unitn.disi.diversicon.internal.Internals;
  */
 public class Diversicon extends Uby {
 
-    /**
-     * The version of the currently supported schema.
-     * 
-     * @since 0.1.0
-     */
-    public static final String DIVERSICON_SCHEMA_VERSION = "1.0";
+    
 
-    private static final Logger LOG = LoggerFactory.getLogger(Diversicon.class);
-
-    /**
-     * Maps a Diversicon Session hashcode to its Diversicon
-     * 
-     * @since 0.1.0
-     */
-    private static final Map<Integer, Diversicon> INSTANCES = new HashMap<>();
-
-    /**
-     * If you set this system property, temporary files won't be deleted at JVM
-     * shutdown.
-     * 
-     * @since 0.1.0
-     */
-    public static final String PROPERTY_DEBUG_KEEP_TEMP_FILES = "diversicon.debug.keep-temp-files";
-
-    /**
-     * 
-     * @since 0.1.0
-     */
-    public static final String DEFAULT_AUTHOR = "Default author";
-
-    /**
-     * The url protocol for lexical resources loaded from memory.
-     */
-    public static final String MEMORY_PROTOCOL = "memory";
-
+    private static final Logger LOG = LoggerFactory.getLogger(Diversicon.class);    
+    
     /**
      * Time between progress reports in millisecs
      */
@@ -134,9 +103,15 @@ public class Diversicon extends Uby {
     /**
      * Amount of items to flush when writing into db with Hibernate.
      */
-    protected static int COMMIT_STEP = 10000;
-
-    private ImportLogger importLogger;
+    private static int COMMIT_STEP = 10000;
+    
+    /**
+     * Maps a Diversicon Session hashcode to its Diversicon
+     * 
+     * @since 0.1.0
+     */
+    private static final Map<Integer, Diversicon> INSTANCES = new HashMap<>();
+    
 
     /**
      * @throws DivIoException
@@ -798,7 +773,7 @@ public class Diversicon extends Uby {
 
         ImportConfig config = new ImportConfig();
 
-        config.setAuthor(DEFAULT_AUTHOR);
+        config.setAuthor(Diversicons.DEFAULT_AUTHOR);
         config.setFileUrls(Arrays.asList(fileUrl));
 
         return importFiles(config).get(0);
@@ -1232,8 +1207,8 @@ public class Diversicon extends Uby {
 
         config = new ImportConfig();
         config.setSkipAugment(skipAugment);
-        config.setAuthor(DEFAULT_AUTHOR);
-        String fileUrl = MEMORY_PROTOCOL + ":" + lexicalResource.hashCode();
+        config.setAuthor(Diversicons.DEFAULT_AUTHOR);
+        String fileUrl = Diversicons.MEMORY_PROTOCOL + ":" + lexicalResource.hashCode();
         config.addLexicalResource(fileUrl);
         
         try {

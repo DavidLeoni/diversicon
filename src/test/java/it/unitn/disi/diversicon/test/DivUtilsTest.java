@@ -62,14 +62,14 @@ public class DivUtilsTest {
     
     @Before
     public void beforeMethod(){
-         savedKeepTempFiles = System.getProperty(Diversicon.PROPERTY_DEBUG_KEEP_TEMP_FILES);
+         savedKeepTempFiles = System.getProperty(Diversicons.PROPERTY_DEBUG_KEEP_TEMP_FILES);
          dbConfig = DivTester.createNewDbConfig();             
     }
     
     @After
     public void afterMethod(){
         if (savedKeepTempFiles != null){
-            System.setProperty(Diversicon.PROPERTY_DEBUG_KEEP_TEMP_FILES, savedKeepTempFiles);    
+            System.setProperty(Diversicons.PROPERTY_DEBUG_KEEP_TEMP_FILES, savedKeepTempFiles);    
         }
         
         dbConfig = null;
@@ -240,9 +240,9 @@ public class DivUtilsTest {
      */
     @Test
     public void testTempFilesDeletion(){        
-        System.setProperty(Diversicon.PROPERTY_DEBUG_KEEP_TEMP_FILES, Boolean.toString(true));        
+        System.setProperty(Diversicons.PROPERTY_DEBUG_KEEP_TEMP_FILES, Boolean.toString(true));        
         Internals.createTempDivDir("will-survive-");
-        System.setProperty(Diversicon.PROPERTY_DEBUG_KEEP_TEMP_FILES, Boolean.toString(false));
+        System.setProperty(Diversicons.PROPERTY_DEBUG_KEEP_TEMP_FILES, Boolean.toString(false));
         Internals.createTempDivDir("wont-survive-");               
     }
         

@@ -129,7 +129,7 @@ public class HibernateTransitiveClosureDiversicon extends Diversicon {
                     processedRelationsInCurLevel += 1;
                     relStats.setMaxLevel(depthToSearch);
 
-                    if (++count % COMMIT_STEP == 0) {
+                    if (++count % 10000 == 0) {
                         // flush a batch of updates and release memory:
                         session.flush();
                         session.clear();

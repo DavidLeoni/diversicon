@@ -757,7 +757,7 @@ public final class DivTester {
             }
             System.exit(0);
         case "s":            
-            File f = new File("src/main/resources/diversicon-1.0.xsd");
+            File f = new File(Internals.DEV_WEBSITE + "/" + Diversicons.DIVERSICON_SCHEMA_1_0_FILENAME);
             Internals.generateXmlSchemaFromDtd(f);            
             System.exit(0);
         default:

@@ -77,10 +77,11 @@ public class Examplicon extends LexResPackage {
         if (BuildInfo.hasProperties(Examplicon.class)){
             BuildInfo buildInfo = BuildInfo.of(Examplicon.class);
             INSTANCE.setVersion(buildInfo.getVersion());
+            INSTANCE.putNamespace(PREFIX, buildInfo.sourceAtVersion(SHORT_NAME + ".lmf.xml") );
+            INSTANCE.putNamespace(DivWn31.PREFIX, DivWn31.of().namespace());            
         } else {            
             throw new IllegalStateException("Couldn't find properties file " + BuildInfo.BUILD_PROPERTIES_PATH + " for class " + Examplicon.class.getCanonicalName());
-        }
-        
+        }        
         
     }
        

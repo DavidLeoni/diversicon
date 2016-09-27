@@ -3,7 +3,9 @@ package it.unitn.disi.diversicon.data;
 import javax.annotation.Nullable;
 
 import it.unitn.disi.diversicon.BuildInfo;
+import it.unitn.disi.diversicon.Diversicons;
 import it.unitn.disi.diversicon.LexResPackage;
+import it.unitn.disi.diversicon.internal.Internals;
 
 /**
  * Singleton holding references to sample {@code handheld-devices} files packaged for Diversicon
@@ -65,20 +67,26 @@ public class Smartphones extends LexResPackage {
     private static final Smartphones INSTANCE = new Smartphones();   
     
     static {
+        
+        
+        
         INSTANCE.setName(NAME);
         INSTANCE.setLabel(LABEL);
         INSTANCE.setPrefix(PREFIX);
         INSTANCE.setH2DbUri(CLASSPATH + ".h2.db");
         INSTANCE.setSqlUri(CLASSPATH + ".sql");
         INSTANCE.setXmlUri(CLASSPATH + ".xml");
+        
         INSTANCE.setSampleXmlUri(CLASSPATH + ".xml"); // sample of itself
         if (BuildInfo.hasProperties(Smartphones.class)){
-            BuildInfo buildInfo = BuildInfo.of(Smartphones.class);
+            BuildInfo buildInfo = BuildInfo.of(Smartphones.class);            
             INSTANCE.setVersion(buildInfo.getVersion());
+            INSTANCE.putNamespace(PREFIX, buildInfo.sourceAtVersion(SHORT_NAME + ".lmf.xml") );  
+            INSTANCE.putNamespace(DivWn31.PREFIX, DivWn31.of().namespace());
         } else {            
             throw new IllegalStateException("Couldn't find properties file " + BuildInfo.BUILD_PROPERTIES_PATH + " for class " + Smartphones.class.getCanonicalName());
         }
-        
+
         
     }
        

@@ -1,9 +1,6 @@
 package it.unitn.disi.diversicon.internal;
 
-import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
-
 import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -11,8 +8,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
-import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
@@ -25,14 +20,12 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Scanner;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.regex.Matcher;
@@ -57,7 +50,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.xerces.impl.Constants;
 import org.apache.xerces.impl.dtd.DTDGrammar;
-import org.apache.xerces.impl.dtd.XMLContentSpec;
 import org.apache.xerces.impl.dtd.XMLDTDLoader;
 import org.apache.xerces.impl.dtd.XMLElementDecl;
 import org.apache.xerces.util.SAXInputSource;
@@ -72,9 +64,6 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
 
 import com.rits.cloning.Cloner;
-import com.thaiopensource.relaxng.output.OutputFormat;
-import com.thaiopensource.relaxng.translate.Formats;
-
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.core.Sense;
 import de.tudarmstadt.ukp.lmf.model.interfaces.IHasID;
@@ -125,6 +114,13 @@ public final class Internals {
     private static final Logger LOG = LoggerFactory.getLogger(Internals.class);
 
     private static final @Nullable Cloner cloner = new Cloner();
+
+    /**
+     * URL to dev website, needed for URLs schemes
+     * 
+     * @since 0.1.0
+     */
+    public static final String DEV_WEBSITE = "file://src/main/resources/website";
 
     private Internals() {
 
@@ -1196,7 +1192,7 @@ public final class Internals {
         checkNotNull(path);
 
         @Nullable
-        String prop = System.getProperty(Diversicon.PROPERTY_DEBUG_KEEP_TEMP_FILES);
+        String prop = System.getProperty(Diversicons.PROPERTY_DEBUG_KEEP_TEMP_FILES);
         boolean keepTempFiles = Boolean.parseBoolean(prop);
 
         if (!(keepTempFiles)) {

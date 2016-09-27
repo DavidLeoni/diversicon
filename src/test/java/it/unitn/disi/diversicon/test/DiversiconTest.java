@@ -633,7 +633,7 @@ public class DiversiconTest {
                            .size());
         assertEquals(null, dbInfo1.getCurrentImportJob());
 
-        assertEquals(Diversicon.DIVERSICON_SCHEMA_VERSION, dbInfo1.getSchemaVersion());
+        assertEquals(Diversicons.DIVERSICON_SCHEMA_VERSION, dbInfo1.getSchemaVersion());
 
         DivTester.importResource(div,g, true);
 
@@ -645,7 +645,7 @@ public class DiversiconTest {
 
         ImportJob job = div.getImportJobs()
                            .get(0);
-        assertEquals(Diversicon.DEFAULT_AUTHOR, job.getAuthor());
+        assertEquals(Diversicons.DEFAULT_AUTHOR, job.getAuthor());
 
         // assertNotEquals(-1, job.getId());
         assertNotNull(job.getStartDate());
@@ -656,7 +656,7 @@ public class DiversiconTest {
         assertEquals(g.getName(), job.getLexResPackage().getName());
         assertEquals(g.getGlobalInformation().getLabel(), job.getLexResPackage().getLabel());
         assertTrue(job.getFileUrl()
-                      .startsWith(Diversicon.MEMORY_PROTOCOL + ":"));
+                      .startsWith(Diversicons.MEMORY_PROTOCOL + ":"));
         /* todo why the hell is commented?
          * LexicalResource res2 = lmf().lexicon()
          * .synset()

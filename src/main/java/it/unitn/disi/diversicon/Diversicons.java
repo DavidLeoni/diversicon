@@ -83,9 +83,35 @@ import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
  * @since 0.1.0
  */
 public final class Diversicons {
+    
+   
+    /**
+     * The version of the currently supported schema.
+     * 
+     * @since 0.1.0
+     */
+    public static final String DIVERSICON_SCHEMA_VERSION = "1.0";
+      
 
-    private static final Logger LOG = LoggerFactory.getLogger(Diversicons.class);
+    /**
+     * If you set this system property, temporary files won't be deleted at JVM
+     * shutdown.
+     * 
+     * @since 0.1.0
+     */
+    public static final String PROPERTY_DEBUG_KEEP_TEMP_FILES = "diversicon.debug.keep-temp-files";
 
+    /**
+     * 
+     * @since 0.1.0
+     */
+    public static final String DEFAULT_AUTHOR = "Default author";
+
+    /**
+     * The url protocol for lexical resources loaded from memory.
+     */
+    public static final String MEMORY_PROTOCOL = "memory";
+    
     /**
      * @since 0.1.0
      */
@@ -118,8 +144,8 @@ public final class Diversicons {
     /**
      * @since 0.1.0
      */
-    public static final String DIVERSICON_DTD_1_0_PUBLIC_URL = "https://github.com/DavidLeoni/diversicon/tree/master/src/main/resources/"
-            + DIVERSICON_DTD_1_0_FILENAME;
+    public static final String DIVERSICON_DTD_1_0_PUBLIC_URL = BuildInfo.of(Diversicons.class).getServerWebsite()
+            + "/" + DIVERSICON_DTD_1_0_FILENAME;
 
     /**
      * @since 0.1.0
@@ -140,8 +166,8 @@ public final class Diversicons {
     /**
      * @since 0.1.0
      */
-    public static final String DIVERSICON_SCHEMA_1_0_PUBLIC_URL = "https://github.com/DavidLeoni/diversicon/tree/master/src/main/resources/"
-            + DIVERSICON_SCHEMA_1_0_FILENAME;
+    public static final String DIVERSICON_SCHEMA_1_0_PUBLIC_URL = BuildInfo.of(Diversicons.class).getServerWebsite() 
+            + "/" + DIVERSICON_SCHEMA_1_0_FILENAME;
 
     /**
      * @since 0.1.0
@@ -255,6 +281,8 @@ public final class Diversicons {
             ArchiveStreamFactory.TAR,
             ArchiveStreamFactory.ZIP };
 
+    private static final Logger LOG = LoggerFactory.getLogger(Diversicons.class);    
+    
     /**
      * List of known relations, excluding the inverses.
      */
