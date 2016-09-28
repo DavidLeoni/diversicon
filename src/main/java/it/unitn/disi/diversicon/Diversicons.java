@@ -450,7 +450,7 @@ public final class Diversicons {
      */
     public static void dropCreateTables(DBConfig dbConfig) {
 
-        LOG.info("Recreating tables in database  " + dbConfig.getJdbc_url() + " ...");
+        LOG.info("Recreating tables in database  " + dbConfig.getJdbc_url() + "    ...");
 
         Configuration hcfg = getHibernateConfig(dbConfig, false);
 

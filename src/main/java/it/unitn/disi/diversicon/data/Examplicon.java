@@ -38,7 +38,7 @@ public class Examplicon extends LexResPackage {
     /**
      * @since 0.1.0
      */
-    private static final String CLASSPATH = "classpath:/" + SHORT_NAME + ".lmf";
+    private static final String CLASSPATH = "classpath:/" + SHORT_NAME;
     
     /**
      * @since 0.1.0
@@ -70,14 +70,14 @@ public class Examplicon extends LexResPackage {
         INSTANCE.setName(NAME);
         INSTANCE.setPrefix(PREFIX);
         INSTANCE.setLabel(LABEL);
-        INSTANCE.setH2DbUri(CLASSPATH + ".h2.db");
-        INSTANCE.setSqlUri(CLASSPATH + ".sql");
+        //INSTANCE.setH2DbUri(CLASSPATH + ".h2.db");
+        //INSTANCE.setSqlUri(CLASSPATH + ".sql");
         INSTANCE.setXmlUri(CLASSPATH + ".xml");
         INSTANCE.setSampleXmlUri(CLASSPATH + ".xml"); // sample of itself
         if (BuildInfo.hasProperties(Examplicon.class)){
             BuildInfo buildInfo = BuildInfo.of(Examplicon.class);
             INSTANCE.setVersion(buildInfo.getVersion());
-            INSTANCE.putNamespace(PREFIX, buildInfo.sourceAtVersion(SHORT_NAME + ".lmf.xml") );
+            INSTANCE.putNamespace(PREFIX, buildInfo.sourceAtVersion(SHORT_NAME + ".xml") );
             INSTANCE.putNamespace(DivWn31.PREFIX, DivWn31.of().namespace());            
         } else {            
             throw new IllegalStateException("Couldn't find properties file " + BuildInfo.BUILD_PROPERTIES_PATH + " for class " + Examplicon.class.getCanonicalName());

@@ -30,7 +30,7 @@
 
 <LexicalResource name="div-smartphones"				 
 				 prefix="sm"				 
-  				 xmlns:sm="https://github.com/DavidLeoni/diversicon/blob/master/src/main/resources/smartphones-lmf.xml"
+  				 xmlns:sm="https://github.com/DavidLeoni/diversicon/blob/master/src/main/resources/smartphones.xml"
   				 xmlns:wn31="https://github.com/DavidLeoni/diversicon-wordnet-3.1"
 				 
                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"

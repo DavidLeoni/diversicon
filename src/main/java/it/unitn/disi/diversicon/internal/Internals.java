@@ -15,6 +15,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -575,7 +576,7 @@ public final class Internals {
      * @since 0.1.0
      */
     public static <V, W> HashMap<V, W> newMap(V v, W w, Object... data) {
-        HashMap<V, W> result = new HashMap();
+        HashMap<V, W> result = new HashMap<>();
 
         if (data.length % 2 != 0)
             throw new IllegalArgumentException("Odd number of arguments");
@@ -638,7 +639,7 @@ public final class Internals {
      * @since 0.1.0
      */
     public static <T> ArrayList<T> newArrayList(T... objs) {
-        ArrayList<T> ret = new ArrayList();
+        ArrayList<T> ret = new ArrayList<>();
 
         for (T obj : objs) {
             ret.add(obj);
@@ -652,7 +653,7 @@ public final class Internals {
      * @since 0.1.0
      */
     public static <T> HashSet<T> newHashSet(T... objs) {
-        HashSet<T> ret = new HashSet();
+        HashSet<T> ret = new HashSet<>();
 
         for (T obj : objs) {
             ret.add(obj);
@@ -762,14 +763,7 @@ public final class Internals {
             uriPath = dataUrl.substring("classpath:".length());
             String q;
 
-            Pattern p = Pattern.compile("/*");
-            Matcher m = p.matcher(uriPath);
-
-            if (m.find()) {
-                q = uriPath.substring(m.end(), uriPath.length());
-            } else {
-                q = uriPath;
-            }
+            q = removeStartSlashes(uriPath);
 
             try {
 
@@ -852,6 +846,22 @@ public final class Internals {
     }
 
     /**
+     * Removes all forward slashes '/' at the beginning of {@code str}
+     * 
+     * @since 0.1.0
+     */
+    private static String removeStartSlashes(String str) {
+        Pattern p = Pattern.compile("/*");
+        Matcher m = p.matcher(str);
+
+        if (m.find()) {
+            return  str.substring(m.end(), str.length());
+        } else {
+            return str;
+        }
+    }
+
+    /**
      * @since 0.1.0
      */
     private static String getJarPath(String dataUrl) {
@@ -917,42 +927,33 @@ public final class Internals {
         checkNotNull(destDir);
         checkNotNull(dirPath);
 
-        String normalizedDirPath;
-        if (dirPath.startsWith("/")) {
-            normalizedDirPath = dirPath.substring(1);
-        } else {
-            normalizedDirPath = dirPath;
-        }
+        String normalizedDirPath = removeStartSlashes(dirPath);
 
         try (JarFile jar = new JarFile(jarFile)) {
 
-            java.util.Enumeration enumEntries = jar.entries();
+            java.util.Enumeration<JarEntry> enumEntries = jar.entries();
             while (enumEntries.hasMoreElements()) {
                 JarEntry jarEntry = (JarEntry) enumEntries.nextElement();
                 if (jarEntry.getName()
                             .startsWith(normalizedDirPath)) {
-                    File f = new File(
-                            destDir
-                                    + File.separator
-                                    + jarEntry
+                    File destFile = new File(
+                                destDir.getAbsolutePath() + File.separator + jarEntry
                                               .getName()
                                               .substring(normalizedDirPath.length()));
 
                     if (jarEntry.isDirectory()) { // if its a directory, create
                                                   // it
-                        f.mkdirs();
+                        destFile.mkdirs();
                         continue;
                     } else {
-                        f.getParentFile()
+                        destFile.getParentFile()
                          .mkdirs();
                     }
 
-                    InputStream is = jar.getInputStream(jarEntry); // get the
-                                                                   // input
-                                                                   // stream
-                    FileOutputStream fos = new FileOutputStream(f);
-                    IOUtils.copy(is, fos);
-                    fos.close();
+                    InputStream is = jar.getInputStream(jarEntry); 
+                    FileOutputStream destStream = new FileOutputStream(destFile);
+                    IOUtils.copy(is, destStream);
+                    destStream.close();
                     is.close();
                 }
 
@@ -1020,11 +1021,43 @@ public final class Internals {
                     throw new DivIoException("Couldn't copy the directory!", ex);
                 }
             } else {
-                LOG.info("Extracting jar {} to {}", jarFile.getAbsolutePath(), destDir.getAbsolutePath());
+                LOG.debug("Extracting from jar {} to {}", relPath(jarFile), relPath(destDir));
                 copyDirFromJar(jarFile, destDir, sourceDirPath);
                 LOG.debug("Done copying directory from JAR.");
             }
 
+        }
+    }
+    
+    /**
+     * Returns a short relative path to file, if possible, otherwise returns the absolute path.
+     * 
+     * @since 0.1.0
+     */
+    public static String relPath(File file){
+        checkNotNull(file);
+        
+        if (file.toString().equals(".")){
+            return file.toString() + "/";
+        }
+        
+        File userDir = new File(System.getProperty("user.dir"));
+        
+        String userDirPath;
+        if (userDir.getAbsolutePath().endsWith("/")){
+          userDirPath = userDir.getAbsolutePath();  
+        } else{
+            userDirPath = userDir.getAbsolutePath() + "/";
+        }               
+                
+        try {
+            if (file.getCanonicalPath().startsWith(userDirPath)){
+                return file.getAbsolutePath().substring(userDirPath.length());
+            } else {
+                return file.getAbsolutePath();
+            }
+        } catch (IOException e) {
+            return file.getAbsolutePath();
         }
     }
 

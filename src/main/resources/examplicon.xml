@@ -5,7 +5,7 @@
 <LexicalResource
 	name="div-examplicon"		
 	prefix="ex"	
-	xmlns:ex="https://github.com/DavidLeoni/diversicon/blob/master/src/main/resources/examplicon.lmf.xml"
+	xmlns:ex="https://github.com/DavidLeoni/diversicon/blob/master/src/main/resources/examplicon.xml"
 	xmlns:wn31="https://github.com/DavidLeoni/diversicon-wordnet-3.1"
 	 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"

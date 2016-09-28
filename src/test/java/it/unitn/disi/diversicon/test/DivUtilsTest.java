@@ -181,8 +181,8 @@ public class DivUtilsTest {
         assertTrue(ns.containsKey(Examplicon.PREFIX));
         assertTrue(ns.containsKey(DivWn31.PREFIX));
         
-        assertTrue(ns.get(Examplicon.PREFIX).contains(Examplicon.SHORT_NAME + ".lmf.xml"));
-        assertTrue(ns.get(DivWn31.PREFIX).contains(DivWn31.NAME + ".lmf.xml"));
+        assertTrue(ns.get(Examplicon.PREFIX).contains(Examplicon.SHORT_NAME + ".xml"));
+        assertTrue(ns.get(DivWn31.PREFIX).contains(DivWn31.NAME + ".xml"));
     }
     
     
@@ -645,6 +645,18 @@ public class DivUtilsTest {
         
         String output = FileUtils.readFileToString(outXml);
         assertEquals("<a>b</a>", output);
+    }
+    
+    @Test
+    public void testRelPath(){
+        assertEquals("./", Internals.relPath(new File(".")));
+        assertEquals(".a", Internals.relPath(new File(".a")));
+        assertEquals("/a/b", Internals.relPath(new File("/a/b/")));
+        assertEquals("a/b", Internals.relPath(new File("a/b/")));                
+        
+        // would like pom.xml  but you can't have everything in life..         
+        assertEquals("src/../pom.xml", Internals.relPath(new File("src/../pom.xml")));
+        
     }
    
 }

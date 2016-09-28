@@ -334,8 +334,10 @@ public class Diversicon extends Uby {
      */
     private void validateGraph() {
 
-        LOG.info("Validating SynsetRelations...");
-
+        LOG.info("");
+        LOG.info("Executing post-import db validation ... ");
+        LOG.info("");
+        
         Transaction tx = null;
         Date checkpoint = new Date();
 
@@ -372,8 +374,7 @@ public class Diversicon extends Uby {
                 tx.commit();
             }
 
-            LOG.info("");
-            LOG.info("Done validating SynsetRelations.");
+            LOG.info("DB is valid!");
             LOG.info("");
             LOG.info("   Elapsed time: " + Internals.formatInterval(start, new Date()));
             LOG.info("");
@@ -909,6 +910,10 @@ public class Diversicon extends Uby {
                 file, 
                 pack);
         
+        LOG.info("");
+        LOG.info("Starting import...");
+        LOG.info("");
+        
         try {
             DivXmlToDbTransformer trans = new DivXmlToDbTransformer(this);
             trans.transform(file, null);
@@ -1047,9 +1052,13 @@ public class Diversicon extends Uby {
             Internals.checkLexResPackage(pack);
             
             if (file != null){
-                LOG.info("Validating the XML " + file.getAbsolutePath() + "   ...");
+                LOG.info("");
+                LOG.info("Validating XML Schema of " + file.getAbsolutePath() + "   ...");
+                LOG.info("");
                 try {
                     Diversicons.validateXml(file, LOG, config.getLogLimit());
+                    LOG.info("XML is valid!");
+                    LOG.info("");
                 } catch (Exception ex){
                     throw new InvalidImportException("Found invalid XML !", ex);
                 }                
@@ -1065,7 +1074,8 @@ public class Diversicon extends Uby {
                 
                 if (Objects.equals(pack.getPrefix(), job.getLexResPackage().getPrefix())){
                     throw new InvalidImportException("Tried to import a lexical resource which "
-                            + "has the same prefix of resource:\n " + job.getLexResPackage().toString());
+                            + "has the same prefix of resource:\n " + job.getLexResPackage().getName(),
+                            config, fileUrl, pack);
                 }
             }
             
@@ -1083,18 +1093,16 @@ public class Diversicon extends Uby {
                         throw new InvalidImportException(
                                 "Tried to import a prefix which is assigned to another resource url in the db! "
                                         + "Prefix is " + prefix + "  ; url to import = " + urlToImport
-                                        + "  ;  url in the db = " + urlInDb);
+                                        + "  ;  url in the db = " + urlInDb,
+                                        config, fileUrl, pack);
                     }
                 }
             }
 
         } catch (Exception ex) {
             throw new InvalidImportException(
-                      "Invalid import! \n"
-                      + "Tried to import file " + fileUrl +"\n"
-                      + "Representing " + pack
-                      + "Using " + config.toString(), ex);                    
-                    
+                      "Invalid import for " + fileUrl + "! \n", ex,
+                      config, fileUrl, pack);
         }
         
         ImportJob job = new ImportJob();
@@ -1232,8 +1240,8 @@ public class Diversicon extends Uby {
 
         } catch (InvalidImportException ex) {
 
-            LOG.error("Import failed, no LexicalResource data was written to disk. "
-                    + "Aborting all imports.", ex);
+            LOG.error("Import failed! Aborting all imports! (no LexicalResource data was written to disk) \n", ex);
+            
             throw ex;
         } catch (Exception ex) {
             throw new InterruptedImportException("Error when importing lexical resource "
