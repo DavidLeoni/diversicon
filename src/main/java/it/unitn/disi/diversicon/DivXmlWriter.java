@@ -88,11 +88,7 @@ class DivXmlWriter extends LMFXmlWriter {
     protected void doWriteElement(Object lmfObject, boolean closeTag) throws SAXException {               
         
         AttributesImpl atts = new AttributesImpl();
-        List<Object> children = new ArrayList<>();
-        
-        if (lmfObject instanceof Lemma){
-            LOG.debug("TODO");
-        }
+        List<Object> children = new ArrayList<>();        
         
         @Nullable
         String elementName = Internals.prepareXmlElement(lmfObject,
