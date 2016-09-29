@@ -44,6 +44,7 @@ import it.unitn.disi.diversicon.Diversicons;
 import it.unitn.disi.diversicon.ImportConfig;
 import it.unitn.disi.diversicon.ImportJob;
 import it.unitn.disi.diversicon.LexResPackage;
+import it.unitn.disi.diversicon.data.DivWn31;
 import it.unitn.disi.diversicon.data.Smartphones;
 import it.unitn.disi.diversicon.exceptions.InterruptedImportException;
 import it.unitn.disi.diversicon.exceptions.InvalidImportException;
@@ -892,6 +893,11 @@ public class DiversiconTest {
         ImportJob job = div.importXml(Smartphones.of().getXmlUri());        
                 
         LexicalResource lr = div.getLexicalResource(Smartphones.NAME);
+        
+        job.getLexResPackage().getNamespaces().get(Smartphones.PREFIX).equals(
+                Smartphones.of().namespace());
+        job.getLexResPackage().getNamespaces().get(DivWn31.PREFIX).equals(DivWn31.of().namespace());
+        
         List<MetaData> metadatas = lr.getMetaData();
         assertEquals(1, metadatas.size());
         MetaData metadata = metadatas.get(0);
