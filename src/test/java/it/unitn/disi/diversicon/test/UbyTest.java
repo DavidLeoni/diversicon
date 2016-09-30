@@ -43,9 +43,9 @@ import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import de.tudarmstadt.ukp.lmf.transform.LMFDBUtils;
 import de.tudarmstadt.ukp.lmf.transform.LMFXmlWriter;
 import de.tudarmstadt.ukp.lmf.transform.XMLToDBTransformer;
-import it.disi.unitn.diversicon.exceptions.DivException;
 import it.unitn.disi.diversicon.DivSynsetRelation;
 import it.unitn.disi.diversicon.Diversicons;
+import it.unitn.disi.diversicon.exceptions.DivException;
 import it.unitn.disi.diversicon.internal.Internals;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;

@@ -15,7 +15,7 @@ import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
-import it.disi.unitn.diversicon.exceptions.DivException;
+import it.unitn.disi.diversicon.exceptions.DivException;
 
 /**
  * 

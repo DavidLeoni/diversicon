@@ -11,7 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
-import it.disi.unitn.diversicon.exceptions.DivException;
+import it.unitn.disi.diversicon.exceptions.DivException;
 import it.unitn.disi.diversicon.internal.Internals;
 import it.unitn.disi.diversicon.test.DivTester;
 

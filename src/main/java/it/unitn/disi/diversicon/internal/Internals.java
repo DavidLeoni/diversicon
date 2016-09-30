@@ -73,14 +73,14 @@ import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata;
 import de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata.UBYLMFFieldMetadata;
-import it.disi.unitn.diversicon.exceptions.DivException;
-import it.disi.unitn.diversicon.exceptions.DivIoException;
-import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.BuildInfo;
 import it.unitn.disi.diversicon.DivSynsetRelation;
 import it.unitn.disi.diversicon.DivXmlHandler;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.LexResPackage;
+import it.unitn.disi.diversicon.exceptions.DivException;
+import it.unitn.disi.diversicon.exceptions.DivIoException;
+import it.unitn.disi.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.exceptions.InvalidXmlException;
 import it.unitn.disi.diversicon.Diversicons;
 

@@ -64,10 +64,10 @@ import static de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics.*;
 
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import it.unitn.disi.diversicon.internal.Internals;
-import it.disi.unitn.diversicon.exceptions.DivException;
-import it.disi.unitn.diversicon.exceptions.DivIoException;
-import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.data.DivWn31;
+import it.unitn.disi.diversicon.exceptions.DivException;
+import it.unitn.disi.diversicon.exceptions.DivIoException;
+import it.unitn.disi.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.exceptions.InvalidSchemaException;
 import it.unitn.disi.diversicon.exceptions.InvalidXmlException;
 import it.unitn.disi.diversicon.internal.ExtractedStream;
@@ -144,7 +144,7 @@ public final class Diversicons {
     /**
      * @since 0.1.0
      */
-    public static final String DIVERSICON_DTD_1_0_PUBLIC_URL = BuildInfo.of(Diversicons.class).getServerWebsite()
+    public static final String DIVERSICON_DTD_1_0_PUBLIC_URL = BuildInfo.of(Diversicons.class).getServer()
             + "/" + DIVERSICON_DTD_1_0_FILENAME;
 
     /**
@@ -166,7 +166,7 @@ public final class Diversicons {
     /**
      * @since 0.1.0
      */
-    public static final String DIVERSICON_SCHEMA_1_0_PUBLIC_URL = BuildInfo.of(Diversicons.class).getServerWebsite() 
+    public static final String DIVERSICON_SCHEMA_1_0_PUBLIC_URL = BuildInfo.of(Diversicons.class).getServer() 
             + "/" + DIVERSICON_SCHEMA_1_0_FILENAME;
 
     /**
@@ -478,7 +478,7 @@ public final class Diversicons {
     }
 
     /**
-     * Creates a database based on the hibernate mappings.
+     * Creates a database based on the hibernate mappings
      * 
      * (adapted from
      * {@link de.tudarmstadt.ukp.lmf.transform.LMFDBUtils#createTables(DBConfig)

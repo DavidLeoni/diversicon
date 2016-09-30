@@ -1,8 +1,8 @@
 package it.unitn.disi.diversicon.exceptions;
 
-import it.disi.unitn.diversicon.exceptions.DivException;
 import it.unitn.disi.diversicon.ImportConfig;
 import it.unitn.disi.diversicon.LexResPackage;
+import it.unitn.disi.diversicon.exceptions.DivException;
 
 /**
  * A runtime exception raised to signal an import request is erroneous,

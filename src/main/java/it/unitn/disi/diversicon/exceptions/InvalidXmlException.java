@@ -5,8 +5,8 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import it.disi.unitn.diversicon.exceptions.DivException;
 import it.unitn.disi.diversicon.DivXmlHandler;
+import it.unitn.disi.diversicon.exceptions.DivException;
 
 /**
  * A runtime exception raised when Xml validation fails. 

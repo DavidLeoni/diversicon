@@ -141,10 +141,6 @@
 			</exclusions>
 		</dependency>
 
-		<dependency>
-			<groupId>it.unitn.disi</groupId>
-			<artifactId>div-wn31-model</artifactId>		
-		</dependency>
 
 		<dependency>
 			<groupId>org.hibernate.common</groupId>

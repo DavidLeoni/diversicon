@@ -20,8 +20,8 @@ import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import it.disi.unitn.diversicon.exceptions.DivIoException;
 import it.unitn.disi.diversicon.Diversicons;
+import it.unitn.disi.diversicon.exceptions.DivIoException;
 
 /**
  * A stream possibly extracted from a compressed {@code sourceUrl}. Use

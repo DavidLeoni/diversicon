@@ -20,10 +20,10 @@ import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
 
-import it.disi.unitn.diversicon.exceptions.DivException;
 import it.unitn.disi.diversicon.DivXmlHandler;
 import it.unitn.disi.diversicon.Diversicons;
 import it.unitn.disi.diversicon.LexResPackage;
+import it.unitn.disi.diversicon.exceptions.DivException;
 
 
 /**
