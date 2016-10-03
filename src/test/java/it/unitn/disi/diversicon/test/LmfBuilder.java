@@ -8,6 +8,7 @@ import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
 import de.tudarmstadt.ukp.lmf.model.core.Sense;
 import de.tudarmstadt.ukp.lmf.model.core.TextRepresentation;
 import de.tudarmstadt.ukp.lmf.model.enums.EPartOfSpeech;
+import de.tudarmstadt.ukp.lmf.model.meta.MetaData;
 import de.tudarmstadt.ukp.lmf.model.morphology.FormRepresentation;
 import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
@@ -23,6 +24,7 @@ import static it.unitn.disi.diversicon.test.DivTester.pid;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,7 +77,15 @@ public class LmfBuilder {
         GlobalInformation globInfo = new GlobalInformation();
         globInfo.setLabel(prefix + " lexical resource");
         this.lexicalResource.setGlobalInformation(globInfo);
- 
+        MetaData md = new MetaData();
+        md.setAutomatic(false);
+        md.setCreationDate(new Date());
+        md.setCreationProcess("for tests");
+        md.setCreationTool("by hand");
+        md.setId(pid(prefix,"md"));
+        md.setVersion("0.1.0-SNAPSHOT");
+        this.lexicalResource.setMetaData(Internals.newArrayList(md));
+        
         this.built = false;
         this.lastSenseId = 0;
         this.uby = false;
