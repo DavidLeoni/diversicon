@@ -775,7 +775,7 @@ public class Diversicon extends Uby {
         ImportConfig config = new ImportConfig();
 
         config.setAuthor(Diversicons.DEFAULT_AUTHOR);
-        config.setFileUrls(Arrays.asList(fileUrl));
+        config.setFileUrls(Arrays.asList(fileUrl));        
 
         return importFiles(config).get(0);
     }
@@ -1058,7 +1058,7 @@ public class Diversicon extends Uby {
                 try {
                     XmlValidationConfig xmlValidationConfig = XmlValidationConfig.builder()
                     .setLog(LOG)
-                    .setLogLimit(1)
+                    .setLogLimit(config.getLogLimit())
                     .setFailFast(true)
                     .setXsdUrl(Diversicons.SCHEMA_1_0_CLASSPATH_URL)
                     .build();

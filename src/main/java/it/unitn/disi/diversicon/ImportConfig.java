@@ -19,7 +19,7 @@ public class ImportConfig {
     private String author;
     private String description;
     private boolean skipAugment;
-    private int logLimit;
+    private int logLimit;   
 
     /**
      * Default constructor.

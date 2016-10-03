@@ -19,6 +19,7 @@ import org.xml.sax.SAXParseException;
 
 import it.unitn.disi.diversicon.XmlValidationConfig.Builder;
 import it.unitn.disi.diversicon.exceptions.DivException;
+import it.unitn.disi.diversicon.internal.Internals;
 
 /**
  * 
@@ -97,9 +98,9 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
      * @since 0.1.0
      */
     private void setDefaultSystemId(String defaultSystemId) {
-        if (defaultSystemId == null) {
+        if (Internals.isBlank(defaultSystemId)) {
             config.getLog()
-                  .error("Found config.getDefaultSystemId(), setting it to empty string.");
+                  .error("Found blank dfaultSystemId, setting it to empty string.");
             defaultSystemId = "";
         } else {
             this.defaultSystemId = defaultSystemId;
