@@ -100,7 +100,7 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
     private void setDefaultSystemId(String defaultSystemId) {
         if (Internals.isBlank(defaultSystemId)) {
             config.getLog()
-                  .error("Found blank dfaultSystemId, setting it to empty string.");
+                  .error("Found blank defaultSystemId, setting it to empty string.");
             defaultSystemId = "";
         } else {
             this.defaultSystemId = defaultSystemId;
@@ -280,7 +280,7 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
                 if (config.isFailFast()) {
                     
                     config.getLog()
-                          .error("Interrupting validation, there could be more errors in the file...");
+                          .error("\nFound too many errors, interrupting validation!\n");
                     throwException(ex);
                 }
             }

@@ -115,7 +115,7 @@ public final class Diversicons {
     /**
      * @since 0.1.0
      */
-    public static final String DTD_FILENAME = "diversicon-1.0.dtd";
+    public static final String DTD_FILENAME = "diversicon.dtd";
 
     /**
      * @since 0.1.0
@@ -132,22 +132,28 @@ public final class Diversicons {
      * @since 0.1.0
      */
     public static final String DTD_1_PUBLIC_URL = BuildInfo.of(Diversicons.class).getServer()
-            + SCHEMA_1_FRAGMENT + DTD_FILENAME;
+            + SCHEMA_1_FRAGMENT + "/" +  DTD_FILENAME;
     
     /**
      * @since 0.1.0
      */
-    public static final String DTD_1_0_PUBLIC_URL = BuildInfo.of(Diversicons.class).getServer()
-            + SCHEMA_1_0_FRAGMENT + DTD_FILENAME;
+    public static final String DTD_1_0_PUBLIC_URL = 
+            BuildInfo.of(Diversicons.class).getServer()
+            + SCHEMA_1_0_FRAGMENT + "/" +  DTD_FILENAME;
 
-    
+    /**
+     * Maximum number of import issues printed to screen
+     * 
+     * @since 0.1.0
+     */
+    public static final int DEFAULT_LOG_LIMIT = 20;    
        
     /**
      * @since 0.1.0
      */
     public static final String DTD_1_0_CLASSPATH_URL =  
             CLASSPATH_WEBSITE  
-            + SCHEMA_1_0_FRAGMENT + DTD_FILENAME;
+            + SCHEMA_1_0_FRAGMENT + "/" + DTD_FILENAME;
     
     
     /**

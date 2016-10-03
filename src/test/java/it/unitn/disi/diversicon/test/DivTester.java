@@ -725,7 +725,7 @@ public final class DivTester {
      * 
      * <pre>
      *      e FILEPATH : Extracts relType from SynsetRelation rows of OWA XML at FILEPATH
-     *      s          : Generates the xsd schema and puts it in src/main/resources/diversicon-1.0.xsd}
+     *      s          : Generates the xsd schema and puts it in diversicon model resources}
      * </pre>
      *
      * @since 0.1.0
@@ -758,9 +758,16 @@ public final class DivTester {
                 throw new DivException(ex);
             }
             System.exit(0);
-        case "s":            
-            File f = new File(Internals.DEV_WEBSITE + "/" + Diversicons.SCHEMA_FILENAME);
-            Internals.generateXmlSchemaFromDtd(f);            
+        case "s":   
+            String modelPath = "../../diversicon-model/prj/"            
+            + ((Internals.DEV_WEBSITE + "/" 
+            + Diversicons.SCHEMA_1_0_FRAGMENT 
+            + "/").substring("file://".length()));
+            
+            File dtd = new File(modelPath + Diversicons.DTD_FILENAME);
+            File schema = new File(modelPath + Diversicons.SCHEMA_FILENAME); 
+                        
+            Internals.generateXmlSchemaFromDtd(dtd, schema);            
             System.exit(0);
         default:
             LOG.error("Invalid command " + args[0]);
@@ -768,6 +775,5 @@ public final class DivTester {
         }
 
     }
-    
     
 }

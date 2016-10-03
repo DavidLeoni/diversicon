@@ -764,6 +764,8 @@ public class DivUtilsTest {
     @Test
     public void testGenerateXmlSchema() throws IOException {
 
+        File dtd = Internals.readData(Diversicons.DTD_1_0_CLASSPATH_URL).toTempFile();
+        
         File xsd = new File("target", "diversicon-1.0-SNAPSHOT.xsd");
 
         // extra security check
@@ -773,7 +775,7 @@ public class DivUtilsTest {
             LOG.info("cleaned " + xsd.getAbsolutePath());
         }
 
-        Internals.generateXmlSchemaFromDtd(xsd);
+        Internals.generateXmlSchemaFromDtd(dtd, xsd);
 
         LOG.debug("GENERATED SCHEMA IS:\n" + FileUtils.readFileToString(xsd));
 

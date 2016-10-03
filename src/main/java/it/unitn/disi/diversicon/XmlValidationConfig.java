@@ -28,7 +28,7 @@ public class XmlValidationConfig {
      */
     private XmlValidationConfig() {
         this.log = LoggerFactory.getLogger(XmlValidationConfig.class);
-        this.logLimit = -1;
+        this.logLimit = Diversicons.DEFAULT_LOG_LIMIT;
         this.failFast = false;
         this.xsdUrl = null;
     }

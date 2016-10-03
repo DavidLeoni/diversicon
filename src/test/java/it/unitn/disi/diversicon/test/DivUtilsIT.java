@@ -131,7 +131,19 @@ public class DivUtilsIT {
         assertTrue(f.length() > 0);                
     }
 
-    
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testImportXmlWordnetSample(){
+        
+        Diversicons.createTables(dbConfig);
+        
+        Diversicon div = Diversicon.connectToDb(dbConfig);
+                
+        div.importXml(DivWn31.SAMPLE_XML_URI);
+        
+    }    
     
     
     /**

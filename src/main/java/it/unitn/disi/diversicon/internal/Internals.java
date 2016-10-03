@@ -1767,15 +1767,15 @@ public final class Internals {
     // NOTE: you can't add namespace declarations with Xquery update!
     // See
     // http://stackoverflow.com/questions/36865118/add-namespace-declaration-to-xml-element-using-xquery
-    public static void generateXmlSchemaFromDtd(File output) {
+    public static void generateXmlSchemaFromDtd(File inputDtd, File output) {
 
-        LOG.info("Going to generate xsd file:  " + output.getAbsolutePath() + "   ...");
+        LOG.info("Going to generate xsd:   " + output.getAbsolutePath() + "   ...");
 
         checkNotNull(output);
-
-        File dtd = Internals.readData(Diversicons.DTD_1_0_CLASSPATH_URL)
-                            .toTempFile();
-
+        checkNotNull(inputDtd);
+        
+        checkArgument(inputDtd.exists(), "Can't find input DTD " + inputDtd.getAbsolutePath());
+        
         File tempDir = createTempDivDir("trang").toFile();
 
         /**
@@ -1790,7 +1790,7 @@ public final class Internals {
         new com.thaiopensource.relaxng.translate.Driver().run(new String[] { "-I", "dtd", "-O", "xsd",
                 "-i", "xmlns:fn=http://www.w3.org/2005/xpath-functions",
                 "-i", "xmlns:vc=http://www.w3.org/2007/XMLSchema-versioning",
-                dtd.getAbsolutePath(),
+                inputDtd.getAbsolutePath(),
                 firstPass.getAbsolutePath() });
 
         if (!firstPass.exists()) {

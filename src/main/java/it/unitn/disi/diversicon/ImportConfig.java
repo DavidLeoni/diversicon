@@ -33,7 +33,7 @@ public class ImportConfig {
         this.author = "";
         this.description = "";
         this.skipAugment = false;
-        this.logLimit = -1;
+        this.logLimit = Diversicons.DEFAULT_LOG_LIMIT;
     }
 
     /**
@@ -154,7 +154,7 @@ public class ImportConfig {
 
     /**
      * A limit on the maximum number of logs occurring during the import.
-     * This number is merely an indication to Diversicon, actual output rows
+     * This number is merely an indication to Diversicon, actual output lines
      * may vary.
      * 
      * @since 0.1.0

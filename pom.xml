@@ -115,6 +115,22 @@
 				<artifactId>maven-failsafe-plugin</artifactId>
 			</plugin>
 
+			<plugin>
+			  <groupId>org.codehaus.mojo</groupId>
+			  <artifactId>exec-maven-plugin</artifactId>
+			  <executions>
+			    <execution>
+			      <goals>
+			        <goal>java</goal>
+			      </goals>
+			    </execution>
+			  </executions>
+			  <configuration>
+			    	<mainClass>it.unitn.disi.diversicon.test.DivTester</mainClass>
+			    	<classpathScope>test</classpathScope>
+			  </configuration>
+			</plugin>
+
 		</plugins>
 	</build>
 

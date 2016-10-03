@@ -775,7 +775,8 @@ public class Diversicon extends Uby {
         ImportConfig config = new ImportConfig();
 
         config.setAuthor(Diversicons.DEFAULT_AUTHOR);
-        config.setFileUrls(Arrays.asList(fileUrl));        
+        config.setFileUrls(Arrays.asList(fileUrl));
+        
 
         return importFiles(config).get(0);
     }
