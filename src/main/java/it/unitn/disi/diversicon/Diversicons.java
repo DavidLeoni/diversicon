@@ -23,6 +23,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.io.FileUtils;
+import org.apache.xerces.impl.Constants;
 import org.basex.core.Context;
 import org.basex.io.serial.Serializer;
 import org.basex.query.QueryException;
@@ -50,11 +51,16 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.xml.sax.SAXException;
 import javax.annotation.Nullable;
 import javax.xml.transform.ErrorListener;
+import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
+
 import de.tudarmstadt.ukp.lmf.hibernate.HibernateConnect;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelTypeSemantics;
@@ -70,6 +76,7 @@ import it.unitn.disi.diversicon.exceptions.DivIoException;
 import it.unitn.disi.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.exceptions.InvalidSchemaException;
 import it.unitn.disi.diversicon.exceptions.InvalidXmlException;
+import it.unitn.disi.diversicon.internal.DivXmlValidator;
 import it.unitn.disi.diversicon.internal.ExtractedStream;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
@@ -83,16 +90,106 @@ import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
  * @since 0.1.0
  */
 public final class Diversicons {
+
     
-   
     /**
-     * The version of the currently supported schema.
      * 
      * @since 0.1.0
      */
-    public static final String DIVERSICON_SCHEMA_VERSION = "1.0";
-      
+    public static final String SCHEMA_VERSION_1 = "1";
+    
+   
+    /**
+     * 
+     * @since 0.1.0
+     */
+    public static final String SCHEMA_VERSION_1_0 = "1.0";
+    
+    
+    /**
+     * @since 0.1.0
+     */
+    public static final String CLASSPATH_WEBSITE  = "classpath:/website/";
+    
+    
+    /**
+     * @since 0.1.0
+     */
+    public static final String DTD_FILENAME = "diversicon-1.0.dtd";
 
+    /**
+     * @since 0.1.0
+     */
+    public static final String SCHEMA_1_FRAGMENT = "schema/1"; 
+    
+    /**
+     * @since 0.1.0
+     */
+    public static final String SCHEMA_1_0_FRAGMENT = SCHEMA_1_FRAGMENT + ".0"; 
+
+    
+    /**
+     * @since 0.1.0
+     */
+    public static final String DTD_1_PUBLIC_URL = BuildInfo.of(Diversicons.class).getServer()
+            + SCHEMA_1_FRAGMENT + DTD_FILENAME;
+    
+    /**
+     * @since 0.1.0
+     */
+    public static final String DTD_1_0_PUBLIC_URL = BuildInfo.of(Diversicons.class).getServer()
+            + SCHEMA_1_0_FRAGMENT + DTD_FILENAME;
+
+    
+       
+    /**
+     * @since 0.1.0
+     */
+    public static final String DTD_1_0_CLASSPATH_URL =  
+            CLASSPATH_WEBSITE  
+            + SCHEMA_1_0_FRAGMENT + DTD_FILENAME;
+    
+    
+    /**
+     * @since 0.1.0
+     */
+    public static final String SCHEMA_FILENAME = "diversicon.xsd";
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String SCHEMA_1_0_CLASSPATH_URL = 
+            CLASSPATH_WEBSITE  
+            + SCHEMA_1_0_FRAGMENT 
+            + "/" + SCHEMA_FILENAME;
+
+        
+    /**
+     * @since 0.1.0
+     */
+    public static final String SCHEMA_1_NAMESPACE =
+            BuildInfo.of(Diversicons.class).getServer() + SCHEMA_1_FRAGMENT;
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String SCHEMA_1_0_NAMESPACE =
+            BuildInfo.of(Diversicons.class).getServer() + SCHEMA_1_0_FRAGMENT;
+    
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String SCHEMA_1_PUBLIC_URL = 
+            SCHEMA_1_NAMESPACE + "/" + SCHEMA_FILENAME;         
+        
+    /**
+     * @since 0.1.0
+     */
+    public static final String SCHEMA_1_0_PUBLIC_URL = 
+            SCHEMA_1_0_NAMESPACE + "/" + SCHEMA_FILENAME;         
+
+    
     /**
      * If you set this system property, temporary files won't be deleted at JVM
      * shutdown.
@@ -136,38 +233,6 @@ public final class Diversicons {
 
     
     
-    /**
-     * @since 0.1.0
-     */
-    public static final String DIVERSICON_DTD_1_0_FILENAME = "diversicon-1.0.dtd";
-
-    /**
-     * @since 0.1.0
-     */
-    public static final String DIVERSICON_DTD_1_0_PUBLIC_URL = BuildInfo.of(Diversicons.class).getServer()
-            + "/" + DIVERSICON_DTD_1_0_FILENAME;
-
-    /**
-     * @since 0.1.0
-     */
-    public static final String DIVERSICON_DTD_1_0_CLASSPATH_URL = "classpath:/website/" + DIVERSICON_DTD_1_0_FILENAME;
-    
-    
-    /**
-     * @since 0.1.0
-     */
-    public static final String DIVERSICON_SCHEMA_1_0_FILENAME = "diversicon-1.0.xsd";
-
-    /**
-     * @since 0.1.0
-     */
-    public static final String DIVERSICON_SCHEMA_1_0_CLASSPATH_URL = "classpath:/website/" + DIVERSICON_SCHEMA_1_0_FILENAME;
-
-    /**
-     * @since 0.1.0
-     */
-    public static final String DIVERSICON_SCHEMA_1_0_PUBLIC_URL = BuildInfo.of(Diversicons.class).getServer() 
-            + "/" + DIVERSICON_SCHEMA_1_0_FILENAME;
 
     /**
      * @since 0.1.0
@@ -1490,40 +1555,73 @@ public final class Diversicons {
 
     /**
      * 
-     * See {@link #validateXml(File, Logger, long)}
+     * See {@link #validateXml(File, XmlValidationConfig)}
      * 
      * @throws InvalidXmlException
      * 
      * @since 0.1.0
      * 
      */
-    public static void validateXml(File xmlFile, Logger log) {
-        validateXml(xmlFile, log, -1);
+    public static void validateXml(File xmlFile, Logger log) {        
+        validateXml(xmlFile, XmlValidationConfig.of(log));
     }
 
 
     
     /**
-     * Validates an xml file according to Xml Schema
-     * {@value #DIVERSICON_SCHEMA_1_0_CLASSPATH_URL},
-     * outputting messages to provided {@code logger}.
-     *
-     * @parameter logLimit when the number of messages roughly exceeds
-     *            {@code logLimit} they won't be outputted anymore. If -1
-     *            no limit is imposed.
+     * Validates an xml file. You can pass schema overrides in the provided config.
      * 
      * @throws DivException
      * @throws InvalidXmlException
      * 
      * @since 0.1.0
      */
-    public static void validateXml(File xmlFile,  Logger logger, long logLimit) {
+    public static void validateXml(File xmlFile,  XmlValidationConfig config) {
+                             
+        checkNotNull(xmlFile);
+        checkNotNull(config);
+
+        // if editor can't find the constant probably default xerces is being
+        // used instead of the one supporting schema 1.1
+
+        SchemaFactory factory = SchemaFactory.newInstance(Constants.W3C_XML_SCHEMA11_NS_URI);
         
-        File xsdFile = Internals.readData(Diversicons.DIVERSICON_SCHEMA_1_0_CLASSPATH_URL, false)
-                .toTempFile();
-        
-        Internals.validateXml(xmlFile, xsdFile, logger, logLimit);
+        Schema schema;
+        try {
+            if (Internals.isBlank(config.getXsdUrl())){
+                schema = factory.newSchema();
+            } else {
+                File xsd = Internals.readData(config.getXsdUrl()).toTempFile();
+                schema = factory.newSchema(xsd);    
+            }            
+        } catch (SAXException e) {
+            throw new DivException(e);
+        }
+
+        Source source = new StreamSource(xmlFile);        
+        DivXmlHandler errorHandler = new DivXmlHandler(config, source.getSystemId());
+
+        Validator validator = schema.newValidator();
+
+        validator.setErrorHandler(errorHandler);
+
+        try {
+            validator.validate(source);
+        } catch (SAXException | IOException e) {
+            throw new InvalidXmlException(errorHandler, "Fatal error while validating " + xmlFile.getAbsolutePath(), e);
+        }
+
+        DivXmlValidator.validate(xmlFile, errorHandler);
+
+        if (errorHandler.invalid()) {
+            config.getLog().error("Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath());
+            throw new InvalidXmlException(errorHandler,
+                    "Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath() 
+                    + "\n" + errorHandler.firstIssueAsString());
+        }
+
     }
+
 
 
     /**
@@ -1689,11 +1787,11 @@ public final class Diversicons {
         checkNotNull(inXml);
         checkNotNull(outXml);
         
-
         SAXReader reader = new SAXReader(false);
+                      
         DivXmlHandler handler = new DivXmlHandler(
-                LOG, logLimit,
-                "666");
+                XmlValidationConfig.builder().setLog(LOG).setLogLimit(logLimit).build()
+                , "");
         reader.setErrorHandler(handler);
         Document document;
 
@@ -1702,6 +1800,7 @@ public final class Diversicons {
         } catch (DocumentException ex) {
             throw new InvalidXmlException(handler, "Something went wrong!", ex);
         }
+        
         String stylesheet = "src/main/resources/owa-to-uby.xslt";
 
         // load the transformer using JAXP

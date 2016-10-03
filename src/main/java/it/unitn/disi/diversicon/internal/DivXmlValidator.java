@@ -32,7 +32,7 @@ import it.unitn.disi.diversicon.exceptions.DivException;
  */
 // from here
 // http://www.java2s.com/Tutorials/Java/XML/SAX/Output_line_number_for_SAX_parser_event_handler_in_Java.htm
-class DivXmlValidator extends DefaultHandler {
+public class DivXmlValidator extends DefaultHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(DivXmlValidator.class);
     

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- File with many errors to test validation 
+     Follows loosely the content of examplicon.xml 
+-->
+
+<LexicalResource
+	name="div-bad-examplicon"		
+	prefix="bex"	
+	xmlns:ex="https://github.com/DavidLeoni/diversicon/blob/master/src/test/resources/bad-examplicon.xml"
+	xmlns:wn31="https://github.com/DavidLeoni/diversicon-wordnet-3.1"
+	 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://diversicon-kb.org/schema/1
+						http://diversicon-kb.org/schema/1/diversicon.xsd">
+
+	<GlobalInformation label="The Bad Examplicon"></GlobalInformation>
+
+    <MetaData id="bex_md"
+    		  creationDate="2016-09-26"
+    		  creationTool="text editor"
+    		  version="1.0"   
+    		  creationProcess="by hand"
+    		  automatic="false"
+    		  />    
+
+	<!--  id not starting with 'bex' -->
+    <Lexicon id="666_lex-eng"
+    		 languageIdentifier="eng" 
+    		 name="bexamplicon English lexicon">
+    		 
+       <!--  missing id  -->
+        <LexicalEntry  
+        			  partOfSpeech="noun">
+        			  
+        	<!-- Invalid XML id, starts with dash '-' . Only underscore '_' should be allowed 
+        		 Also, does not start with 'bex' prefix.
+        	-->
+        	
+            <Lemma id="-trial">
+                <FormRepresentation languageIdentifier="eng" 
+                					writtenForm="electric car"/>
+            </Lemma>
+            <!-- non valid XML id, contains euro € symbol -->
+            <Sense id="bex_s-€€€€lectric-car" 
+            	   synset="bex_ss-electric-car">
+                <MonolingualExternalRef externalSystem="cars" 
+                						externalReference="3rd row, fourth column in CSV"/>
+            </Sense>
+        </LexicalEntry>
+
+		<LexicalEntry id="bex_le-tesla-car" 
+        			  partOfSpeech="noun">
+            <Lemma>
+                <FormRepresentation languageIdentifier="eng" 
+                					writtenForm="tesla car"/>
+            </Lemma>
+            <Sense id="bex_s-tesla-car" 
+            	   synset="bex_ss-tesla-car">
+                <MonolingualExternalRef externalSystem="cars" 
+                						externalReference="3rd row, fourth column in CSV"/>
+            </Sense>
+        </LexicalEntry>
+
+		        
+		<Synset id="bex_ss-electric-car">
+            <Definition>
+                <TextRepresentation languageIdentifier="eng" 
+                					writtenText="A car that doesn't poison you."/>
+            </Definition>
+
+            <MonolingualExternalRef externalSystem="cars" 
+              						externalReference="7st row 2rd column in csv of origin"/>
+              						
+			<!--  targeting undeclared prefix -->              						
+            <SynsetRelation target="666_ss-n2961779" 
+            				relType="taxonomic" 
+            				relName="hypernym"/>            				
+            				
+        </Synset>
+        
+        <Synset id="bex_ss-tesla-car">
+            <Definition>
+                <TextRepresentation languageIdentifier="eng" 
+                					writtenText="A car from Tesla Motors company."/>
+            </Definition>
+            <MonolingualExternalRef externalSystem="cars" 
+              						externalReference="7st row 2rd column in csv of origin"/>
+              						
+            <SynsetRelation target="bex_ss-electric-car"
+            				relType="taxonomic" 
+            				relName="hypernym"/>
+        </Synset>        
+                
+	</Lexicon>	
+	
+			  	  
+</LexicalResource>

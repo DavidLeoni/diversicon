@@ -635,7 +635,7 @@ public class DiversiconTest {
                            .size());
         assertEquals(null, dbInfo1.getCurrentImportJob());
 
-        assertEquals(Diversicons.DIVERSICON_SCHEMA_VERSION, dbInfo1.getSchemaVersion());
+        assertEquals(Diversicons.SCHEMA_VERSION_1_0, dbInfo1.getSchemaVersion());
 
         DivTester.importResource(div,g, true);
 

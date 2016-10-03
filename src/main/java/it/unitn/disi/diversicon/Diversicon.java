@@ -1056,7 +1056,14 @@ public class Diversicon extends Uby {
                 LOG.info("Validating XML Schema of " + file.getAbsolutePath() + "   ...");
                 LOG.info("");
                 try {
-                    Diversicons.validateXml(file, LOG, config.getLogLimit());
+                    XmlValidationConfig xmlValidationConfig = XmlValidationConfig.builder()
+                    .setLog(LOG)
+                    .setLogLimit(1)
+                    .setFailFast(true)
+                    .setXsdUrl(Diversicons.SCHEMA_1_0_CLASSPATH_URL)
+                    .build();
+                    
+                    Diversicons.validateXml(file, xmlValidationConfig);
                     LOG.info("XML is valid!");
                     LOG.info("");
                 } catch (Exception ex){

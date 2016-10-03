@@ -25,6 +25,7 @@ import org.xml.sax.XMLReader;
 
 import it.unitn.disi.diversicon.DivXmlHandler;
 import it.unitn.disi.diversicon.Diversicons;
+import it.unitn.disi.diversicon.XmlValidationConfig;
 import it.unitn.disi.diversicon.data.Examplicon;
 import it.unitn.disi.diversicon.exceptions.DivException;
 import it.unitn.disi.diversicon.exceptions.InvalidXmlException;
@@ -232,7 +233,7 @@ public class XmlExperimentsTest {
         File xmlFile = Internals.readData(Examplicon.XML_URI)
                                 .toTempFile();
 
-        File xsdFile = Internals.readData(Diversicons.DIVERSICON_SCHEMA_1_0_CLASSPATH_URL, false)
+        File xsdFile = Internals.readData(Diversicons.SCHEMA_1_0_CLASSPATH_URL, false)
                                 .toTempFile();
 
         // if editor can't find the constant probably default xerces is being
@@ -249,7 +250,9 @@ public class XmlExperimentsTest {
         }
 
         Source source = new StreamSource(xmlFile);
-        DivXmlHandler errorHandler = new DivXmlHandler(LOG, -1, source.getSystemId());
+        DivXmlHandler errorHandler = new DivXmlHandler(
+                XmlValidationConfig.of(LOG),
+                source.getSystemId());
 
         Validator validator = schema.newValidator();
 
@@ -283,7 +286,7 @@ public class XmlExperimentsTest {
 
         checkNotNull(xmlFile);
 
-        File xsdFile = Internals.readData(Diversicons.DIVERSICON_SCHEMA_1_0_CLASSPATH_URL, false)
+        File xsdFile = Internals.readData(Diversicons.SCHEMA_1_0_CLASSPATH_URL, false)
                                 .toTempFile();
 
         SchemaFactory factory = SchemaFactory.newInstance(Constants.W3C_XML_SCHEMA11_NS_URI);
@@ -296,7 +299,10 @@ public class XmlExperimentsTest {
         }
 
         Source source = new StreamSource(xmlFile);
-        DivXmlHandler errorHandler = new DivXmlHandler(LOG, -1, source.getSystemId());
+                
+        DivXmlHandler errorHandler = new DivXmlHandler(XmlValidationConfig.builder()
+                .setLog(LOG)                
+                .build(), source.getSystemId());
 
         /** Setup SAX parser for schema validation. */
         SAXParserFactory spf = SAXParserFactory.newInstance();

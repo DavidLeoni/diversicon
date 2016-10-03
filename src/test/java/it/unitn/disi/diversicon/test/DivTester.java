@@ -166,6 +166,8 @@ public final class DivTester {
      */
     public static final String EXPERIMENTS_DIR = "src/test/resources/experiments/";
 
+    public static final String BAD_EXAMPLICON_XML_URI = "classpath:/bad-examplicon.xml";
+
     private DivTester() {
     }
 
@@ -757,7 +759,7 @@ public final class DivTester {
             }
             System.exit(0);
         case "s":            
-            File f = new File(Internals.DEV_WEBSITE + "/" + Diversicons.DIVERSICON_SCHEMA_1_0_FILENAME);
+            File f = new File(Internals.DEV_WEBSITE + "/" + Diversicons.SCHEMA_FILENAME);
             Internals.generateXmlSchemaFromDtd(f);            
             System.exit(0);
         default:

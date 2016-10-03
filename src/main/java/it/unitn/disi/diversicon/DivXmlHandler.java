@@ -1,5 +1,7 @@
 package it.unitn.disi.diversicon;
 
+import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -15,12 +17,14 @@ import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
+import it.unitn.disi.diversicon.XmlValidationConfig.Builder;
 import it.unitn.disi.diversicon.exceptions.DivException;
 
 /**
  * 
  * Redirects LMF XML validation errors to provided log, while keeping counts for
- * errors and warnings. For convenience, also caches first {@value #MAX_FIRST_ISSUES} encountered  
+ * errors and warnings. For convenience, also caches first
+ * {@value #MAX_FIRST_ISSUES} encountered
  * issue .
  * 
  * @since 0.1.0
@@ -30,9 +34,12 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
 
     public static final int MAX_FIRST_ISSUES = 10;
 
-    private Logger log;
-    
-    private long logLimit;
+    private XmlValidationConfig config;
+
+    /**
+     * for now we keep this outside config, it's kind of 'managed'
+     */
+    private String defaultSystemId;
 
     private List<Exception> firstWarnings;
     private List<Exception> firstErrors;
@@ -41,87 +48,62 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
     @Nullable
     private Exception fatalError;
     private String fatalReason;
-    
-    private String defaultSystemId;
-
-       
-    /**
-     * @since 0.1.0
-     */
-    private DivXmlHandler() {
-        this.log = LoggerFactory.getLogger(DivXmlHandler.class);
-        this.warningCount = 0;
-        this.errorCount = 0;
-        this.firstErrors = new ArrayList<>();
-        this.firstWarnings = new ArrayList<>();
-        this.fatalError = null;
-        this.logLimit = -1;
-        this.defaultSystemId = "";
-
-    }
-
 
     /**
      * 
-     * @param defaultSystemId The main document upon which xml validation is performed, won't be shown in logs.
-     * @param logLimit if -1 all logs are outputted.
-     * @since 0.1.0
-     */
-    public DivXmlHandler(
-            @Nullable Logger log, 
-            long logLimit, 
-            String defaultSystemId) {
-        
-        this();
-
-        if (log == null) {
-            this.log.error("Found null log, using default one!");
-        } else {
-            this.log = log;
-        }
-        
-        if (logLimit < -1){
-            this.log.error("Found logLimit < -1, setting it to -1");
-            this.logLimit = -1;
-        } else {
-            this.logLimit = logLimit;
-        }
-        
-        if (defaultSystemId == null){
-            this.log.error("Found defaultSystemId, setting it to empty string.");
-            this.defaultSystemId = "";
-        } else {
-            this.defaultSystemId = defaultSystemId;
-        }
-        
-    }
-
-    /**
-     * Returns the amount of logs which will be outputted. If -1 all 
-     * log messages will be emitted.
-     * 
-     * @since 0.1.0
-     */
-    public long getLogLimit() {
-        return logLimit;
-    }
-    
-    /**
-     * 
-     * The main document upon which xml validation is performed, won't be shown in logs.
+     * The main document upon which xml validation is performed, won't be shown
+     * in logs.
      * 
      * @since 0.1.0
      */
     public String getDefaultSystemId() {
         return defaultSystemId;
     }
-    
-    
+
     /**
      * @since 0.1.0
      */
-    public Logger getLog() {
-        return log;
+    private DivXmlHandler() {
+
+        this.warningCount = 0;
+        this.errorCount = 0;
+        this.firstErrors = new ArrayList<>();
+        this.firstWarnings = new ArrayList<>();
+        this.fatalError = null;
+        this.config = XmlValidationConfig.builder()
+                                         .setLog(LoggerFactory.getLogger(DivXmlHandler.class))
+                                         .build();
+        this.defaultSystemId = "";
+    }
+
+    /**
+     * 
+     * @param defaultSystemId
+     *            if unknown, use the empty string.
+     * @since 0.1.0
+     */
+    public DivXmlHandler(XmlValidationConfig config, String defaultSystemId) {
+        this();
+        this.config = checkNotNull(config);
+        setDefaultSystemId(defaultSystemId);
+    }
+
+    /**
+     * See {@link #getDefaultSystemId()}
+     * 
+     * @param defaultSystemId
+     *            if unknown use empty string
+     * 
+     * @since 0.1.0
+     */
+    private void setDefaultSystemId(String defaultSystemId) {
+        if (defaultSystemId == null) {
+            config.getLog()
+                  .error("Found config.getDefaultSystemId(), setting it to empty string.");
+            defaultSystemId = "";
+        } else {
+            this.defaultSystemId = defaultSystemId;
+        }
     }
 
     /**
@@ -194,7 +176,7 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
      * @since 0.1.0
      */
     @Override
-    public void warning(SAXParseException ex) {        
+    public void warning(SAXParseException ex) {
         processWarning(ex);
     }
 
@@ -203,7 +185,7 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
      * {@inheritDoc}
      * 
      * @since 0.1.0
-     */    
+     */
     @Override
     public void warning(TransformerException ex) throws TransformerException {
         processWarning(ex);
@@ -213,56 +195,95 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
      * 
      * @since 0.1.0
      */
-    private void processWarning(Exception ex){
-        if (firstWarnings.size() < MAX_FIRST_ISSUES){
+    private void processWarning(Exception ex) {
+        if (firstWarnings.size() < MAX_FIRST_ISSUES) {
             firstWarnings.add(ex);
         }
 
-        if (issuesCount() < logLimit || logLimit == -1){
-            log.warn(exceptionToString(ex, defaultSystemId));
+        if (issuesCount() < config.getLogLimit() || config.getLogLimit() == -1) {
+            config.getLog()
+                  .warn(exceptionToString(ex, getDefaultSystemId()));
         }
-        
+
         this.warningCount += 1;
     }
-    
+
     /**
      * {@inheritDoc}
      * 
      * @since 0.1.0
      */
     @Override
-    public void error(SAXParseException ex) {                             
-        processError(ex);
+    public void error(SAXParseException ex) throws SAXException {
+        try {
+            processError(ex);
+        } catch (TransformerException e) {
+            throw new SAXException(e); // in the unlikely case ....
+        }
     }
-    
+
     @Override
     public void error(TransformerException ex) throws TransformerException {
-        processError(ex);
-    }   
-    
+        try {
+            processError(ex);
+        } catch (SAXException e) {
+            throw new TransformerException(e); // in the unlikely case ....
+        }
+    }
+
+    /**
+     * Damned Java
+     * 
+     * @since 0.1.0
+     */
+    private static void throwException(Exception ex) throws SAXException, TransformerException {
+        if (ex instanceof SAXException) {
+            throw (SAXException) ex;
+        } else if (ex instanceof TransformerException) {
+            throw (TransformerException) ex;
+        } else {
+            throw new DivException(ex);
+        }
+    }
+
     /**
      * @since 0.1.0
      */
-    private void processError(Exception ex){
-        
+    private void processError(Exception ex) throws SAXException, TransformerException {
+
         String msg = ex.getLocalizedMessage();
-        
-          if (msg != null 
+
+        if (msg != null
                 && msg.contains("every $prefixed-id")
-                && msg.contains("for element 'LexicalResource'")){            
-            log.debug("Skipping xerces id prefix assertion because line reporting is imprecise!");
-            log.debug("Xerces message was -> " + msg);
+                && msg.contains("for element 'LexicalResource'")) {
+            config.getLog()
+                  .debug("Skipping xerces id prefix assertion because line reporting is imprecise!");
+            config.getLog()
+                  .debug("Xerces message was -> " + msg);
         } else {
-            if (firstErrors.size() < MAX_FIRST_ISSUES){
+            if (firstErrors.size() < MAX_FIRST_ISSUES) {
                 firstErrors.add(ex);
             }
-            
-            if (issuesCount() < logLimit || logLimit == -1){
-                log.error(exceptionToString(ex, defaultSystemId));            
+
+            long issues = issuesCount();
+            this.errorCount += 1;
+            if (issues < config.getLogLimit()) {
+                config.getLog()
+                      .error(exceptionToString(ex, getDefaultSystemId()));
+            } else {
+                if (config.getLogLimit() == -1) {
+
+                    config.getLog()
+                          .error(exceptionToString(ex, getDefaultSystemId()));
+                }
+                if (config.isFailFast()) {
+                    
+                    config.getLog()
+                          .error("Interrupting validation, there could be more errors in the file...");
+                    throwException(ex);
+                }
             }
 
-            this.errorCount += 1;
-            
         }
     }
 
@@ -271,7 +292,7 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
      * 
      * @since 0.1.0
      */
-    public long issuesCount() {        
+    public long issuesCount() {
         return this.warningCount + this.errorCount + (isFatal() ? 1 : 0);
     }
 
@@ -285,17 +306,19 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
     @Override
     public void fatalError(SAXParseException ex) throws SAXException {
         this.fatalError = ex;
-                
-        if (ex.getSystemId().contains(Diversicons.DIVERSICON_DTD_1_0_FILENAME)){
-            log.info("TODO: skipping DTD validation ...");
+
+        if (ex.getSystemId()
+              .contains(Diversicons.DTD_FILENAME)) {
+            config.getLog()
+                  .info("TODO: skipping DTD validation ...");
             return;
         } else {
-            log.error("FATAL!  " + exceptionToString(ex, defaultSystemId));
+            config.getLog()
+                  .error("FATAL!  " + exceptionToString(ex, getDefaultSystemId()));
             throw ex;
         }
-        
-    }      
-    
+    }
+
     /**
      * DIVERSICON NOTICE: check also {@link #fatalError(SAXParseException)}
      * 
@@ -306,10 +329,10 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
     @Override
     public void fatalError(TransformerException ex) throws TransformerException {
         this.fatalError = ex;
-        log.error("FATAL!  " + exceptionToString(ex, defaultSystemId));
+        config.getLog()
+              .error("FATAL!  " + exceptionToString(ex, getDefaultSystemId()));
         throw ex;
     }
- 
 
     /**
      * Returns true if there were validation problems.
@@ -322,107 +345,105 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
 
     /**
      * @since 0.1.0
-     */    
+     */
     public String summary() {
         String fat = isFatal() ? "Fatal error: " + fatalReason + " - " : "";
         return fat + "Found " + errorCount + " errors and " + warningCount + " warnings";
     }
-    
+
     /**
-     * Outputs exception {@code ex} in a format suitable for a log.
+     * Outputs exception {@code ex} in a format suitable for a log
      * 
-     * @param defaultSystemId  won't be shown in the output (See {@link #getDefaultSystemId() getter})
+     * @param defaultSystemId
+     *            won't be shown in the output (See {@link #getDefaultSystemId()
+     *            getter})
      * 
      * @since 0.1.0
      */
     // todo think about public id
-    private static String exceptionToString(Exception ex, String defaultSystemId){
-        
-        if (ex == null){
+    private static String exceptionToString(Exception ex, String defaultSystemId) {
+
+        if (ex == null) {
             return "#ERROR IN EXCEPTION REPORTING, FOUND NULL EXCEPTION#";
         }
-        
-        
+
         String systemId = null;
         long lineNumber = -1;
         long colNumber = -1;
-        
-        if (ex instanceof SAXParseException){
+
+        if (ex instanceof SAXParseException) {
             SAXParseException spe = (SAXParseException) ex;
             systemId = ((SAXParseException) ex).getSystemId();
             lineNumber = spe.getLineNumber();
             colNumber = spe.getColumnNumber();
-        } else if (ex instanceof TransformerException){
+        } else if (ex instanceof TransformerException) {
             systemId = null;
         }
-        
+
         StringBuilder buf = new StringBuilder();
         String message = ex.getLocalizedMessage();
-        //if (publicId!=null)    buf.append("publicId: ").append(publicId);
-                
-        if (systemId!=null
-                && !systemId.equals(defaultSystemId)){
-            buf.append("systemId: ").append(systemId);
+        // if (publicId!=null) buf.append("publicId: ").append(publicId);
+
+        if (systemId != null
+                && !systemId.equals(defaultSystemId)) {
+            buf.append("systemId: ")
+               .append(systemId);
             buf.append(";");
-        }                     
-        
-        buf.append("").append(lineNumber);
-        buf.append("," + colNumber).append(": ");
-        
-        //append the exception message at the end
-        if (message==null){
+        }
+
+        buf.append("")
+           .append(lineNumber);
+        buf.append("," + colNumber)
+           .append(": ");
+
+        // append the exception message at the end
+        if (message == null) {
             buf.append("unknown problem.");
         } else {
             String fixedMessage;
 
-            if (message.contains("Content is not allowed in prolog")){  
+            if (message.contains("Content is not allowed in prolog")) {
                 fixedMessage = "Unparseable XML!";
             } else {
                 fixedMessage = message;
             }
-            buf.append(fixedMessage);            
+            buf.append(fixedMessage);
         }
-        
-        
-        return buf.toString();        
+
+        return buf.toString();
     }
 
     /**
-     * Return the first found issue as a string. If no issue was found 
+     * Return the first found issue as a string. If no issue was found
      * returns the empty string.
      * 
      * @since 0.1.0
      */
     public String firstIssueAsString() {
         String prefix;
-        
-        if (isFatal()){            
-            return "Fatal error was: " + exceptionToString(fatalError, defaultSystemId);
+
+        if (isFatal()) {
+            return "Fatal error was: " + exceptionToString(fatalError, getDefaultSystemId());
         }
-        if (!getFirstErrors().isEmpty()){
-            
-            if (getFirstErrors().size() == 1){
-                prefix = "Error was: ";                               
+        if (!getFirstErrors().isEmpty()) {
+
+            if (getFirstErrors().size() == 1) {
+                prefix = "Error was: ";
             } else {
                 prefix = "First error was: ";
-                
+
             }
-            return  prefix + exceptionToString(getFirstErrors().get(0), defaultSystemId);
-        } else if (!getFirstWarnings().isEmpty()){
-            if (getFirstWarnings().size() == 1){
-                prefix = "Wrror was: ";                               
+            return prefix + exceptionToString(getFirstErrors().get(0), getDefaultSystemId());
+        } else if (!getFirstWarnings().isEmpty()) {
+            if (getFirstWarnings().size() == 1) {
+                prefix = "Wrror was: ";
             } else {
-                prefix = "First warning was: ";                
-            }            
-            return prefix + exceptionToString(getFirstWarnings().get(0), defaultSystemId);
+                prefix = "First warning was: ";
+            }
+            return prefix + exceptionToString(getFirstWarnings().get(0), getDefaultSystemId());
         } else {
             return "";
         }
     }
 
-
-
-
-
-    
 }

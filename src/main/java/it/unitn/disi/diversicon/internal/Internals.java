@@ -78,6 +78,7 @@ import it.unitn.disi.diversicon.DivSynsetRelation;
 import it.unitn.disi.diversicon.DivXmlHandler;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.LexResPackage;
+import it.unitn.disi.diversicon.XmlValidationConfig;
 import it.unitn.disi.diversicon.exceptions.DivException;
 import it.unitn.disi.diversicon.exceptions.DivIoException;
 import it.unitn.disi.diversicon.exceptions.DivNotFoundException;
@@ -1491,7 +1492,7 @@ public final class Internals {
             }
 
             atts.addAttribute("", "", xsiPrefix + ":schemaLocation", "CDATA",
-                    Diversicons.DIVERSICON_SCHEMA_1_0_PUBLIC_URL);
+                    Diversicons.SCHEMA_1_0_PUBLIC_URL);
 
         }
 
@@ -1513,7 +1514,7 @@ public final class Internals {
             String normalizedElementName) {
 
         if (DTD_GRAMMAR == null) {
-            String dtdText = readData(Diversicons.DIVERSICON_DTD_1_0_CLASSPATH_URL).streamToString();
+            String dtdText = readData(Diversicons.DTD_1_0_CLASSPATH_URL).streamToString();
             DTD_GRAMMAR = parseDtd(dtdText);
         }
 
@@ -1772,7 +1773,7 @@ public final class Internals {
 
         checkNotNull(output);
 
-        File dtd = Internals.readData(Diversicons.DIVERSICON_DTD_1_0_CLASSPATH_URL)
+        File dtd = Internals.readData(Diversicons.DTD_1_0_CLASSPATH_URL)
                             .toTempFile();
 
         File tempDir = createTempDivDir("trang").toFile();
@@ -1850,49 +1851,6 @@ public final class Internals {
 
     }
 
-    /**
-     * See {@link #validateXml(File, File, Logger, long)}
-     * 
-     * @since 0.1.0
-     */
-    public static void validateXml(File xmlFile, File xsdFile, Logger logger, long logLimit) {
-        checkNotNull(xmlFile);
-
-        // if editor can't find the constant probably default xerces is being
-        // used instead of the one supporting schema 1.1
-
-        SchemaFactory factory = SchemaFactory.newInstance(Constants.W3C_XML_SCHEMA11_NS_URI);
-        File schemaLocation = xsdFile;
-        Schema schema;
-        try {
-            schema = factory.newSchema(schemaLocation);
-        } catch (SAXException e) {
-            throw new DivException(e);
-        }
-
-        Source source = new StreamSource(xmlFile);
-        DivXmlHandler errorHandler = new DivXmlHandler(logger, logLimit, source.getSystemId());
-
-        Validator validator = schema.newValidator();
-
-        validator.setErrorHandler(errorHandler);
-
-        try {
-            validator.validate(source);
-        } catch (SAXException | IOException e) {
-            throw new InvalidXmlException(errorHandler, "Fatal error while validating " + xmlFile.getAbsolutePath(), e);
-        }
-
-        DivXmlValidator.validate(xmlFile, errorHandler);
-
-        if (errorHandler.invalid()) {
-            logger.error("Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath());
-            throw new InvalidXmlException(errorHandler,
-                    "Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath() 
-                    + "\n" + errorHandler.firstIssueAsString());
-        }
-
-    }
 
     /**
      * @deprecated we don't really use it, it's here just as an experiment
