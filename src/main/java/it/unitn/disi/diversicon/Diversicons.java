@@ -131,15 +131,26 @@ public final class Diversicons {
     /**
      * @since 0.1.0
      */
-    public static final String DTD_1_PUBLIC_URL = BuildInfo.of(Diversicons.class).getServer()
-            + SCHEMA_1_FRAGMENT + "/" +  DTD_FILENAME;
+    public static final String SCHEMA_1_NAMESPACE =
+            BuildInfo.of(Diversicons.class).getServer() + "/" + SCHEMA_1_FRAGMENT;
+    
+    /**
+     * @since 0.1.0
+     */
+    public static final String SCHEMA_1_0_NAMESPACE =
+            BuildInfo.of(Diversicons.class).getServer() + "/" + SCHEMA_1_0_FRAGMENT;
+
+    
+    /**
+     * @since 0.1.0
+     */
+    public static final String DTD_1_PUBLIC_URL = SCHEMA_1_NAMESPACE + SCHEMA_1_FRAGMENT + "/" +  DTD_FILENAME;
     
     /**
      * @since 0.1.0
      */
     public static final String DTD_1_0_PUBLIC_URL = 
-            BuildInfo.of(Diversicons.class).getServer()
-            + SCHEMA_1_0_FRAGMENT + "/" +  DTD_FILENAME;
+            SCHEMA_1_0_NAMESPACE + "/" +  DTD_FILENAME;
 
     /**
      * Maximum number of import issues printed to screen
@@ -169,18 +180,6 @@ public final class Diversicons {
             + SCHEMA_1_0_FRAGMENT 
             + "/" + SCHEMA_FILENAME;
 
-        
-    /**
-     * @since 0.1.0
-     */
-    public static final String SCHEMA_1_NAMESPACE =
-            BuildInfo.of(Diversicons.class).getServer() + SCHEMA_1_FRAGMENT;
-
-    /**
-     * @since 0.1.0
-     */
-    public static final String SCHEMA_1_0_NAMESPACE =
-            BuildInfo.of(Diversicons.class).getServer() + SCHEMA_1_0_FRAGMENT;
     
 
     /**
@@ -1194,9 +1193,11 @@ public final class Diversicons {
      * 
      */
     // todo should throw if db is already accessed in non readonly mode
-    public static DBConfig fetchH2Db(String id, String version, String cacheRoot) {
+    public static DBConfig fetchH2Db(File cacheRoot, String id, String version) {
+        checkNotNull(cacheRoot, "Invalid resource id!");
         checkNotBlank(id, "Invalid resource id!");
         checkNotBlank(id, "Invalid version!");
+        
         checkArgument(DivWn31.NAME.equals(id), "Currently only supported id is "
                 + DivWn31.NAME + ", found instead " + id + "  !");
         checkArgument(DivWn31.of()
@@ -1207,7 +1208,7 @@ public final class Diversicons {
                                                                 .getVersion()
                         + ", found instead " + version + "  !");
 
-        String filepath = getCachedH2DbDir(new File(cacheRoot), id, version).getAbsolutePath() + File.separator + id;
+        String filepath = getCachedH2DbDir(cacheRoot, id, version).getAbsolutePath() + File.separator + id;
 
         if (!new File(filepath + ".h2.db").exists()) {
             restoreH2Db(DivWn31.of()

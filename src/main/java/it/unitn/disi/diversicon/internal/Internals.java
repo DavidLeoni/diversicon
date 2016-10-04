@@ -1492,7 +1492,7 @@ public final class Internals {
             }
 
             atts.addAttribute("", "", xsiPrefix + ":schemaLocation", "CDATA",
-                    Diversicons.SCHEMA_1_0_PUBLIC_URL);
+                    Diversicons.SCHEMA_1_NAMESPACE + " " + Diversicons.SCHEMA_1_0_PUBLIC_URL);
 
         }
 
