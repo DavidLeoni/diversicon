@@ -1186,13 +1186,15 @@ public final class Diversicons {
      * @param version
      *            the version of the resource, in X.Y.Z-SOMETHING format a la
      *            Maven.
+     * @param cacheRoot the path to the root of the cache.
+     *  
      * @return The db configuration to access the DB in read-only mode.
      * 
      * @since 0.1.0
      * 
      */
     // todo should throw if db is already accessed in non readonly mode
-    public static DBConfig fetchH2Db(String id, String version) {
+    public static DBConfig fetchH2Db(String id, String version, String cacheRoot) {
         checkNotBlank(id, "Invalid resource id!");
         checkNotBlank(id, "Invalid version!");
         checkArgument(DivWn31.NAME.equals(id), "Currently only supported id is "
@@ -1205,7 +1207,7 @@ public final class Diversicons {
                                                                 .getVersion()
                         + ", found instead " + version + "  !");
 
-        String filepath = getCachedH2DbDir(id, version).getAbsolutePath() + File.separator + id;
+        String filepath = getCachedH2DbDir(new File(cacheRoot), id, version).getAbsolutePath() + File.separator + id;
 
         if (!new File(filepath + ".h2.db").exists()) {
             restoreH2Db(DivWn31.of()
@@ -1216,48 +1218,12 @@ public final class Diversicons {
     }
 
     /**
-     * EXPERIMENTAL - IMPLEMENTATION MIGHT WILDLY CHANGE
-     * 
-     * Clean cache
-     * 
-     * @throws DivIoException
-     * 
-     * @since 0.1.0
-     * 
-     */
-    public static void cleanCache() {
-        File cacheDir = getCacheDir();
-        if (!cacheDir.getAbsolutePath()
-                     .endsWith("cache")) {
-            throw new IllegalStateException(
-                    "Failed security check prior deleting Diversicon cache! System says it's located at " + cacheDir);
-        }
-        try {
-            if (cacheDir.exists()) {
-                LOG.info("Cleaning Diversicon cache directory " + cacheDir.getAbsolutePath() + "  ...");
-                FileUtils.deleteDirectory(cacheDir);
-                LOG.info("Cleaning Diversicon cache: done");
-            }
-        } catch (IOException ex) {
-            throw new DivIoException("Error while deleting cache dir " + cacheDir.getAbsolutePath(), ex);
-        }
-    }
-
-    /**
      * @since 0.1.0
      */
-    public static File getCacheDir() {
-        return new File(System.getProperty("user.home") + File.separator
-                + CACHE_PATH);
-    }
-
-    /**
-     * @since 0.1.0
-     */
-    public static File getCachedH2DbDir(String id, String version) {
+    public static File getCachedH2DbDir(File cacheRoot, String id, String version) {
         checkNotBlank(id, "Invalid id!");
-        checkNotBlank(version, "Invalid version!");
-        return new File(getCacheDir().getAbsolutePath() + File.separator + id + File.separator + version);
+        checkNotBlank(version, "Invalid version!");        
+        return new File(cacheRoot, File.separator + id + File.separator + version);
     }
 
     /**

@@ -163,11 +163,13 @@ public class DivUtilsIT {
     @Test
     public void testFetchH2Db(){
         
-        assertFalse(Diversicons.getCacheDir().exists());
-        Diversicons.fetchH2Db(DivWn31.NAME, DivWn31.of().getVersion());        
-        assertTrue(Diversicons.getCachedH2DbDir(DivWn31.NAME, DivWn31.of().getVersion()).exists());
+        Path cacheRoot = DivTester.createTestDir();
+        
+        assertFalse(cacheRoot.toFile().exists());
+        Diversicons.fetchH2Db(DivWn31.NAME, DivWn31.of().getVersion(), cacheRoot.toString());        
+        assertTrue(Diversicons.getCachedH2DbDir(cacheRoot.toFile(), DivWn31.NAME, DivWn31.of().getVersion()).exists());
         // should be faster ...
-        DBConfig config = Diversicons.fetchH2Db(DivWn31.NAME, DivWn31.of().getVersion());
+        DBConfig config = Diversicons.fetchH2Db(DivWn31.NAME, DivWn31.of().getVersion(), cacheRoot.toString());
         
         // should allow multiple connections ...
         
@@ -193,21 +195,7 @@ public class DivUtilsIT {
     }
     
     
-    
-    /**
-     * @since 0.1.0
-     */
-    @Test
-    public void testCleanCache() throws IOException {
-        
-        assertFalse(Diversicons.getCacheDir().exists());
-        Files.createDirectories(Diversicons.getCacheDir().toPath());
-        Files.createFile(Paths.get(Diversicons.getCacheDir().getAbsolutePath(), "test.txt"));
-        assertTrue(Diversicons.getCacheDir().exists());
-        Diversicons.cleanCache();
-        assertFalse(Diversicons.getCacheDir().exists());        
-        
-    }
+ 
     
 
 }
