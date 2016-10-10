@@ -755,7 +755,7 @@ public final class Internals {
         try {
             uri = new URI(dataUrl);
         } catch (URISyntaxException ex) {
-            throw new IllegalArgumentException("Couldn't parse input url!", ex);
+            throw new DivIoException("Couldn't parse input url!", ex);
         }
 
         LOG.trace("reading data from " + dataUrl + " ...");
@@ -1494,6 +1494,9 @@ public final class Internals {
             atts.addAttribute("", "", xsiPrefix + ":schemaLocation", "CDATA",
                     Diversicons.SCHEMA_1_NAMESPACE + " " + Diversicons.SCHEMA_1_0_PUBLIC_URL);
 
+            atts.addAttribute("", "", "xmlns", "CDATA",
+                    Diversicons.SCHEMA_1_NAMESPACE );
+            
         }
 
         return elementName;
@@ -1787,9 +1790,12 @@ public final class Internals {
         // xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning"
         // vc:minVersion="1.1"
 
-        new com.thaiopensource.relaxng.translate.Driver().run(new String[] { "-I", "dtd", "-O", "xsd",
-                "-i", "xmlns:fn=http://www.w3.org/2005/xpath-functions",
-                "-i", "xmlns:vc=http://www.w3.org/2007/XMLSchema-versioning",
+        new com.thaiopensource.relaxng.translate.Driver().run(new String[] { 
+                "-I", "dtd", "-O", "xsd",
+                "-i", "xmlns=" + Diversicons.SCHEMA_1_NAMESPACE,
+                // since they are not used in first pass, trang kindly removes them with a warning :-/
+               // "-i", "xmlns:fn=http://www.w3.org/2005/xpath-functions",
+               //  "-i", "xmlns:vc=http://www.w3.org/2007/XMLSchema-versioning",
                 inputDtd.getAbsolutePath(),
                 firstPass.getAbsolutePath() });
 
@@ -1808,11 +1814,10 @@ public final class Internals {
         try {
             org.dom4j.Document document = reader.read(firstPass);            
             document.getRootElement()
-                    .addAttribute("xmlns:fn", "http://www.w3.org/2005/xpath-functions");
-            document.getRootElement()
-                    .addAttribute("xmlns:vc", "http://www.w3.org/2007/XMLSchema-versioning");
-            document.getRootElement()
-                    .addAttribute("vc:minVersion", "1.1");
+                    .addAttribute("targetNamespace", Diversicons.SCHEMA_1_NAMESPACE)
+                    .addAttribute("xmlns:fn", "http://www.w3.org/2005/xpath-functions")
+                    .addAttribute("xmlns:vc", "http://www.w3.org/2007/XMLSchema-versioning")                    
+                    .addAttribute("vc:minVersion", "1.0");
             org.dom4j.io.XMLWriter writer = new org.dom4j.io.XMLWriter(new FileOutputStream(secondPass),
                     org.dom4j.io.OutputFormat.createPrettyPrint());
             writer.write(document);

@@ -263,13 +263,52 @@ public class DivUtilsTest {
         File f = Internals.readData(Examplicon.XML_URI)
                           .toTempFile();
 
+        Diversicons.validateXml(f, XmlValidationConfig.of(LOG));
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    // todo test could be improved
+    @Test
+    public void testValidateOverrideSchema() {
+        
+        File f = Internals.readData(Examplicon.XML_URI)
+                          .toTempFile();
+
+        File file = Internals.readData(Diversicons.SCHEMA_1_0_CLASSPATH_URL).toTempFile();
+        
         Diversicons.validateXml(f,
                 XmlValidationConfig.builder()
                                    .setLog(LOG)
-                                   .setXsdUrl(Diversicons.SCHEMA_1_0_CLASSPATH_URL)
-                                   .build());
+                                   .setXsdUrl(file.getAbsolutePath())
+                                   .build());        
+        
     }
 
+    /**
+     * @since 0.1.0
+     */
+    // todo test could be improved
+    @Test
+    public void testValidateOverrideWrongSchema() {
+        
+        File f = Internals.readData(Examplicon.XML_URI)
+                          .toTempFile();
+
+        try {
+            Diversicons.validateXml(f,
+                    XmlValidationConfig.builder()
+                                       .setLog(LOG)
+                                       .setXsdUrl("666")
+                                       .build());
+            Assert.fail("Shouldn't arrive here!");
+        } catch (DivIoException ex) {            
+            assertTrue("Expected to find '666' in exceptionn message: " + ex.getMessage(), ex.getMessage().contains("666"));
+        }
+    }
+    
+    
     /**
      * @since 0.1.0
      */
@@ -282,7 +321,6 @@ public class DivUtilsTest {
             Diversicons.validateXml(f,
                     XmlValidationConfig.builder()
                                        .setLog(LOG)
-                                       .setXsdUrl(Diversicons.SCHEMA_1_0_CLASSPATH_URL)
                                        .setLogLimit(0)
                                        .build());
             Assert.fail("Shouldn't arrive here!");
@@ -291,6 +329,7 @@ public class DivUtilsTest {
                          .issuesCount() > 5);
         }
     }
+
 
     /**
      * @since 0.1.0
@@ -304,7 +343,6 @@ public class DivUtilsTest {
             Diversicons.validateXml(f,
                     XmlValidationConfig.builder()
                                        .setLog(LOG)
-                                       .setXsdUrl(Diversicons.SCHEMA_1_0_CLASSPATH_URL)
                                        .setLogLimit(1)
                                        .build());
             Assert.fail("Shouldn't arrive here!");
@@ -327,13 +365,13 @@ public class DivUtilsTest {
             Diversicons.validateXml(f,
                     XmlValidationConfig.builder()
                                        .setLog(LOG)
-                                       .setXsdUrl(Diversicons.SCHEMA_1_0_CLASSPATH_URL)
                                        .setLogLimit(1)
                                        .setFailFast(true)
                                        .build());
             Assert.fail("Shouldn't arrive here!");
         } catch (InvalidXmlException ex) {
-            assertTrue(ex.getErrorHandler().issuesCount() < 5);
+            assertTrue(ex.getErrorHandler()
+                         .issuesCount() < 5);
         }
 
     }
@@ -347,15 +385,11 @@ public class DivUtilsTest {
                           .toTempFile();
 
         try {
-            Diversicons.validateXml(f,
-                    XmlValidationConfig.builder()
-                                       .setLog(LOG)
-                                       .setXsdUrl(Diversicons.SCHEMA_1_0_CLASSPATH_URL)                                       
-                                       .build());
+            Diversicons.validateXml(f, XmlValidationConfig.of(LOG));
             Assert.fail("Shouldn't arrive here!");
         } catch (InvalidXmlException ex) {
             assertTrue(ex.getErrorHandler()
-                              .issuesCount() > 5); // there should be many issues...
+                         .issuesCount() > 5); // there should be many issues...
         }
 
     }
@@ -373,7 +407,6 @@ public class DivUtilsTest {
             Diversicons.validateXml(f,
                     XmlValidationConfig.builder()
                                        .setLog(LOG)
-                                       .setXsdUrl(Diversicons.SCHEMA_1_0_CLASSPATH_URL)
                                        .setLogLimit(0)
                                        .setFailFast(true)
                                        .build());
@@ -763,8 +796,9 @@ public class DivUtilsTest {
     @Test
     public void testGenerateXmlSchema() throws IOException {
 
-        File dtd = Internals.readData(Diversicons.DTD_1_0_CLASSPATH_URL).toTempFile();
-        
+        File dtd = Internals.readData(Diversicons.DTD_1_0_CLASSPATH_URL)
+                            .toTempFile();
+
         File xsd = new File("target", "diversicon-1.0-SNAPSHOT.xsd");
 
         // extra security check
@@ -781,10 +815,7 @@ public class DivUtilsTest {
         File f = Internals.readData(Examplicon.XML_URI)
                           .toTempFile();
 
-        Diversicons.validateXml(f, XmlValidationConfig.builder()
-                                                      .setLog(LOG)
-                                                      .setXsdUrl(Diversicons.SCHEMA_1_0_CLASSPATH_URL)
-                                                      .build());
+        Diversicons.validateXml(f, XmlValidationConfig.of(LOG));
 
     }
 
