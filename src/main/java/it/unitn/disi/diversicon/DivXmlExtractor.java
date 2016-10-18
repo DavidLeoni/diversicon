@@ -71,7 +71,10 @@ class DivXmlExtractor implements ElementHandler {
             for (Object obj : el.content()) {
                 if (obj instanceof Namespace) {
                     Namespace ns = (Namespace) obj;
-                    divRes.putNamespace(ns.getPrefix(), ns.getURI());
+                    if (!ns.getPrefix().isEmpty()){ // happens for default namespace declaration xmlns="blabla"
+                        divRes.putNamespace(ns.getPrefix(), ns.getURI());    
+                    }
+                    
                 }
 
             }

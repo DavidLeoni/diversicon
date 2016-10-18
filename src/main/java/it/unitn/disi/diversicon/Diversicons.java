@@ -1508,7 +1508,7 @@ public final class Diversicons {
             checkNotNull(prefix);
             if (!NAMESPACE_PREFIX_PATTERN.matcher(prefix)
                                          .matches()) {
-                throw new IllegalArgumentException("Invalid key, it must match " + NAMESPACE_PREFIX_PATTERN.toString());
+                throw new IllegalArgumentException("Invalid prefix '"+prefix+"', it must match " + NAMESPACE_PREFIX_PATTERN.toString());
             }
 
             checkNotBlank(namespaces.get(prefix), "Invalid namespace url!");

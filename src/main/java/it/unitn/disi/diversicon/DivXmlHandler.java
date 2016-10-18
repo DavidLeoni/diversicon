@@ -405,6 +405,8 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
 
             if (message.contains("Content is not allowed in prolog")) {
                 fixedMessage = "Unparseable XML!";
+            } else if (message.contains("Cannot find the declaration of element 'LexicalResource'")){
+                fixedMessage = message + " - Maybe you forgot to declare the namespace inside LexicalResource? (i.e. <LexicalResource xmlns=\""+ Diversicons.SCHEMA_1_NAMESPACE + "\">";
             } else {
                 fixedMessage = message;
             }

@@ -282,8 +282,7 @@ public class DivUtilsTest {
                 XmlValidationConfig.builder()
                                    .setLog(LOG)
                                    .setXsdUrl(file.getAbsolutePath())
-                                   .build());        
-        
+                                   .build());                
     }
 
     /**
