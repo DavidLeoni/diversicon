@@ -1,6 +1,7 @@
 package it.unitn.disi.diversicon;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -52,8 +53,12 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.w3c.dom.ls.LSInput;
 import org.w3c.dom.ls.LSResourceResolver;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import javax.annotation.Nullable;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 import javax.xml.transform.ErrorListener;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
@@ -287,6 +292,7 @@ public final class Diversicons {
             NAMESPACE_PREFIX_PATTERN.toString()
                     + NAMESPACE_SEPARATOR
                     + "\\p{L}(\\w|-|_|\\.)*");
+
 
     /**
      * 
@@ -1533,21 +1539,39 @@ public final class Diversicons {
      * Gives back an XML resource. If fetch can't be performed and resource is
      * an the classpath, it will be taken from there, otherwise an exception is thrown.
      * 
+     * 
+     * 
+     * @param namespaceURI  The namespace of the resource being resolved,
+     *   e.g. the target namespace of the XML Schema [<a href='http://www.w3.org/TR/2001/REC-xmlschema-1-20010502/'>XML Schema Part 1</a>]
+     *    when resolving XML Schema resources.
+     * @param systemId  The system identifier, a URI reference [<a href='http://www.ietf.org/rfc/rfc2396.txt'>IETF RFC 2396</a>], of the
+     *   external resource being referenced, or <code>null</code> if no
+     *   system identifier was supplied.
+     * @return  A <code>LSInput</code> object describing the new input
+     *   source, or <code>null</code> to request that the parser open a
+     *   regular URI connection to the resource.
+     * 
      * @throws DivNotFoundException
      * 
      * @since 0.1.0
      */
-    private static LSInput resolveXmlResource(@Nullable String namespaceUri, String systemId) {
+    // TODO in theory there are many other parameters we should take into consideration 
+    @Nullable
+    private static LSInput resolveXmlResource(@Nullable String namespaceUri, @Nullable String systemId) {               
+        
+        if (namespaceUri == null && systemId == null){
+            return null;
+        }
         
         DOMInputImpl ret = new DOMInputImpl();
         ret.setSystemId(systemId);
         ret.setEncoding("UTF-8");
-
-        try {
+        
+        try {            
             ret.setByteStream(Internals.readData(systemId)
                                        .stream());
             return ret;
-        } catch (DivIoException ex) {
+        } catch (Exception ex) {
             if ((Diversicons.SCHEMA_1_NAMESPACE.equals(namespaceUri)
                     || namespaceUri == null)
                     && 
@@ -1606,8 +1630,8 @@ public final class Diversicons {
         DivXmlHandler errorHandler = new DivXmlHandler(config, source.getSystemId());
 
         Validator validator = schema.newValidator();
-
-        validator.setResourceResolver(new LSResourceResolver() {
+        
+        LSResourceResolver lsResResolver = new LSResourceResolver() {
 
             @Override
             public LSInput resolveResource(
@@ -1626,7 +1650,9 @@ public final class Diversicons {
 
                 return resolveXmlResource(namespaceURI, systemId);
             }
-        });
+        };
+        
+        validator.setResourceResolver(lsResResolver);
 
         validator.setErrorHandler(errorHandler);
 
@@ -1635,9 +1661,14 @@ public final class Diversicons {
         } catch (SAXException | IOException e) {
             throw new InvalidXmlException(errorHandler, "Fatal error while validating " + xmlFile.getAbsolutePath(), e);
         }
-
-        DivXmlValidator.validate(xmlFile, errorHandler);
-
+        
+        DivXmlValidator divXmlValidator = new DivXmlValidator(new LexResPackage(), errorHandler);
+        
+        validateXmlJavaStep(xmlFile, errorHandler, divXmlValidator, lsResResolver);
+        // need to steps!
+        validateXmlJavaStep(xmlFile, errorHandler, divXmlValidator, lsResResolver);
+        
+        
         if (errorHandler.invalid()) {
             config.getLog()
                   .error("Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath());
@@ -1648,6 +1679,41 @@ public final class Diversicons {
 
     }
 
+    
+    /** 
+     * Performs validation with custom Java code. Needed because current Xerces 
+     * Xml Schema 1.1 assert implemention has problems, see https://github.com/DavidLeoni/diversicon/issues/21
+     * 
+     * @param file
+     * @param errorHandler
+     * 
+     * @since 0.1.0
+     */
+    // TODO probably we could pass less parameters 
+    public static void validateXmlJavaStep(
+            File file, 
+            DivXmlHandler errorHandler,
+            DivXmlValidator divXmlValidator,
+            LSResourceResolver resRes) {
+        SAXParserFactory factory = SAXParserFactory.newInstance();
+        factory.setValidating(false);
+        SAXParser parser;
+        try {
+            parser = factory.newSAXParser();
+            parser.getXMLReader()
+                  .setErrorHandler(errorHandler);
+            DivXmlValidator handler = divXmlValidator;
+
+            InputSource is = new InputSource(new FileInputStream(file));
+
+            parser.parse(is, handler);
+        } catch (ParserConfigurationException | SAXException | IOException e) {            
+            throw new DivException(e);
+        }
+
+    }
+
+    
     /**
      * Reads metadata about a given resource.
      * 
