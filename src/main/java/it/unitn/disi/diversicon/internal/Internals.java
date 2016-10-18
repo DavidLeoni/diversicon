@@ -1491,11 +1491,12 @@ public final class Internals {
                         XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
             }
 
-            atts.addAttribute("", "", xsiPrefix + ":schemaLocation", "CDATA",
-                    Diversicons.SCHEMA_1_NAMESPACE + " " + Diversicons.SCHEMA_1_0_PUBLIC_URL);
+            atts.addAttribute("", "", xsiPrefix + ":noNamespaceSchemaLocation", "CDATA",
+                      Diversicons.SCHEMA_1_0_PUBLIC_URL);
 
-            atts.addAttribute("", "", "xmlns", "CDATA",
-                    Diversicons.SCHEMA_1_NAMESPACE );
+            // default namespace is too complicated for users!   
+            // atts.addAttribute("", "", "xmlns", "CDATA",
+            //        Diversicons.SCHEMA_1_NAMESPACE );
             
         }
 
@@ -1792,7 +1793,8 @@ public final class Internals {
 
         new com.thaiopensource.relaxng.translate.Driver().run(new String[] { 
                 "-I", "dtd", "-O", "xsd",
-                "-i", "xmlns=" + Diversicons.SCHEMA_1_NAMESPACE,
+                // default namespace is too complicated for users 
+                // "-i", "xmlns=" + Diversicons.SCHEMA_1_NAMESPACE,
                 // since they are not used in first pass, trang kindly removes them with a warning :-/
                // "-i", "xmlns:fn=http://www.w3.org/2005/xpath-functions",
                //  "-i", "xmlns:vc=http://www.w3.org/2007/XMLSchema-versioning",
@@ -1814,7 +1816,8 @@ public final class Internals {
         try {
             org.dom4j.Document document = reader.read(firstPass);            
             document.getRootElement()
-                    .addAttribute("targetNamespace", Diversicons.SCHEMA_1_NAMESPACE)
+                   // default namespace is too complicated for users!
+                   // .addAttribute("targetNamespace", Diversicons.SCHEMA_1_NAMESPACE)
                     .addAttribute("xmlns:fn", "http://www.w3.org/2005/xpath-functions")
                     .addAttribute("xmlns:vc", "http://www.w3.org/2007/XMLSchema-versioning")                    
                     .addAttribute("vc:minVersion", "1.0");

@@ -1061,7 +1061,6 @@ public class Diversicon extends Uby {
                     .setLog(LOG)
                     .setLogLimit(config.getLogLimit())
                     .setFailFast(true)
-                    .setXsdUrl(Diversicons.SCHEMA_1_0_CLASSPATH_URL)
                     .build();
                     
                     Diversicons.validateXml(file, xmlValidationConfig);

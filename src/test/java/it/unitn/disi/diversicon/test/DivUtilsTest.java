@@ -746,7 +746,7 @@ public class DivUtilsTest {
         assertTrue(str.contains("xmlns:test=\"url-1\""));
         assertTrue(str.contains("xmlns:test-2=\"url-2\""));
         assertTrue(str.contains("xmlns:xsi="));
-        assertTrue(str.contains("xsi:schemaLocation"));
+        assertTrue(str.contains("xsi:noNamespaceSchemaLocation"));
     }
 
     /**

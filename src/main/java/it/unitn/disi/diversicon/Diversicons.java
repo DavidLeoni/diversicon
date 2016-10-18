@@ -1537,8 +1537,7 @@ public final class Diversicons {
      * 
      * @since 0.1.0
      */
-    private static LSInput resolveXmlResource(String namespaceUri, String systemId) {
-        checkNotNull(namespaceUri);
+    private static LSInput resolveXmlResource(@Nullable String namespaceUri, String systemId) {
         
         DOMInputImpl ret = new DOMInputImpl();
         ret.setSystemId(systemId);
@@ -1549,8 +1548,11 @@ public final class Diversicons {
                                        .stream());
             return ret;
         } catch (DivIoException ex) {
-            if (Diversicons.SCHEMA_1_NAMESPACE.equals(namespaceUri)
-                    && systemId != null && systemId.contains(Diversicons.SCHEMA_FILENAME)) {
+            if ((Diversicons.SCHEMA_1_NAMESPACE.equals(namespaceUri)
+                    || namespaceUri == null)
+                    && 
+                    (systemId != null 
+                    && systemId.contains(Diversicons.SCHEMA_FILENAME))) {
                 String classpathUrl = Diversicons.SCHEMA_1_0_CLASSPATH_URL;
 
                 LOG.debug("Defaulting to " + classpathUrl + " for unfetchable resource " 
