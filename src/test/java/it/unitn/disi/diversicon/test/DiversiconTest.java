@@ -1155,7 +1155,7 @@ public class DiversiconTest {
         
         DBConfig dbConfig2 = DivTester.createNewDbConfig();
         //Diversicons.dropCreateTables(dbConfig2);
-        Diversicons.restoreH2Sql("file://" + zip.getAbsolutePath(), dbConfig2);
+        Diversicons.h2RestoreSql("file://" + zip.getAbsolutePath(), dbConfig2);
         Diversicon div2 = Diversicon.connectToDb(dbConfig2);
         checkDb(GRAPH_1_HYPERNYM, div2);
     }
@@ -1244,7 +1244,7 @@ public class DiversiconTest {
     @Test  
     public void testConnectToDbH2InMemoryCompressed(){
         try {
-            DBConfig dbConfig = Diversicons.makeDefaultH2InMemoryDbConfig("trial-" + UUID.randomUUID(), true);
+            DBConfig dbConfig = Diversicons.h2MakeDefaultInMemoryDbConfig("trial-" + UUID.randomUUID(), true);
             Assert.fail("Shouldn't arrive here!");
 
             Diversicons.dropCreateTables(dbConfig);
@@ -1266,7 +1266,7 @@ public class DiversiconTest {
      */      
     @Test
     public void testMemoryUsed(){
-        DBConfig dbConfig = Diversicons.makeDefaultH2InMemoryDbConfig("trial-" + UUID.randomUUID()
+        DBConfig dbConfig = Diversicons.h2MakeDefaultInMemoryDbConfig("trial-" + UUID.randomUUID()
                                     , false);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);
@@ -1287,7 +1287,7 @@ public class DiversiconTest {
         
         Date start = new Date();
         
-        DBConfig dbConfig = Diversicons.makeDefaultH2InMemoryDbConfig("trial-" + UUID.randomUUID()
+        DBConfig dbConfig = Diversicons.h2MakeDefaultInMemoryDbConfig("trial-" + UUID.randomUUID()
         , false);
         Diversicons.dropCreateTables(dbConfig);
         dbConfig.setPassword("666");

@@ -47,7 +47,7 @@ public class SlowTest {
      */
     @Test
     public void testImportWordnetInMemoryDb() throws IOException {
-        DBConfig dbConfig = Diversicons.makeDefaultH2InMemoryDbConfig("mydb-" + new Date().getTime(), false);
+        DBConfig dbConfig = Diversicons.h2MakeDefaultInMemoryDbConfig("mydb-" + new Date().getTime(), false);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);        
         div.importXml(DivWn31.of().getXmlUri());
@@ -60,7 +60,7 @@ public class SlowTest {
      */
     // @Test
     public void testRestoreAugmentedWordnetSqlToH2InMemory(){
-        Diversicons.restoreH2Sql(DivWn31.of().getSqlUri(), dbConfig);
+        Diversicons.h2RestoreSql(DivWn31.of().getSqlUri(), dbConfig);
         
         Diversicon div = Diversicon.connectToDb(dbConfig);
                 
@@ -73,7 +73,7 @@ public class SlowTest {
      */    
     @Test
     public void testImportWordnetInFileDb() throws IOException {
-        DBConfig dbConfig = Diversicons.makeDefaultH2FileDbConfig("target/div-wn31-" + new Date().getTime(), false);
+        DBConfig dbConfig = Diversicons.h2MakeDefaultFileDbConfig("target/div-wn31-" + new Date().getTime(), false);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);
         div.importXml(DivWn31.of().getXmlUri());
@@ -84,7 +84,7 @@ public class SlowTest {
      */    
     @Test
     public void testImportWordnetInMemoryExportToSql() throws IOException {
-        DBConfig dbConfig = Diversicons.makeDefaultH2InMemoryDbConfig("mydb-" + new Date().getTime(), false);
+        DBConfig dbConfig = Diversicons.h2MakeDefaultInMemoryDbConfig("mydb-" + new Date().getTime(), false);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);        
         div.importXml(DivWn31.of().getXmlUri());
@@ -99,7 +99,7 @@ public class SlowTest {
      */    
     @Test
     public void testImportWordnetInFileDbExportToSql() throws IOException {
-        DBConfig dbConfig = Diversicons.makeDefaultH2FileDbConfig("target/div-wn31-" + new Date().getTime(), false);
+        DBConfig dbConfig = Diversicons.h2MakeDefaultFileDbConfig("target/div-wn31-" + new Date().getTime(), false);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(dbConfig);
         div.importXml(DivWn31.of().getXmlUri());

@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -292,7 +293,6 @@ public final class Diversicons {
             NAMESPACE_PREFIX_PATTERN.toString()
                     + NAMESPACE_SEPARATOR
                     + "\\p{L}(\\w|-|_|\\.)*");
-
 
     /**
      * 
@@ -942,7 +942,7 @@ public final class Diversicons {
      * 
      * @since 0.1.0
      */
-    public static DBConfig makeDefaultH2FileDbConfig(String filePath, boolean readOnly) {
+    public static DBConfig h2MakeDefaultFileDbConfig(String filePath, boolean readOnly) {
         checkNotEmpty(filePath, "Invalid file path!");
         checkArgument(!filePath.endsWith(".db"), "File path must end just with the databaset name, "
                 + "without the '.h2.db'! Found instead: " + filePath);
@@ -954,7 +954,7 @@ public final class Diversicons {
             readOnlyString = "";
         }
 
-        DBConfig ret = makeDefaultH2CommonDbConfig();
+        DBConfig ret = h2MakeDefaultCommonDbConfig();
         ret.setJdbc_url("jdbc:h2:file:" + filePath + readOnlyString);
 
         return ret;
@@ -972,7 +972,7 @@ public final class Diversicons {
      *            slower access time
      * @since 0.1.0
      */
-    public static DBConfig makeDefaultH2InMemoryDbConfig(String dbName, boolean compressed) {
+    public static DBConfig h2MakeDefaultInMemoryDbConfig(String dbName, boolean compressed) {
         checkNotEmpty(dbName, "Invalid db name!");
 
         String mem;
@@ -984,7 +984,7 @@ public final class Diversicons {
             mem = "mem";
         }
 
-        DBConfig ret = makeDefaultH2CommonDbConfig();
+        DBConfig ret = h2MakeDefaultCommonDbConfig();
 
         ret.setJdbc_url("jdbc:h2:" + mem + ":" + dbName + ";DB_CLOSE_DELAY=-1");
 
@@ -994,7 +994,7 @@ public final class Diversicons {
     /**
      * @since 0.1.0
      */
-    private static DBConfig makeDefaultH2CommonDbConfig() {
+    private static DBConfig h2MakeDefaultCommonDbConfig() {
 
         DBConfig ret = new DBConfig();
         ret.setDb_vendor("de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect");
@@ -1050,7 +1050,7 @@ public final class Diversicons {
      * @deprecated // TODO in progress
      * @since 0.1.0
      */
-    public static void turnH2InsertionModOff() {
+    public static void h2TurnInsertionModOff() {
         String restoreSavedVars = ""
                 + "  SET LOG @DIV_SAVED_LOG;"
                 + "  SET CACHE_SIZE @DIV_SAVED_CACHE_SIZE;"
@@ -1074,7 +1074,7 @@ public final class Diversicons {
      * 
      * @since 0.1.0
      */
-    public static void restoreH2Sql(String dumpUrl, DBConfig dbConfig) {
+    public static void h2RestoreSql(String dumpUrl, DBConfig dbConfig) {
         Internals.checkNotBlank(dumpUrl, "invalid sql/archive resource path!");
         checkH2Db(dbConfig);
 
@@ -1117,10 +1117,7 @@ public final class Diversicons {
 
             // todo need to improve connection with dbConfig params
 
-            conn = DriverManager.getConnection(
-                    dbConfig.getJdbc_url(),
-                    dbConfig.getUser(),
-                    dbConfig.getPassword());
+            conn = getH2Connection(dbConfig);
 
             stat = conn.createStatement();
             stat.execute(saveVars);
@@ -1163,6 +1160,25 @@ public final class Diversicons {
 
         }
 
+    }
+
+    /**
+     * Executes sql statement on H2 dbs, handy for special
+     * commands like "SHUTDOWN COMPACT"
+     * 
+     * @throws DivIoException
+     * 
+     * @since 0.1.0
+     */
+    public static void h2Execute(String sql, DBConfig dbConfig) {       
+
+        Connection conn = getH2Connection(dbConfig);
+
+        try {
+            RunScript.execute(conn, new StringReader(sql));
+        } catch (SQLException e) {
+            throw new DivIoException(e);
+        }
     }
 
     /**
@@ -1211,7 +1227,7 @@ public final class Diversicons {
                                .getH2DbUri(),
                     filepath);
         }
-        return makeDefaultH2FileDbConfig(filepath, true);
+        return h2MakeDefaultFileDbConfig(filepath, true);
     }
 
     /**
@@ -1322,7 +1338,7 @@ public final class Diversicons {
     }
 
     /**
-     * Returns a java.sql.Connection to an H2 database from UBY DBConfig.
+     * Returns a java.sql.Connection to an H2 database from a UBY DBConfig.
      * 
      * @throws DivIoConnection
      * 
@@ -1514,7 +1530,8 @@ public final class Diversicons {
             checkNotNull(prefix);
             if (!NAMESPACE_PREFIX_PATTERN.matcher(prefix)
                                          .matches()) {
-                throw new IllegalArgumentException("Invalid prefix '"+prefix+"', it must match " + NAMESPACE_PREFIX_PATTERN.toString());
+                throw new IllegalArgumentException(
+                        "Invalid prefix '" + prefix + "', it must match " + NAMESPACE_PREFIX_PATTERN.toString());
             }
 
             checkNotBlank(namespaces.get(prefix), "Invalid namespace url!");
@@ -1537,49 +1554,57 @@ public final class Diversicons {
 
     /**
      * Gives back an XML resource. If fetch can't be performed and resource is
-     * an the classpath, it will be taken from there, otherwise an exception is thrown.
+     * an the classpath, it will be taken from there, otherwise an exception is
+     * thrown.
      * 
      * 
      * 
-     * @param namespaceURI  The namespace of the resource being resolved,
-     *   e.g. the target namespace of the XML Schema [<a href='http://www.w3.org/TR/2001/REC-xmlschema-1-20010502/'>XML Schema Part 1</a>]
-     *    when resolving XML Schema resources.
-     * @param systemId  The system identifier, a URI reference [<a href='http://www.ietf.org/rfc/rfc2396.txt'>IETF RFC 2396</a>], of the
-     *   external resource being referenced, or <code>null</code> if no
-     *   system identifier was supplied.
-     * @return  A <code>LSInput</code> object describing the new input
-     *   source, or <code>null</code> to request that the parser open a
-     *   regular URI connection to the resource.
+     * @param namespaceURI
+     *            The namespace of the resource being resolved,
+     *            e.g. the target namespace of the XML Schema [
+     *            <a href='http://www.w3.org/TR/2001/REC-xmlschema-1-20010502/'>
+     *            XML Schema Part 1</a>]
+     *            when resolving XML Schema resources.
+     * @param systemId
+     *            The system identifier, a URI reference [
+     *            <a href='http://www.ietf.org/rfc/rfc2396.txt'>IETF RFC
+     *            2396</a>], of the
+     *            external resource being referenced, or <code>null</code> if no
+     *            system identifier was supplied.
+     * @return A <code>LSInput</code> object describing the new input
+     *         source, or <code>null</code> to request that the parser open a
+     *         regular URI connection to the resource.
      * 
      * @throws DivNotFoundException
      * 
      * @since 0.1.0
      */
-    // TODO in theory there are many other parameters we should take into consideration 
+    // TODO in theory there are many other parameters we should take into
+    // consideration
     @Nullable
-    private static LSInput resolveXmlResource(@Nullable String namespaceUri, @Nullable String systemId) {               
-        
-        if (namespaceUri == null && systemId == null){
+    private static LSInput resolveXmlResource(@Nullable String namespaceUri, @Nullable String systemId) {
+
+        if (namespaceUri == null && systemId == null) {
             return null;
         }
-        
+
         DOMInputImpl ret = new DOMInputImpl();
         ret.setSystemId(systemId);
         ret.setEncoding("UTF-8");
-        
-        try {            
+
+        try {
             ret.setByteStream(Internals.readData(systemId)
                                        .stream());
             return ret;
         } catch (Exception ex) {
             if ((Diversicons.SCHEMA_1_NAMESPACE.equals(namespaceUri)
                     || namespaceUri == null)
-                    && 
-                    (systemId != null 
-                    && systemId.contains(Diversicons.SCHEMA_FILENAME))) {
+                    &&
+                    (systemId != null
+                            && systemId.contains(Diversicons.SCHEMA_FILENAME))) {
                 String classpathUrl = Diversicons.SCHEMA_1_0_CLASSPATH_URL;
 
-                LOG.debug("Defaulting to " + classpathUrl + " for unfetchable resource " 
+                LOG.debug("Defaulting to " + classpathUrl + " for unfetchable resource "
                         + " \n     systemId=" + systemId
                         + " \n namespaceUrl=" + namespaceUri);
 
@@ -1630,7 +1655,7 @@ public final class Diversicons {
         DivXmlHandler errorHandler = new DivXmlHandler(config, source.getSystemId());
 
         Validator validator = schema.newValidator();
-        
+
         LSResourceResolver lsResResolver = new LSResourceResolver() {
 
             @Override
@@ -1651,7 +1676,7 @@ public final class Diversicons {
                 return resolveXmlResource(namespaceURI, systemId);
             }
         };
-        
+
         validator.setResourceResolver(lsResResolver);
 
         validator.setErrorHandler(errorHandler);
@@ -1661,14 +1686,13 @@ public final class Diversicons {
         } catch (SAXException | IOException e) {
             throw new InvalidXmlException(errorHandler, "Fatal error while validating " + xmlFile.getAbsolutePath(), e);
         }
-        
+
         DivXmlValidator divXmlValidator = new DivXmlValidator(new LexResPackage(), errorHandler);
-        
+
         validateXmlJavaStep(xmlFile, errorHandler, divXmlValidator, lsResResolver);
         // need to steps!
         validateXmlJavaStep(xmlFile, errorHandler, divXmlValidator, lsResResolver);
-        
-        
+
         if (errorHandler.invalid()) {
             config.getLog()
                   .error("Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath());
@@ -1679,19 +1703,19 @@ public final class Diversicons {
 
     }
 
-    
-    /** 
-     * Performs validation with custom Java code. Needed because current Xerces 
-     * Xml Schema 1.1 assert implemention has problems, see https://github.com/DavidLeoni/diversicon/issues/21
+    /**
+     * Performs validation with custom Java code. Needed because current Xerces
+     * Xml Schema 1.1 assert implemention has problems, see
+     * https://github.com/DavidLeoni/diversicon/issues/21
      * 
      * @param file
      * @param errorHandler
      * 
      * @since 0.1.0
      */
-    // TODO probably we could pass less parameters 
+    // TODO probably we could pass less parameters
     public static void validateXmlJavaStep(
-            File file, 
+            File file,
             DivXmlHandler errorHandler,
             DivXmlValidator divXmlValidator,
             LSResourceResolver resRes) {
@@ -1707,13 +1731,12 @@ public final class Diversicons {
             InputSource is = new InputSource(new FileInputStream(file));
 
             parser.parse(is, handler);
-        } catch (ParserConfigurationException | SAXException | IOException e) {            
+        } catch (ParserConfigurationException | SAXException | IOException e) {
             throw new DivException(e);
         }
 
     }
 
-    
     /**
      * Reads metadata about a given resource.
      * 

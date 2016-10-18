@@ -201,14 +201,14 @@ public class DivUtilsTest {
     public void testRestoreWrongDump() throws IOException {
         Path dir = DivTester.createTestDir();
         try {
-            Diversicons.restoreH2Sql("file:" + dir.toString() + "/666", dbConfig);
+            Diversicons.h2RestoreSql("file:" + dir.toString() + "/666", dbConfig);
             Assert.fail("Shouldn't arrive here!");
         } catch (DivIoException ex) {
 
         }
 
         try {
-            Diversicons.restoreH2Sql("classpath:/666", dbConfig);
+            Diversicons.h2RestoreSql("classpath:/666", dbConfig);
             Assert.fail("Shouldn't arrive here!");
         } catch (DivIoException ex) {
 

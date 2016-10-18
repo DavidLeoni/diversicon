@@ -69,7 +69,7 @@ public class DivUtilsIT {
         
         Diversicons.restoreH2Db(DivWn31.of().getH2DbUri(), target.getAbsolutePath());
         
-        DBConfig dbCfg = Diversicons.makeDefaultH2FileDbConfig(target.getAbsolutePath(), false); 
+        DBConfig dbCfg = Diversicons.h2MakeDefaultFileDbConfig(target.getAbsolutePath(), false); 
         
         Diversicon div = Diversicon.connectToDb(dbCfg);
         
@@ -96,7 +96,7 @@ public class DivUtilsIT {
         
         Diversicons.restoreH2Db(DivWn31.of().getH2DbUri(), target.getAbsolutePath());
         
-        DBConfig dbCfg = Diversicons.makeDefaultH2FileDbConfig(target.getAbsolutePath(), false); 
+        DBConfig dbCfg = Diversicons.h2MakeDefaultFileDbConfig(target.getAbsolutePath(), false); 
         
         Diversicon div = Diversicon.connectToDb(dbCfg);               
         

@@ -7,10 +7,10 @@
 		   node="Namespace" 
 		   dynamic-insert="true">
 	   
-	   <id name="prefix" column="prefix" node="@prefix" type="string"></id>
-	        
+	   <id name="prefix" column="prefix" node="@prefix" type="string"></id>	   	       
 	   <property name="url" column="url" node="@url" type="string"/>
 	  	  			
+	  	
 	</class>
 
 </hibernate-mapping>
