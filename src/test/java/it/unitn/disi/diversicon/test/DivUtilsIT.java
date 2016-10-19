@@ -163,7 +163,7 @@ public class DivUtilsIT {
     @Test
     public void testFetchH2Db(){
         
-        Path cacheRoot = DivTester.createTestDir();
+        Path cacheRoot = Paths.get(DivTester.createTestDir().toString(),"test");
         
         assertFalse(cacheRoot.toFile().exists());
         Diversicons.fetchH2Db(cacheRoot.toFile(), DivWn31.NAME, DivWn31.of().getVersion());        
