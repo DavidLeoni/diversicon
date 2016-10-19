@@ -1618,7 +1618,8 @@ public class Diversicon extends Uby {
                            .getNamespaces()
                            .get(job.getLexResPackage()
                                    .getPrefix()));
-        sb.append("   FROM FILE: ");
+        sb.append("\n");
+        sb.append("FROM FILE: ");
         sb.append(job.getFileUrl());
 
         if (job.getLogMessages()
@@ -1637,12 +1638,12 @@ public class Diversicon extends Uby {
         sb.append(job.getDescription());
         sb.append("\n");
         if (fullLog) {
-            sb.append("\n");
-            sb.append("Full log:");
+            sb.append("\n");            
             List<LogMessage> msgs = job.getLogMessages();
             if (msgs.isEmpty()) {
-                sb.append(" No logs to report.\n");
+                sb.append(" No logs were to report.\n");
             } else {
+                sb.append("Full log:");
                 sb.append("\n");
                 for (LogMessage msg : job.getLogMessages()) {
                     sb.append(msg.getMessage() + "\n");

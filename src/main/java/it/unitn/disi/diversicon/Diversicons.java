@@ -5,10 +5,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
-import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -346,6 +344,20 @@ public final class Diversicons {
             // ArchiveStreamFactory.SEVEN_Z,
             ArchiveStreamFactory.TAR,
             ArchiveStreamFactory.ZIP };
+    
+    /**
+     * Default user for databases.
+     * 
+     * @since 0.1.0
+     */
+    public static final String DEFAULT_USER = "root";
+
+    /**
+     * Default password for databases.
+     * 
+     * @since 0.1.0
+     */    
+    public static final String DEFAULT_PASSWORD = "pass";    
 
     private static final Logger LOG = LoggerFactory.getLogger(Diversicons.class);
 
@@ -365,9 +377,6 @@ public final class Diversicons {
     private static final LinkedHashSet<String> partOfRelations = new LinkedHashSet<String>();
     private static final LinkedHashSet<String> canonicalPartOfRelations = new LinkedHashSet<String>();
 
-    private static final String DEFAULT_USER = "root";
-
-    private static final String DEFAULT_PASSWORD = "pass";
 
     /**
      * 
