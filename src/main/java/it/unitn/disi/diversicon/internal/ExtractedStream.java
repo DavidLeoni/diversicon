@@ -16,11 +16,12 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import it.disi.unitn.diversicon.exceptions.DivIoException;
 import it.unitn.disi.diversicon.Diversicons;
+import it.unitn.disi.diversicon.exceptions.DivIoException;
 
 /**
  * A stream possibly extracted from a compressed {@code sourceUrl}. Use
@@ -166,6 +167,19 @@ public class ExtractedStream {
     public String toString() {
         return "ExtractedStream [filepath=" + filepath + ", sourceUrl=" + sourceUrl + ", extracted=" + extracted
                 + ", tempFile=" + tempFile + "]";
+    }
+
+    /**
+     * Consumes the stream to a string.
+     * 
+     * @since 0.1.0
+     */
+    public String streamToString() {
+        try {
+            return IOUtils.toString(stream());
+        } catch (IOException e) {            
+            throw new DivIoException(e);
+        }
     }
     
     

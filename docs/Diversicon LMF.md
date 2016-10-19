@@ -12,8 +12,8 @@ If an LMF follows the guidelines reported here, clashes should never occur.
 ### Namespaces
   
 XML allows to declare namespaces for tags and attributes 
-(so you can write stuff like <my-namespace-prefix:mytag my-namespace-prefix:myAttribute="bla bla">) but
-we abuse them to give a scope also to tag IDs: <tag id="my-namespace-prefix:bla">
+(so you can write stuff like <my-namespace-prefix.mytag my-namespace-prefix:myAttribute="bla bla">) but
+we abuse them to give a scope also to tag IDs: <tag id="my-namespace-prefix.bla">
 Namespaced IDs are necessary because in UBY IDs are global, and when merging multiple sources into te db 
 conflicts might occur. Note that currently we don't require any specific format for prefixes,
 nor namespace urls, so version numbers are not mandatory and urls are not required 
@@ -56,5 +56,4 @@ document Diversicon will complain. You have to
 
 TODO Each Synset must be associated to at least one Sense respective LexicalEntry
  
-
 

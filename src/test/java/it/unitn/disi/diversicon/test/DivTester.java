@@ -1,39 +1,32 @@
 package it.unitn.disi.diversicon.test;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
-import static it.unitn.disi.diversicon.internal.Internals.checkNotBlank;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 import static it.unitn.disi.diversicon.internal.Internals.createTempFile;
 import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
+import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Array;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
 import org.apache.commons.io.FileUtils;
-import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xml.sax.SAXException;
-
 import de.tudarmstadt.ukp.lmf.model.core.Definition;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalEntry;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
@@ -45,15 +38,13 @@ import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
-import de.tudarmstadt.ukp.lmf.transform.DBToXMLTransformer;
-import de.tudarmstadt.ukp.lmf.transform.LMFXmlWriter;
-import it.disi.unitn.diversicon.exceptions.DivException;
-import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.DivSynsetRelation;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.Diversicons;
 import it.unitn.disi.diversicon.ImportJob;
 import it.unitn.disi.diversicon.LexResPackage;
+import it.unitn.disi.diversicon.exceptions.DivException;
+import it.unitn.disi.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.exceptions.DivValidationException;
 import it.unitn.disi.diversicon.internal.Internals;
 
@@ -78,7 +69,7 @@ public final class DivTester {
 
     private static final String TEST_RESOURCES_PATH = "it/unitn/disi/diversicon/test/";
 
-    static final String DIVERSICON_TEST_STRING = Internals.DIVERSICON_STRING + "-test";
+    static final String DIVERSICON_TEST_STRING = Internals.DIVERSICON_STRING + "-test-";
 
     /**
      * Max amount of time for connection problems during tests, in millisecs.
@@ -98,9 +89,11 @@ public final class DivTester {
      */
     public static LexicalResource GRAPH_1_HYPERNYM = lmf().lexicon()
                                                           .synset()
+                                                          .lexicalEntry()
                                                           .synset()
                                                           .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
                                                           .build();
+   
 
     /**
      * Graph with 3 verteces and 2 hypernym edges,  a good candidate for augmentation. 
@@ -111,6 +104,7 @@ public final class DivTester {
      */
     public static LexicalResource GRAPH_3_HYPERNYM = lmf().lexicon()
         .synset()
+        .lexicalEntry()
         .synset()
         .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
         .synset()
@@ -125,6 +119,7 @@ public final class DivTester {
      */
     public static LexicalResource GRAPH_4_HYP_HOL_HELLO = lmf().lexicon()
                                                                .synset()
+                                                               .lexicalEntry()
                                                                .synset()
                                                                .synset()
                                                                .synset()
@@ -142,6 +137,7 @@ public final class DivTester {
      */
     public static final LexicalResource DAG_3_HYPERNYM = lmf().lexicon()
                                                               .synset()
+                                                              .lexicalEntry()
                                                               .synset()
                                                               .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
                                                               .synset()
@@ -157,12 +153,20 @@ public final class DivTester {
      */
     public static final LexicalResource DAG_2_MULTI_REL = lmf().lexicon()
                                                                .synset()
+                                                               .lexicalEntry()
                                                                .synset()
                                                                .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
                                                                .synsetRelation(ERelNameSemantics.HOLONYM, 1)
                                                                .build();
 
     private static final Logger LOG = LoggerFactory.getLogger(DivTester.class);
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String EXPERIMENTS_DIR = "src/test/resources/experiments/";
+
+    public static final String BAD_EXAMPLICON_XML_URI = "classpath:/bad-examplicon.xml";
 
     private DivTester() {
     }
@@ -587,8 +591,12 @@ public final class DivTester {
     public static LexResPackage createLexResPackage(LexicalResource lexRes, String prefix){
         LexResPackage pack = new LexResPackage();
         
-        pack.setId(prefix);
         pack.setName(lexRes.getName());
+        if (lexRes.getGlobalInformation() == null){           
+            pack.setLabel(prefix);
+        } else {            
+            pack.setLabel(lexRes.getGlobalInformation().getLabel());    
+        }        
         pack.setPrefix(prefix);
         pack.putNamespace(prefix, "http://test-"+lexRes.hashCode() + ".xml");
         return pack;
@@ -664,7 +672,7 @@ public final class DivTester {
         } else {
             s = Integer.toString(n);
         }
-        return Diversicons.makeDefaultH2InMemoryDbConfig("test" + s, false);
+        return Diversicons.h2MakeDefaultInMemoryDbConfig("test" + s, false);
 
     }
 
@@ -697,8 +705,75 @@ public final class DivTester {
      * @since 0.1.0
      */
     public static String tid(String name){        
-        return DEFAULT_TEST_PREFIX + ":" + name;
+        return pid(DEFAULT_TEST_PREFIX, name);
     }
+        
+    /**
+     * Adds default prefix used during tests.
+     * 
+     * @since 0.1.0
+     */
+    public static String pid(String prefix, String name){        
+        return prefix + Diversicons.NAMESPACE_SEPARATOR + name;
+    }
+    
+    
+    /**
+     * Utility functions for developing Diversicon.
+     * 
+     * Inputs:
+     * 
+     * <pre>
+     *      e FILEPATH : Extracts relType from SynsetRelation rows of OWA XML at FILEPATH
+     *      s          : Generates the xsd schema and puts it in diversicon model resources}
+     * </pre>
+     *
+     * @since 0.1.0
+     */
+    public static void main(String[] args) {
 
+        switch (args[0]) {
+        case "e":
+            try {
+                File file = new File(args[1]);
+
+                Pattern p = Pattern.compile("(.*)<SynsetRelation(.*)relType='(.*)'/>");
+
+                HashSet<String> set = new HashSet<>();
+
+                try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        Matcher m = p.matcher(line);
+                        if (m.matches()) {
+                            set.add(m.group(3));
+                        }
+                    }
+                }
+
+                for (String s : set) {
+                    LOG.info(s);
+                }
+            } catch (Exception ex) {
+                throw new DivException(ex);
+            }
+            System.exit(0);
+        case "s":   
+            String modelPath = "../../diversicon-model/prj/"            
+            + ((Internals.DEV_WEBSITE + "/" 
+            + Diversicons.SCHEMA_1_0_FRAGMENT 
+            + "/").substring("file://".length()));
+            
+            File dtd = new File(modelPath + Diversicons.DTD_FILENAME);
+            File schema = new File(modelPath + Diversicons.SCHEMA_FILENAME); 
+                        
+            Internals.generateXmlSchemaFromDtd(dtd, schema);            
+            System.exit(0);
+        default:
+            LOG.error("Invalid command " + args[0]);
+            System.exit(1);
+        }
+
+    }
     
 }

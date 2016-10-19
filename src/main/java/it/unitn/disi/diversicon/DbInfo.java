@@ -30,7 +30,7 @@ public class DbInfo {
      * @since 0.1.0
      */
     public DbInfo() {
-        this.schemaVersion = Diversicon.DIVERSICON_SCHEMA_VERSION;
+        this.schemaVersion = Diversicons.SCHEMA_VERSION_1_0;
         this.version = "";       
         this.toValidate = false;
         this.toNormalize = false;

@@ -21,4 +21,4 @@ bin/h2.bat
 
 This should open a browser pointed at a screen like this:
 
-<img src="img/h2-access-1.png">
+<img src="img/h2-1.png">

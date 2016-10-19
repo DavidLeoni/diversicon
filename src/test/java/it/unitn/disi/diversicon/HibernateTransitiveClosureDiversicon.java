@@ -11,7 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
-import it.disi.unitn.diversicon.exceptions.DivException;
+import it.unitn.disi.diversicon.exceptions.DivException;
 import it.unitn.disi.diversicon.internal.Internals;
 import it.unitn.disi.diversicon.test.DivTester;
 
@@ -129,7 +129,7 @@ public class HibernateTransitiveClosureDiversicon extends Diversicon {
                     processedRelationsInCurLevel += 1;
                     relStats.setMaxLevel(depthToSearch);
 
-                    if (++count % COMMIT_STEP == 0) {
+                    if (++count % 10000 == 0) {
                         // flush a batch of updates and release memory:
                         session.flush();
                         session.clear();

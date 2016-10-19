@@ -1,11 +1,14 @@
 package it.unitn.disi.diversicon.test;
 
 import de.tudarmstadt.ukp.lmf.model.core.Definition;
+import de.tudarmstadt.ukp.lmf.model.core.GlobalInformation;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalEntry;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
 import de.tudarmstadt.ukp.lmf.model.core.Sense;
 import de.tudarmstadt.ukp.lmf.model.core.TextRepresentation;
+import de.tudarmstadt.ukp.lmf.model.enums.EPartOfSpeech;
+import de.tudarmstadt.ukp.lmf.model.meta.MetaData;
 import de.tudarmstadt.ukp.lmf.model.morphology.FormRepresentation;
 import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
@@ -17,10 +20,11 @@ import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
 import static it.unitn.disi.diversicon.internal.Internals.newArrayList;
-import static it.unitn.disi.diversicon.test.LmfBuilder.lmf;
+import static it.unitn.disi.diversicon.test.DivTester.pid;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,8 +34,9 @@ import org.slf4j.LoggerFactory;
  * Experimental builder helper for {@link LexicalResource} data structures, to
  * use for testing purposes.
  * 
- * The builder will automatically create necessary ids for you, like 'lexical
- * resource 1', 'synset 3', ... according to the order of insertion.
+ * The builder will automatically create necessary ids for you, like
+ * 'lexical-resource 1'
+ * , 'synset-3', ... according to the order of insertion.
  * 
  * Start building with {@link #lmf()} or {@link #lmf(String)} and finish with
  * {@link #build()}. Each builder instance can build only one object.
@@ -42,14 +47,15 @@ import org.slf4j.LoggerFactory;
 // todo implement other id naming policies...
 // todo implement all elements builders... huge!
 public class LmfBuilder {
-    
-    private static final Logger LOG = LoggerFactory.getLogger(LmfBuilder.class);    
+
+    private static final Logger LOG = LoggerFactory.getLogger(LmfBuilder.class);
 
     private LexicalResource lexicalResource;
     private long lastSenseId;
 
     private boolean built;
     private String prefix;
+    private boolean uby;
 
     /**
      * @since 0.1.0
@@ -63,13 +69,38 @@ public class LmfBuilder {
      */
     private LmfBuilder(String prefix) {
         checkNotNull(prefix);
+        String name = pid(prefix, "lexical-resource");
 
         this.prefix = prefix;
         this.lexicalResource = new LexicalResource();
-        this.lexicalResource.setName(prefix + ":lexical resource 1");
+        this.lexicalResource.setName(name);
+        GlobalInformation globInfo = new GlobalInformation();
+        globInfo.setLabel(prefix + " lexical resource");
+        this.lexicalResource.setGlobalInformation(globInfo);
+        MetaData md = new MetaData();
+        md.setAutomatic(false);
+        md.setCreationDate(new Date());
+        md.setCreationProcess("for tests");
+        md.setCreationTool("by hand");
+        md.setId(pid(prefix,"md"));
+        md.setVersion("0.1.0-SNAPSHOT");
+        this.lexicalResource.setMetaData(Internals.newArrayList(md));
+        
         this.built = false;
         this.lastSenseId = 0;
+        this.uby = false;
 
+    }
+    
+    /**
+     * Tells the builder to use Uby only classes (so for example
+     * will alwyas use  {@link SynsetRelation} instead of {@link DivSynsetRelation})
+     * 
+     * @since 0.1.0
+     */
+    public LmfBuilder uby(){
+       this.uby = true;
+       return this;
     }
 
     /**
@@ -105,11 +136,14 @@ public class LmfBuilder {
                 }
             }
         }
-        throw new IllegalStateException("Couldn't find a synset with id: '" + synsetId + "'");
+        LOG.debug("Couldn't find synset with id " + synsetId + ", returning fake synset");
+        Synset ret = new Synset();
+        ret.setId(synsetId);
+        return ret;
     }
 
     /**
-     * Returns something like {@code myprefix-name 3} where 3 is the collection
+     * Returns something like {@code myprefix_name-3} where 3 is the collection
      * size
      * 
      * @since 0.1.0
@@ -119,20 +153,20 @@ public class LmfBuilder {
     }
 
     /**
-     * Returns something like {@code myprefix:name 3}
+     * Returns something like {@code myprefix-name-3}
      * 
      * @since 0.1.0
      */
     private String id(String name, long num) {
         checkArgument(num >= 0, "Invalid id number, should be >= 0 !");
-        if (name.startsWith(" ") || name.endsWith(" ")){
+        if (name.startsWith(" ") || name.endsWith(" ")) {
             LOG.warn("Found name with spaces at the beginning / end: -->" + name + "<--");
         }
-        return prefix + ":" + name + " " + num;
+        return pid(prefix, name + "-" + num);
     }
 
     /**
-     * Creates synset with id like 'synset n'
+     * Creates synset with id like 'synset-n'
      * 
      * @since 0.1.0
      */
@@ -143,6 +177,7 @@ public class LmfBuilder {
                 + 1);
     }
 
+    
     /**
      * @since 0.1.0
      */
@@ -176,8 +211,8 @@ public class LmfBuilder {
 
     /**
      * 
-     * Adds to current synset a synsetRelation pointing to target synset 
-     * specified by {@code targetIdNum} 
+     * Adds to current synset a synsetRelation pointing to target synset
+     * specified by {@code targetIdNum}
      * 
      * @param targetIdNum
      *            must be > 0.
@@ -189,7 +224,13 @@ public class LmfBuilder {
         checkNotEmpty(relName, "Invalid relation name!");
         Internals.checkArgument(targetIdNum > 0,
                 "Expected idNum greater than zero, found " + targetIdNum + " instead!");
-        DivSynsetRelation sr = new DivSynsetRelation();
+        SynsetRelation sr;
+        if (uby){
+            sr = new SynsetRelation();
+        } else {
+            sr = new DivSynsetRelation();
+        }
+        
         sr.setTarget(getSynset(targetIdNum));
         Synset curSynset = getCurSynset();
         sr.setSource(curSynset);
@@ -202,8 +243,8 @@ public class LmfBuilder {
 
     /**
      * 
-     * Adds to current synset a synsetRelation pointing to target synset 
-     * specified by {@code targetId} 
+     * Adds to current synset a synsetRelation pointing to target synset
+     * specified by {@code targetId}
      *
      * @since 0.1.0
      */
@@ -211,8 +252,14 @@ public class LmfBuilder {
         checkBuilt();
         checkNotEmpty(relName, "Invalid relation name!");
         checkNotNull(targetId);
-       
-        DivSynsetRelation sr = new DivSynsetRelation();
+
+        SynsetRelation sr;
+        if (uby){
+            sr = new SynsetRelation();
+        } else {
+            sr = new DivSynsetRelation();
+        }
+        
         Synset ts = new Synset();
         ts.setId(targetId);
         sr.setTarget(ts);
@@ -224,8 +271,7 @@ public class LmfBuilder {
         return this;
 
     }
-    
-    
+
     /**
      * @since 0.1.0
      */
@@ -236,9 +282,11 @@ public class LmfBuilder {
             DivSynsetRelation dsr = (DivSynsetRelation) sr;
             dsr.setDepth(i);
         } else {
-            throw new IllegalStateException(
-                    "Expected " + DivSynsetRelation.class.getCanonicalName() + " Found instead: " + sr.getClass()
-                                                                                                      .getCanonicalName());
+            if (i != 1){
+                throw new IllegalStateException(
+                        "Expected " + DivSynsetRelation.class.getCanonicalName()
+                        + " Found instead: " + sr.getClass().getCanonicalName());
+            }
         }
 
         return this;
@@ -316,7 +364,7 @@ public class LmfBuilder {
     /**
      * @since 0.1.0
      */
-    public Lexicon getCurLexicon() {
+    private Lexicon getCurLexicon() {
         checkBuilt();
         int size = lexicalResource.getLexicons()
                                   .size();
@@ -328,7 +376,7 @@ public class LmfBuilder {
     }
 
     /**
-     * Start building a lexical resource
+     * Calls {@link #lmf(String)} with defualt prefix.
      * 
      * @since 0.1.0
      */
@@ -337,10 +385,9 @@ public class LmfBuilder {
     };
 
     /**
-     * Start building a lexical resource, prepending every id of every element
-     * inside
-     * (even nested ones such as synsets) with {@code prefix}. No space will be
-     * added after the prefix.
+     * Start building a lexical resource. Every id inside will
+     * be prepended with {@code prefix} (even for nested elements 
+     * such as synsets). No space will be added after the prefix.
      *
      * @since 0.1.0
      */
@@ -349,7 +396,7 @@ public class LmfBuilder {
     }
 
     /**
-     * Builds a simple minimalistic LexicalResource
+     * Builds a simple minimally valid LexicalResource
      * 
      * @since 0.1.0
      */
@@ -379,7 +426,7 @@ public class LmfBuilder {
     }
 
     /**
-     * Automatically creates a Sense and Lemma with given {@code writtenForm}
+     * Creates a LexicalEntry, automatically creating a Sense and Lemma within it. 
      * Sense is linked to current synset.
      * 
      * @since 0.1.0
@@ -389,10 +436,25 @@ public class LmfBuilder {
     }
 
     /**
-     * Automatically creates a Sense and Lemma with given {@code writtenForm}
+     * Creates a LexicalEntry, automatically creating a Sense and Lemma within it. 
+     * Sense is linked to current synset. LexicalEntry {@code writtenForm}
+     * is set equal to "textN", where N is the number of current lexical entries. 
      * 
+     * @since 0.1.0
+     */
+    public LmfBuilder lexicalEntry() {
+        
+        return lexicalEntry(
+                "text" + getCurLexicon().getLexicalEntries(),
+                getCurSynset().getId());
+    }
+        
+
+    /**
+     * Creates a LexicalEntry, automatically creating a Sense and Lemma within it. 
+     * Sense is linked to provided {@code synsetId}.
      * 
-     * @param synsetIdNum
+     * @param synsetId
      *            must exist
      * 
      * @since 0.1.0
@@ -403,32 +465,33 @@ public class LmfBuilder {
         checkNotEmpty(synsetId, "Invalid synsetId!");
 
         checkBuilt();
-        LexicalEntry lexicalEntry = new LexicalEntry();
-        lexicalEntry.setId(id("lexicalEntry", getCurLexicon().getLexicalEntries()));
+        LexicalEntry lexEntry = new LexicalEntry();
+        lexEntry.setId(id("lexical-entry", getCurLexicon().getLexicalEntries()));
+        lexEntry.setPartOfSpeech(EPartOfSpeech.noun);
         Lemma lemma = new Lemma();
 
         FormRepresentation formRepresentation = new FormRepresentation();
         formRepresentation.setWrittenForm(writtenForm);
 
         lemma.setFormRepresentations(Arrays.asList(formRepresentation));
-        lemma.setLexicalEntry(lexicalEntry);
-        lexicalEntry.setLemma(lemma);
+        lemma.setLexicalEntry(lexEntry);
+        lexEntry.setLemma(lemma);
 
-        Sense sense = newSense(lexicalEntry, synsetId);
-        lexicalEntry.setSenses(Arrays.asList(sense));
+        Sense sense = newSense(lexEntry, synsetId);
+        lexEntry.setSenses(Arrays.asList(sense));
 
-        getCurLexicon().addLexicalEntry(lexicalEntry);
+        getCurLexicon().addLexicalEntry(lexEntry);
         return this;
     }
 
     /**
-     * Creates a new Sense within provided {@code lexicalEntry}
+     * Returns a new Sense within provided {@code lexicalEntry}
      * 
      * @since 0.1.0
      */
     private Sense newSense(LexicalEntry lexicalEntry, String synsetId) {
         Sense sense = new Sense();
-        sense.setId(prefix + "sense " + (lastSenseId + 1));
+        sense.setId(pid(prefix, "sense-" + (lastSenseId + 1)));
         lastSenseId++;
 
         sense.setLexicalEntry(lexicalEntry);
@@ -450,9 +513,12 @@ public class LmfBuilder {
             DivSynsetRelation dsr = (DivSynsetRelation) sr;
             dsr.setProvenance(provenanceId);
         } else {
-            throw new IllegalStateException(
-                    "Expected " + DivSynsetRelation.class.getCanonicalName() + " Found instead: " + sr.getClass()
-                                                                                                      .getCanonicalName());
+            if (!(provenanceId == null || provenanceId.isEmpty())){
+                throw new IllegalStateException(
+                        "Expected " + DivSynsetRelation.class.getCanonicalName()
+                        + " Found instead: " + sr.getClass());
+            }
+         
         }
 
         return this;

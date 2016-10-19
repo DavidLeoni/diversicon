@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
@@ -14,21 +15,29 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import javax.xml.XMLConstants;
+import javax.xml.transform.Source;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
 
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveException;
@@ -40,41 +49,80 @@ import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.xerces.impl.Constants;
+import org.apache.xerces.impl.dtd.DTDGrammar;
+import org.apache.xerces.impl.dtd.XMLDTDLoader;
+import org.apache.xerces.impl.dtd.XMLElementDecl;
+import org.apache.xerces.util.SAXInputSource;
+import org.apache.xerces.xni.XNIException;
+import org.apache.xerces.xni.parser.XMLInputSource;
+import org.dom4j.DocumentException;
+import org.dom4j.io.SAXReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
 
 import com.rits.cloning.Cloner;
-
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
+import de.tudarmstadt.ukp.lmf.model.core.Sense;
 import de.tudarmstadt.ukp.lmf.model.interfaces.IHasID;
 import de.tudarmstadt.ukp.lmf.model.miscellaneous.EVarType;
+import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata;
 import de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata.UBYLMFFieldMetadata;
-import it.disi.unitn.diversicon.exceptions.DivException;
-import it.disi.unitn.diversicon.exceptions.DivIoException;
 import it.unitn.disi.diversicon.BuildInfo;
 import it.unitn.disi.diversicon.DivSynsetRelation;
+import it.unitn.disi.diversicon.DivXmlHandler;
 import it.unitn.disi.diversicon.Diversicon;
 import it.unitn.disi.diversicon.LexResPackage;
+import it.unitn.disi.diversicon.XmlValidationConfig;
+import it.unitn.disi.diversicon.exceptions.DivException;
+import it.unitn.disi.diversicon.exceptions.DivIoException;
+import it.unitn.disi.diversicon.exceptions.DivNotFoundException;
+import it.unitn.disi.diversicon.exceptions.InvalidXmlException;
 import it.unitn.disi.diversicon.Diversicons;
 
 /**
  * 
  * Utility toolbox for Diversicon internal usage.
  * 
- * DO NOT USE THIS CLASS OUTSIDE OF DIVERSICON PROJECT. THANKS.
- *
+ * <p>
+ * <strong>DO NOT USE THIS CLASS OUTSIDE OF DIVERSICON PROJECT. THANKS.</strong>
+ * </p>
+ * 
+ * @since 0.1.0
  */
 public final class Internals {
 
+    @Nullable
+    private static Map<Class, List<UBYLMFFieldMetadata>> ORDER_TABLE = new HashMap<>();
+
+    @Nullable
+    private static DTDGrammar DTD_GRAMMAR;
+
+    /**
+     * @since 0.1.0
+     */
     public final static String DIVERSICON_STRING = "diversicon";
+
+    /**
+     * @since 0.1.0
+     */
+    private final static String FIX_DIV_SCHEMA_XQL = "classpath:/internals/fix-div-schema.xql";
 
     private static final Logger LOG = LoggerFactory.getLogger(Internals.class);
 
     private static final @Nullable Cloner cloner = new Cloner();
+
+    /**
+     * URL to dev website, needed for URLs schemes
+     * 
+     * @since 0.1.0
+     */
+    public static final String DEV_WEBSITE = "file://src/main/resources/website";
 
     private Internals() {
 
@@ -529,7 +577,7 @@ public final class Internals {
      * @since 0.1.0
      */
     public static <V, W> HashMap<V, W> newMap(V v, W w, Object... data) {
-        HashMap<V, W> result = new HashMap();
+        HashMap<V, W> result = new HashMap<>();
 
         if (data.length % 2 != 0)
             throw new IllegalArgumentException("Odd number of arguments");
@@ -592,7 +640,7 @@ public final class Internals {
      * @since 0.1.0
      */
     public static <T> ArrayList<T> newArrayList(T... objs) {
-        ArrayList<T> ret = new ArrayList();
+        ArrayList<T> ret = new ArrayList<>();
 
         for (T obj : objs) {
             ret.add(obj);
@@ -606,7 +654,7 @@ public final class Internals {
      * @since 0.1.0
      */
     public static <T> HashSet<T> newHashSet(T... objs) {
-        HashSet<T> ret = new HashSet();
+        HashSet<T> ret = new HashSet<>();
 
         for (T obj : objs) {
             ret.add(obj);
@@ -707,37 +755,39 @@ public final class Internals {
         try {
             uri = new URI(dataUrl);
         } catch (URISyntaxException ex) {
-            throw new IllegalArgumentException("Couldn't parse input url!", ex);
+            throw new DivIoException("Couldn't parse input url!", ex);
         }
 
         LOG.trace("reading data from " + dataUrl + " ...");
 
         if ("classpath".equals(uri.getScheme())) {
-            String q = dataUrl.substring("classpath:".length());
-            uriPath = q;
-            inputStream = Diversicons.class.getResourceAsStream(q);
-            if (inputStream == null) {
+            uriPath = dataUrl.substring("classpath:".length());
+            String q;
 
+            q = removeStartSlashes(uriPath);
+
+            try {
+
+                String candidatePathTest = "src/test/resources/" + q;
+                LOG.trace("    Searching data at " + candidatePathTest + " ...");
+                inputStream = new FileInputStream(candidatePathTest);
+                LOG.debug("    Located data at " + candidatePathTest);
+            } catch (FileNotFoundException ex1) {
                 try {
-
-                    String candidatePathTest = "src/test/resources/" + q;
-                    LOG.trace("    Searching data at " + candidatePathTest + " ...");
-                    inputStream = new FileInputStream(candidatePathTest);
-                    LOG.debug("    Located data at " + candidatePathTest);
-                } catch (FileNotFoundException ex1) {
-                    try {
-                        String candidatePathMain = "src/main/resources/" + q;
-                        LOG.trace("    Searching data at " + candidatePathMain + " ...");
-                        inputStream = new FileInputStream(candidatePathMain);
-                        LOG.debug("    Located data at " + candidatePathMain);
-                    } catch (FileNotFoundException ex2) {
+                    String candidatePathMain = "src/main/resources/" + q;
+                    LOG.trace("    Searching data at " + candidatePathMain + " ...");
+                    inputStream = new FileInputStream(candidatePathMain);
+                    LOG.debug("    Located data at " + candidatePathMain);
+                } catch (FileNotFoundException ex2) {
+                    inputStream = Diversicons.class.getResourceAsStream("/" + q);
+                    if (inputStream == null) {
                         throw new DivIoException("Couldn't find input stream: " + dataUrl.toString());
+                    } else {
+                        LOG.debug("    Located data at " + dataUrl);
                     }
                 }
-
-            } else {
-                LOG.debug("    Located data at " + dataUrl);
             }
+
         } else {
 
             if ("jar".equals(uri.getScheme())) {
@@ -793,6 +843,22 @@ public final class Internals {
         } else {
             return new ExtractedStream(uriPath, inputStream, dataUrl, false);
 
+        }
+    }
+
+    /**
+     * Removes all forward slashes '/' at the beginning of {@code str}
+     * 
+     * @since 0.1.0
+     */
+    private static String removeStartSlashes(String str) {
+        Pattern p = Pattern.compile("/*");
+        Matcher m = p.matcher(str);
+
+        if (m.find()) {
+            return  str.substring(m.end(), str.length());
+        } else {
+            return str;
         }
     }
 
@@ -862,42 +928,33 @@ public final class Internals {
         checkNotNull(destDir);
         checkNotNull(dirPath);
 
-        String normalizedDirPath;
-        if (dirPath.startsWith("/")) {
-            normalizedDirPath = dirPath.substring(1);
-        } else {
-            normalizedDirPath = dirPath;
-        }
+        String normalizedDirPath = removeStartSlashes(dirPath);
 
         try (JarFile jar = new JarFile(jarFile)) {
 
-            java.util.Enumeration enumEntries = jar.entries();
+            java.util.Enumeration<JarEntry> enumEntries = jar.entries();
             while (enumEntries.hasMoreElements()) {
                 JarEntry jarEntry = (JarEntry) enumEntries.nextElement();
                 if (jarEntry.getName()
                             .startsWith(normalizedDirPath)) {
-                    File f = new File(
-                            destDir
-                                    + File.separator
-                                    + jarEntry
+                    File destFile = new File(
+                                destDir.getAbsolutePath() + File.separator + jarEntry
                                               .getName()
                                               .substring(normalizedDirPath.length()));
 
                     if (jarEntry.isDirectory()) { // if its a directory, create
                                                   // it
-                        f.mkdirs();
+                        destFile.mkdirs();
                         continue;
                     } else {
-                        f.getParentFile()
+                        destFile.getParentFile()
                          .mkdirs();
                     }
 
-                    InputStream is = jar.getInputStream(jarEntry); // get the
-                                                                   // input
-                                                                   // stream
-                    FileOutputStream fos = new FileOutputStream(f);
-                    IOUtils.copy(is, fos);
-                    fos.close();
+                    InputStream is = jar.getInputStream(jarEntry); 
+                    FileOutputStream destStream = new FileOutputStream(destFile);
+                    IOUtils.copy(is, destStream);
+                    destStream.close();
                     is.close();
                 }
 
@@ -965,11 +1022,43 @@ public final class Internals {
                     throw new DivIoException("Couldn't copy the directory!", ex);
                 }
             } else {
-                LOG.info("Extracting jar {} to {}", jarFile.getAbsolutePath(), destDir.getAbsolutePath());
+                LOG.debug("Extracting from jar {} to {}", relPath(jarFile), relPath(destDir));
                 copyDirFromJar(jarFile, destDir, sourceDirPath);
                 LOG.debug("Done copying directory from JAR.");
             }
 
+        }
+    }
+    
+    /**
+     * Returns a short relative path to file, if possible, otherwise returns the absolute path.
+     * 
+     * @since 0.1.0
+     */
+    public static String relPath(File file){
+        checkNotNull(file);
+        
+        if (file.toString().equals(".")){
+            return file.toString() + "/";
+        }
+        
+        File userDir = new File(System.getProperty("user.dir"));
+        
+        String userDirPath;
+        if (userDir.getAbsolutePath().endsWith("/")){
+          userDirPath = userDir.getAbsolutePath();  
+        } else{
+            userDirPath = userDir.getAbsolutePath() + "/";
+        }               
+                
+        try {
+            if (file.getCanonicalPath().startsWith(userDirPath)){
+                return file.getAbsolutePath().substring(userDirPath.length());
+            } else {
+                return file.getAbsolutePath();
+            }
+        } catch (IOException e) {
+            return file.getAbsolutePath();
         }
     }
 
@@ -1137,7 +1226,7 @@ public final class Internals {
         checkNotNull(path);
 
         @Nullable
-        String prop = System.getProperty(Diversicon.PROPERTY_DEBUG_KEEP_TEMP_FILES);
+        String prop = System.getProperty(Diversicons.PROPERTY_DEBUG_KEEP_TEMP_FILES);
         boolean keepTempFiles = Boolean.parseBoolean(prop);
 
         if (!(keepTempFiles)) {
@@ -1260,7 +1349,6 @@ public final class Internals {
      * Modified in Diversicon to
      * <ul>
      * <li>prevent writing wrong tag name DivSynsetRelation</li>
-     * <li>add id to the LexicalResource</li>
      * <li>add prefix to the LexicalResource</li>
      * <li>add namespaces to the LexicalResource</li>
      * <li>skip computed transitive relations</li>
@@ -1269,12 +1357,13 @@ public final class Internals {
      * 
      * </p>
      * 
-     * @return the element tagname. If null, the element must be skipped.
+     * @return the element tagname. If {@code null}, the element must be
+     *         skipped.
      * 
      * @throws SAXException
      * 
      * @since 0.1.0
-     */    
+     */
     @Nullable
     public static String prepareXmlElement(Object inputLmfObject,
             boolean closeTag,
@@ -1290,38 +1379,36 @@ public final class Internals {
 
         Object lmfObject = inputLmfObject;
         String elementName = lmfObject.getClass()
-                .getSimpleName();
+                                      .getSimpleName();
 
         if (inputLmfObject instanceof LexicalResource) {
 
-            atts.addAttribute("", "", "id", "CDATA",
-                    lexResPackage.getId());
-
             atts.addAttribute("", "", "prefix", "CDATA",
                     lexResPackage.getPrefix());
-            
+
             // note at the end of the method we put xmlns
         } else if (inputLmfObject instanceof DivSynsetRelation) {
-        
+
             DivSynsetRelation dsr = (DivSynsetRelation) inputLmfObject;
             lmfObject = dsr.toSynsetRelation();
             elementName = SynsetRelation.class.getSimpleName();
-            
-            if (Diversicon.getProvenanceId().equals(dsr.getProvenance())){
-                if (dsr.getDepth() > 1){
-                    return null;   
-                }
-                if (!Diversicons.isCanonicalRelation(dsr.getRelName())){
+
+            if (Diversicon.getProvenanceId()
+                          .equals(dsr.getProvenance())) {
+                if (dsr.getDepth() > 1) {
                     return null;
                 }
-            }            
-        } 
-        
+                if (!Diversicons.isCanonicalRelation(dsr.getRelName())) {
+                    return null;
+                }
+            }
+        }
+
         int hibernateSuffixIdx = elementName.indexOf("_$$");
         if (hibernateSuffixIdx > 0)
             elementName = elementName.substring(0, hibernateSuffixIdx);
 
-        for (UBYLMFFieldMetadata fieldMeta : classMetadata.getFields()) {
+        for (UBYLMFFieldMetadata fieldMeta : extractFieldsInDtdOrder(classMetadata, elementName)) {
             EVarType varType = fieldMeta.getVarType();
             if (varType == EVarType.NONE)
                 continue;
@@ -1342,6 +1429,11 @@ public final class Internals {
                 switch (fieldMeta.getVarType()) {
                 case ATTRIBUTE:
                 case ATTRIBUTE_OPTIONAL:
+                    if (lmfObject instanceof Sense 
+                            && xmlFieldName.equals("index")
+                            && "0".equals(retObj.toString()) ){
+                        break; // workaround for https://github.com/DavidLeoni/diversicon/issues/24
+                    }
                     atts.addAttribute("", "", xmlFieldName, "CDATA", retObj.toString());
                     break;
                 case CHILD:
@@ -1354,6 +1446,10 @@ public final class Internals {
                             children.add(obj);
                     break;
                 case IDREF:
+                    if (lmfObject instanceof Lemma 
+                            && xmlFieldName.equals("lexicalEntry")){
+                        break; // workaround for https://github.com/DavidLeoni/diversicon/issues/22
+                    }
                     // Save IDREFs as attribute of the new element
                     atts.addAttribute("", "", xmlFieldName, "CDATA", ((IHasID) retObj).getId());
                     break;
@@ -1373,40 +1469,150 @@ public final class Internals {
 
         boolean foundXsi = false;
         String xsiPrefix = "xsi";
-        
+
         if (inputLmfObject instanceof LexicalResource) {
-            
+
             // note at the beginning of the method we put id and prefix
             for (String prefix : lexResPackage.getNamespaces()
-                    .keySet()) {
+                                              .keySet()) {
                 String url = lexResPackage.getNamespaces()
-                        .get(prefix);
+                                          .get(prefix);
                 atts.addAttribute("", "", "xmlns:" + prefix, "CDATA",
                         url);
-                
-                if (XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI.equals(url)){
+
+                if (XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI.equals(url)) {
                     foundXsi = true;
                     xsiPrefix = prefix;
-                }                
+                }
             }
-            
-            if (!foundXsi){
+
+            if (!foundXsi) {
                 atts.addAttribute("", "", "xmlns:" + xsiPrefix, "CDATA",
                         XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI);
             }
+
+            atts.addAttribute("", "", xsiPrefix + ":noNamespaceSchemaLocation", "CDATA",
+                      Diversicons.SCHEMA_1_0_PUBLIC_URL);
+
+            // default namespace is too complicated for users!   
+            // atts.addAttribute("", "", "xmlns", "CDATA",
+            //        Diversicons.SCHEMA_1_NAMESPACE );
             
-            atts.addAttribute("", "", xsiPrefix + ":schemaLocation", "CDATA",
-                    Diversicons.DIVERSICON_SCHEMA_1_0_PUBLIC_URL);
-            
-        }        
-        
+        }
+
         return elementName;
+    }
+
+    
+    
+    /**
+     * 
+     * @param normalizedElementName
+     *            the normalized elementName,
+     *            i.e. DivSynsetRelation should be SynsetRelation
+     * 
+     * @since 0.1.0
+     */
+    private static List<UBYLMFFieldMetadata> extractFieldsInDtdOrder(
+            UBYLMFClassMetadata classMetadata,
+            String normalizedElementName) {
+
+        if (DTD_GRAMMAR == null) {
+            String dtdText = readData(Diversicons.DTD_1_0_CLASSPATH_URL).streamToString();
+            DTD_GRAMMAR = parseDtd(dtdText);
+        }
+
+        if (ORDER_TABLE.containsKey(classMetadata.getClazz())) {
+            return ORDER_TABLE.get(classMetadata.getClazz());
+        } else {
+            int elementDeclIndex = 0;
+            XMLElementDecl elDec = new XMLElementDecl();
+
+            List<UBYLMFFieldMetadata> ret = new ArrayList<>(10);
+            UBYLMFFieldMetadata[] reorderedSubelems = new UBYLMFFieldMetadata[] {};
+            String[] reorderedSubelemsNames = new String[]{};
+            
+            int nSubElemsFound = 0;
+            List<UBYLMFFieldMetadata> attrs = new ArrayList<>();
+
+            String[] dtdSubElementNames = new String[] {};
+
+            while (DTD_GRAMMAR.getElementDecl(elementDeclIndex++, elDec)) {
+
+
+                if (elDec.name.rawname.equals(normalizedElementName)) {
+
+                    String dtdContentSpec = DTD_GRAMMAR.getContentSpecAsString(elementDeclIndex - 1);
+                    if (dtdContentSpec == null) {
+                        dtdSubElementNames = new String[] {};
+                    } else {
+                        dtdSubElementNames = dtdContentSpec.replace("(", "")
+                                                        .replace(")", "")
+                                                        .replace("?", "")
+                                                        .replace("+", "")
+                                                        .replace("*", "")
+                                                        .split(",");
+                    }
+
+                    reorderedSubelems = new UBYLMFFieldMetadata[dtdSubElementNames.length];
+                    reorderedSubelemsNames = new String[dtdSubElementNames.length];
+                    
+                    for (UBYLMFFieldMetadata fm : classMetadata.getFields()) {
+                        Class clazz;
+                        if (Collection.class.isAssignableFrom(fm.getType())) {
+                            clazz = fm.getGenericElementType();
+                        } else {
+                            clazz = fm.getType();
+                        }
+
+                        checkNotNull(clazz, "Found null clazz for UBYLMFFieldMetadata " + fm.getName());
+
+                        boolean found = false;
+
+                        for (int i = 0; i < dtdSubElementNames.length; i++) {
+                            if (clazz.getSimpleName()
+                                     .equals(dtdSubElementNames[i])) {
+                                nSubElemsFound += 1;
+                                found = true;
+                                reorderedSubelems[i] = fm;
+                                reorderedSubelemsNames[i] = dtdSubElementNames[i];
+                                break;
+                            }
+                        }
+
+                        if (!found) {
+                            attrs.add(fm);
+                        }
+                    }
+
+                    break;
+                }
+
+            }
+
+            if (nSubElemsFound != dtdSubElementNames.length) {
+                throw new DivException("Error while reordering elements according to DTD!"
+                        + " \nDTD declares " + dtdSubElementNames.length + " fields, found " + nSubElemsFound 
+                        + " \nin classMetadata = " + 
+                        classMetadata.getClazz()+ ", normalizedElementName = " + 
+            normalizedElementName 
+                        + "\nDTD fields   :  " + Arrays.toString(dtdSubElementNames)
+                        + "\nFound fields :  " + Arrays.toString(reorderedSubelemsNames));
+            }
+            ret.addAll(attrs);
+            ret.addAll(Arrays.asList(reorderedSubelems));
+
+            ORDER_TABLE.put(classMetadata.getClazz(), ret);
+
+            return ret;
+        }
     }
 
     /**
      * Performs a coherence check on provided lexical resource package.
      * 
-     * To match it against a LexicalResource, see {@link #checkLexResPackage(LexResPackage, LexicalResource)}
+     * To match it against a LexicalResource, see
+     * {@link #checkLexResPackage(LexResPackage, LexicalResource)}
      * 
      * @throws IllegalArgumentException
      * 
@@ -1414,9 +1620,11 @@ public final class Internals {
      */
     public static LexResPackage checkLexResPackage(LexResPackage lexResPackage) {
         return checkLexResPackage(lexResPackage, null);
-    }   
-    
+    }
+
     /**
+     * Checks provided {@code LexicalResourcePackage} matches fields in {@code LexicalResource}
+     * 
      * @throws IllegalArgumentException
      * 
      * @since 0.1.0
@@ -1427,10 +1635,10 @@ public final class Internals {
 
         BuildInfo build = BuildInfo.of(Diversicon.class);
 
-        checkNotBlank(pack.getId(), "Invalid lexical resource id!");
+        checkNotBlank(pack.getName(), "Invalid lexical resource name!");
         Diversicons.checkPrefix(pack.getPrefix());
 
-        checkNotBlank(pack.getName(), "Invalid lexical resource name!");
+        checkNotBlank(pack.getLabel(), "Invalid lexical resource label!");
 
         if (pack.getPrefix()
                 .length() > Diversicons.LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH) {
@@ -1447,11 +1655,6 @@ public final class Internals {
                     "Couldn't find LexicalResource prefix '" + pack.getPrefix() + "' among namespace prefixes! "
                             + "See " + build.docsAtVersion() + "/diversicon-lmf.html"
                             + " for info on how to structure a Diversicon XML!");
-        }
-
-        if (lexRes != null) {
-
-            Internals.checkEquals("", pack.getName(), lexRes.getName());
         }
 
         return pack;
@@ -1554,6 +1757,151 @@ public final class Internals {
         }
 
         return expected.equals(actual);
+    }
+
+    /**
+     * Parses a Diversicon DTD and creates a corresponding XML Schema,
+     * adding further constraints
+     * 
+     * @throws DivNotFoundException
+     * @throws DivIoException
+     * 
+     * @since 0.1.0
+     */
+    // NOTE: you can't add namespace declarations with Xquery update!
+    // See
+    // http://stackoverflow.com/questions/36865118/add-namespace-declaration-to-xml-element-using-xquery
+    public static void generateXmlSchemaFromDtd(File inputDtd, File output) {
+
+        LOG.info("Going to generate xsd:   " + output.getAbsolutePath() + "   ...");
+
+        checkNotNull(output);
+        checkNotNull(inputDtd);
+        
+        checkArgument(inputDtd.exists(), "Can't find input DTD " + inputDtd.getAbsolutePath());
+        
+        File tempDir = createTempDivDir("trang").toFile();
+
+        /**
+         * First pass to generate first crude xsd
+         */
+        File firstPass = new File(tempDir, "first-pass.xsd");
+
+        // xmlns:fn="http://www.w3.org/2005/xpath-functions"
+        // xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning"
+        // vc:minVersion="1.1"
+
+        new com.thaiopensource.relaxng.translate.Driver().run(new String[] { 
+                "-I", "dtd", "-O", "xsd",
+                // default namespace is too complicated for users 
+                // "-i", "xmlns=" + Diversicons.SCHEMA_1_NAMESPACE,
+                // since they are not used in first pass, trang kindly removes them with a warning :-/
+               // "-i", "xmlns:fn=http://www.w3.org/2005/xpath-functions",
+               //  "-i", "xmlns:vc=http://www.w3.org/2007/XMLSchema-versioning",
+                inputDtd.getAbsolutePath(),
+                firstPass.getAbsolutePath() });
+
+        if (!firstPass.exists()) {
+            throw new DivException("Failed first transformation pass!!"
+                    + "             Check the console for errors emitted by trang module!");
+        }
+
+        /**
+         * Second pass is needed because Trang is soo smart to remove unused
+         * namespaces :-/
+         */
+        File secondPass = new File(tempDir, "second-pass.xsd");
+
+        SAXReader reader = new SAXReader();
+        try {
+            org.dom4j.Document document = reader.read(firstPass);            
+            document.getRootElement()
+                   // default namespace is too complicated for users!
+                   // .addAttribute("targetNamespace", Diversicons.SCHEMA_1_NAMESPACE)
+                    .addAttribute("xmlns:fn", "http://www.w3.org/2005/xpath-functions")
+                    .addAttribute("xmlns:vc", "http://www.w3.org/2007/XMLSchema-versioning")                    
+                    .addAttribute("vc:minVersion", "1.0");
+            org.dom4j.io.XMLWriter writer = new org.dom4j.io.XMLWriter(new FileOutputStream(secondPass),
+                    org.dom4j.io.OutputFormat.createPrettyPrint());
+            writer.write(document);
+            LOG.debug("Wrote second pass to " + secondPass.getAbsolutePath());
+        } catch (DocumentException | IOException ex) {
+            throw new DivException("Error while adding namespaces in second pass!", ex);
+        }
+
+        // last pass!
+
+        String xquery;
+        try {
+            xquery = IOUtils.toString(Internals.readData(Internals.FIX_DIV_SCHEMA_XQL)
+                                               .stream());
+        } catch (IOException ex) {
+            throw new DivIoException(ex);
+        }
+
+        Diversicons.transformXml(xquery, secondPass, output);
+
+        LOG.info("Done.");
+
+        /*
+         * 
+         * String query;
+         * try {
+         * query = IOUtils.toString(Internals.readData(Diversicons.
+         * UBY_DTD_TO_SCHEMA_XQUERY_CLASSPATH_URL)
+         * .stream());
+         * } catch (IOException e) {
+         * throw new DivIoException("Error while reading xquery !", e);
+         * }
+         * 
+         * Diversicons.transform(query, file, output);
+         */
+
+    }
+
+
+    /**
+     * @deprecated we don't really use it, it's here just as an experiment
+     * 
+     * @since 0.1.0
+     */
+    // Taken from here: http://stackoverflow.com/a/26414914
+    public static DTDGrammar parseDtd(String dtdText) {
+
+        // LOG.debug("dtdText= " + dtdText);
+
+        // read DTD
+        // InputStream dtdStream = new ByteArrayInputStream(sw.toString()
+        // .getBytes());
+        // InputStream dtdStream =
+        // So26391485.class.getResourceAsStream("your.dtd");
+        /*
+         * Scanner scanner = new Scanner(dtdStream);
+         * String dtdText = scanner.useDelimiter("\\z")
+         * .next();
+         * scanner.close();
+         */
+
+        // DIRTY: use Xerces internals to parse the DTD
+        Pattern dtdPattern = Pattern.compile("^\\s*<!DOCTYPE\\s+(.*?)>(.*)", Pattern.DOTALL);
+        Matcher m = dtdPattern.matcher(dtdText);
+        InputSource is;
+        String docType;
+        if (m.matches()) {
+            docType = m.group(1);
+            is = new InputSource(new StringReader(m.group(2)));
+        } else {
+            docType = null;
+            is = new InputSource(new StringReader(dtdText));
+        }
+        XMLInputSource source = new SAXInputSource(is);
+        XMLDTDLoader d = new XMLDTDLoader();
+        try {
+            return (DTDGrammar) d.loadGrammar(source);
+        } catch (XNIException | IOException e) {
+            throw new DivException(e);
+        }
+
     }
 
 }

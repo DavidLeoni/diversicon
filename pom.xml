@@ -11,7 +11,7 @@
 	</parent>
 
 	<groupId>it.unitn.disi</groupId>
-	<artifactId>diversicon</artifactId>	
+	<artifactId>diversicon</artifactId>
 	<packaging>jar</packaging>
 
 	<name>Diversicon</name>
@@ -43,6 +43,12 @@
 		<repository>
 			<id>ukp-oss-releases</id>
 			<url>http://zoidberg.ukp.informatik.tu-darmstadt.de/artifactory/public-releases</url>
+		</repository>
+
+		<repository>
+			<id>basex</id>
+			<name>BaseX Maven Repository</name>
+			<url>http://files.basex.org/maven</url>
 		</repository>
 
 	</repositories>
@@ -109,6 +115,22 @@
 				<artifactId>maven-failsafe-plugin</artifactId>
 			</plugin>
 
+			<plugin>
+			  <groupId>org.codehaus.mojo</groupId>
+			  <artifactId>exec-maven-plugin</artifactId>
+			  <executions>
+			    <execution>
+			      <goals>
+			        <goal>java</goal>
+			      </goals>
+			    </execution>
+			  </executions>
+			  <configuration>
+			    	<mainClass>it.unitn.disi.diversicon.test.DivTester</mainClass>
+			    	<classpathScope>test</classpathScope>
+			  </configuration>
+			</plugin>
+
 		</plugins>
 	</build>
 
@@ -135,10 +157,6 @@
 			</exclusions>
 		</dependency>
 
-		<dependency>
-			<groupId>it.unitn.disi</groupId>
-			<artifactId>diversicon-wordnet-3.1</artifactId>		
-		</dependency>
 
 		<dependency>
 			<groupId>org.hibernate.common</groupId>
@@ -167,7 +185,7 @@
 
 		<dependency>
 			<groupId>com.h2database</groupId>
-			<artifactId>h2</artifactId> 
+			<artifactId>h2</artifactId>
 			<type>jar</type>
 		</dependency>
 
@@ -196,23 +214,20 @@
 			<artifactId>xz</artifactId>
 			<version>1.4</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>it.unitn.disi</groupId>
-			<artifactId>diversicon-model</artifactId>			
+			<artifactId>diversicon-model</artifactId>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>jaxen</groupId>
 			<artifactId>jaxen</artifactId>
 			<version>1.1.1</version>
-			
-			<!--  !!!!!!!!!!!!!!
-				 VERY IMPORTANT EXCLUSIONS! WITHOUT THEM, JAVA 
-				 BY DEFAULT WILL PICK A XERCES IMPLEMENTATION THAT 
-				 DOES NOT SUPPORT XML SCHEMA 1.1  !!!  			
-			     !!!!!!!!!!!
-			-->
+
+			<!-- !!!!!!!!!!!!!! VERY IMPORTANT EXCLUSIONS! WITHOUT THEM, JAVA BY DEFAULT 
+				WILL PICK A XERCES IMPLEMENTATION THAT DOES NOT SUPPORT XML SCHEMA 1.1 !!! 
+				!!!!!!!!!!! -->
 			<exclusions>
 				<exclusion>
 					<groupId> xml-apis </groupId>
@@ -226,21 +241,52 @@
 		</dependency>
 
 
-		<!--  
-		
-			 2.11 needed for validating xsd 1.1 , see https://stackoverflow.com/a/35991872
-		
-			For gory details about xerces hell, look here: http://stackoverflow.com/questions/11677572/dealing-with-xerces-hell-in-java-maven
-		-->
-		
+		<!-- 2.11 needed for validating xsd 1.1 , see https://stackoverflow.com/a/35991872 
+			For gory details about xerces hell, look here: http://stackoverflow.com/questions/11677572/dealing-with-xerces-hell-in-java-maven -->
+
 
 		<dependency>
-		    <groupId>org.opengis.cite.xerces</groupId>
-		    <artifactId>xercesImpl-xsd11</artifactId>
-		    <version>2.12-beta-r1667115</version>
+			<groupId>org.opengis.cite.xerces</groupId>
+			<artifactId>xercesImpl-xsd11</artifactId>
+			<version>2.12-beta-r1667115</version>
 		</dependency>
 
-		 
+
+		<dependency>
+			<groupId>org.basex</groupId>
+			<artifactId>basex</artifactId>
+			<version>8.5</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.thaiopensource</groupId>
+			<artifactId>trang</artifactId>
+			<version>20091111</version>
+			<exclusions>
+				<exclusion>
+					<groupId>net.sf.saxon</groupId>
+					<artifactId>saxon</artifactId>
+				</exclusion>
+
+				<exclusion>
+					<groupId>xerces</groupId>
+					<artifactId>xercesImpl</artifactId>
+				</exclusion>
+
+				<exclusion>
+					<groupId>xml-apis</groupId>
+					<artifactId>xml-apis</artifactId>
+				</exclusion>
+
+
+			</exclusions>
+		</dependency>
+
+		<dependency>
+			<groupId>it.unitn.disi</groupId>
+			<artifactId>div-wn31-model</artifactId>
+		</dependency>
+
 
 		<!-- ****************** TEST DEPENDENCIES ****************** -->
 
@@ -264,6 +310,27 @@
 			<artifactId>logback-classic</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>it.unitn.disi</groupId>
+			<artifactId>div-wn31-h2db</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>it.unitn.disi</groupId>
+			<artifactId>div-wn31-xml</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>it.unitn.disi</groupId>
+			<artifactId>div-wn31-sql</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+
+
 
 	</dependencies>
 

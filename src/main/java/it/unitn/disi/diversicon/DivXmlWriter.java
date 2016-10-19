@@ -12,11 +12,15 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import javax.xml.transform.OutputKeys;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
 
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
+import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.transform.LMFXmlWriter;
+import de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata;
 import de.tudarmstadt.ukp.lmf.transform.UBYXMLTransformer;
 import it.unitn.disi.diversicon.internal.Internals;
 
@@ -28,6 +32,8 @@ import it.unitn.disi.diversicon.internal.Internals;
  * @since 0.1.0
  */
 class DivXmlWriter extends LMFXmlWriter {
+    
+    private static final Logger LOG = LoggerFactory.getLogger(DivXmlWriter.class);
 
     private LexResPackage lexResPackage;
 
@@ -79,10 +85,10 @@ class DivXmlWriter extends LMFXmlWriter {
      * 
      */
     @Override
-    protected void doWriteElement(Object lmfObject, boolean closeTag) throws SAXException {
-                        
+    protected void doWriteElement(Object lmfObject, boolean closeTag) throws SAXException {               
+        
         AttributesImpl atts = new AttributesImpl();
-        List<Object> children = new ArrayList<>();
+        List<Object> children = new ArrayList<>();        
         
         @Nullable
         String elementName = Internals.prepareXmlElement(lmfObject,
@@ -103,5 +109,6 @@ class DivXmlWriter extends LMFXmlWriter {
         if (closeTag) 
             th.endElement("", "", elementName);
     }
+        
 
 }

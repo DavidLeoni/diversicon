@@ -7,12 +7,12 @@
 	   node="LexResPackage"
 	   dynamic-insert="true">
    
-   <id name="id" type="string" node="@id">
-    	<column name="id" />   
+   <id name="name" type="string" node="@name">
+    	<column name="name" />   
     </id>
     
    <property name="prefix" column="prefix" node="@prefix" type="string"/>                              
-   <property name="name" column="name" node="@name" type="string"/>
+   <property name="label" column="label" node="@label" type="string"/>
    <property name="xmlUri" column="xmlUri" node="@xmlUri" type="string"/>
    <property name="sqlUri" column="sqlUri" node="@sqlUri" type="string"/>
    <property name="h2DbUri" column="h2DbUri" node="@h2DbUri" type="string"/>

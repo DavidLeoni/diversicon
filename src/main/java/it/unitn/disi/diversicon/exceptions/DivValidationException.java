@@ -1,6 +1,6 @@
 package it.unitn.disi.diversicon.exceptions;
 
-import it.disi.unitn.diversicon.exceptions.DivException;
+import it.unitn.disi.diversicon.exceptions.DivException;
 
 /**
  * A runtime exception to raise when the import of a LexicalResource is invalid. 

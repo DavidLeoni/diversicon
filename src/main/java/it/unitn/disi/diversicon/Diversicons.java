@@ -1,10 +1,14 @@
 package it.unitn.disi.diversicon;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -24,7 +28,17 @@ import java.util.regex.Pattern;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.xerces.impl.Constants;
+import org.basex.core.Context;
+import org.basex.io.serial.Serializer;
+import org.basex.query.QueryException;
+import org.basex.query.QueryProcessor;
+import org.basex.query.iter.Iter;
+import org.basex.query.value.item.Item;
+import org.dom4j.Document;
 import org.dom4j.DocumentException;
+import org.dom4j.io.DocumentResult;
+import org.dom4j.io.DocumentSource;
+import org.dom4j.io.OutputFormat;
 import org.dom4j.io.SAXReader;
 import org.h2.tools.RunScript;
 import org.hibernate.HibernateException;
@@ -38,10 +52,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.w3c.dom.ls.LSInput;
+import org.w3c.dom.ls.LSResourceResolver;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-
 import javax.annotation.Nullable;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+import javax.xml.transform.ErrorListener;
 import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
@@ -56,18 +80,20 @@ import static de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics.*;
 
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import it.unitn.disi.diversicon.internal.Internals;
-import it.disi.unitn.diversicon.exceptions.DivException;
-import it.disi.unitn.diversicon.exceptions.DivIoException;
-import it.disi.unitn.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.data.DivWn31;
+import it.unitn.disi.diversicon.exceptions.DivException;
+import it.unitn.disi.diversicon.exceptions.DivIoException;
+import it.unitn.disi.diversicon.exceptions.DivNotFoundException;
 import it.unitn.disi.diversicon.exceptions.InvalidSchemaException;
 import it.unitn.disi.diversicon.exceptions.InvalidXmlException;
+import it.unitn.disi.diversicon.internal.DivXmlValidator;
 import it.unitn.disi.diversicon.internal.ExtractedStream;
 
 import static it.unitn.disi.diversicon.internal.Internals.checkArgument;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotBlank;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotEmpty;
 import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
+import org.apache.xerces.dom.DOMInputImpl;
 
 /**
  * Utility class for {@link Diversicon}
@@ -76,33 +102,200 @@ import static it.unitn.disi.diversicon.internal.Internals.checkNotNull;
  */
 public final class Diversicons {
 
-    private static final Logger LOG = LoggerFactory.getLogger(Diversicons.class);
-
-    
-    public static final String DIVERSICON_SCHEMA_1_0_FILENAME = "diversicon-1.0.xsd";
-    public static final String DIVERSICON_SCHEMA_1_0_CLASSPATH_URL = "classpath:/" + DIVERSICON_SCHEMA_1_0_FILENAME;      
-    public static final String DIVERSICON_SCHEMA_1_0_PUBLIC_URL = "https://github.com/DavidLeoni/diversicon/tree/master/src/main/resources/" + DIVERSICON_SCHEMA_1_0_FILENAME;
-    
     /**
-     * Suggested max length for lexical resource names, which are also prefixes like wn31, sm.
+     * 
+     * @since 0.1.0
+     */
+    public static final String SCHEMA_VERSION_1 = "1";
+
+    /**
+     * 
+     * @since 0.1.0
+     */
+    public static final String SCHEMA_VERSION_1_0 = "1.0";
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String CLASSPATH_WEBSITE = "classpath:/website/";
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String DTD_FILENAME = "diversicon.dtd";
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String SCHEMA_1_FRAGMENT = "schema/1";
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String SCHEMA_1_0_FRAGMENT = SCHEMA_1_FRAGMENT + ".0";
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String SCHEMA_1_NAMESPACE = BuildInfo.of(Diversicons.class)
+                                                             .getServer()
+            + "/" + SCHEMA_1_FRAGMENT;
+
+    /**
+     * Remember x.y namespaces should only be used to locate files!
+     * 
+     * @since 0.1.0
+     */
+    public static final String SCHEMA_1_0_NAMESPACE = BuildInfo.of(Diversicons.class)
+                                                               .getServer()
+            + "/" + SCHEMA_1_0_FRAGMENT;
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String DTD_1_PUBLIC_URL = SCHEMA_1_NAMESPACE + SCHEMA_1_FRAGMENT + "/" + DTD_FILENAME;
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String DTD_1_0_PUBLIC_URL = SCHEMA_1_0_NAMESPACE + "/" + DTD_FILENAME;
+
+    /**
+     * Maximum number of import issues printed to screen
+     * 
+     * @since 0.1.0
+     */
+    public static final int DEFAULT_LOG_LIMIT = 20;
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String DTD_1_0_CLASSPATH_URL = CLASSPATH_WEBSITE
+            + SCHEMA_1_0_FRAGMENT + "/" + DTD_FILENAME;
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String SCHEMA_FILENAME = "diversicon.xsd";
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String SCHEMA_1_0_CLASSPATH_URL = CLASSPATH_WEBSITE
+            + SCHEMA_1_0_FRAGMENT
+            + "/" + SCHEMA_FILENAME;
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String SCHEMA_1_PUBLIC_URL = SCHEMA_1_NAMESPACE + "/" + SCHEMA_FILENAME;
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String SCHEMA_1_0_PUBLIC_URL = SCHEMA_1_0_NAMESPACE + "/" + SCHEMA_FILENAME;
+
+    /**
+     * If you set this system property, temporary files won't be deleted at JVM
+     * shutdown.
+     * 
+     * @since 0.1.0
+     */
+    public static final String PROPERTY_DEBUG_KEEP_TEMP_FILES = "diversicon.debug.keep-temp-files";
+
+    /**
+     * 
+     * @since 0.1.0
+     */
+    public static final String DEFAULT_AUTHOR = "Default author";
+
+    /**
+     * The url protocol for lexical resources loaded from memory.
+     */
+    public static final String MEMORY_PROTOCOL = "memory";
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String XQUERY_IN_FILE_DECLARATION = "declare variable $in-file external;\n";
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String XQUERY_ROOT_VAR = "$root";
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String XQUERY_UPDATE_PROLOGUE = XQUERY_IN_FILE_DECLARATION
+            + "    copy " + XQUERY_ROOT_VAR + " := doc($in-file) "
+            + "\n    modify (   ";
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String XQUERY_UPDATE_END = ") return $root";
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String UBY_DTD_TO_SCHEMA_XQUERY_CLASSPATH_URL = "classpath://uby-dtd-to-div-schema.xql";
+
+    /**
+     * Suggested max length for lexical resource names, which are also prefixes
+     * like {@code wn31}, or {@code sm}
      * 
      * @since 0.1.0
      */
     public static final int LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH = 5;
 
     /**
-     * Valid prefixes:
+     * @since 0.1.0
+     */
+    public static final String NAMESPACE_PREFIX_PATTERN_DESCRIPTION = "A diversicon prefix"
+            + " is an XML NCName with the further restriction"
+            + " of having a prefix (like 'wn31') followed by an underscore '_' and a word"
+            + " beginning with a unicode letter. The rest of the word may only contain"
+            + " unicode letters, dots '.', dashes '-', underscores '_'. Spaces "
+            + " or are not allowed.";
+
+    /**
+     * {@value #NAMESPACE_PREFIX_PATTERN_DESCRIPTION}
      * 
      * @since 0.1.0
      */
-    public static final Pattern NAMESPACE_PREFIX_PATTERN = Pattern.compile("\\p{Alpha}(\\w|-|_|\\.)*");
+    public static final Pattern NAMESPACE_PREFIX_PATTERN = Pattern.compile("\\p{L}(\\w|-|\\.)*", Pattern.UNICODE_CASE);
 
     /**
      * @since 0.1.0
      */
-    public static final Pattern ID_PATTERN = Pattern.compile(NAMESPACE_PREFIX_PATTERN.toString() + ":" + ".+");
+    public static final String NAMESPACE_SEPARATOR = "_";
 
     /**
+     * 
+     * 
+     * @since 0.1.0
+     */
+    public static final String NAMESPACE_ID_PATTERN_DESCRIPTION = "A diversicon ID "
+            + " should look something like 'wn31_blabla', with the first part being a prefix (i.e. 'wn31'),"
+            + " followed by an underscore '_'. More technically, it should be"
+            + " an XML NCName with the further restriction"
+            + " of having a prefix followed by an underscore and a word"
+            + " beginning with a unicode letter. The rest of the word may contain"
+            + " unicode letters, dots '.', dashes '-', underscores '_', but no spaces.";
+
+    /**
+     * {@value #NAMESPACE_ID_PATTERN_DESCRIPTION}
+     * 
+     * @since 0.1.0
+     */
+    public static final Pattern ID_PATTERN = Pattern.compile(
+            NAMESPACE_PREFIX_PATTERN.toString()
+                    + NAMESPACE_SEPARATOR
+                    + "\\p{L}(\\w|-|_|\\.)*");
+
+    /**
+     * 
      * Mnemonic shorthand for H2 database
      * 
      * @since 0.1.0
@@ -154,12 +347,12 @@ public final class Diversicons {
             ArchiveStreamFactory.TAR,
             ArchiveStreamFactory.ZIP };
 
-
+    private static final Logger LOG = LoggerFactory.getLogger(Diversicons.class);
 
     /**
      * List of known relations, excluding the inverses.
      */
-    private static final Set<String> canonicalRelations = new LinkedHashSet();
+    private static final Set<String> canonicalRelations = new LinkedHashSet<>();
 
     /**
      * List of known relations, (including the inverses)
@@ -176,7 +369,15 @@ public final class Diversicons {
 
     private static final String DEFAULT_PASSWORD = "pass";
 
-    private static Map<String, String> inverseRelations = new HashMap();
+    /**
+     * 
+     * Couldn't find a smarter default way to provide input files in scripts.
+     * 
+     * @since 0.1.0
+     */
+    private static final String XQUERY_IN_FILE_VAR = "in-file";
+
+    private static Map<String, String> inverseRelations = new HashMap<>();
 
     /**
      * Mappings from Uby classes to out own custom ones.
@@ -314,7 +515,7 @@ public final class Diversicons {
      */
     public static void dropCreateTables(DBConfig dbConfig) {
 
-        LOG.info("Recreating tables in database  " + dbConfig.getJdbc_url() + " ...");
+        LOG.info("Recreating tables in database  " + dbConfig.getJdbc_url() + "    ...");
 
         Configuration hcfg = getHibernateConfig(dbConfig, false);
 
@@ -342,7 +543,7 @@ public final class Diversicons {
     }
 
     /**
-     * Creates a database based on the hibernate mappings.
+     * Creates a database based on the hibernate mappings
      * 
      * (adapted from
      * {@link de.tudarmstadt.ukp.lmf.transform.LMFDBUtils#createTables(DBConfig)
@@ -730,9 +931,6 @@ public final class Diversicons {
         return partOfRelations.contains(relName);
     }
 
-   
-
-
     /**
      * Creates the default configuration to access a file H2 database. NOTE: if
      * database does not exist it is created (but tables are not!)
@@ -744,7 +942,7 @@ public final class Diversicons {
      * 
      * @since 0.1.0
      */
-    public static DBConfig makeDefaultH2FileDbConfig(String filePath, boolean readOnly) {
+    public static DBConfig h2MakeDefaultFileDbConfig(String filePath, boolean readOnly) {
         checkNotEmpty(filePath, "Invalid file path!");
         checkArgument(!filePath.endsWith(".db"), "File path must end just with the databaset name, "
                 + "without the '.h2.db'! Found instead: " + filePath);
@@ -756,7 +954,7 @@ public final class Diversicons {
             readOnlyString = "";
         }
 
-        DBConfig ret = makeDefaultH2CommonDbConfig();
+        DBConfig ret = h2MakeDefaultCommonDbConfig();
         ret.setJdbc_url("jdbc:h2:file:" + filePath + readOnlyString);
 
         return ret;
@@ -774,7 +972,7 @@ public final class Diversicons {
      *            slower access time
      * @since 0.1.0
      */
-    public static DBConfig makeDefaultH2InMemoryDbConfig(String dbName, boolean compressed) {
+    public static DBConfig h2MakeDefaultInMemoryDbConfig(String dbName, boolean compressed) {
         checkNotEmpty(dbName, "Invalid db name!");
 
         String mem;
@@ -786,7 +984,7 @@ public final class Diversicons {
             mem = "mem";
         }
 
-        DBConfig ret = makeDefaultH2CommonDbConfig();
+        DBConfig ret = h2MakeDefaultCommonDbConfig();
 
         ret.setJdbc_url("jdbc:h2:" + mem + ":" + dbName + ";DB_CLOSE_DELAY=-1");
 
@@ -796,7 +994,7 @@ public final class Diversicons {
     /**
      * @since 0.1.0
      */
-    private static DBConfig makeDefaultH2CommonDbConfig() {
+    private static DBConfig h2MakeDefaultCommonDbConfig() {
 
         DBConfig ret = new DBConfig();
         ret.setDb_vendor("de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect");
@@ -852,7 +1050,7 @@ public final class Diversicons {
      * @deprecated // TODO in progress
      * @since 0.1.0
      */
-    public static void turnH2InsertionModOff() {
+    public static void h2TurnInsertionModOff() {
         String restoreSavedVars = ""
                 + "  SET LOG @DIV_SAVED_LOG;"
                 + "  SET CACHE_SIZE @DIV_SAVED_CACHE_SIZE;"
@@ -876,7 +1074,7 @@ public final class Diversicons {
      * 
      * @since 0.1.0
      */
-    public static void restoreH2Sql(String dumpUrl, DBConfig dbConfig) {
+    public static void h2RestoreSql(String dumpUrl, DBConfig dbConfig) {
         Internals.checkNotBlank(dumpUrl, "invalid sql/archive resource path!");
         checkH2Db(dbConfig);
 
@@ -919,10 +1117,7 @@ public final class Diversicons {
 
             // todo need to improve connection with dbConfig params
 
-            conn = DriverManager.getConnection(
-                    dbConfig.getJdbc_url(),
-                    dbConfig.getUser(),
-                    dbConfig.getPassword());
+            conn = getH2Connection(dbConfig);
 
             stat = conn.createStatement();
             stat.execute(saveVars);
@@ -968,6 +1163,25 @@ public final class Diversicons {
     }
 
     /**
+     * Executes sql statement on H2 dbs, handy for special
+     * commands like "SHUTDOWN COMPACT"
+     * 
+     * @throws DivIoException
+     * 
+     * @since 0.1.0
+     */
+    public static void h2Execute(String sql, DBConfig dbConfig) {       
+
+        Connection conn = getH2Connection(dbConfig);
+
+        try {
+            RunScript.execute(conn, new StringReader(sql));
+        } catch (SQLException e) {
+            throw new DivIoException(e);
+        }
+    }
+
+    /**
      * 
      * Restores a packaged H2 db to file system in user's home under
      * {@link #CACHE_PATH}. The database is intended
@@ -978,21 +1192,26 @@ public final class Diversicons {
      *
      * @param id
      *            the worldwide unique identifier for the resource, in a format
-     *            like {@link it.unitn.disi.diversicon.data.DivWn31#ID}
+     *            like {@link it.unitn.disi.diversicon.data.DivWn31#NAME}
      * @param version
      *            the version of the resource, in X.Y.Z-SOMETHING format a la
      *            Maven.
+     * @param cacheRoot
+     *            the path to the root of the cache.
+     * 
      * @return The db configuration to access the DB in read-only mode.
      * 
      * @since 0.1.0
      * 
      */
     // todo should throw if db is already accessed in non readonly mode
-    public static DBConfig fetchH2Db(String id, String version) {
+    public static DBConfig fetchH2Db(File cacheRoot, String id, String version) {
+        checkNotNull(cacheRoot, "Invalid resource id!");
         checkNotBlank(id, "Invalid resource id!");
         checkNotBlank(id, "Invalid version!");
-        checkArgument(DivWn31.ID.equals(id), "Currently only supported id is "
-                + DivWn31.ID + ", found instead " + id + "  !");
+
+        checkArgument(DivWn31.NAME.equals(id), "Currently only supported id is "
+                + DivWn31.NAME + ", found instead " + id + "  !");
         checkArgument(DivWn31.of()
                              .getVersion()
                              .replace("-SNAPSHOT", "")
@@ -1001,59 +1220,23 @@ public final class Diversicons {
                                                                 .getVersion()
                         + ", found instead " + version + "  !");
 
-        String filepath = getCachedH2DbDir(id, version).getAbsolutePath() + File.separator + id;
+        String filepath = getCachedH2DbDir(cacheRoot, id, version).getAbsolutePath() + File.separator + id;
 
         if (!new File(filepath + ".h2.db").exists()) {
             restoreH2Db(DivWn31.of()
                                .getH2DbUri(),
                     filepath);
         }
-        return makeDefaultH2FileDbConfig(filepath, true);
-    }
-
-    /**
-     * EXPERIMENTAL - IMPLEMENTATION MIGHT WILDLY CHANGE
-     * 
-     * Clean cache
-     * 
-     * @throws DivIoException
-     * 
-     * @since 0.1.0
-     * 
-     */
-    public static void cleanCache() {
-        File cacheDir = getCacheDir();
-        if (!cacheDir.getAbsolutePath()
-                     .endsWith("cache")) {
-            throw new IllegalStateException(
-                    "Failed security check prior deleting Diversicon cache! System says it's located at " + cacheDir);
-        }
-        try {
-            if (cacheDir.exists()) {
-                LOG.info("Cleaning Diversicon cache directory " + cacheDir.getAbsolutePath() + "  ...");
-                FileUtils.deleteDirectory(cacheDir);
-                LOG.info("Cleaning Diversicon cache: done");
-            }
-        } catch (IOException ex) {
-            throw new DivIoException("Error while deleting cache dir " + cacheDir.getAbsolutePath(), ex);
-        }
+        return h2MakeDefaultFileDbConfig(filepath, true);
     }
 
     /**
      * @since 0.1.0
      */
-    public static File getCacheDir() {
-        return new File(System.getProperty("user.home") + File.separator
-                + CACHE_PATH);
-    }
-
-    /**
-     * @since 0.1.0
-     */
-    public static File getCachedH2DbDir(String id, String version) {
+    public static File getCachedH2DbDir(File cacheRoot, String id, String version) {
         checkNotBlank(id, "Invalid id!");
         checkNotBlank(version, "Invalid version!");
-        return new File(getCacheDir().getAbsolutePath() + File.separator + id + File.separator + version);
+        return new File(cacheRoot, File.separator + id + File.separator + version);
     }
 
     /**
@@ -1155,7 +1338,7 @@ public final class Diversicons {
     }
 
     /**
-     * Returns a java.sql.Connection to an H2 database from UBY DBConfig.
+     * Returns a java.sql.Connection to an H2 database from a UBY DBConfig.
      * 
      * @throws DivIoConnection
      * 
@@ -1316,10 +1499,11 @@ public final class Diversicons {
     public static String namespacePrefixFromId(String id) {
         checkNotEmpty(id, "Invalid id!");
 
-        int i = id.indexOf(":");
+        int i = id.indexOf(NAMESPACE_SEPARATOR);
         if (i == -1) {
             throw new IllegalArgumentException(
-                    "Tried to extract prefix but couldn't find colon ':' in provided id: " + id);
+                    "Tried to extract prefix but couldn't find separator '" + Diversicons.NAMESPACE_SEPARATOR
+                            + "' in provided id: " + id);
         }
 
         String ret = id.substring(0, i);
@@ -1332,22 +1516,24 @@ public final class Diversicons {
                     "Provided id: " + id + " has invalid prefix! It should match " + NAMESPACE_PREFIX_PATTERN);
         }
 
-    }   
-    
+    }
+
     /**
      * 
      * @throws IllegalArgumentException
      * @since 0.1.0
      */
-    public static Map<String, String> checkNamespaces(@Nullable Map<String, String> namespaces){
+    public static Map<String, String> checkNamespaces(@Nullable Map<String, String> namespaces) {
         checkNotNull(namespaces);
-        
-        for (String prefix : namespaces.keySet()){
+
+        for (String prefix : namespaces.keySet()) {
             checkNotNull(prefix);
-            if (!NAMESPACE_PREFIX_PATTERN.matcher(prefix).matches()){                
-                throw new IllegalArgumentException("Invalid key, it must match " + NAMESPACE_PREFIX_PATTERN.toString());
+            if (!NAMESPACE_PREFIX_PATTERN.matcher(prefix)
+                                         .matches()) {
+                throw new IllegalArgumentException(
+                        "Invalid prefix '" + prefix + "', it must match " + NAMESPACE_PREFIX_PATTERN.toString());
             }
-            
+
             checkNotBlank(namespaces.get(prefix), "Invalid namespace url!");
         }
         return namespaces;
@@ -1355,132 +1541,266 @@ public final class Diversicons {
 
     /**
      * 
-     * See {@link #validateXml(File, long)}
-     * 
-     * @throws InvalidXmlException
-     * 
-     * @since 0.1.0
-     * 
-     */    
-    public static void validateXml(File xmlFile, Logger log){
-        validateXml(xmlFile, log, -1);
-    }
-    
-    /**
-     * TODO put a link to this most precious cookbook somewhere: 
-     * http://www.datypic.com/books/defxmlschema/chapter14.html
-     * 
-     * See also http://www.ibm.com/developerworks/library/x-xml11pt2/
-     * 
-     * important point about child/parent deps: http://stackoverflow.com/a/25344978
+     * See {@link #validateXml(File, XmlValidationConfig)}
      * 
      * @throws InvalidXmlException
      * 
      * @since 0.1.0
      * 
      */
-    public static void validateXml(File xmlFile, Logger log, long logLimit){
-        
-        checkNotNull(xmlFile);
-                
-        File xsdFile = Internals.readData(DIVERSICON_SCHEMA_1_0_CLASSPATH_URL, false).toTempFile();
+    public static void validateXml(File xmlFile, Logger log) {
+        validateXml(xmlFile, XmlValidationConfig.of(log));
+    }
 
-        // if editor can't find the constant probably default xerces is being used
-        // instead of the one supporting schema 1.1
-        
-        SchemaFactory factory = SchemaFactory.newInstance(Constants.W3C_XML_SCHEMA11_NS_URI);
-        File schemaLocation = xsdFile;
+    /**
+     * Gives back an XML resource. If fetch can't be performed and resource is
+     * an the classpath, it will be taken from there, otherwise an exception is
+     * thrown.
+     * 
+     * 
+     * 
+     * @param namespaceURI
+     *            The namespace of the resource being resolved,
+     *            e.g. the target namespace of the XML Schema [
+     *            <a href='http://www.w3.org/TR/2001/REC-xmlschema-1-20010502/'>
+     *            XML Schema Part 1</a>]
+     *            when resolving XML Schema resources.
+     * @param systemId
+     *            The system identifier, a URI reference [
+     *            <a href='http://www.ietf.org/rfc/rfc2396.txt'>IETF RFC
+     *            2396</a>], of the
+     *            external resource being referenced, or <code>null</code> if no
+     *            system identifier was supplied.
+     * @return A <code>LSInput</code> object describing the new input
+     *         source, or <code>null</code> to request that the parser open a
+     *         regular URI connection to the resource.
+     * 
+     * @throws DivNotFoundException
+     * 
+     * @since 0.1.0
+     */
+    // TODO in theory there are many other parameters we should take into
+    // consideration
+    @Nullable
+    private static LSInput resolveXmlResource(@Nullable String namespaceUri, @Nullable String systemId) {
+
+        if (namespaceUri == null && systemId == null) {
+            return null;
+        }
+
+        DOMInputImpl ret = new DOMInputImpl();
+        ret.setSystemId(systemId);
+        ret.setEncoding("UTF-8");
+
+        try {
+            ret.setByteStream(Internals.readData(systemId)
+                                       .stream());
+            return ret;
+        } catch (Exception ex) {
+            if ((Diversicons.SCHEMA_1_NAMESPACE.equals(namespaceUri)
+                    || namespaceUri == null)
+                    &&
+                    (systemId != null
+                            && systemId.contains(Diversicons.SCHEMA_FILENAME))) {
+                String classpathUrl = Diversicons.SCHEMA_1_0_CLASSPATH_URL;
+
+                LOG.debug("Defaulting to " + classpathUrl + " for unfetchable resource "
+                        + " \n     systemId=" + systemId
+                        + " \n namespaceUrl=" + namespaceUri);
+
+                ret.setByteStream(Internals.readData(classpathUrl)
+                                           .stream());
+                return ret;
+            }
+        }
+        throw new DivNotFoundException(
+                "Couldn't find xml resource for namespace=" + namespaceUri + " and systemId=" + systemId);
+    }
+
+    /**
+     * Validates an xml file. You can pass schema overrides in the provided
+     * config.
+     * 
+     * @throws DivException
+     * @throws InvalidXmlException
+     * 
+     * @since 0.1.0
+     */
+    public static void validateXml(File xmlFile, XmlValidationConfig config) {
+
+        checkNotNull(xmlFile);
+        checkNotNull(config);
+
+        // if editor can't find the Constants.W3C_XML_SCHEMA11_NS_URI constant
+        // probably default xerces is being used instead of the one supporting
+        // schema 1.1
+
+        SchemaFactory factory = SchemaFactory.newInstance(Constants.W3C_XML_SCHEMA10_NS_URI);
+
         Schema schema;
         try {
-            schema = factory.newSchema(schemaLocation);
+            if (Internals.isBlank(config.getXsdUrl())) {
+                schema = factory.newSchema();
+            } else {
+                File xsd = Internals.readData(config.getXsdUrl())
+                                    .toTempFile();
+                schema = factory.newSchema(xsd);
+                LOG.debug("Validating against schema: " + config.getXsdUrl());
+            }
         } catch (SAXException e) {
-            throw new DivException("Error while parsing schema!", e);
+            throw new DivException(e);
         }
 
-        Source source = new StreamSource(xmlFile);        
-        DivXmlErrorHandler errorHandler = new DivXmlErrorHandler(log, logLimit, source.getSystemId());        
-        
+        Source source = new StreamSource(xmlFile);
+        DivXmlHandler errorHandler = new DivXmlHandler(config, source.getSystemId());
+
         Validator validator = schema.newValidator();
-        
+
+        LSResourceResolver lsResResolver = new LSResourceResolver() {
+
+            @Override
+            public LSInput resolveResource(
+                    String type,
+                    String namespaceURI,
+                    String publicId,
+                    String systemId,
+                    String baseURI) {
+
+                LOG.debug("Received XML resource request for"
+                        + "\n type         = " + type
+                        + "\n namespaceURI = " + namespaceURI
+                        + "\n publicId     = " + publicId
+                        + "\n systemId     = " + systemId
+                        + "\n baseURI      = " + baseURI);
+
+                return resolveXmlResource(namespaceURI, systemId);
+            }
+        };
+
+        validator.setResourceResolver(lsResResolver);
+
         validator.setErrorHandler(errorHandler);
-        
-        
-        try {            
+
+        try {
             validator.validate(source);
-        } catch (SAXException | IOException e) {            
+        } catch (SAXException | IOException e) {
             throw new InvalidXmlException(errorHandler, "Fatal error while validating " + xmlFile.getAbsolutePath(), e);
         }
-        
-        
-        if (errorHandler.invalid()){
-            log.error("Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath());
-            throw new InvalidXmlException(errorHandler, "Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath());
+
+        DivXmlValidator divXmlValidator = new DivXmlValidator(new LexResPackage(), errorHandler);
+
+        validateXmlJavaStep(xmlFile, errorHandler, divXmlValidator, lsResResolver);
+        // need to steps!
+        validateXmlJavaStep(xmlFile, errorHandler, divXmlValidator, lsResResolver);
+
+        if (errorHandler.invalid()) {
+            config.getLog()
+                  .error("Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath());
+            throw new InvalidXmlException(errorHandler,
+                    "Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath()
+                            + "\n" + errorHandler.firstIssueAsString());
         }
+
+    }
+
+    /**
+     * Performs validation with custom Java code. Needed because current Xerces
+     * Xml Schema 1.1 assert implemention has problems, see
+     * https://github.com/DavidLeoni/diversicon/issues/21
+     * 
+     * @param file
+     * @param errorHandler
+     * 
+     * @since 0.1.0
+     */
+    // TODO probably we could pass less parameters
+    public static void validateXmlJavaStep(
+            File file,
+            DivXmlHandler errorHandler,
+            DivXmlValidator divXmlValidator,
+            LSResourceResolver resRes) {
+        SAXParserFactory factory = SAXParserFactory.newInstance();
+        factory.setValidating(false);
+        SAXParser parser;
+        try {
+            parser = factory.newSAXParser();
+            parser.getXMLReader()
+                  .setErrorHandler(errorHandler);
+            DivXmlValidator handler = divXmlValidator;
+
+            InputSource is = new InputSource(new FileInputStream(file));
+
+            parser.parse(is, handler);
+        } catch (ParserConfigurationException | SAXException | IOException e) {
+            throw new DivException(e);
+        }
+
     }
 
     /**
      * Reads metadata about a given resource.
      * 
-     * @param path A path to a file as specified by {@link Internals#readData(String, boolean)
+     * @param path
+     *            A path to a file as specified by
+     *            {@link Internals#readData(String, boolean)
      * 
      * @since 0.1.0
      */
-    public static LexResPackage readResource(String lexResUrl) {
-        
+    public static LexResPackage readPackageFromLexRes(String lexResUrl) {
+
         LexResPackage ret = new LexResPackage();
-        
+
         SAXReader reader = new SAXReader(false);
 
         ExtractedStream es = Internals.readData(lexResUrl, true);
-        DiversiconResourceHandler handler = new DiversiconResourceHandler(ret);        
+        DivXmlExtractor handler = new DivXmlExtractor(ret);
         reader.setDefaultHandler(handler);
         try {
             reader.read(es.stream());
         } catch (DocumentException e) {
 
-            if (e.getMessage().contains(DiversiconResourceHandler.FOUND)) {
+            if (e.getMessage()
+                 .contains(DivXmlExtractor.FOUND)) {
                 return ret;
             }
         }
-        throw new DivNotFoundException("Couldn't find lexical resource tag in "
+        throw new DivNotFoundException("Couldn't find required tags in "
                 + lexResUrl + "  !");
 
     }
-    
-    
+
     /**
-     * Creates an xml file out of the provided lexical resource. Written 
-     * lexical resource will include provided namespaces as {@code xmlns} attributes
+     * Creates an xml file out of the provided lexical resource. Written
+     * lexical resource will include info from provided {@code lexResPackage}.
      * 
-     * @param namespaces Namespaces expressed as prefix : url
      * 
      * @since 0.1.0
      */
     public static File writeLexResToXml(
-            LexicalResource lexRes, 
+            LexicalResource lexRes,
             LexResPackage lexResPackage,
-            File ret) {
-        
+            File xmlFile) {
+
         checkNotNull(lexRes);
-        
-        Internals.checkLexResPackage(lexResPackage, lexRes);       
-        
+
+        Internals.checkLexResPackage(lexResPackage, lexRes);
+
         DivXmlWriter writer;
         try {
             writer = new DivXmlWriter(new FileOutputStream(
-                    ret), 
-                    null, 
-                    lexResPackage);  // todo check if setting dtd means something
-            
+                    xmlFile),
+                    null,
+                    lexResPackage); // todo check if setting dtd means something
+
             writer.writeElement(lexRes);
             writer.writeEndDocument();
-            
+
         } catch (FileNotFoundException | SAXException ex) {
-            throw new DivException("Error while writing lexical resource to XML: " + ret.getAbsolutePath(), ex);
+            throw new DivException("Error while writing lexical resource to XML: " + xmlFile.getAbsolutePath(), ex);
         }
 
-        return ret;
-        
+        return xmlFile;
+
     }
 
     /**
@@ -1491,8 +1811,9 @@ public final class Diversicons {
      * 
      * @since 0.1.0
      */
-    public static String checkPrefix(String prefix){
-        if (!NAMESPACE_PREFIX_PATTERN.matcher(prefix).matches()){
+    public static String checkPrefix(String prefix) {
+        if (!NAMESPACE_PREFIX_PATTERN.matcher(prefix)
+                                     .matches()) {
             throw new IllegalArgumentException("Invalid prefix!");
         }
         return prefix;
@@ -1505,11 +1826,140 @@ public final class Diversicons {
      * @throws IllegalArgumentException
      * 
      * @since 0.1.0
-     */    
-    public static void checkId(String id, String string) {
-        if (!ID_PATTERN.matcher(id).matches()){
-            throw new IllegalArgumentException("Invalid id!");
-        }        
+     */
+    public static void checkId(String id, @Nullable String prependedMsg) {
+        if (!ID_PATTERN.matcher(id)
+                       .matches()) {
+            throw new IllegalArgumentException(String.valueOf(prependedMsg)
+                    + " '" + id + "' doesn't match Diversicon ID pattern. "
+                    + NAMESPACE_ID_PATTERN_DESCRIPTION.toString());
+        }
     }
-        
+
+    /**
+     * Executes an XQuery script on {@code inXml} and writes output to
+     * {@code outXml}
+     *
+     * Currently the processing occurs completely in-memory.
+     *
+     * @throws DivException
+     * 
+     * @since 0.1.0
+     */
+    // todo make it work with large xmls
+    public static void transformXml(
+            String xquery,
+            File inXml,
+            File outXml) {
+
+        checkNotBlank(xquery, "Invalid query!");
+        checkNotNull(inXml);
+        checkNotNull(outXml);
+        checkArgument(!inXml.equals(outXml),
+                "Target file must be different from input file, instead they point both to %s",
+                inXml.getAbsolutePath());
+
+        Context context = new Context();
+
+        // Create a query processor
+        try (QueryProcessor proc = new QueryProcessor(xquery, context)) {
+
+            proc.bind(XQUERY_IN_FILE_VAR, inXml.getAbsolutePath());
+
+            // Store the pointer to the result in an iterator:
+            Iter iter;
+            try {
+                iter = proc.iter();
+            } catch (QueryException ex) {
+                throw new DivException(ex);
+            }
+
+            try (FileOutputStream ostream = new FileOutputStream(outXml);
+                    Serializer ser = proc.getSerializer(ostream)) {
+
+                // Iterate through all items and serialize contents
+                for (Item item; (item = iter.next()) != null;) {
+
+                    ser.serialize(item);
+                }
+            }
+        } catch (IOException | QueryException ex) {
+            throw new DivException(ex);
+        }
+
+    }
+
+    /**
+     * 
+     * @param inXml
+     * @param outXml
+     * 
+     * @since 0.1.0
+     */
+    public void transformOwa(File inXml, File outXml, int logLimit) {
+
+        checkNotNull(inXml);
+        checkNotNull(outXml);
+
+        SAXReader reader = new SAXReader(false);
+
+        DivXmlHandler handler = new DivXmlHandler(
+                XmlValidationConfig.builder()
+                                   .setLog(LOG)
+                                   .setLogLimit(logLimit)
+                                   .build(),
+                "");
+        reader.setErrorHandler(handler);
+        Document document;
+
+        try {
+            document = reader.read(inXml);
+        } catch (DocumentException ex) {
+            throw new InvalidXmlException(handler, "Something went wrong!", ex);
+        }
+
+        String stylesheet = "src/main/resources/owa-to-uby.xslt";
+
+        // load the transformer using JAXP
+        TransformerFactory factory = TransformerFactory.newInstance();
+        Transformer transformer;
+        ErrorListener d;
+        try {
+            transformer = factory.newTransformer(
+                    new StreamSource(stylesheet));
+        } catch (TransformerConfigurationException ex) {
+            throw new InvalidXmlException(handler, "Something went wrong!", ex);
+        }
+
+        transformer.setErrorListener(handler);
+
+        // now lets style the given document
+        DocumentSource source = new DocumentSource(document);
+        DocumentResult result = new DocumentResult();
+
+        try {
+            transformer.transform(source, result);
+        } catch (TransformerException ex) {
+            throw new InvalidXmlException(handler, "Something went wrong!", ex);
+        }
+
+        Document transformedDoc = result.getDocument();
+
+        OutputFormat format = OutputFormat.createPrettyPrint();
+        /*
+         * FileWriter fw = new FileWriter(outXml);
+         * XMLWriter writer = new XMLWriter(fw, format);
+         * try {
+         * writer.write(transformedDoc);
+         * } catch (IOException e) {
+         * 
+         * throw new RuntimeException("Something went wrong!", e);
+         * }
+         * 
+         * //LOG.debug("\n" + sw.toString());
+         */
+
+        throw new UnsupportedOperationException("TODO IMPLEMENT ME!");
+    }
+
 }

@@ -35,6 +35,8 @@ public class Namespace {
 
 
     /**
+     * The name of the LexicalResource.
+     * 
      * @since 0.1.0
      */
     public String getName() {
@@ -42,8 +44,8 @@ public class Namespace {
     }
 
     /**
-     * Sets the id of the LexicalResource this 
-     * 
+     *  
+     * See {@link #getName()}
      * @since 0.1.0
      */
     public void setName(String name) {
@@ -53,6 +55,8 @@ public class Namespace {
 
 
     /**
+     * The url of the LexicalResource.
+     * 
      * @since 0.1.0
      */
     public String getUrl() {
@@ -60,6 +64,8 @@ public class Namespace {
     }
     
     /**
+     * See {@link #getUrl()}
+     * 
      * @since 0.1.0
      */    
     public void setUrl(String url) {
@@ -68,6 +74,8 @@ public class Namespace {
     }
     
     /**
+     * The prefix associated to the LexicalResource.
+     * 
      * @since 0.1.0
      */    
     public String getPrefix() {
@@ -75,6 +83,8 @@ public class Namespace {
     }
     
     /**
+     * See {@link #getPrefix()}
+     * 
      * @since 0.1.0
      */    
     public void setPrefix(String prefix) {
