@@ -17,7 +17,7 @@ modify (
 	     	XML Schema for Diversicon LMF XMLs
 	     		     		     
 	     	Derived from DTD
-	     	https://github.com/DavidLeoni/diversicon/blob/master/src/main/resources/diversicon-1.0.dtd
+	     	https://github.com/diversicon-kb/diversicon/blob/master/src/main/resources/diversicon-1.0.dtd
 	     	
 	     	Which in turn is derived from original UBY DTD at v0.7.0:
 	     	https://github.com/dkpro/dkpro-uby/blob/de.tudarmstadt.ukp.uby-0.7.0/de.tudarmstadt.ukp.uby.lmf.model-asl/src/main/resources/dtd/UBY_LMF.dtd

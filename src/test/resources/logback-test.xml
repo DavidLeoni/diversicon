@@ -26,7 +26,7 @@
 	
 	<!--
 		Notice it is not possible to set damned c3p0 logging from here, 
-	    see https://github.com/DavidLeoni/diversicon/issues/5	
+	    see https://github.com/diversicon-kb/diversicon/issues/5	
 	     
 		<logger name="com.mchange.v2.c3p0" level="warn"></logger> 
 	 -->

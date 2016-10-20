@@ -26,8 +26,8 @@ attribute:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?
-  xmlns:sm="https://github.com/DavidLeoni/diversicon/tree/master/src/main/resources/smartphones-lmf.xml"
-  xmlns:wn31="https://github.com/DavidLeoni/diversicon-wordnet-3.1/blob/master/src/main/resources/it/unitn/disi/diversicon/data/div-wn31.xml.xz">
+  xmlns:sm="https://github.com/diversicon-kb/diversicon/tree/master/src/main/resources/smartphones-lmf.xml"
+  xmlns:wn31="https://github.com/diversicon-kb/diversicon-wordnet-3.1/blob/master/src/main/resources/it/unitn/disi/diversicon/data/div-wn31.xml.xz">
 ```
  
 
@@ -39,7 +39,7 @@ section of the document, like 'sm' here:
 
 ```    
 <?xml version="1.0" encoding="UTF-8"?
-  xmlns:sm="https://github.com/DavidLeoni/diversicon/tree/master/src/main/resources/smartphones-lmf.xml"
+  xmlns:sm="https://github.com/diversicon-kb/diversicon/tree/master/src/main/resources/smartphones-lmf.xml"
 ...
       
 <LexicalResource name="sm:lr">

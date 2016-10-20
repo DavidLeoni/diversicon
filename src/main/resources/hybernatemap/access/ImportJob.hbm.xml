@@ -2,7 +2,7 @@
  "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
 "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
 <hibernate-mapping >  
-<class name="it.unitn.disi.diversicon.ImportJob" 
+<class name="eu.kidf.diversicon.core.ImportJob" 
 	   table="ImportJob" 
 	   node="ImportJob" 
 	   dynamic-insert="true">
@@ -23,12 +23,12 @@
    <list name="logMessages" node=".">
             <key column="importJobId" />
             <index column="idx"/>
-            <one-to-many class="it.unitn.disi.diversicon.ImportJob" node="ImportJob"/>
+            <one-to-many class="eu.kidf.diversicon.core.ImportJob" node="ImportJob"/>
     </list> 
           
       
 	<many-to-one name="lexResPackage" 
-				class="it.unitn.disi.diversicon.LexResPackage"
+				class="eu.kidf.diversicon.core.LexResPackage"
 				column="lexResPackageId"
 				unique="true"
 				cascade="save-update"> 		        	

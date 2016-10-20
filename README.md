@@ -25,7 +25,7 @@ Simple Java library to provide a multilingual SQL knowledge base for lexicons an
   	- a testing framework to quickly create graphs via api
   	- more metadata about DB and imports 
   	- improved logging
-  	- Ships with [Wordnet 3.1 dump](https://github.com/DavidLeoni/diversicon-wordnet-3.1)  
+  	- Ships with [Wordnet 3.1 dump](https://github.com/diversicon-kb/diversicon-wordnet-3.1)  
   * access to DB via Hibernate
   * for now fully supports <a href="http://www.h2database.com/html/main.html" target="_blank">H2 DB</a>, a pure Java database (both in-memory and on disk). No separate installation is required.
   * dependency handling with Maven    
@@ -39,11 +39,11 @@ Simple Java library to provide a multilingual SQL knowledge base for lexicons an
 * Hibernate 
 * <a href="http://www.h2database.com/html/main.html" target="_blank">H2</a> database
 * Apache Commons IO and Compress, XZ Archiver
-* Diversicon Model <a href="https://github.com/DavidLeoni/diversicon-model" target="_blank">Diversicon Model</a>
+* Diversicon Model <a href="https://github.com/diversicon-kb/diversicon-model" target="_blank">Diversicon Model</a>
 
 #### Projects using Diversicon
 
-* [DiverCLI](https://github.com/DavidLeoni/divercli): a command line tool to manage Diversicons
+* [DiverCLI](https://github.com/diversicon-kb/divercli): a command line tool to manage Diversicons
 * [S-Match UBY](https://github.com/s-match/s-match-uby): a connector for <a href="http://semanticmatching.org/s-match.html" target="_blank">S-match</a> semantic framework
 
 #### Credits

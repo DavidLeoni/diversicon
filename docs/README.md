@@ -11,8 +11,8 @@ This release allows to TODO. <!--If you are upgrading from previous version, see
 
 ```xml
     <dependency>
-        <groupId>it.unitn.disi</groupId>
-        <artifactId>diversicon</artifactId>
+        <groupId>eu.kidf</groupId>
+        <artifactId>diversicon-core</artifactId>
         <version>#{version}</version>
     </dependency>
 ```

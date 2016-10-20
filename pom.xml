@@ -5,17 +5,17 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
-		<groupId>it.unitn.disi</groupId>
+		<groupId>eu.kidf</groupId>
 		<artifactId>diversicon-super-pom</artifactId>
 		<version>0.1.0-SNAPSHOT</version>
 	</parent>
 
-	<groupId>it.unitn.disi</groupId>
-	<artifactId>diversicon</artifactId>
+	<groupId>eu.kidf</groupId>
+	<artifactId>diversicon-core</artifactId>
 	<packaging>jar</packaging>
 
-	<name>Diversicon</name>
-	<url>https://github.com/DavidLeoni/diversicon</url>
+	<name>Diversicon Core</name>
+	<url>https://github.com/diversicon-kb/diversicon-core</url>
 	<description>Knowledge base for lexicons and concepts, based on UBY.</description>
 
 	<!-- better to copy scm, see https://github.com/opendatatrentino/tod-super-pom/issues/1 -->
@@ -126,7 +126,7 @@
 			    </execution>
 			  </executions>
 			  <configuration>
-			    	<mainClass>it.unitn.disi.diversicon.test.DivTester</mainClass>
+			    	<mainClass>eu.kidf.diversicon.core.test.DivTester</mainClass>
 			    	<classpathScope>test</classpathScope>
 			  </configuration>
 			</plugin>
@@ -149,7 +149,7 @@
 		<dependency>
 			<groupId>de.tudarmstadt.ukp.uby</groupId>
 			<artifactId>de.tudarmstadt.ukp.uby.lmf.api-asl</artifactId>
-			<exclusions> <!-- not a good idea having slf4j implementations as dependency, see https://github.com/DavidLeoni/diversicon/issues/5 -->
+			<exclusions> <!-- not a good idea having slf4j implementations as dependency, see https://github.com/diversicon-kb/diversicon/issues/5 -->
 				<exclusion>
 					<groupId>org.slf4j</groupId>
 					<artifactId>slf4j-simple</artifactId>
@@ -216,7 +216,7 @@
 		</dependency>
 
 		<dependency>
-			<groupId>it.unitn.disi</groupId>
+			<groupId>eu.kidf</groupId>
 			<artifactId>diversicon-model</artifactId>
 		</dependency>
 
@@ -283,7 +283,7 @@
 		</dependency>
 
 		<dependency>
-			<groupId>it.unitn.disi</groupId>
+			<groupId>eu.kidf</groupId>
 			<artifactId>div-wn31-model</artifactId>
 		</dependency>
 
@@ -312,19 +312,19 @@
 		</dependency>
 
 		<dependency>
-			<groupId>it.unitn.disi</groupId>
+			<groupId>eu.kidf</groupId>
 			<artifactId>div-wn31-h2db</artifactId>
 			<scope>test</scope>
 		</dependency>
 
 		<dependency>
-			<groupId>it.unitn.disi</groupId>
+			<groupId>eu.kidf</groupId>
 			<artifactId>div-wn31-xml</artifactId>
 			<scope>test</scope>
 		</dependency>
 
 		<dependency>
-			<groupId>it.unitn.disi</groupId>
+			<groupId>eu.kidf</groupId>
 			<artifactId>div-wn31-sql</artifactId>
 			<scope>test</scope>
 		</dependency>

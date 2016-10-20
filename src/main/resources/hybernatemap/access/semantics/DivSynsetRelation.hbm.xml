@@ -11,7 +11,7 @@
     <id column="synsetRelationId" type="long">
 		   <!-- Diversicon: 
 		   			First tried using "sequence" instead of "increment" to avoid 
-           				org.hibernate.QueryException: Invalid identifier generator encountered for implicit id handling as part of bulk insertions [INSERT INTO SynsetRelation (source, target, relType, relName, depth, provenance)   SELECT SR.target, SR.source,  SR.relType, ':relName',  1, 'it.unitn.disi.diversicon'  FROM de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation SR]
+           				org.hibernate.QueryException: Invalid identifier generator encountered for implicit id handling as part of bulk insertions [INSERT INTO SynsetRelation (source, target, relType, relName, depth, provenance)   SELECT SR.target, SR.source,  SR.relType, ':relName',  1, 'eu.kidf.diversicon.core'  FROM de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation SR]
 					Then got bastard hibernate NonUniqueObjectException errors while computing transitive closure so chose 
 						to use 'identity' generator 	           				
                 <generator class="increment"/> -->                       
@@ -50,7 +50,7 @@
 	
 	<!-- diversicon start -->
 	<!-- added to have our customized SmySynsetRelation  mapped to same SynsetRelation table -->				
-	<subclass name="it.unitn.disi.diversicon.DivSynsetRelation" 
+	<subclass name="eu.kidf.diversicon.core.DivSynsetRelation" 
        		  extends="de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation" 
        		  discriminator-value="true">
    		<property name="depth"  node="@depth" type="int" >
