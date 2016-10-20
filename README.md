@@ -3,8 +3,10 @@ WARNING: THIS IS ONLY A TEMPLATE FOR THE DOCUMENTATION. <br/>
 RELEASE DOCS ARE ON THE <a href="http://davidleoni.github.io/diversicon/" target="_blank">PROJECT WEBSITE</a>
 </p>
 
-# DIVERSICON
-
+<p class="josman-to-strip" align="center">
+<img alt="DiverCLI" src="docs/img/diversicon-200px.png" width="150px">
+<br/>
+</p>
 
 #### About
 

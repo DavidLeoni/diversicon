@@ -1641,7 +1641,7 @@ public class Diversicon extends Uby {
             sb.append("\n");            
             List<LogMessage> msgs = job.getLogMessages();
             if (msgs.isEmpty()) {
-                sb.append(" No logs were to report.\n");
+                sb.append("  No log messages were produced during the import.\n");
             } else {
                 sb.append("Full log:");
                 sb.append("\n");
