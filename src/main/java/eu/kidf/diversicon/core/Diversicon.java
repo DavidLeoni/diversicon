@@ -48,8 +48,12 @@ import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
 import de.tudarmstadt.ukp.lmf.api.Uby;
+import de.tudarmstadt.ukp.lmf.model.core.LexicalEntry;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
+import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
+import de.tudarmstadt.ukp.lmf.model.enums.EPartOfSpeech;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
+import de.tudarmstadt.ukp.lmf.model.morphology.FormRepresentation;
 import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
@@ -166,6 +170,94 @@ public class Diversicon extends Uby {
 
         return lemmas;
     }
+    
+    /**
+     * Note: search is done by exact match on {@code wordWrittenForm}
+     *
+     * Notice UBY 0.7.0 Wordnet doesn't have wordforms,
+     * see https://github.com/diversicon-kb/dkpro-uby/issues/4
+     * 
+     * @since 0.1.0
+     */
+    public List<LexicalEntry> getLexicalEntriesByWordForm(String writtenForm,
+            @Nullable EPartOfSpeech pos,
+            @Nullable Lexicon lexicon) {
+        checkNotEmpty(writtenForm, "Invalid writtenForm!");
+
+        Criteria criteria = session.createCriteria(LexicalEntry.class);
+        if (pos != null) {
+            criteria.add(Restrictions.eq("partOfSpeech", pos));
+        }
+        if (lexicon != null) {
+            criteria.add(Restrictions.eq("lexicon", lexicon));
+        }
+
+        criteria = criteria.createCriteria("wordForms")
+                           .createCriteria("formRepresentations")
+                           .add(Restrictions.like("writtenForm", writtenForm));
+
+        @SuppressWarnings("unchecked")
+        List<LexicalEntry> ret = criteria.list();
+        return ret;
+    }
+    
+    /**
+     * Note: search is done by exact match on {@code wordWrittenForm}
+     *
+     * Notice UBY 0.7.0 Wordnet doesn't have wordforms,
+     * see https://github.com/diversicon-kb/dkpro-uby/issues/4
+     * 
+     * @since 0.1.0
+     */
+    public List<Lemma> getLemmasByWordForm(String wordWrittenForm,
+            @Nullable EPartOfSpeech pos,
+            @Nullable Lexicon lexicon) {
+
+        List<LexicalEntry> lexEntries = getLexicalEntriesByWordForm(wordWrittenForm, pos, lexicon);
+
+        List<Lemma> ret = new ArrayList<>();
+        for (LexicalEntry le : lexEntries) {
+            ret.add(le.getLemma());
+        }
+        return ret;
+
+    }
+
+    /**
+     * Note: search is done by exact match on {@code wordWrittenForm}
+     *
+     * Notice UBY 0.7.0 Wordnet doesn't have wordforms,
+     * see https://github.com/diversicon-kb/dkpro-uby/issues/4
+     * 
+     * @since 0.1.0
+     */
+    public List<String> getLemmaStringsByWordForm(String wordWrittenForm,
+            @Nullable EPartOfSpeech pos,
+            @Nullable Lexicon lexicon) {
+
+        List<Lemma> lemmas = getLemmasByWordForm(wordWrittenForm, pos, lexicon);
+
+        List<String> ret = new ArrayList<>();
+
+        for (Lemma lemma : lemmas) {
+
+            List<FormRepresentation> formReprs = lemma.getFormRepresentations();
+
+            if (Internals.isEmpty(formReprs)) {
+                LOG.error("Found a lemma with no form representation! "
+                        + "Lemma is " + lemma);
+            } else {
+                String str = formReprs.get(0)
+                                      .getWrittenForm();
+                if (!Internals.isBlank(str)) {
+                    ret.add(str);
+                }
+            }
+        }
+        return ret;
+    }
+
+    
 
     /**
      * See {@link #getLemmasByWrittenForm(String)}.

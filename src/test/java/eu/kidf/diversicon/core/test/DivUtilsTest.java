@@ -123,6 +123,7 @@ public class DivUtilsTest {
                                             .synset()
                                             .definition("cool")
                                             .lexicalEntry("a")
+                                            .wordform("w")                                            
                                             .synset()
                                             .lexicalEntry("b")
                                             .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
@@ -130,6 +131,19 @@ public class DivUtilsTest {
 
         assertEquals(1, lexRes1.getLexicons()
                                .size());
+        
+        assertEquals(2, lexRes1.getLexicons()
+                .get(0)
+                .getLexicalEntries()                
+                .size());                
+
+        assertEquals(1, lexRes1.getLexicons()
+                .get(0)
+                .getLexicalEntries()                
+                .get(0)
+                .getWordForms()
+                .size());        
+        
         assertEquals(2, lexRes1.getLexicons()
                                .get(0)
                                .getSynsets()

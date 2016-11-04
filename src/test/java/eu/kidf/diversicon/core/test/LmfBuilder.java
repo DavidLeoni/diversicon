@@ -11,6 +11,7 @@ import de.tudarmstadt.ukp.lmf.model.enums.EPartOfSpeech;
 import de.tudarmstadt.ukp.lmf.model.meta.MetaData;
 import de.tudarmstadt.ukp.lmf.model.morphology.FormRepresentation;
 import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
+import de.tudarmstadt.ukp.lmf.model.morphology.WordForm;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import eu.kidf.diversicon.core.DivSynsetRelation;
@@ -25,6 +26,7 @@ import static eu.kidf.diversicon.core.test.DivTester.pid;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -361,6 +363,50 @@ public class LmfBuilder {
                       .get(size - 1);
     }
 
+    /**
+     * Adds a wordform to the current lexical entry. New wordform will have 
+     * exactly one form representation with given writtenForm. 
+
+     * @since 0.1.0
+     */
+    public LmfBuilder wordform(String writtenForm){
+        checkBuilt();
+        
+        WordForm wf = new WordForm();
+        FormRepresentation formRepr = new FormRepresentation();
+        formRepr.setWrittenForm(writtenForm);
+        wf.setFormRepresentations(Internals.newArrayList(formRepr));
+                
+        List<WordForm> wordForms = getCurLexicalEntry().getWordForms();
+        
+        if (wordForms == null){            
+            getCurLexicalEntry().setWordForms(Internals.newArrayList(wf));
+        } else {
+            wordForms.add(wf);
+        }
+        
+        return this;
+    }
+    
+    /**
+     * @since 0.1.0 
+     */
+    public WordForm getCurWordForm(){
+        checkBuilt();
+        LexicalEntry le = getCurLexicalEntry();                                     
+        
+        int size = le.getWordForms()
+                .size();
+        
+        if (size == 0) {
+           throw new IllegalStateException("There are no word forms in current lexical entry" + le.getId() + "!");
+        }
+        
+        return le.getWordForms()
+                    .get(size - 1);        
+    }
+    
+    
     /**
      * @since 0.1.0
      */
