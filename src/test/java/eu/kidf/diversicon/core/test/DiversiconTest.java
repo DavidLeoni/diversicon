@@ -521,9 +521,9 @@ public class DiversiconTest {
 
         DivTester.importResource(div, res, true);
 
-        assertEquals(Internals.newArrayList("a"), div.getLemmaStringsByWrittenForm("a"));
-        assertEquals(Internals.newArrayList("c"), div.getLemmaStringsByWrittenForm("c"));
-        assertEquals(Internals.newArrayList(), div.getLemmaStringsByWrittenForm("666"));
+        assertEquals(Internals.newArrayList("a"), div.getLemmaStringsByWrittenForm("a", null, null));
+        assertEquals(Internals.newArrayList("c"), div.getLemmaStringsByWrittenForm("c", null, null));
+        assertEquals(Internals.newArrayList(), div.getLemmaStringsByWrittenForm("666", null, null));
 
         div.getSession()
            .close();

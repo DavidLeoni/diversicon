@@ -153,17 +153,24 @@ public class Diversicon extends Uby {
      * 
      * @since 0.1.0
      */
-    // todo review, not so clear how lemmas are supposed to work
-    public List<Lemma> getLemmasByWrittenForm(String writtenForm) {
+    public List<Lemma> getLemmasByWrittenForm(
+            String writtenForm,
+            @Nullable EPartOfSpeech pos,
+            @Nullable Lexicon lexicon) {
+
         checkNotEmpty(writtenForm, "Invalid written form!");
 
-        // searching only in lemmas because UBY wordnet only generates lemmas
-        // FormRepresentations
-        // and doesn't create any WordForm (see
-        // https://github.com/dkpro/dkpro-uby/blob/5cab2846e3c27069c08ebd3bf91bd5a6f8ed02ca/de.tudarmstadt.ukp.uby.integration.wordnet-gpl/src/main/java/de/tudarmstadt/ukp/lmf/transform/wordnet/LexicalEntryGenerator.java#L271)
+        Criteria criteria = session.createCriteria(Lemma.class);
+        if (pos != null) {
+            criteria.add(Restrictions.eq("partOfSpeech", pos));
+        }
+        if (lexicon != null) {
+            criteria.add(Restrictions.eq("lexicon", lexicon));
+        }
 
+        
         @SuppressWarnings("unchecked")
-        List<Lemma> lemmas = session.createCriteria(Lemma.class)
+        List<Lemma> lemmas = criteria
                                     .createCriteria("formRepresentations")
                                     .add(Restrictions.like("writtenForm", writtenForm))
                                     .list();
@@ -264,16 +271,24 @@ public class Diversicon extends Uby {
      * 
      * @since 0.1.0
      */
-    public List<String> getLemmaStringsByWrittenForm(String writtenForm) {
-        List<Lemma> lemmas = getLemmasByWrittenForm(writtenForm);
+    /**
+     * See {@link #getLemmasByWrittenForm(String)}.
+     * 
+     * @since 0.1.0
+     */
+    public List<String> getLemmaStringsByWrittenForm(
+            String writtenForm,
+            @Nullable EPartOfSpeech pos,
+            @Nullable Lexicon lexicon) {
+        List<Lemma> lemmas = getLemmasByWrittenForm(writtenForm, pos, lexicon);
 
-        List<String> ret = new ArrayList();
+        List<String> ret = new ArrayList<>();
         for (Lemma lemma : lemmas) {
             if (lemma.getFormRepresentations()
                      .isEmpty()) {
-                LOG.error(
-                        "Found a lemma with no form representation! Lemma's lexical entry is " + lemma.getLexicalEntry()
-                                                                                                      .getId());
+                LOG.error("Found a lemma with no form representation!"
+                        + " Lemma's lexical entry is " + lemma.getLexicalEntry()
+                                                              .getId());
             } else {
                 ret.add(lemma.getFormRepresentations()
                              .get(0)
@@ -313,8 +328,8 @@ public class Diversicon extends Uby {
             return new ArrayList().iterator();
         }
 
-        List<String> directRelations = new ArrayList();
-        List<String> inverseRelations = new ArrayList();
+        List<String> directRelations = new ArrayList<>();
+        List<String> inverseRelations = new ArrayList<>();
 
         for (String relName : relNames) {
             if (Diversicons.isCanonicalRelation(relName) || !Diversicons.hasInverse(relName)) {
