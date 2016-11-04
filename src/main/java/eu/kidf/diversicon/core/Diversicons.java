@@ -1233,9 +1233,20 @@ public final class Diversicons {
         String filepath = getCachedH2DbDir(cacheRoot, id, version).getAbsolutePath() + File.separator + id;
 
         if (!new File(filepath + ".h2.db").exists()) {
-            restoreH2Db(DivWn31.of()
-                               .getH2DbUri(),
-                    filepath);
+            try {
+                restoreH2Db(DivWn31.of()
+                                   .getH2DbUri(),
+                        filepath);
+            } catch (DivIoException ex){
+                LOG.debug("Error while locating the db on the classpath!", ex);
+                LOG.info("");
+                LOG.info("Couldn't find the db on the classpath!");
+                LOG.info("");
+                LOG.info("Trying to download db from the web (it's around 40 MB, may take several mins to download... )");
+                // todo we should fetch it from diversicon-kb.eu or from maven central! ...
+                restoreH2Db("https://github.com/diversicon-kb/diversicon-wordnet-3.1/raw/master/div-wn31-h2db/src/main/resources/div-wn31.h2.db.xz",
+             filepath);
+            }
         }
         return h2MakeDefaultFileDbConfig(filepath, true);
     }

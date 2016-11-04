@@ -129,7 +129,7 @@ public class Diversicon extends Uby {
 
         this.dbConfig = dbConfig;
 
-        LOG.info("Connecting to database   " + dbConfig.getJdbc_url() + "   ...");
+        LOG.info("Connecting to database   " + dbConfig.getJdbc_url());
 
         cfg = Diversicons.checkSchema(dbConfig);
 
@@ -141,8 +141,9 @@ public class Diversicon extends Uby {
         if (INSTANCES.containsKey(hashcode)) {
             throw new DivException("INTERNAL ERROR: Seems like there is some sort of duplicate Diversicon session!!");
         }
-        INSTANCES.put(hashcode, this);
-
+        INSTANCES.put(hashcode, this);       
+        
+        LOG.info("Connected!");
     }
 
     /**
