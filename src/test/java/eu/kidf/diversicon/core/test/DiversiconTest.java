@@ -57,6 +57,19 @@ public class DiversiconTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(DiversiconTest.class);
 
+    /**
+     * @since 0.1.0
+     */
+    private static final LexicalResource WORDFORMS_LEX_RES = lmf()
+            .lexicon()
+            .synset()
+            .lexicalEntry("a")
+            .wordform("x")
+            .lexicalEntry("b")
+            .wordform("y")                                 
+            .build();
+
+    
     private DBConfig dbConfig;
     
     @Before
@@ -508,9 +521,9 @@ public class DiversiconTest {
 
         DivTester.importResource(div, res, true);
 
-        assertEquals(Internals.newArrayList("a"), div.getLemmaStringsByWrittenForm("a"));
-        assertEquals(Internals.newArrayList("c"), div.getLemmaStringsByWrittenForm("c"));
-        assertEquals(Internals.newArrayList(), div.getLemmaStringsByWrittenForm("666"));
+        assertEquals(Internals.newArrayList("a"), div.getLemmaStringsByWrittenForm("a", null, null));
+        assertEquals(Internals.newArrayList("c"), div.getLemmaStringsByWrittenForm("c", null, null));
+        assertEquals(Internals.newArrayList(), div.getLemmaStringsByWrittenForm("666", null, null));
 
         div.getSession()
            .close();
@@ -1324,4 +1337,38 @@ public class DiversiconTest {
            .close();        
     }
     
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testGetLexicalEntriesByWordForm(){
+        
+        Diversicons.dropCreateTables(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);        
+        DivTester.importResource(div, WORDFORMS_LEX_RES, true);
+        
+        List<LexicalEntry> les = div.getLexicalEntriesByWordForm("x", null, null);
+        
+        assertEquals(1, les.size());
+        assertEquals(les.get(0).getLemmaForm(), "a");        
+
+    }
+    
+
+    
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testGetLemmaByWordForm(){
+        
+        Diversicons.dropCreateTables(dbConfig);
+        Diversicon div = Diversicon.connectToDb(dbConfig);        
+        DivTester.importResource(div, WORDFORMS_LEX_RES, true);
+        
+        assertEquals(Internals.newArrayList("a"),
+                    div.getLemmaStringsByWordForm("x", null, null));
+
+    }    
+
 }

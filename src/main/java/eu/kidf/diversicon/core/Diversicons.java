@@ -1196,10 +1196,9 @@ public final class Diversicons {
      * 
      * Restores a packaged H2 db to file system in user's home under
      * {@link #CACHE_PATH}. The database is intended
-     * to be accessed only in read-only mode and if
+     * to be accessed in read-only mode and if
      * already present no fetch is performed. The database may be fetched from
-     * the
-     * internet or directly taken from a jar if on the classpath.
+     * the internet or directly taken from a jar if on the classpath.
      *
      * @param id
      *            the worldwide unique identifier for the resource, in a format
@@ -1234,9 +1233,20 @@ public final class Diversicons {
         String filepath = getCachedH2DbDir(cacheRoot, id, version).getAbsolutePath() + File.separator + id;
 
         if (!new File(filepath + ".h2.db").exists()) {
-            restoreH2Db(DivWn31.of()
-                               .getH2DbUri(),
-                    filepath);
+            try {
+                restoreH2Db(DivWn31.of()
+                                   .getH2DbUri(),
+                        filepath);
+            } catch (DivIoException ex){
+                LOG.debug("Error while locating the db on the classpath!", ex);
+                LOG.info("");
+                LOG.info("Couldn't find the db on the classpath!");
+                LOG.info("");
+                LOG.info("Trying to download db from the web (it's around 40 MB, may take several mins to download... )");
+                // todo we should fetch it from diversicon-kb.eu or from maven central! ...
+                restoreH2Db("https://github.com/diversicon-kb/diversicon-wordnet-3.1/raw/master/div-wn31-h2db/src/main/resources/div-wn31.h2.db.xz",
+             filepath);
+            }
         }
         return h2MakeDefaultFileDbConfig(filepath, true);
     }

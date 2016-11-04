@@ -48,8 +48,12 @@ import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
 import de.tudarmstadt.ukp.lmf.api.Uby;
+import de.tudarmstadt.ukp.lmf.model.core.LexicalEntry;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
+import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
+import de.tudarmstadt.ukp.lmf.model.enums.EPartOfSpeech;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
+import de.tudarmstadt.ukp.lmf.model.morphology.FormRepresentation;
 import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
@@ -92,10 +96,8 @@ import eu.kidf.diversicon.core.internal.Internals;
  */
 public class Diversicon extends Uby {
 
-    
+    private static final Logger LOG = LoggerFactory.getLogger(Diversicon.class);
 
-    private static final Logger LOG = LoggerFactory.getLogger(Diversicon.class);    
-    
     /**
      * Time between progress reports in millisecs
      */
@@ -105,14 +107,13 @@ public class Diversicon extends Uby {
      * Amount of items to flush when writing into db with Hibernate.
      */
     private static int COMMIT_STEP = 10000;
-    
+
     /**
      * Maps a Diversicon Session hashcode to its Diversicon
      * 
      * @since 0.1.0
      */
     private static final Map<Integer, Diversicon> INSTANCES = new HashMap<>();
-    
 
     /**
      * @throws DivIoException
@@ -128,7 +129,7 @@ public class Diversicon extends Uby {
 
         this.dbConfig = dbConfig;
 
-        LOG.info("Connecting to database   " + dbConfig.getJdbc_url() + "   ...");
+        LOG.info("Connecting to database   " + dbConfig.getJdbc_url());
 
         cfg = Diversicons.checkSchema(dbConfig);
 
@@ -140,54 +141,150 @@ public class Diversicon extends Uby {
         if (INSTANCES.containsKey(hashcode)) {
             throw new DivException("INTERNAL ERROR: Seems like there is some sort of duplicate Diversicon session!!");
         }
-        INSTANCES.put(hashcode, this);
+        INSTANCES.put(hashcode, this);       
+        
+        LOG.info("Connected!");
+    }
 
+    /**
+     * Returns lemmas by written form{@code writtenForm}
+     * 
+     * @since 0.1.0
+     */
+    public List<Lemma> getLemmasByWrittenForm(
+            String writtenForm,
+            @Nullable EPartOfSpeech pos,
+            @Nullable Lexicon lexicon) {
+
+        List<LexicalEntry> leEntries = getLexicalEntries(writtenForm, pos, lexicon);
+
+        List<Lemma> ret = new ArrayList<>();
+
+        for (LexicalEntry lexEntry : leEntries) {
+            Lemma lemma = lexEntry.getLemma();
+            if (lexEntry.getLemma() != null) {
+                ret.add(lemma);
+            }
+        }
+
+        return ret;
     }
 
     /**
      * Note: search is done by exact match on {@code writtenForm}
+     *
+     * Notice UBY 0.7.0 Wordnet doesn't have wordforms,
+     * see https://github.com/diversicon-kb/dkpro-uby/issues/4
      * 
      * @since 0.1.0
      */
-    // todo review, not so clear how lemmas are supposed to work
-    public List<Lemma> getLemmasByWrittenForm(String writtenForm) {
-        checkNotEmpty(writtenForm, "Invalid written form!");
+    public List<LexicalEntry> getLexicalEntriesByWordForm(
+            String writtenForm,
+            @Nullable EPartOfSpeech pos,
+            @Nullable Lexicon lexicon) {
+        checkNotEmpty(writtenForm, "Invalid writtenForm!");
 
-        // searching only in lemmas because UBY wordnet only generates lemmas
-        // FormRepresentations
-        // and doesn't create any WordForm (see
-        // https://github.com/dkpro/dkpro-uby/blob/5cab2846e3c27069c08ebd3bf91bd5a6f8ed02ca/de.tudarmstadt.ukp.uby.integration.wordnet-gpl/src/main/java/de/tudarmstadt/ukp/lmf/transform/wordnet/LexicalEntryGenerator.java#L271)
+        Criteria criteria = session.createCriteria(LexicalEntry.class);
+        if (pos != null) {
+            criteria.add(Restrictions.eq("partOfSpeech", pos));
+        }
+        if (lexicon != null) {
+            criteria.add(Restrictions.eq("lexicon", lexicon));
+        }
+
+        criteria = criteria.createCriteria("wordForms")
+                           .createCriteria("formRepresentations")
+                           .add(Restrictions.like("writtenForm", writtenForm));
 
         @SuppressWarnings("unchecked")
-        List<Lemma> lemmas = session.createCriteria(Lemma.class)
-                                    .createCriteria("formRepresentations")
-                                    .add(Restrictions.like("writtenForm", writtenForm))
-                                    .list();
-
-        return lemmas;
+        List<LexicalEntry> ret = criteria.list();
+        return ret;
     }
 
     /**
-     * See {@link #getLemmasByWrittenForm(String)}.
+     * Note: search is done by exact match on {@code wordWrittenForm}
+     *
+     * Notice UBY 0.7.0 Wordnet doesn't have wordforms,
+     * see https://github.com/diversicon-kb/dkpro-uby/issues/4
      * 
      * @since 0.1.0
      */
-    public List<String> getLemmaStringsByWrittenForm(String writtenForm) {
-        List<Lemma> lemmas = getLemmasByWrittenForm(writtenForm);
+    public List<Lemma> getLemmasByWordForm(String wordWrittenForm,
+            @Nullable EPartOfSpeech pos,
+            @Nullable Lexicon lexicon) {
 
-        List<String> ret = new ArrayList();
+        List<LexicalEntry> lexEntries = getLexicalEntriesByWordForm(wordWrittenForm, pos, lexicon);
+
+        List<Lemma> ret = new ArrayList<>();
+        for (LexicalEntry le : lexEntries) {
+            ret.add(le.getLemma());
+        }
+        return ret;
+
+    }
+
+    /**
+     * Note: search is done by exact match on {@code wordWrittenForm}
+     *
+     * Notice UBY 0.7.0 Wordnet doesn't have wordforms,
+     * see https://github.com/diversicon-kb/dkpro-uby/issues/4
+     * 
+     * @since 0.1.0
+     */
+    public List<String> getLemmaStringsByWordForm(String wordWrittenForm,
+            @Nullable EPartOfSpeech pos,
+            @Nullable Lexicon lexicon) {
+
+        List<Lemma> lemmas = getLemmasByWordForm(wordWrittenForm, pos, lexicon);
+
+        List<String> ret = new ArrayList<>();
+
         for (Lemma lemma : lemmas) {
+
+            List<FormRepresentation> formReprs = lemma.getFormRepresentations();
+
+            if (Internals.isEmpty(formReprs)) {
+                LOG.error("Found a lemma with no form representation! "
+                        + "Lemma is " + lemma);
+            } else {
+                String str = formReprs.get(0)
+                                      .getWrittenForm();
+                if (!Internals.isBlank(str)) {
+                    ret.add(str);
+                }
+            }
+        }
+        return ret;
+    }
+    
+    /**
+     * See {@link #getLemmasByWrittenForm(String, EPartOfSpeech, Lexicon)}.
+     * 
+     * @since 0.1.0
+     */
+    public List<String> getLemmaStringsByWrittenForm(
+            String writtenForm,
+            @Nullable EPartOfSpeech pos,
+            @Nullable Lexicon lexicon) {
+
+        List<Lemma> lemmas = getLemmasByWrittenForm(writtenForm, pos, lexicon);
+
+        List<String> ret = new ArrayList<>();
+
+        for (Lemma lemma : lemmas) {
+
             if (lemma.getFormRepresentations()
                      .isEmpty()) {
-                LOG.error(
-                        "Found a lemma with no form representation! Lemma's lexical entry is " + lemma.getLexicalEntry()
-                                                                                                      .getId());
+                LOG.error("Found a lemma with no form representation!"
+                        + " Lemma's lexical entry is " + lemma.getLexicalEntry()
+                                                              .getId());
             } else {
                 ret.add(lemma.getFormRepresentations()
                              .get(0)
                              .getWrittenForm());
             }
         }
+
         return ret;
     }
 
@@ -221,8 +318,8 @@ public class Diversicon extends Uby {
             return new ArrayList().iterator();
         }
 
-        List<String> directRelations = new ArrayList();
-        List<String> inverseRelations = new ArrayList();
+        List<String> directRelations = new ArrayList<>();
+        List<String> inverseRelations = new ArrayList<>();
 
         for (String relName : relNames) {
             if (Diversicons.isCanonicalRelation(relName) || !Diversicons.hasInverse(relName)) {
@@ -338,7 +435,7 @@ public class Diversicon extends Uby {
         LOG.info("");
         LOG.info("Executing post-import db validation ... ");
         LOG.info("");
-        
+
         Transaction tx = null;
         Date checkpoint = new Date();
 
@@ -777,7 +874,6 @@ public class Diversicon extends Uby {
 
         config.setAuthor(Diversicons.DEFAULT_AUTHOR);
         config.setFileUrls(Arrays.asList(fileUrl));
-        
 
         return importFiles(config).get(0);
     }
@@ -909,18 +1005,18 @@ public class Diversicon extends Uby {
         ImportJob job = newImportJob(
                 config,
                 fileUrl,
-                file, 
+                file,
                 pack);
-        
+
         LOG.info("");
         LOG.info("Starting import...");
         LOG.info("");
-        
+
         try {
             DivXmlToDbTransformer trans = new DivXmlToDbTransformer(this);
             trans.transform(file, null);
             endImportJob(job);
-            
+
         } catch (Exception ex) {
             throw new InterruptedImportException("Error while loading lmf xml " + fileUrl, ex);
         }
@@ -1024,24 +1120,27 @@ public class Diversicon extends Uby {
 
     /**
      * 
-     * Creates an {@link ImportJob} Java object. No data will be written into the db.
+     * Creates an {@link ImportJob} Java object. No data will be written into
+     * the db.
      * Still, db can get accessed to validate the input.
      * 
-     * !!!! IMPORTANT !!!!! {@code pack} must already contain data about the resource!!
+     * !!!! IMPORTANT !!!!! {@code pack} must already contain data about the
+     * resource!!
      * 
      * @throws InvalidImportException
      *             if thrown means some validation failed but no
      *             LexicalResource data was written to disk.
      * 
-     * @param the phyisical source LMF XML file. If there was none, use {@code null} 
+     * @param the
+     *            phyisical source LMF XML file. If there was none, use
+     *            {@code null}
      * @see #setCurrentImportJob(ImportJob)
      * @since 0.1.0
      */
     private ImportJob newImportJob(
             ImportConfig config,
             String fileUrl,
-            @Nullable
-            File file,
+            @Nullable File file,
             LexResPackage pack) {
 
         try {
@@ -1052,45 +1151,46 @@ public class Diversicon extends Uby {
                     "Couldn't find fileUrl " + fileUrl + "in importConfig!");
 
             Internals.checkLexResPackage(pack);
-            
-            if (file != null){
+
+            if (file != null) {
                 LOG.info("");
                 LOG.info("Validating XML Schema of " + file.getAbsolutePath() + "   ...");
                 LOG.info("");
                 try {
                     XmlValidationConfig xmlValidationConfig = XmlValidationConfig.builder()
-                    .setLog(LOG)
-                    .setLogLimit(config.getLogLimit())
-                    .setFailFast(true)
-                    .build();
-                    
+                                                                                 .setLog(LOG)
+                                                                                 .setLogLimit(config.getLogLimit())
+                                                                                 .setFailFast(true)
+                                                                                 .build();
+
                     Diversicons.validateXml(file, xmlValidationConfig);
                     LOG.info("XML is valid!");
                     LOG.info("");
-                } catch (Exception ex){
+                } catch (Exception ex) {
                     throw new InvalidImportException("Found invalid XML !", ex);
-                }                
-            }
-            
-            List<ImportJob> jobs = getImportJobs();
-            
-            for (ImportJob job : jobs){
-                
-                if (pack.equals(job.getLexResPackage())){
-                    throw new InvalidImportException("Looks like you're trying to import the same lexical resource twice!");
                 }
-                
-                if (Objects.equals(pack.getPrefix(), job.getLexResPackage().getPrefix())){
+            }
+
+            List<ImportJob> jobs = getImportJobs();
+
+            for (ImportJob job : jobs) {
+
+                if (pack.equals(job.getLexResPackage())) {
+                    throw new InvalidImportException(
+                            "Looks like you're trying to import the same lexical resource twice!");
+                }
+
+                if (Objects.equals(pack.getPrefix(), job.getLexResPackage()
+                                                        .getPrefix())) {
                     throw new InvalidImportException("Tried to import a lexical resource which "
-                            + "has the same prefix of resource:\n " + job.getLexResPackage().getName(),
+                            + "has the same prefix of resource:\n " + job.getLexResPackage()
+                                                                         .getName(),
                             config, fileUrl, pack);
                 }
             }
-            
-            
-            
+
             Map<String, String> dbNss = getNamespaces();
-                       
+
             for (String prefix : pack.getNamespaces()
                                      .keySet()) {
                 if (dbNss.containsKey(prefix)) {
@@ -1102,17 +1202,17 @@ public class Diversicon extends Uby {
                                 "Tried to import a prefix which is assigned to another resource url in the db! "
                                         + "Prefix is " + prefix + "  ; url to import = " + urlToImport
                                         + "  ;  url in the db = " + urlInDb,
-                                        config, fileUrl, pack);
+                                config, fileUrl, pack);
                     }
                 }
             }
 
         } catch (Exception ex) {
             throw new InvalidImportException(
-                      "Invalid import for " + fileUrl + "! \n", ex,
-                      config, fileUrl, pack);
+                    "Invalid import for " + fileUrl + "! \n", ex,
+                    config, fileUrl, pack);
         }
-        
+
         ImportJob job = new ImportJob();
 
         job.setAuthor(config.getAuthor());
@@ -1122,25 +1222,25 @@ public class Diversicon extends Uby {
         job.setLexResPackage(pack);
 
         return job;
-        
+
     }
-    
+
     /**
      * @since 0.1.0
      * @param job
      */
-    private void setCurrentImportJob(ImportJob job){
+    private void setCurrentImportJob(ImportJob job) {
         Transaction tx = null;
         try {
             tx = session.beginTransaction();
-            
+
             session.saveOrUpdate(job);
 
             DbInfo dbInfo = getDbInfo();
             dbInfo.setCurrentImportJob(job);
             session.saveOrUpdate(dbInfo);
 
-            tx.commit();            
+            tx.commit();
 
         } catch (Exception ex) {
             LOG.error("Error while adding import job in db, rolling back!");
@@ -1150,7 +1250,7 @@ public class Diversicon extends Uby {
 
             throw new DivException("Error while adding import job in db!", ex);
         }
-        
+
     }
 
     /**
@@ -1219,45 +1319,45 @@ public class Diversicon extends Uby {
         LOG.info("Going to save lexical resource to database...");
 
         ImportJob job = null;
-        ImportConfig config; 
+        ImportConfig config;
 
         config = new ImportConfig();
         config.setSkipAugment(skipAugment);
         config.setAuthor(Diversicons.DEFAULT_AUTHOR);
         String fileUrl = Diversicons.MEMORY_PROTOCOL + ":" + lexicalResource.hashCode();
         config.addLexicalResource(fileUrl);
-        
+
         try {
-            
+
             job = newImportJob(config,
                     fileUrl,
                     null,
-                    lexResPackage);            
-        
+                    lexResPackage);
+
             prepareDbForImport();
-            
+
             setCurrentImportJob(job);
-            
+
             new JavaToDbTransformer(this, lexicalResource).transform();
-            
+
             if (!skipAugment) {
                 processGraph();
             }
-            
+
             endImportJob(job);
 
         } catch (InvalidImportException ex) {
 
             LOG.error("Import failed! Aborting all imports! (no LexicalResource data was written to disk) \n", ex);
-            
+
             throw ex;
         } catch (Exception ex) {
             throw new InterruptedImportException("Error when importing lexical resource "
                     + lexicalResource.getName() + " !", ex);
         }
-        
-        LOG.info("Done saving.");       
-        
+
+        LOG.info("Done saving.");
+
         return job;
     }
 
@@ -1639,7 +1739,7 @@ public class Diversicon extends Uby {
         sb.append(job.getDescription());
         sb.append("\n");
         if (fullLog) {
-            sb.append("\n");            
+            sb.append("\n");
             List<LogMessage> msgs = job.getLogMessages();
             if (msgs.isEmpty()) {
                 sb.append("  No log messages were produced during the import.\n");
@@ -1822,7 +1922,6 @@ public class Diversicon extends Uby {
 
         return ret;
     }
-    
 
     /*
      * Returns a list of {@link Namespace namespaces} used within database.
