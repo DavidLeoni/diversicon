@@ -1,33 +1,44 @@
 ### Introduction
 
-One of Diversicon goals is to allow importing and merging LMF XMLs produced by different people,
-preventing potential clashes. So, while Diversicon should be able to read all the XML files 
-created with UBY 0.7.0, sometimes it can warn the user about potential conflicts and ask the user to how
-to deal with them. 
-
- 
-If an LMF follows the guidelines reported here, clashes should never occur. 
+Diversicon should allow importing and merging LMF XMLs produced by different people,
+preventing the clashes that may arise. 
+Diversicon should be able to read the XML files created with UBY 0.7.0, provided you
+add some bookkeeping information to the files to indicate to which namespace they belong.  
   
 
 ### Namespaces
   
 XML allows to declare namespaces for tags and attributes 
-(so you can write stuff like <my-namespace-prefix.mytag my-namespace-prefix:myAttribute="bla bla">) but
-we abuse them to give a scope also to tag IDs: <tag id="my-namespace-prefix.bla">
+(so you can write stuff like `<my-pfx:my-tag my-pfx:my-attribute="bla bla">`)
+ but we abuse them to give a scope also to tag IDs: `<tag id="my-pfx_bla">`. 
 Namespaced IDs are necessary because in UBY IDs are global, and when merging multiple sources into te db 
-conflicts might occur. Note that currently we don't require any specific format for prefixes,
-nor namespace urls, so version numbers are not mandatory and urls are not required 
-to be resolvable nor persistent (although of course it is very desirable).
-Note that when ids are inserted into the database, prefixes _are not_ expanded.
+conflicts might occur. 
+
+There are a few things to keep in mind:
+
+- in tag IDs there is an underscore `_` separating the prefix from the name like in `<tag id="my-pfx_bla">`
+- although we use prefixes like 'wn31` we don't require version numbers in them
+- we don't enforce any specific format for namespace urls, and urls are not required 
+to be resolvable nor to be persistent (although of course it is very desirable)
+- when ids are inserted into the database, prefixes _are not_ expanded
 
    
-In Diversicon LMF you can declare namespaces at the beginning of the file with the `xmlns`
+In Diversicon LMF you can declare namespace in `LexicalResource` tag the `xmlns`
 attribute:
 
 ```xml
-<?xml version="1.0" encoding="UTF-8"?
-  xmlns:sm="https://github.com/diversicon-kb/diversicon/tree/master/src/main/resources/smartphones-lmf.xml"
-  xmlns:wn31="https://github.com/diversicon-kb/diversicon-wordnet-3.1/blob/master/src/main/resources/it/unitn/disi/diversicon/data/div-wn31.xml.xz">
+
+<?xml version="1.0" encoding="UTF-8"?>
+
+<LexicalResource name="div-smartphones"				 
+				 prefix="sm"				 
+  				 xmlns:sm="https://github.com/diversicon-kb/diversicon-model/blob/master/src/main/resources/smartphones.xml"
+  				 xmlns:wn31="https://github.com/diversicon-kb/diversicon-wordnet-3.1"
+				 				 				 
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+				 xsi:noNamespaceSchemaLocation="http://diversicon-kb.eu/schema/1.0/diversicon.xsd">
+  
+  
 ```
  
 
