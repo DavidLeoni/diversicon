@@ -1196,10 +1196,9 @@ public final class Diversicons {
      * 
      * Restores a packaged H2 db to file system in user's home under
      * {@link #CACHE_PATH}. The database is intended
-     * to be accessed only in read-only mode and if
+     * to be accessed in read-only mode and if
      * already present no fetch is performed. The database may be fetched from
-     * the
-     * internet or directly taken from a jar if on the classpath.
+     * the internet or directly taken from a jar if on the classpath.
      *
      * @param id
      *            the worldwide unique identifier for the resource, in a format
