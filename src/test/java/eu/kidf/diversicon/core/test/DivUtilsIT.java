@@ -18,10 +18,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
+import eu.kidf.diversicon.core.DivConfig;
 import eu.kidf.diversicon.core.Diversicon;
 import eu.kidf.diversicon.core.Diversicons;
+import eu.kidf.diversicon.core.ExtractedStream;
 import eu.kidf.diversicon.core.exceptions.InvalidSchemaException;
-import eu.kidf.diversicon.core.internal.ExtractedStream;
 import eu.kidf.diversicon.core.internal.Internals;
 import eu.kidf.diversicon.data.DivWn31;
 import eu.kidf.diversicon.data.Smartphones;
@@ -33,7 +34,7 @@ public class DivUtilsIT {
     
     private static final Logger LOG = LoggerFactory.getLogger(DivUtilsTest.class);
     
-    private DBConfig dbConfig;
+    private DivConfig divConfig;
         
     /**
      * @since 0.1.0
@@ -44,7 +45,7 @@ public class DivUtilsIT {
         Path newHome = Internals.createTempDir(DivTester.DIVERSICON_TEST_STRING + "-home");
         System.setProperty("user.home", newHome.toString());
         
-        dbConfig = DivTester.createNewDbConfig();                
+        divConfig = DivTester.createNewDivConfig();                
     }
 
     /**
@@ -52,7 +53,7 @@ public class DivUtilsIT {
      */    
     @After
     public void afterMethod(){
-        dbConfig = null;       
+        divConfig = null;       
     }
 
   
@@ -71,7 +72,7 @@ public class DivUtilsIT {
         
         DBConfig dbCfg = Diversicons.h2MakeDefaultFileDbConfig(target.getAbsolutePath(), false); 
         
-        Diversicon div = Diversicon.connectToDb(dbCfg);
+        Diversicon div = Diversicon.connectToDb(DivConfig.of(dbCfg));
         
         div.getLexiconNames();
                 
@@ -98,7 +99,7 @@ public class DivUtilsIT {
         
         DBConfig dbCfg = Diversicons.h2MakeDefaultFileDbConfig(target.getAbsolutePath(), false); 
         
-        Diversicon div = Diversicon.connectToDb(dbCfg);               
+        Diversicon div = Diversicon.connectToDb(DivConfig.of(dbCfg));               
         
         div.importXml(Smartphones.of().getXmlUri());        
     }
@@ -108,7 +109,7 @@ public class DivUtilsIT {
      */
     @Test
     public void testReadDataWordnetSql(){
-        ExtractedStream es = Internals.readData(DivWn31.of().getSqlUri(), true);
+        ExtractedStream es = Diversicons.readData(DivWn31.of().getSqlUri(), true);
         assertTrue(es.isExtracted());
         assertEquals("div-wn31.sql", es.getFilepath());
         assertEquals(DivWn31.of().getSqlUri(), es.getSourceUrl());
@@ -122,7 +123,7 @@ public class DivUtilsIT {
      */
     @Test
     public void testReadDataWordnetXml(){
-        ExtractedStream es = Internals.readData(DivWn31.of().getXmlUri(), true);
+        ExtractedStream es = Diversicons.readData(DivWn31.of().getXmlUri(), true);
         assertTrue(es.isExtracted());
         assertEquals("div-wn31.xml", es.getFilepath());
         assertEquals(DivWn31.of().getXmlUri(), es.getSourceUrl());
@@ -137,9 +138,9 @@ public class DivUtilsIT {
     @Test
     public void testImportXmlWordnetSample(){
         
-        Diversicons.createTables(dbConfig);
+        Diversicons.createTables(divConfig.getDbConfig());
         
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(divConfig);
                 
         div.importXml(DivWn31.SAMPLE_XML_URI);
         
@@ -177,8 +178,8 @@ public class DivUtilsIT {
         Diversicon div2 = null;
 
         try {
-            div1 = Diversicon.connectToDb(config);
-            div2 = Diversicon.connectToDb(config);
+            div1 = Diversicon.connectToDb(DivConfig.of(config));
+            div2 = Diversicon.connectToDb(DivConfig.of(config));
             
             LOG.debug(div1.formatImportJobs(false));
             LOG.debug(div2.formatImportJobs(false));            

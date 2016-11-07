@@ -87,7 +87,7 @@ public class UbyTest {
 
     @Before
     public void beforeMethod() {
-        dbConfig = DivTester.createNewDbConfig();
+        dbConfig = DivTester.createNewDivConfig().getDbConfig();
     }
 
     @After

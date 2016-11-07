@@ -38,6 +38,7 @@ import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import eu.kidf.diversicon.core.DbInfo;
+import eu.kidf.diversicon.core.DivConfig;
 import eu.kidf.diversicon.core.DivSynsetRelation;
 import eu.kidf.diversicon.core.Diversicon;
 import eu.kidf.diversicon.core.Diversicons;
@@ -70,16 +71,16 @@ public class DiversiconTest {
             .build();
 
     
-    private DBConfig dbConfig;
+    private DivConfig divConfig;
     
     @Before
     public void beforeMethod() {
-        dbConfig = createNewDbConfig();
+        divConfig = createNewDivConfig();
     }
 
     @After
     public void afterMethod() {
-        dbConfig = null;
+        divConfig = null;
     }
 
     /**
@@ -91,7 +92,7 @@ public class DiversiconTest {
     public void testConnectToDbDontAutoCreate() {
         
         try {
-            Diversicon uby = Diversicon.connectToDb(dbConfig);
+            Diversicon uby = Diversicon.connectToDb(divConfig);
             Assert.fail("Shouldn't be able to connect to non-existing db!");
         } catch (InvalidSchemaException ex){
             
@@ -106,7 +107,7 @@ public class DiversiconTest {
     @Test
     public void testHibernateExtraAttributes() {
 
-        Diversicons.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
 
         LexicalResource lexicalResource = new LexicalResource();
         lexicalResource.setName("lexical-resource-1");
@@ -130,7 +131,7 @@ public class DiversiconTest {
         synset.getSynsetRelations()
               .add(synsetRelation);
 
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(divConfig);
 
         DivTester.importResource(div, lexicalResource, true);
 
@@ -180,9 +181,9 @@ public class DiversiconTest {
             LexicalResource lexicalResource,
             LexicalResource expectedLexicalResource) {
 
-        Diversicons.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
 
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(divConfig);
 
         DivTester.importResource(div, lexicalResource, true);
 
@@ -359,9 +360,9 @@ public class DiversiconTest {
     @Test
     public void testGetConnectedSynsets_Graph_1_Hypernym() {
 
-        Diversicons.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
 
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(divConfig);
 
         DivTester.importResource(div, GRAPH_1_HYPERNYM, true);
 
@@ -404,9 +405,9 @@ public class DiversiconTest {
     @Test
     public void testIsConnected() {
 
-        Diversicons.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
 
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(divConfig);
 
         DivTester.importResource(div, DAG_3_HYPERNYM, true);
 
@@ -507,9 +508,9 @@ public class DiversiconTest {
     // todo improve, not so clear how lemmas work.
     @Test
     public void testGetLemmaByWrittenForm() {
-        Diversicons.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
 
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(divConfig);
 
         LexicalResource res = lmf().lexicon()
                                    .synset()
@@ -535,9 +536,9 @@ public class DiversiconTest {
     @Test
     public void testGetConnectedSynsets_Dag_3_Hypernym() {
 
-        Diversicons.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
 
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(divConfig);
 
         DivTester.importResource(div, DAG_3_HYPERNYM, true);
 
@@ -588,9 +589,9 @@ public class DiversiconTest {
     @Test
     public void testGetConnectedSynsetsMultiRelNames() {
 
-        Diversicons.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
 
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(divConfig);
         DivTester.importResource(div, GRAPH_4_HYP_HOL_HELLO, true);
         checkContainsAll(div.getConnectedSynsets(
                 tid("synset-4"),
@@ -610,9 +611,9 @@ public class DiversiconTest {
     @Test
     public void testGetConnectedSynsetsNoDups() {
 
-        Diversicons.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
 
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(divConfig);
 
         DivTester.importResource(div, DAG_2_MULTI_REL, true);
 
@@ -636,9 +637,9 @@ public class DiversiconTest {
         
         LexicalResource g = GRAPH_4_HYP_HOL_HELLO;
 
-        Diversicons.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
 
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(divConfig);
 
         DbInfo dbInfo1 = div.getDbInfo();
 
@@ -702,9 +703,9 @@ public class DiversiconTest {
              .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
              .build();
         
-        Diversicons.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
 
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(divConfig);
         
         try {
             DivTester.importResource(div, lr, false);
@@ -729,9 +730,9 @@ public class DiversiconTest {
              .synsetRelation(ERelNameSemantics.HYPONYM, 1)
              .build();
         
-        Diversicons.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
 
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(divConfig);
                 
         DivTester.importResource(div, lr, false);
         
@@ -744,9 +745,9 @@ public class DiversiconTest {
     @Test
     public void testGetNamespaces(){
                 
-        Diversicons.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
 
-        Diversicon div = Diversicon.connectToDb(dbConfig);       
+        Diversicon div = Diversicon.connectToDb(divConfig);       
         
         ImportJob job = DivTester.importResource(div, GRAPH_1_HYPERNYM, true);        
         LexResPackage pack1 = job.getLexResPackage();        
@@ -792,8 +793,8 @@ public class DiversiconTest {
     @Test
     public void testTransitiveClosureMissingSynsets(){
         
-        Diversicons.dropCreateTables(dbConfig);
-        Diversicon div = Diversicon.connectToDb(dbConfig);               
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
+        Diversicon div = Diversicon.connectToDb(divConfig);               
         String upp = "upp";
         
         /**
@@ -827,9 +828,9 @@ public class DiversiconTest {
     @Test
     public void testImportWithClashingDependencies() throws IOException {
 
-        Diversicons.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
 
-        Diversicon div = Diversicon.connectToDb(dbConfig);       
+        Diversicon div = Diversicon.connectToDb(divConfig);       
         
         ImportJob job1 = DivTester.importResource(div, GRAPH_1_HYPERNYM, true);
         job1.getLexResPackage();
@@ -871,9 +872,9 @@ public class DiversiconTest {
         
         LOG.debug("\n" + FileUtils.readFileToString(xml, "UTF-8"));
         
-        Diversicons.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
 
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(divConfig);
 
         assertFalse(div.formatImportJobs(true)
                        .isEmpty());
@@ -898,9 +899,9 @@ public class DiversiconTest {
     @Test
     public void testImportSmartPhonesXmlWithoutWordnet() {        
         
-        Diversicons.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
 
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(divConfig);
         
         ImportJob job = div.importXml(Smartphones.of().getXmlUri());        
                 
@@ -926,9 +927,9 @@ public class DiversiconTest {
     @Test
     public void testExportToXml() throws IOException {
         
-        Diversicons.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
 
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(divConfig);
         
         DivTester.importResource(div, GRAPH_1_HYPERNYM, false);
         
@@ -1018,9 +1019,9 @@ public class DiversiconTest {
     @Test
     public void testFormatImports() {
         
-        Diversicons.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
 
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(divConfig);
 
         assertFalse(div.formatImportJobs(true)
                        .isEmpty());
@@ -1081,9 +1082,9 @@ public class DiversiconTest {
     @Test
     public void testImportCantMergeSameLexicon() {
 
-        Diversicons.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
 
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(divConfig);
 
         DivTester.importResource(div, GRAPH_1_HYPERNYM, true);
 
@@ -1107,9 +1108,9 @@ public class DiversiconTest {
     @Test
     public void testImportTwoSeparateLexicalResources() {
 
-        Diversicons.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
 
-        Diversicon div = Diversicon.connectToDb(dbConfig);       
+        Diversicon div = Diversicon.connectToDb(divConfig);       
         
         DivTester.importResource(div, GRAPH_1_HYPERNYM, true);
 
@@ -1154,8 +1155,9 @@ public class DiversiconTest {
      */
     @Test
     public void testExportToSqlRestore() throws IOException {
-        Diversicons.dropCreateTables(dbConfig);
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
+        
+        Diversicon div = Diversicon.connectToDb(divConfig);
         DivTester.importResource(div, GRAPH_1_HYPERNYM, true);
         
         Path dir = DivTester.createTestDir();
@@ -1165,10 +1167,10 @@ public class DiversiconTest {
         assertTrue(zip.exists());
         assertTrue(zip.length() > 0);
         
-        DBConfig dbConfig2 = DivTester.createNewDbConfig();
+        DivConfig divConfig2 = DivTester.createNewDivConfig();
         //Diversicons.dropCreateTables(dbConfig2);
-        Diversicons.h2RestoreSql("file://" + zip.getAbsolutePath(), dbConfig2);
-        Diversicon div2 = Diversicon.connectToDb(dbConfig2);
+        Diversicons.h2RestoreSql("file://" + zip.getAbsolutePath(), divConfig2);
+        Diversicon div2 = Diversicon.connectToDb(divConfig2);
         checkDb(GRAPH_1_HYPERNYM, div2);
     }
 
@@ -1177,8 +1179,8 @@ public class DiversiconTest {
      */
     @Test
     public void testExportToSqlToAlreadyExistingFile() throws IOException{
-        Diversicons.dropCreateTables(dbConfig);
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
+        Diversicon div = Diversicon.connectToDb(divConfig);
         DivTester.importResource(div, GRAPH_1_HYPERNYM, true);
         
         Path dir = DivTester.createTestDir();
@@ -1200,8 +1202,8 @@ public class DiversiconTest {
     @Test
     public void testExportToSqlWrongFile() throws IOException{
         
-        Diversicons.dropCreateTables(dbConfig);
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
+        Diversicon div = Diversicon.connectToDb(divConfig);
         DivTester.importResource(div, GRAPH_1_HYPERNYM, true);
         
         Path dir = DivTester.createTestDir();
@@ -1229,8 +1231,8 @@ public class DiversiconTest {
      */
     @Test
     public void testExportToSqlInNonExistingDir() throws IOException{
-        Diversicons.dropCreateTables(dbConfig);
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
+        Diversicon div = Diversicon.connectToDb(divConfig);
         importResource(div, GRAPH_1_HYPERNYM, true);
         
         Path dir = DivTester.createTestDir();
@@ -1257,10 +1259,12 @@ public class DiversiconTest {
     public void testConnectToDbH2InMemoryCompressed(){
         try {
             DBConfig dbConfig = Diversicons.h2MakeDefaultInMemoryDbConfig("trial-" + UUID.randomUUID(), true);
+            
+            
             Assert.fail("Shouldn't arrive here!");
 
             Diversicons.dropCreateTables(dbConfig);
-            Diversicon div = Diversicon.connectToDb(dbConfig);
+            Diversicon div = Diversicon.connectToDb(DivConfig.of(dbConfig));
             int mem = div.memoryUsed();
             LOG.debug("Memory used for empty H2 compressed in-memory db is " + Internals.humanByteCount(mem * 1024));
             
@@ -1281,7 +1285,7 @@ public class DiversiconTest {
         DBConfig dbConfig = Diversicons.h2MakeDefaultInMemoryDbConfig("trial-" + UUID.randomUUID()
                                     , false);
         Diversicons.dropCreateTables(dbConfig);
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(DivConfig.of(dbConfig));
         int mem = div.memoryUsed();
         LOG.debug("Memory used for empty uncompressed H2 in-memory db is " + Internals.humanByteCount(mem * 1024));
         div.getSession().close();
@@ -1305,7 +1309,7 @@ public class DiversiconTest {
         dbConfig.setPassword("666");
         
         try {
-            Diversicon div = Diversicon.connectToDb(dbConfig);
+            Diversicon div = Diversicon.connectToDb(DivConfig.of(dbConfig));
             Assert.fail("Shouldn't arrive here!");
         } catch (GenericJDBCException ex){
                                    
@@ -1325,9 +1329,9 @@ public class DiversiconTest {
      */
     @Test
     public void testGetSynsetRelationsCount(){
-        Diversicons.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
 
-        Diversicon div = Diversicon.connectToDb(dbConfig);       
+        Diversicon div = Diversicon.connectToDb(divConfig);       
 
         DivTester.importResource(div, GRAPH_1_HYPERNYM, false);
 
@@ -1343,8 +1347,8 @@ public class DiversiconTest {
     @Test
     public void testGetLexicalEntriesByWordForm(){
         
-        Diversicons.dropCreateTables(dbConfig);
-        Diversicon div = Diversicon.connectToDb(dbConfig);        
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
+        Diversicon div = Diversicon.connectToDb(divConfig);        
         DivTester.importResource(div, WORDFORMS_LEX_RES, true);
         
         List<LexicalEntry> les = div.getLexicalEntriesByWordForm("x", null, null);
@@ -1362,8 +1366,8 @@ public class DiversiconTest {
     @Test
     public void testGetLemmaByWordForm(){
         
-        Diversicons.dropCreateTables(dbConfig);
-        Diversicon div = Diversicon.connectToDb(dbConfig);        
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
+        Diversicon div = Diversicon.connectToDb(divConfig);        
         DivTester.importResource(div, WORDFORMS_LEX_RES, true);
         
         assertEquals(Internals.newArrayList("a"),

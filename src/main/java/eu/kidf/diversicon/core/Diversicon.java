@@ -31,6 +31,8 @@ import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.http.HttpHost;
+import org.apache.http.client.fluent.Request;
 import org.h2.tools.Script;
 import org.hibernate.CacheMode;
 import org.hibernate.Criteria;
@@ -116,18 +118,27 @@ public class Diversicon extends Uby {
     private static final Map<Integer, Diversicon> INSTANCES = new HashMap<>();
 
     /**
+     * @since 0.1.0
+     */
+    private DivConfig config;
+    
+    
+    /**
      * @throws DivIoException
      * @throws InvalidSchemaException
      * 
      * @since 0.1.0
      */
-    protected Diversicon(DBConfig dbConfig) {
+    protected Diversicon(DivConfig config) {
         super(); // so it doesn't open connections! Let's hope they don't delete
                  // it!
 
         checkNotNull(dbConfig, "database configuration is null");
+        checkNotNull(config, "Found null diversiconConfig! If unknown use instead diversiconConfig.of()");
 
-        this.dbConfig = dbConfig;
+        this.config = config;
+        
+        this.dbConfig = config.getDbConfig();
 
         LOG.info("Connecting to database   " + dbConfig.getJdbc_url());
 
@@ -223,6 +234,8 @@ public class Diversicon extends Uby {
 
     }
 
+    
+    
     /**
      * Note: search is done by exact match on {@code wordWrittenForm}
      *
@@ -888,32 +901,32 @@ public class Diversicon extends Uby {
      * 
      * @since 0.1.0
      */
-    public List<ImportJob> importFiles(ImportConfig config) {
+    public List<ImportJob> importFiles(ImportConfig importConfig) {
 
         Date start = new Date();
 
         List<ImportJob> ret = new ArrayList<>();
 
-        checkNotNull(config);
+        checkNotNull(importConfig);
 
-        checkNotBlank(config.getAuthor(), "Invalid ImportConfig author!");
-        checkNotEmpty(config.getFileUrls(), "Invalid ImportConfig filepaths!");
+        checkNotBlank(importConfig.getAuthor(), "Invalid ImportConfig author!");
+        checkNotEmpty(importConfig.getFileUrls(), "Invalid ImportConfig filepaths!");
 
         int i = 0;
-        for (String fileUrl : config.getFileUrls()) {
+        for (String fileUrl : importConfig.getFileUrls()) {
             checkNotBlank(fileUrl, "Invalid file url at position " + i + "!");
             i++;
         }
 
-        LOG.info("Going to import " + config.getFileUrls()
+        LOG.info("Going to import " + importConfig.getFileUrls()
                                             .size()
-                + " files by import author " + config.getAuthor() + "...");
+                + " files by import author " + importConfig.getAuthor() + "...");
 
         DbInfo oldDbInfo = prepareDbForImport();
 
         try {
-            for (String fileUrl : config.getFileUrls()) {
-                ImportJob job = importFile(config, fileUrl);
+            for (String fileUrl : importConfig.getFileUrls()) {
+                ImportJob job = importFile(importConfig, fileUrl);
                 ret.add(job);
             }
         } catch (InvalidImportException ex) {
@@ -925,7 +938,7 @@ public class Diversicon extends Uby {
             throw ex;
         }
 
-        if (config.isSkipAugment()) {
+        if (importConfig.isSkipAugment()) {
             LOG.info("Skipping graph augmentation as requested by user.");
         } else {
             try {
@@ -935,7 +948,7 @@ public class Diversicon extends Uby {
             }
         }
 
-        logImportResult(config, start, ret);
+        logImportResult(importConfig, start, ret);
         return ret;
 
     }
@@ -943,13 +956,13 @@ public class Diversicon extends Uby {
     /**
      * @since 0.1.0
      */
-    private void logImportResult(ImportConfig config, Date start, List<ImportJob> jobs) {
+    private void logImportResult(ImportConfig importConfig, Date start, List<ImportJob> jobs) {
 
-        checkNotNull(config);
+        checkNotNull(importConfig);
         checkNotNull(start);
         checkNotNull(jobs);
 
-        String plural = config.getFileUrls()
+        String plural = importConfig.getFileUrls()
                               .size() > 1 ? "s" : "";
 
         Date end = new Date();
@@ -959,9 +972,9 @@ public class Diversicon extends Uby {
         LOG.info("");
         LOG.info("");
         LOG.info("");
-        LOG.info("Done importing " + config.getFileUrls()
+        LOG.info("Done importing " + importConfig.getFileUrls()
                                            .size()
-                + " LMF" + plural + " by import author " + config.getAuthor());
+                + " LMF" + plural + " by import author " + importConfig.getAuthor());
         LOG.info("");
         LOG.info("Imported lexical resources: ");
         LOG.info("");
@@ -982,29 +995,29 @@ public class Diversicon extends Uby {
      * 
      * @since 0.1.0
      */
-    private ImportJob importFile(ImportConfig config, String fileUrl) {
+    private ImportJob importFile(ImportConfig importConfig, String url) {
 
-        LOG.info("Loading LMF : " + fileUrl + " ...");
+        LOG.info("Loading LMF : " + url + " ...");
 
         File file;
         try {
-            file = Internals.readData(fileUrl, true)
+            file = Diversicons.readData(config, url, true)
                             .toTempFile();
         } catch (Exception ex) {
-            throw new InvalidImportException("Couldn't read file to import: " + fileUrl, ex);
+            throw new InvalidImportException("Couldn't read file to import: " + url, ex);
         }
 
         LexResPackage pack;
 
         try {
-            pack = Diversicons.readPackageFromLexRes(fileUrl);
+            pack = Diversicons.readPackageFromLexRes(file);
         } catch (Exception ex) {
-            throw new InvalidImportException("Couldn't extract attributes from LexicalResource " + fileUrl, ex);
+            throw new InvalidImportException("Couldn't extract attributes from LexicalResource " + url, ex);
         }
 
         ImportJob job = newImportJob(
-                config,
-                fileUrl,
+                importConfig,
+                url,
                 file,
                 pack);
 
@@ -1018,10 +1031,10 @@ public class Diversicon extends Uby {
             endImportJob(job);
 
         } catch (Exception ex) {
-            throw new InterruptedImportException("Error while loading lmf xml " + fileUrl, ex);
+            throw new InterruptedImportException("Error while loading lmf xml " + url, ex);
         }
 
-        LOG.info("Done loading LMF : " + fileUrl + " .");
+        LOG.info("Done loading LMF : " + url + " .");
 
         return job;
     }
@@ -1081,6 +1094,16 @@ public class Diversicon extends Uby {
             throw new DivException("Error while setting import flags in db", ex);
         }
 
+    }
+    
+    /**
+     * Returns Diversicon Configuration (which contains also  UBY's DBConfig) 
+     * 
+     * @since 0.1.0
+     * @see #getDbConfig()
+     */
+    public DivConfig getConfig(){
+        return config;
     }
 
     /**
@@ -1385,10 +1408,11 @@ public class Diversicon extends Uby {
      * 
      * @since 0.1.0
      */
-    public static Diversicon connectToDb(DBConfig dbConfig) {
-        Diversicon ret = new Diversicon(dbConfig);
+    public static Diversicon connectToDb(DivConfig config) {        
+        Diversicon ret = new Diversicon(config);
         return ret;
     }
+    
 
     /**
      * Simple export to a UBY-LMF {@code .xml} file.
@@ -1947,4 +1971,7 @@ public class Diversicon extends Uby {
      * return ret;
      * }
      */
+
+    
+    
 }

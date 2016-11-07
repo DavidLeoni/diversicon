@@ -1,12 +1,17 @@
 package eu.kidf.diversicon.core;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -21,10 +26,21 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.ArchiveException;
+import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
+import org.apache.commons.compress.compressors.CompressorException;
+import org.apache.commons.compress.compressors.CompressorInputStream;
+import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.http.client.fluent.Request;
+import org.apache.http.client.fluent.Response;
 import org.apache.xerces.impl.Constants;
 import org.basex.core.Context;
 import org.basex.io.serial.Serializer;
@@ -54,6 +70,8 @@ import org.w3c.dom.ls.LSInput;
 import org.w3c.dom.ls.LSResourceResolver;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+
+
 import javax.annotation.Nullable;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -89,7 +107,6 @@ import eu.kidf.diversicon.core.exceptions.DivNotFoundException;
 import eu.kidf.diversicon.core.exceptions.InvalidSchemaException;
 import eu.kidf.diversicon.core.exceptions.InvalidXmlException;
 import eu.kidf.diversicon.core.internal.DivXmlValidator;
-import eu.kidf.diversicon.core.internal.ExtractedStream;
 import eu.kidf.diversicon.core.internal.Internals;
 import eu.kidf.diversicon.data.DivWn31;
 
@@ -1085,19 +1102,20 @@ public final class Diversicons {
      * 
      * @since 0.1.0
      */
-    public static void h2RestoreSql(String dumpUrl, DBConfig dbConfig) {
+    public static void h2RestoreSql(String dumpUrl, DivConfig divConfig) {
         Internals.checkNotBlank(dumpUrl, "invalid sql/archive resource path!");
-        checkH2Db(dbConfig);
+        checkNotNull(divConfig, "Invalid divConfig!");
+        checkH2Db(divConfig.getDbConfig());
 
         Date start = new Date();
 
-        LOG.info("Restoring database " + dbConfig.getJdbc_url() + " (may require a long time to perform) ...");
+        LOG.info("Restoring database " + divConfig.getDbConfig().getJdbc_url() + " (may require a long time to perform) ...");
         try {
             Class.forName("org.h2.Driver");
         } catch (ClassNotFoundException ex) {
             throw new DivIoException("Error while loading h2 driver!", ex);
         }
-        ExtractedStream extractedStream = Internals.readData(dumpUrl, true);
+        ExtractedStream extractedStream = readData(dumpUrl, true);
 
         Connection conn = null;
         Statement stat = null;
@@ -1128,7 +1146,7 @@ public final class Diversicons {
 
             // todo need to improve connection with dbConfig params
 
-            conn = getH2Connection(dbConfig);
+            conn = getH2Connection(divConfig.getDbConfig());
 
             stat = conn.createStatement();
             stat.execute(saveVars);
@@ -1137,11 +1155,11 @@ public final class Diversicons {
             stat.execute(restoreSavedVars);
             conn.commit();
 
-            LOG.info("Done restoring database " + dbConfig.getJdbc_url());
+            LOG.info("Done restoring database " + divConfig.getDbConfig().getJdbc_url());
             LOG.info("Elapsed time: " + Internals.formatInterval(start, new Date()));
 
             // TODO: here it should automatically fix mixing schema parts...
-            if (!Diversicons.isSchemaValid(dbConfig)) {
+            if (!Diversicons.isSchemaValid(divConfig.getDbConfig())) {
                 throw new InvalidSchemaException("Restored db but found invalid schema!");
             }
         } catch (SQLException e) {
@@ -1296,7 +1314,7 @@ public final class Diversicons {
         LOG.info("Restoring database:   " + dumpUrl);
         LOG.info("                to:   " + target.getAbsolutePath() + "  ...");
 
-        ExtractedStream extractedStream = Internals.readData(dumpUrl, true);
+        ExtractedStream extractedStream = readData(dumpUrl, true);
 
         try {
             FileUtils.copyInputStreamToFile(extractedStream.stream(), target);
@@ -1603,7 +1621,7 @@ public final class Diversicons {
     // TODO in theory there are many other parameters we should take into
     // consideration
     @Nullable
-    private static LSInput resolveXmlResource(@Nullable String namespaceUri, @Nullable String systemId) {
+    private static LSInput resolveXmlResource(DivConfig diversiconConfig, @Nullable String namespaceUri, @Nullable String systemId) {
 
         if (namespaceUri == null && systemId == null) {
             return null;
@@ -1614,7 +1632,7 @@ public final class Diversicons {
         ret.setEncoding("UTF-8");
 
         try {
-            ret.setByteStream(Internals.readData(systemId)
+            ret.setByteStream(readData(systemId)
                                        .stream());
             return ret;
         } catch (Exception ex) {
@@ -1629,7 +1647,7 @@ public final class Diversicons {
                         + " \n     systemId=" + systemId
                         + " \n namespaceUrl=" + namespaceUri);
 
-                ret.setByteStream(Internals.readData(classpathUrl)
+                ret.setByteStream(readData(classpathUrl)
                                            .stream());
                 return ret;
             }
@@ -1647,7 +1665,7 @@ public final class Diversicons {
      * 
      * @since 0.1.0
      */
-    public static void validateXml(File xmlFile, XmlValidationConfig config) {
+    public static void validateXml(File xmlFile, final XmlValidationConfig config) {
 
         checkNotNull(xmlFile);
         checkNotNull(config);
@@ -1663,7 +1681,7 @@ public final class Diversicons {
             if (Internals.isBlank(config.getXsdUrl())) {
                 schema = factory.newSchema();
             } else {
-                File xsd = Internals.readData(config.getXsdUrl())
+                File xsd = readData(config.getXsdUrl())
                                     .toTempFile();
                 schema = factory.newSchema(xsd);
                 LOG.debug("Validating against schema: " + config.getXsdUrl());
@@ -1694,7 +1712,7 @@ public final class Diversicons {
                         + "\n systemId     = " + systemId
                         + "\n baseURI      = " + baseURI);
 
-                return resolveXmlResource(namespaceURI, systemId);
+                return resolveXmlResource(config.getdiversiconConfig(), namespaceURI, systemId);
             }
         };
 
@@ -1761,24 +1779,21 @@ public final class Diversicons {
     /**
      * Reads metadata about a given resource.
      * 
-     * @param path
-     *            A path to a file as specified by
-     *            {@link Internals#readData(String, boolean)
+     * @param lexResFile an XML Lexical Resource file  
      * 
      * @since 0.1.0
      */
-    public static LexResPackage readPackageFromLexRes(String lexResUrl) {
+    public static LexResPackage readPackageFromLexRes(File lexResFile) {
 
         LexResPackage ret = new LexResPackage();
 
         SAXReader reader = new SAXReader(false);
-
-        ExtractedStream es = Internals.readData(lexResUrl, true);
+        
         DivXmlExtractor handler = new DivXmlExtractor(ret);
         reader.setDefaultHandler(handler);
-        try {
-            reader.read(es.stream());
-        } catch (DocumentException e) {
+        try (FileInputStream fis = new FileInputStream(lexResFile)){
+            reader.read(fis);
+        } catch (DocumentException | IOException e) {
 
             if (e.getMessage()
                  .contains(DivXmlExtractor.FOUND)) {
@@ -1786,7 +1801,7 @@ public final class Diversicons {
             }
         }
         throw new DivNotFoundException("Couldn't find required tags in "
-                + lexResUrl + "  !");
+                + lexResFile.getAbsolutePath() + "  !");
 
     }
 
@@ -1983,4 +1998,203 @@ public final class Diversicons {
         throw new UnsupportedOperationException("TODO IMPLEMENT ME!");
     }
 
+    /**
+     * Gets input stream from a url, for more info see
+     * {@link #readData(String, boolean) readData(dataUrl, false)}
+     * 
+     * @throws DivIoException
+     *             on error.
+     * 
+     * @since 0.1.0
+     */
+    public static ExtractedStream readData(String dataUrl) {
+        return readData(dataUrl, false);
+    }
+
+    /**
+     * Gets input stream from a url, for more info see
+     * {@link #readData(DivConfig, String, boolean) readData(diversiconConfig,
+     * dataUrl, false)}
+     * 
+     * @throws DivIoException
+     *             on error.
+     * 
+     * @since 0.1.0
+     */
+    public static ExtractedStream readData(String dataUrl, boolean decompress) {
+        return readData(DivConfig.of(), dataUrl, decompress);
+    }
+    
+    
+    
+
+    /**
+     * Gets input stream from a url pointing to possibly compressed data.
+     * 
+     * @param dataUrl
+     *            can be like:
+     *            <ul>
+     *            <li>{@code classpath:/my/package/name/data.zip}</li>
+     *            <li>{@code file:/my/path/data.zip}</li>
+     *            <li>{@code http://... }</li>
+     *            <li>{@code jar:file:///home/user/data.jar!/my-file.txt}</li>
+     *            <li>{@code jar:file:///home/user/data.jar!/my-file.txt.zip}
+     *            </li>
+     *            <li>whatever protocol..</li>
+     *            </ul>
+     * @param decompress
+     *            if true and data is actually compressed in one of
+     *            {@link Diversicons#SUPPORTED_COMPRESSION_FORMATS} returns the
+     *            uncompressed stream (note no check is done to verify the
+     *            archive contains only one file).
+     *            In all other cases data stream is returned verbatim.
+     * @param divConfig Configuration for accessing external resources. If unknown use {@link DivConfig#of()}
+     * 
+     * @throws DivIoException
+     *             on error.
+     * 
+     * @since 0.1.0
+     */
+    // todo should check archives have only one file...
+    public static ExtractedStream readData(DivConfig divConfig, String dataUrl, boolean decompress) {
+        checkNotNull(dataUrl, "Invalid resource path!");
+
+        @Nullable
+        InputStream inputStream = null;
+
+        URI uri;
+
+        String uriPath;
+
+        try {
+            uri = new URI(dataUrl);
+        } catch (URISyntaxException ex) {
+            throw new DivIoException("Couldn't parse input url!", ex);
+        }
+
+        LOG.trace("reading data from " + dataUrl + " ...");
+
+        if ("classpath".equals(uri.getScheme())) {
+            uriPath = dataUrl.substring("classpath:".length());
+            String q;
+
+            q = Internals.removeStartSlashes(uriPath);
+
+            try {
+
+                String candidatePathTest = "src/test/resources/" + q;
+                LOG.trace("    Searching data at " + candidatePathTest + " ...");
+                inputStream = new FileInputStream(candidatePathTest);
+                LOG.debug("    Located data at " + candidatePathTest);
+            } catch (FileNotFoundException ex1) {
+                try {
+                    String candidatePathMain = "src/main/resources/" + q;
+                    LOG.trace("    Searching data at " + candidatePathMain + " ...");
+                    inputStream = new FileInputStream(candidatePathMain);
+                    LOG.debug("    Located data at " + candidatePathMain);
+                } catch (FileNotFoundException ex2) {
+                    inputStream = Diversicons.class.getResourceAsStream("/" + q);
+                    if (inputStream == null) {
+                        throw new DivIoException("Couldn't find input stream: " + dataUrl.toString());
+                    } else {
+                        LOG.debug("    Located data at " + dataUrl);
+                    }
+                }
+            }
+
+        } else {
+
+            if ("jar".equals(uri.getScheme())) {
+                uriPath = getJarPath(dataUrl);
+            } else {
+                uriPath = uri.getPath();
+            }
+
+            try {
+
+                if (Internals.hasProtocol(dataUrl)) {
+                    if ("http".equals(uri.getScheme())){
+                                                                                               
+                        inputStream = Internals.httpGet(divConfig, uri);
+                        
+                    } else {
+                        inputStream = new URL(dataUrl).openStream();    
+                    }
+                    
+                } else {
+                    inputStream = new FileInputStream(dataUrl);
+                }
+
+                LOG.debug("    Located data at " + dataUrl);
+            } catch (IOException ex) {
+                throw new DivIoException("Error while opening " + dataUrl + "  !!", ex);
+            }
+        }
+
+        if (decompress && isFormatSupported(uriPath, Diversicons.SUPPORTED_COMPRESSION_FORMATS)) {
+
+            try {
+
+                BufferedInputStream buffered = inputStream instanceof BufferedInputStream
+                        ? (BufferedInputStream) inputStream
+                        : new BufferedInputStream(inputStream);
+
+                if (isFormatSupported(uriPath, Diversicons.SUPPORTED_ARCHIVE_FORMATS)) {
+
+                    ArchiveInputStream zin = new ArchiveStreamFactory()
+                                                                       .createArchiveInputStream(buffered);
+                    for (ArchiveEntry e; (e = zin.getNextEntry()) != null;) {
+                        return new ExtractedStream(e.getName(), zin, dataUrl, true);
+                    }
+
+                } else {
+
+                    CompressorInputStream cin = new CompressorStreamFactory()
+                                                                             .createCompressorInputStream(buffered);
+                    String fname = FilenameUtils.getBaseName(uriPath);
+                    return new ExtractedStream(fname, cin, dataUrl, true);
+                }
+
+            } catch (IOException | ArchiveException | CompressorException e) {
+                throw new DivIoException("Error while iterating through " + dataUrl.toString() + " !", e);
+            }
+
+            throw new DivIoException("Found empty stream in archive " + dataUrl.toString() + " !");
+
+        } else {
+            return new ExtractedStream(uriPath, inputStream, dataUrl, false);
+
+        }
+    }
+    
+    /**
+     * @since 0.1.0
+     */
+    private static boolean isFormatSupported(String filePath,
+            String[] formats) {
+        checkNotEmpty(filePath, "Invalid filepath!");
+
+        for (String s : formats) {
+            if (filePath.toLowerCase()
+                        .endsWith("." + s)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    private static String getJarPath(String dataUrl) {
+        checkArgument(dataUrl.startsWith("jar:"), "Expected input to start with 'jar:', found instead " + dataUrl);
+        String subDataUri = dataUrl.replace("jar:", "");
+        try {
+            return new URI(subDataUri).getPath();
+        } catch (URISyntaxException e) {
+            throw new DivException("Couldn't parse subDataUrl " + subDataUri, e);
+        }
+    }
+    
+    
 }

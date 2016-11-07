@@ -32,7 +32,7 @@ import eu.kidf.diversicon.core.test.DivTester;
 public class HibernateTransitiveClosureDiversicon extends Diversicon {
 
     public HibernateTransitiveClosureDiversicon() {
-        super(DivTester.createNewDbConfig());
+        super(DivTester.createNewDivConfig());
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(HibernateTransitiveClosureDiversicon.class);

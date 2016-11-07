@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
+import eu.kidf.diversicon.core.DivConfig;
 import eu.kidf.diversicon.core.Diversicon;
 import eu.kidf.diversicon.core.Diversicons;
 import eu.kidf.diversicon.data.DivWn31;
@@ -29,16 +30,16 @@ public class SlowTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(SlowTest.class);
 
-    private DBConfig dbConfig;
+    private DivConfig divConfig;
 
     @Before
     public void beforeMethod() {
-        dbConfig = createNewDbConfig();
+        divConfig = createNewDivConfig();
     }
 
     @After
     public void afterMethod() {
-        dbConfig = null;
+        divConfig = null;
     }
 
     /**
@@ -48,7 +49,7 @@ public class SlowTest {
     public void testImportWordnetInMemoryDb() throws IOException {
         DBConfig dbConfig = Diversicons.h2MakeDefaultInMemoryDbConfig("mydb-" + new Date().getTime(), false);
         Diversicons.dropCreateTables(dbConfig);
-        Diversicon div = Diversicon.connectToDb(dbConfig);        
+        Diversicon div = Diversicon.connectToDb(DivConfig.of(dbConfig));        
         div.importXml(DivWn31.of().getXmlUri());
     }
 
@@ -59,9 +60,9 @@ public class SlowTest {
      */
     // @Test
     public void testRestoreAugmentedWordnetSqlToH2InMemory(){
-        Diversicons.h2RestoreSql(DivWn31.of().getSqlUri(), dbConfig);
+        Diversicons.h2RestoreSql(DivWn31.of().getSqlUri(), divConfig);
         
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(divConfig);
                 
         div.getSession().close();
     
@@ -74,7 +75,7 @@ public class SlowTest {
     public void testImportWordnetInFileDb() throws IOException {
         DBConfig dbConfig = Diversicons.h2MakeDefaultFileDbConfig("target/div-wn31-" + new Date().getTime(), false);
         Diversicons.dropCreateTables(dbConfig);
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(DivConfig.of(dbConfig));
         div.importXml(DivWn31.of().getXmlUri());
     }
 
@@ -83,9 +84,11 @@ public class SlowTest {
      */    
     @Test
     public void testImportWordnetInMemoryExportToSql() throws IOException {
-        DBConfig dbConfig = Diversicons.h2MakeDefaultInMemoryDbConfig("mydb-" + new Date().getTime(), false);
+        DBConfig dbConfig = Diversicons.h2MakeDefaultInMemoryDbConfig(
+                "mydb-" + new Date().getTime(),
+                false);
         Diversicons.dropCreateTables(dbConfig);
-        Diversicon div = Diversicon.connectToDb(dbConfig);        
+        Diversicon div = Diversicon.connectToDb(DivConfig.of(dbConfig));        
         div.importXml(DivWn31.of().getXmlUri());
         String zipFilePath = "target/div-wn31-" + new Date().getTime() + ".sql.zip";
         div.exportToSql(zipFilePath, true);
@@ -100,7 +103,7 @@ public class SlowTest {
     public void testImportWordnetInFileDbExportToSql() throws IOException {
         DBConfig dbConfig = Diversicons.h2MakeDefaultFileDbConfig("target/div-wn31-" + new Date().getTime(), false);
         Diversicons.dropCreateTables(dbConfig);
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(DivConfig.of(dbConfig));
         div.importXml(DivWn31.of().getXmlUri());
         String zipFilePath = "target/div-wn31-" + new Date().getTime() + ".sql.zip";
         div.exportToSql(zipFilePath, true);

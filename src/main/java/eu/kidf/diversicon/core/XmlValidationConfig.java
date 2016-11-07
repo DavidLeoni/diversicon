@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import eu.kidf.diversicon.core.exceptions.DivException;
+import eu.kidf.diversicon.core.internal.Internals;
 
 /**
  * Configuration for Xml validator. To create objects, use {@link #builder()}
@@ -22,6 +23,8 @@ public class XmlValidationConfig {
     private boolean failFast;
     @Nullable
     private String xsdUrl;
+    
+    private DivConfig diversiconConfig;
 
     /**
      * @since 0.1.0
@@ -31,6 +34,7 @@ public class XmlValidationConfig {
         this.logLimit = Diversicons.DEFAULT_LOG_LIMIT;
         this.failFast = false;
         this.xsdUrl = null;
+        this.diversiconConfig = DivConfig.of();
     }
 
     /**
@@ -76,7 +80,13 @@ public class XmlValidationConfig {
         return log;
     }
 
-
+    /**
+     * @since 0.1.0
+     */
+    public DivConfig getdiversiconConfig(){
+        return diversiconConfig;
+    }
+    
     /**
      * The Xml Schema to use to validate the document. Will override the
      * schema pointed to in the document. If unknown, use an empty string.
@@ -132,6 +142,8 @@ public class XmlValidationConfig {
             }
         }
         
+        
+        
         /**
          * See {@link XmlValidationConfig#getLog()}
          * 
@@ -145,6 +157,22 @@ public class XmlValidationConfig {
             } else {
                 config.log = log;
             }
+            return this;
+        }
+        
+        
+        
+        /**
+         * See {@link XmlValidationConfig#getdiversiconConfig()}
+         * 
+         * @since 0.1.0
+         */    
+        public Builder setdiversiconConfig(DivConfig diversiconConfig) {
+            checkBuilt();
+            Internals.checkNotNull(diversiconConfig, "Locator config can't be null! If you want to use the default one, calle diversiconConfig.of()!");
+            
+            config.diversiconConfig= diversiconConfig;
+            
             return this;
         }
                

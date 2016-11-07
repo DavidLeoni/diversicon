@@ -38,6 +38,7 @@ import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
+import eu.kidf.diversicon.core.DivConfig;
 import eu.kidf.diversicon.core.DivSynsetRelation;
 import eu.kidf.diversicon.core.Diversicon;
 import eu.kidf.diversicon.core.Diversicons;
@@ -651,9 +652,9 @@ public final class DivTester {
      * 
      * @since 0.1.0
      */
-    public static DBConfig createNewDbConfig() {
+    public static DivConfig createNewDivConfig() {
         dbCounter += 1;
-        return createDbConfig(dbCounter);
+        return DivConfig.of(createDbConfig(dbCounter));
     }
 
     /**

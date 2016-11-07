@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,15 +33,16 @@ import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
+import eu.kidf.diversicon.core.DivConfig;
 import eu.kidf.diversicon.core.DivXmlHandler;
 import eu.kidf.diversicon.core.Diversicon;
 import eu.kidf.diversicon.core.Diversicons;
+import eu.kidf.diversicon.core.ExtractedStream;
 import eu.kidf.diversicon.core.LexResPackage;
 import eu.kidf.diversicon.core.XmlValidationConfig;
 import eu.kidf.diversicon.core.exceptions.DivIoException;
 import eu.kidf.diversicon.core.exceptions.DivNotFoundException;
 import eu.kidf.diversicon.core.exceptions.InvalidXmlException;
-import eu.kidf.diversicon.core.internal.ExtractedStream;
 import eu.kidf.diversicon.core.internal.Internals;
 import eu.kidf.diversicon.data.DivWn31;
 import eu.kidf.diversicon.data.Examplicon;
@@ -53,7 +55,7 @@ public class DivUtilsTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(DivUtilsTest.class);
 
-    private DBConfig dbConfig;
+    private DivConfig divConfig;
 
     @Nullable
     private String savedKeepTempFiles;
@@ -61,7 +63,7 @@ public class DivUtilsTest {
     @Before
     public void beforeMethod() {
         savedKeepTempFiles = System.getProperty(Diversicons.PROPERTY_DEBUG_KEEP_TEMP_FILES);
-        dbConfig = DivTester.createNewDbConfig();
+        divConfig = DivTester.createNewDivConfig();
     }
 
     @After
@@ -70,7 +72,7 @@ public class DivUtilsTest {
             System.setProperty(Diversicons.PROPERTY_DEBUG_KEEP_TEMP_FILES, savedKeepTempFiles);
         }
 
-        dbConfig = null;
+        divConfig = null;
     }
 
     @Test
@@ -90,10 +92,10 @@ public class DivUtilsTest {
 
     @Test
     public void testExistsDb() {
-        assertFalse(Diversicons.isSchemaValid(dbConfig));
+        assertFalse(Diversicons.isSchemaValid(divConfig.getDbConfig()));
 
-        Diversicons.dropCreateTables(dbConfig);
-        assertTrue(Diversicons.isSchemaValid(dbConfig));
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
+        assertTrue(Diversicons.isSchemaValid(divConfig.getDbConfig()));
     }
 
     @Test
@@ -162,9 +164,9 @@ public class DivUtilsTest {
                                             .definition("uncool")
                                             .build();
 
-        Diversicons.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
 
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(divConfig);
 
         DivTester.importResource(div, lexRes1, true);
 
@@ -186,16 +188,17 @@ public class DivUtilsTest {
      * @since 0.1.0
      */
     @Test
-    public void testReadDiversiconResource() {
-
-        LexResPackage dr = Diversicons.readPackageFromLexRes(Examplicon.XML_URI);
+    public void testReadDiversiconResource() {      
+        
+        File f = Diversicons.readData(Examplicon.XML_URI).toTempFile();
+        
+        LexResPackage dr = Diversicons.readPackageFromLexRes(f);
 
         assertEquals(Examplicon.LABEL, dr.getLabel());
 
         assertEquals(Examplicon.PREFIX, dr.getPrefix());
 
-        Map<String, String> ns = Diversicons.readPackageFromLexRes(Examplicon.XML_URI)
-                                            .getNamespaces();
+        Map<String, String> ns = dr.getNamespaces();
 
         assertEquals(3, ns.size());
         assertTrue(ns.containsKey(Examplicon.PREFIX));
@@ -214,14 +217,14 @@ public class DivUtilsTest {
     public void testRestoreWrongDump() throws IOException {
         Path dir = DivTester.createTestDir();
         try {
-            Diversicons.h2RestoreSql("file:" + dir.toString() + "/666", dbConfig);
+            Diversicons.h2RestoreSql("file:" + dir.toString() + "/666", divConfig);
             Assert.fail("Shouldn't arrive here!");
         } catch (DivIoException ex) {
 
         }
 
         try {
-            Diversicons.h2RestoreSql("classpath:/666", dbConfig);
+            Diversicons.h2RestoreSql("classpath:/666", divConfig);
             Assert.fail("Shouldn't arrive here!");
         } catch (DivIoException ex) {
 
@@ -235,9 +238,9 @@ public class DivUtilsTest {
      */
     @Test
     public void testDropCreateTables() {
-        Diversicons.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
 
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(divConfig);
 
         div.getSession()
            .close();
@@ -251,7 +254,7 @@ public class DivUtilsTest {
      */
     @Test
     public void testCreateTables() {
-        Diversicons.createTables(dbConfig);
+        Diversicons.createTables(divConfig.getDbConfig());
 
         // todo improve test
     }
@@ -272,7 +275,7 @@ public class DivUtilsTest {
      */
     @Test
     public void testValidateExamplicon() {
-        File f = Internals.readData(Examplicon.XML_URI)
+        File f = Diversicons.readData(Examplicon.XML_URI)
                           .toTempFile();
 
         Diversicons.validateXml(f, XmlValidationConfig.of(LOG));
@@ -285,10 +288,10 @@ public class DivUtilsTest {
     @Test
     public void testValidateOverrideSchema() {
         
-        File f = Internals.readData(Examplicon.XML_URI)
+        File f = Diversicons.readData(Examplicon.XML_URI)
                           .toTempFile();
 
-        File file = Internals.readData(Diversicons.SCHEMA_1_0_CLASSPATH_URL).toTempFile();
+        File file = Diversicons.readData(Diversicons.SCHEMA_1_0_CLASSPATH_URL).toTempFile();
         
         Diversicons.validateXml(f,
                 XmlValidationConfig.builder()
@@ -304,7 +307,7 @@ public class DivUtilsTest {
     @Test
     public void testValidateOverrideWrongSchema() {
         
-        File f = Internals.readData(Examplicon.XML_URI)
+        File f = Diversicons.readData(Examplicon.XML_URI)
                           .toTempFile();
 
         try {
@@ -325,7 +328,7 @@ public class DivUtilsTest {
      */
     @Test
     public void testValidateXmlLogLimitZero() {
-        File f = Internals.readData(DivTester.BAD_EXAMPLICON_XML_URI)
+        File f = Diversicons.readData(DivTester.BAD_EXAMPLICON_XML_URI)
                           .toTempFile();
 
         try {
@@ -347,7 +350,7 @@ public class DivUtilsTest {
      */
     @Test
     public void testValidateXmlLogLimitOne() {
-        File f = Internals.readData(DivTester.BAD_EXAMPLICON_XML_URI)
+        File f = Diversicons.readData(DivTester.BAD_EXAMPLICON_XML_URI)
                           .toTempFile();
 
         try {
@@ -369,7 +372,7 @@ public class DivUtilsTest {
     @Test
     public void testValidateXmlFailFastLimit_1() {
 
-        File f = Internals.readData(DivTester.BAD_EXAMPLICON_XML_URI)
+        File f = Diversicons.readData(DivTester.BAD_EXAMPLICON_XML_URI)
                           .toTempFile();
 
         try {
@@ -392,7 +395,7 @@ public class DivUtilsTest {
      */
     @Test
     public void testValidateBadExamplicon() {
-        File f = Internals.readData(DivTester.BAD_EXAMPLICON_XML_URI)
+        File f = Diversicons.readData(DivTester.BAD_EXAMPLICON_XML_URI)
                           .toTempFile();
 
         try {
@@ -411,7 +414,7 @@ public class DivUtilsTest {
     @Test
     public void testValidateXmlFailFastLimit_0() {
 
-        File f = Internals.readData(DivTester.BAD_EXAMPLICON_XML_URI)
+        File f = Diversicons.readData(DivTester.BAD_EXAMPLICON_XML_URI)
                           .toTempFile();
 
         try {
@@ -567,7 +570,7 @@ public class DivUtilsTest {
     @Test
     public void testReadDataJar() {
         File f = new File("src/test/resources/test.jar!/a.txt");
-        ExtractedStream es = Internals.readData("jar:file://" + f.getAbsolutePath(), false);
+        ExtractedStream es = Diversicons.readData("jar:file://" + f.getAbsolutePath(), false);
         LOG.debug("Extracted stream = " + es.toString());
     }
 
@@ -577,7 +580,7 @@ public class DivUtilsTest {
     @Test
     public void testReadCompressedDataJar() {
         File f = new File("src/test/resources/test.jar!/b.txt.xz");
-        ExtractedStream es = Internals.readData("jar:file://" + f.getAbsolutePath(), true);
+        ExtractedStream es = Diversicons.readData("jar:file://" + f.getAbsolutePath(), true);
         LOG.debug("Extracted stream = " + es.toString());
     }
 
@@ -770,7 +773,7 @@ public class DivUtilsTest {
     @Test
     public void testParseDtd() {
 
-        String dtd = Internals.readData(Diversicons.DTD_1_0_CLASSPATH_URL)
+        String dtd = Diversicons.readData(Diversicons.DTD_1_0_CLASSPATH_URL)
                               .streamToString();
         DTDGrammar g = Internals.parseDtd(dtd);
         g.printElements();
@@ -807,7 +810,7 @@ public class DivUtilsTest {
     @Test
     public void testGenerateXmlSchema() throws IOException {
 
-        File dtd = Internals.readData(Diversicons.DTD_1_0_CLASSPATH_URL)
+        File dtd = Diversicons.readData(Diversicons.DTD_1_0_CLASSPATH_URL)
                             .toTempFile();
 
         File xsd = new File("target", "diversicon-1.0-SNAPSHOT.xsd");
@@ -823,7 +826,7 @@ public class DivUtilsTest {
 
         LOG.debug("GENERATED SCHEMA IS:\n" + FileUtils.readFileToString(xsd));
 
-        File f = Internals.readData(Examplicon.XML_URI)
+        File f = Diversicons.readData(Examplicon.XML_URI)
                           .toTempFile();
 
         Diversicons.validateXml(f, XmlValidationConfig.of(LOG));
