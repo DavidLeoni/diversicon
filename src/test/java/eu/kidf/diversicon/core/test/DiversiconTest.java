@@ -1106,33 +1106,34 @@ public class DiversiconTest {
         
     }
 
+
     /**
      * @since 0.1.0
      */
     @Test
-    public void testImportTwoSeparateLexicalResources() {
+    public void testImportTwoConnectedLexicalResources() {
 
         Diversicons.dropCreateTables(divConfig.getDbConfig());
 
         Diversicon div = Diversicon.connectToDb(divConfig);       
-        
-        DivTester.importResource(div, GRAPH_1_HYPERNYM, true);
+
+
+        DivTester.importResource(div, GRAPH_1_HYPERNYM, false);
 
         String prefix2 = "test2";
+        
         /**
          * 2 verteces and 1 hypernym edge
          */
         LexicalResource lexRes2 = lmf(prefix2).lexicon()
                                               .synset()
+                                              .synsetRelation(ERelNameSemantics.HYPERNYM, "test_synset-2")                                              
                                               .lexicalEntry()
-                                              .synset()
-                                              .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
                                               .build();
         LexResPackage pack2 = DivTester.createLexResPackage(lexRes2, prefix2);
-        div.importResource( lexRes2, pack2, true);
+        div.importResource( lexRes2, pack2, false);
 
-        DivTester.checkDb(GRAPH_1_HYPERNYM, div);
-        DivTester.checkDb(lexRes2, div);
+        DivTester.checkDb(GRAPH_1_HYPERNYM, div);        
 
         assertEquals(2, div.getImportJobs()
                            .size());
@@ -1147,12 +1148,18 @@ public class DiversiconTest {
 
         assertEquals(prefix2 + " lexical resource", import1.getLexResPackage().getLabel());
         assertNotEquals(-1, import1.getId());
-
+                        
+        List<Synset> synsets = Internals.newArrayList(div.getConnectedSynsets("test2_synset-1", -1, ERelNameSemantics.HYPERNYM));
+        
+        assertEquals(2, synsets.size());
+        assertEquals("test_synset-2", synsets.get(0).getId());
+        assertEquals("test_synset-1", synsets.get(1).getId());
+        
         div.getSession()
            .close();
 
     }
-   
+
     
     /**
      * @since 0.1.0

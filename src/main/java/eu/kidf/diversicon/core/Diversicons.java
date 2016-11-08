@@ -71,7 +71,6 @@ import org.w3c.dom.ls.LSResourceResolver;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-
 import javax.annotation.Nullable;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -363,7 +362,7 @@ public final class Diversicons {
             // ArchiveStreamFactory.SEVEN_Z,
             ArchiveStreamFactory.TAR,
             ArchiveStreamFactory.ZIP };
-    
+
     /**
      * Default user for databases.
      * 
@@ -375,8 +374,8 @@ public final class Diversicons {
      * Default password for databases.
      * 
      * @since 0.1.0
-     */    
-    public static final String DEFAULT_PASSWORD = "pass";    
+     */
+    public static final String DEFAULT_PASSWORD = "pass";
 
     private static final Logger LOG = LoggerFactory.getLogger(Diversicons.class);
 
@@ -395,7 +394,6 @@ public final class Diversicons {
 
     private static final LinkedHashSet<String> partOfRelations = new LinkedHashSet<String>();
     private static final LinkedHashSet<String> canonicalPartOfRelations = new LinkedHashSet<String>();
-
 
     /**
      * 
@@ -1109,7 +1107,9 @@ public final class Diversicons {
 
         Date start = new Date();
 
-        LOG.info("Restoring database " + divConfig.getDbConfig().getJdbc_url() + " (may require a long time to perform) ...");
+        LOG.info("Restoring database " + divConfig.getDbConfig()
+                                                  .getJdbc_url()
+                + " (may require a long time to perform) ...");
         try {
             Class.forName("org.h2.Driver");
         } catch (ClassNotFoundException ex) {
@@ -1155,7 +1155,8 @@ public final class Diversicons {
             stat.execute(restoreSavedVars);
             conn.commit();
 
-            LOG.info("Done restoring database " + divConfig.getDbConfig().getJdbc_url());
+            LOG.info("Done restoring database " + divConfig.getDbConfig()
+                                                           .getJdbc_url());
             LOG.info("Elapsed time: " + Internals.formatInterval(start, new Date()));
 
             // TODO: here it should automatically fix mixing schema parts...
@@ -1199,7 +1200,7 @@ public final class Diversicons {
      * 
      * @since 0.1.0
      */
-    public static void h2Execute(String sql, DBConfig dbConfig) {       
+    public static void h2Execute(String sql, DBConfig dbConfig) {
 
         Connection conn = getH2Connection(dbConfig);
 
@@ -1212,11 +1213,16 @@ public final class Diversicons {
 
     /**
      * 
-     * Restores a packaged H2 db to file system in user's home under
-     * {@link #CACHE_PATH}. The database is intended
+     * Restores a packaged H2 db to file system ,
+     * in a subdirectory of {@link cacheRoot} as specified by
+     * {@link #getCachedDir(File, String, String)}.
+     * 
+     * <p>
+     * The database is intended
      * to be accessed in read-only mode and if
      * already present no fetch is performed. The database may be fetched from
      * the internet or directly taken from a jar if on the classpath.
+     * </p>
      *
      * @param id
      *            the worldwide unique identifier for the resource, in a format
@@ -1248,31 +1254,36 @@ public final class Diversicons {
                                                                 .getVersion()
                         + ", found instead " + version + "  !");
 
-        String filepath = getCachedH2DbDir(cacheRoot, id, version).getAbsolutePath() + File.separator + id;
+        String filepath = getCachedDir(cacheRoot, id, version).getAbsolutePath() + File.separator + id;
 
         if (!new File(filepath + ".h2.db").exists()) {
             try {
                 restoreH2Db(DivWn31.of()
                                    .getH2DbUri(),
                         filepath);
-            } catch (DivIoException ex){
+            } catch (DivIoException ex) {
                 LOG.debug("Error while locating the db on the classpath!", ex);
                 LOG.info("");
                 LOG.info("Couldn't find the db on the classpath!");
                 LOG.info("");
-                LOG.info("Trying to download db from the web (it's around 40 MB, may take several mins to download... )");
-                // todo we should fetch it from diversicon-kb.eu or from maven central! ...
-                restoreH2Db("https://github.com/diversicon-kb/diversicon-wordnet-3.1/raw/master/div-wn31-h2db/src/main/resources/div-wn31.h2.db.xz",
-             filepath);
+                LOG.info(
+                        "Trying to download db from the web (it's around 40 MB, may take several mins to download... )");
+                // todo we should fetch it from diversicon-kb.eu or from maven
+                // central! ...
+                restoreH2Db(
+                        "https://github.com/diversicon-kb/diversicon-wordnet-3.1/raw/master/div-wn31-h2db/src/main/resources/div-wn31.h2.db.xz",
+                        filepath);
             }
         }
         return h2MakeDefaultFileDbConfig(filepath, true);
     }
 
     /**
+     * Returns a file pointing to dir like {@code cacheRoot/div-wn31/0.1.0/}
+     * 
      * @since 0.1.0
      */
-    public static File getCachedH2DbDir(File cacheRoot, String id, String version) {
+    public static File getCachedDir(File cacheRoot, String id, String version) {
         checkNotBlank(id, "Invalid id!");
         checkNotBlank(version, "Invalid version!");
         return new File(cacheRoot, File.separator + id + File.separator + version);
@@ -1621,7 +1632,8 @@ public final class Diversicons {
     // TODO in theory there are many other parameters we should take into
     // consideration
     @Nullable
-    private static LSInput resolveXmlResource(DivConfig diversiconConfig, @Nullable String namespaceUri, @Nullable String systemId) {
+    private static LSInput resolveXmlResource(DivConfig diversiconConfig, @Nullable String namespaceUri,
+            @Nullable String systemId) {
 
         if (namespaceUri == null && systemId == null) {
             return null;
@@ -1633,7 +1645,7 @@ public final class Diversicons {
 
         try {
             ret.setByteStream(readData(systemId)
-                                       .stream());
+                                                .stream());
             return ret;
         } catch (Exception ex) {
             if ((Diversicons.SCHEMA_1_NAMESPACE.equals(namespaceUri)
@@ -1648,7 +1660,7 @@ public final class Diversicons {
                         + " \n namespaceUrl=" + namespaceUri);
 
                 ret.setByteStream(readData(classpathUrl)
-                                           .stream());
+                                                        .stream());
                 return ret;
             }
         }
@@ -1682,7 +1694,7 @@ public final class Diversicons {
                 schema = factory.newSchema();
             } else {
                 File xsd = readData(config.getXsdUrl())
-                                    .toTempFile();
+                                                       .toTempFile();
                 schema = factory.newSchema(xsd);
                 LOG.debug("Validating against schema: " + config.getXsdUrl());
             }
@@ -1779,7 +1791,8 @@ public final class Diversicons {
     /**
      * Reads metadata about a given resource.
      * 
-     * @param lexResFile an XML Lexical Resource file  
+     * @param lexResFile
+     *            an XML Lexical Resource file
      * 
      * @since 0.1.0
      */
@@ -1788,10 +1801,10 @@ public final class Diversicons {
         LexResPackage ret = new LexResPackage();
 
         SAXReader reader = new SAXReader(false);
-        
+
         DivXmlExtractor handler = new DivXmlExtractor(ret);
         reader.setDefaultHandler(handler);
-        try (FileInputStream fis = new FileInputStream(lexResFile)){
+        try (FileInputStream fis = new FileInputStream(lexResFile)) {
             reader.read(fis);
         } catch (DocumentException | IOException e) {
 
@@ -2024,9 +2037,6 @@ public final class Diversicons {
     public static ExtractedStream readData(String dataUrl, boolean decompress) {
         return readData(DivConfig.of(), dataUrl, decompress);
     }
-    
-    
-    
 
     /**
      * Gets input stream from a url pointing to possibly compressed data.
@@ -2048,7 +2058,9 @@ public final class Diversicons {
      *            uncompressed stream (note no check is done to verify the
      *            archive contains only one file).
      *            In all other cases data stream is returned verbatim.
-     * @param divConfig Configuration for accessing external resources. If unknown use {@link DivConfig#of()}
+     * @param divConfig
+     *            Configuration for accessing external resources. If unknown use
+     *            {@link DivConfig#of()}
      * 
      * @throws DivIoException
      *             on error.
@@ -2113,14 +2125,14 @@ public final class Diversicons {
             try {
 
                 if (Internals.hasProtocol(dataUrl)) {
-                    if ("http".equals(uri.getScheme())){
-                                                                                               
+                    if ("http".equals(uri.getScheme())) {
+
                         inputStream = Internals.httpGet(divConfig, uri);
-                        
+
                     } else {
-                        inputStream = new URL(dataUrl).openStream();    
+                        inputStream = new URL(dataUrl).openStream();
                     }
-                    
+
                 } else {
                     inputStream = new FileInputStream(dataUrl);
                 }
@@ -2166,7 +2178,7 @@ public final class Diversicons {
 
         }
     }
-    
+
     /**
      * @since 0.1.0
      */
@@ -2195,6 +2207,5 @@ public final class Diversicons {
             throw new DivException("Couldn't parse subDataUrl " + subDataUri, e);
         }
     }
-    
-    
+
 }

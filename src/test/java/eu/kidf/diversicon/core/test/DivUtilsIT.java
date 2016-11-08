@@ -81,8 +81,7 @@ public class DivUtilsIT {
 
 
     /**
-     * We should be able to import Smartphones and compute transitive closure 
-     * even without Wordnet loaded. 
+     *  
      * 
      * @since 0.1.0
      * 
@@ -101,7 +100,8 @@ public class DivUtilsIT {
         
         Diversicon div = Diversicon.connectToDb(DivConfig.of(dbCfg));               
         
-        div.importXml(Smartphones.of().getXmlUri());        
+        div.importXml(Smartphones.of().getXmlUri());    
+        LOG.debug("hello");
     }
     
     /**
@@ -168,7 +168,7 @@ public class DivUtilsIT {
         
         assertFalse(cacheRoot.toFile().exists());
         Diversicons.fetchH2Db(cacheRoot.toFile(), DivWn31.NAME, DivWn31.of().getVersion());        
-        assertTrue(Diversicons.getCachedH2DbDir(cacheRoot.toFile(), DivWn31.NAME, DivWn31.of().getVersion()).exists());
+        assertTrue(Diversicons.getCachedDir(cacheRoot.toFile(), DivWn31.NAME, DivWn31.of().getVersion()).exists());
         // should be faster ...
         DBConfig config = Diversicons.fetchH2Db(cacheRoot.toFile(), DivWn31.NAME, DivWn31.of().getVersion());
         

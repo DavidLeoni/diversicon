@@ -197,6 +197,9 @@ public final class DivTester {
         throw new DivNotFoundException("Couldn't find synset with id 'synset " + idNum);
     }
 
+    /**
+     * @since 0.1.0
+     */
     public static <T extends IHasID> void checkEqualIds(Collection<T> col1, Collection<T> col2) {
 
         if (col1 == null) {

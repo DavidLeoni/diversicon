@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -657,6 +658,23 @@ public final class Internals {
         }
         return ret;
     }
+    
+    /**
+     * Returns a new ArrayList, filled with provided objects.
+     * 
+     * (Note {@code Arrays.asList(T...)} returns an {@code Arrays.ArrayList}
+     * instead)
+     * 
+     * @since 0.1.0
+     */
+    public static <T> ArrayList<T> newArrayList(Iterator<T> iter) {
+        ArrayList<T> ret = new ArrayList<>();
+
+        while (iter.hasNext()){            
+            ret.add(iter.next());
+        }
+        return ret;
+    }    
 
     /**
      * Returns a new HashSet, filled with provided objects.
