@@ -636,7 +636,8 @@ public final class Internals {
      * 
      * @since 0.1.0
      */
-    public static <T> T deepCopy(T orig) {
+    @Nullable
+    public static <T> T deepCopy(@Nullable T orig) {
         return cloner.deepClone(orig);
     }
 

@@ -1,18 +1,13 @@
 package eu.kidf.diversicon.core;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-
 import javax.annotation.Nullable;
-
-import org.apache.http.HttpHost;
-import org.apache.http.client.utils.URIUtils;
 
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import eu.kidf.diversicon.core.internal.Internals;
 
 /**
- * Configuration for accessing external resources like the database
+ * Configuration of Diversicon. Includes UBY's {@link DBConfig}
+ * and config for accessing external resources like the database
  * files over HTTP.
  * 
  * <p>
@@ -39,7 +34,7 @@ public class DivConfig {
     private static final DivConfig INSTANCE = new DivConfig();
 
     @Nullable
-    private HttpHost httpProxy;
+    private String httpProxy;
 
     /** connection timeout in millisecs */
     private int timeout;
@@ -52,6 +47,7 @@ public class DivConfig {
     private DivConfig() {
         this.httpProxy = null;
         this.timeout = DEFAULT_TIMEOUT;
+        this.dbConfig = null;
     }
 
     /**
@@ -60,7 +56,7 @@ public class DivConfig {
      * @since 0.1.0
      */
     @Nullable
-    public HttpHost getHttpProxy() {
+    public String getHttpProxy() {
         return httpProxy;
     }
 
@@ -84,6 +80,19 @@ public class DivConfig {
     public static DivConfig.Builder builder() {
         return new Builder();
     }
+    
+    /**
+     * Returns a new Diversicon config builder, created of out provided divConfig 
+     * (internally it will be deep copied).
+     * 
+     * The builder is not threadsafe and you can use one builder instance to
+     * build only one locator instance.
+     * 
+     * @since 0.1.0
+     */
+    public static DivConfig.Builder builder(DivConfig divConfig) {
+        return new Builder(divConfig);
+    }
 
     /**
      * Builder for the config. The builder is not threadsafe and you can use one
@@ -95,6 +104,23 @@ public class DivConfig {
         private DivConfig config;
         private boolean created;
 
+        /**
+         * @since 0.1.0
+         */
+        protected Builder() {            
+            this.config = new DivConfig();
+            this.created = false;
+        }
+        
+        /**
+         * @since 0.1.0
+         */
+        protected Builder(DivConfig divConfig) {
+            this();
+            this.config = Internals.deepCopy(divConfig);
+        }
+        
+        
         /**
          * @since 0.1.0
          */
@@ -118,39 +144,21 @@ public class DivConfig {
             }
         }
 
-        /**
-         * @since 0.1.0
-         */
-        protected Builder() {            
-            this.config = new DivConfig();
-            this.created = false;
-        }
-        
+
         /**
          * Sets the proxy used to perform HTTP calls
          * 
          * @since 0.1.0
          */
-        public Builder setHttpProxy(@Nullable String proxyUrl) {
+        public Builder setHttpProxy(@Nullable String proxyUri) {
             checkNotCreated();
 
-            if (proxyUrl == null) {
+            if (proxyUri == null) {
                 this.config.httpProxy = null;
             } else {
-                URI uri;
-                try {
-                    uri = new URI(proxyUrl.trim());
-                } catch (URISyntaxException e) {
-                    throw new IllegalArgumentException("Invalid proxy url!", e);
-                }
-                if (!uri.getPath()
-                        .isEmpty()) {
-                    throw new IllegalArgumentException("Proxy host shouldn't have context path! Found instead: "
-                            + uri.toString() + " with path " + uri.getPath());
-                }
-                this.config.httpProxy = URIUtils.extractHost(uri);
-
+                this.config.httpProxy= proxyUri;
             }
+            
             return this;
         }
 
@@ -176,15 +184,14 @@ public class DivConfig {
          * 
          * @since 0.1.0
          */
-        public Builder setDBConfig(DBConfig dbConfig) {
-            checkNotCreated();
-            Internals.checkNotNull(dbConfig);
+        public Builder setDbConfig(@Nullable DBConfig dbConfig) {
+            checkNotCreated();            
             this.config.dbConfig = Internals.deepCopy(dbConfig);
             return this;
         }
 
         /**
-         * Returns a new instance of diversiconConfig. You can't call this
+         * Returns a new instance of Diversicon Config. You can't call this
          * method twice.
          * 
          * @since 0.1.0
@@ -192,7 +199,6 @@ public class DivConfig {
          */
         public DivConfig build() {
             checkNotCreated();
-            Internals.checkNotNull(this.config.dbConfig);
             this.created = true;
             return this.config;
         }
@@ -213,7 +219,7 @@ public class DivConfig {
      * @since 0.1.0
      */
     public static DivConfig of(DBConfig dbConfig) {
-        return DivConfig.builder().setDBConfig(dbConfig).build();
+        return DivConfig.builder().setDbConfig(dbConfig).build();
     }
 
     /**
@@ -222,7 +228,8 @@ public class DivConfig {
      * 
      * @since 0.1.0
      */
-    public DBConfig getDbConfig() {
+    @Nullable
+    public DBConfig getDbConfig() {        
         return Internals.deepCopy(this.dbConfig);
     }
 
@@ -232,4 +239,6 @@ public class DivConfig {
         ret.dbConfig = dbConfig;
         return ret; 
     }
+    
+    
 }

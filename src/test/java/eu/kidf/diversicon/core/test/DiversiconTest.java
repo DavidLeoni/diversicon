@@ -54,6 +54,10 @@ import eu.kidf.diversicon.core.internal.Internals;
 import eu.kidf.diversicon.data.DivWn31;
 import eu.kidf.diversicon.data.Smartphones;
 
+/**
+ * @since 0.1.0
+ *
+ */
 public class DiversiconTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(DiversiconTest.class);

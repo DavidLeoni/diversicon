@@ -132,10 +132,11 @@ public class Diversicon extends Uby {
     protected Diversicon(DivConfig config) {
         super(); // so it doesn't open connections! Let's hope they don't delete
                  // it!
+        
+        checkNotNull(config);
+        Internals.checkNotNull(config.getDbConfig());
 
-        checkNotNull(dbConfig, "database configuration is null");
-        checkNotNull(config, "Found null diversiconConfig! If unknown use instead diversiconConfig.of()");
-
+        
         this.config = config;
         
         this.dbConfig = config.getDbConfig();
