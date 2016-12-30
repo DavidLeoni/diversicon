@@ -31,9 +31,12 @@ import org.slf4j.LoggerFactory;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalEntry;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
+import de.tudarmstadt.ukp.lmf.model.core.Sense;
+import de.tudarmstadt.ukp.lmf.model.enums.ELabelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.meta.MetaData;
+import de.tudarmstadt.ukp.lmf.model.meta.SemanticLabel;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
@@ -1386,4 +1389,40 @@ public class DiversiconTest {
 
     }    
 
+    
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testGetDomains(){
+        
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
+        Diversicon div = Diversicon.connectToDb(divConfig);                
+        DivTester.importResource(div, DivTester.GRAPH_DOMAINS, false);
+
+        Synset syn2 = div.getSynsetById(tid("synset-2"));
+        Synset syn4 = div.getSynsetById(tid("synset-4"));
+        List<String> ids = Internals.getIds(div.getDomains(null));
+        assertEquals(2, ids.size());
+        assertTrue(ids.contains(syn2.getId()));
+        assertTrue(ids.contains(syn4.getId()));
+    }
+    
+    
+    @Test
+    public void testIsDomain(){
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
+        Diversicon div = Diversicon.connectToDb(divConfig);                
+        DivTester.importResource(div, DivTester.GRAPH_DOMAINS, false);
+        
+        
+        Synset syn1 = div.getSynsetById(tid("synset-1"));        
+        assertFalse(div.isDomain(syn1));
+        Synset syn2 = div.getSynsetById(tid("synset-2"));        
+        assertTrue(div.isDomain(syn2));
+        Synset syn4 = div.getSynsetById(tid("synset-4"));        
+        assertTrue(div.isDomain(syn4));
+    }
+    
+    
 }

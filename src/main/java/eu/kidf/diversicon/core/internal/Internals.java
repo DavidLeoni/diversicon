@@ -1816,4 +1816,26 @@ public final class Internals {
         return request;
     }
 
+    /**
+     * 
+     * Returns the id of the items in the provided collection.
+     * 
+     * @since 0.1.0
+     */
+    public static <T extends IHasID> List<String> getIds(Collection<T> col){
+        checkNotNull(col);        
+        
+        List<String> ret = new ArrayList<>();
+        
+       for (IHasID hasId : col){
+           if (hasId != null){
+               LOG.warn("Found collection with null item, skipping it !");
+               ret.add(hasId.getId());
+           }
+       }
+       
+       return ret;
+        
+    }
+    
 }

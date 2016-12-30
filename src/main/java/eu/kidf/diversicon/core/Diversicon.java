@@ -53,6 +53,7 @@ import de.tudarmstadt.ukp.lmf.api.Uby;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalEntry;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
+import de.tudarmstadt.ukp.lmf.model.enums.ELabelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.enums.EPartOfSpeech;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.model.morphology.FormRepresentation;
@@ -121,8 +122,7 @@ public class Diversicon extends Uby {
      * @since 0.1.0
      */
     private DivConfig config;
-    
-    
+
     /**
      * @throws DivIoException
      * @throws InvalidSchemaException
@@ -132,13 +132,12 @@ public class Diversicon extends Uby {
     protected Diversicon(DivConfig config) {
         super(); // so it doesn't open connections! Let's hope they don't delete
                  // it!
-        
+
         checkNotNull(config);
         Internals.checkNotNull(config.getDbConfig());
 
-        
         this.config = config;
-        
+
         this.dbConfig = config.getDbConfig();
 
         LOG.info("Connecting to database   " + dbConfig.getJdbc_url());
@@ -153,8 +152,8 @@ public class Diversicon extends Uby {
         if (INSTANCES.containsKey(hashcode)) {
             throw new DivException("INTERNAL ERROR: Seems like there is some sort of duplicate Diversicon session!!");
         }
-        INSTANCES.put(hashcode, this);       
-        
+        INSTANCES.put(hashcode, this);
+
         LOG.info("Connected!");
     }
 
@@ -235,8 +234,6 @@ public class Diversicon extends Uby {
 
     }
 
-    
-    
     /**
      * Note: search is done by exact match on {@code wordWrittenForm}
      *
@@ -270,7 +267,7 @@ public class Diversicon extends Uby {
         }
         return ret;
     }
-    
+
     /**
      * See {@link #getLemmasByWrittenForm(String, EPartOfSpeech, Lexicon)}.
      * 
@@ -587,14 +584,15 @@ public class Diversicon extends Uby {
 
         checkArgument(!getDbInfo().isToValidate(), "Tried to normalize a graph which is yet to validate!");
 
-        LOG.info("Normalizing SynsetRelations...");
-
+        LOG.info("Normalizing SynsetRelations...");        
+        
         Transaction tx = null;
         Date checkpoint = new Date();
 
         Date start = checkpoint;
 
-        try {
+        try {                                           
+            
             tx = session.beginTransaction();
 
             long totalSynsets = getSynsetCount();
@@ -620,9 +618,38 @@ public class Diversicon extends Uby {
 
                 List<SynsetRelation> relations = synset.getSynsetRelations();
 
+                boolean hasDomain = false;
+                if (isDomain(synset)){
+                    for (SynsetRelation sr : relations) {
+                        throw new UnsupportedOperationException("Todo IMPLEMENT ME!");
+                    }
+                }
+                
                 for (SynsetRelation sr : relations) {
                     DivSynsetRelation ssr = (DivSynsetRelation) sr;
 
+                    if (Diversicons.RELATION_WORDNET_TOPIC.equals(ssr.getRelName())
+                            && !containsRel(ssr.getSource(),
+                                    ssr.getTarget(),
+                                    Diversicons.RELATION_DIVERSICON_DOMAIN)) {
+                        DivSynsetRelation newSsr = new DivSynsetRelation();
+
+                        newSsr.setDepth(1);
+                        newSsr.setProvenance(Diversicon.getProvenanceId());
+                        newSsr.setRelName(Diversicons.RELATION_DIVERSICON_DOMAIN);
+                        newSsr.setRelType(Diversicons.getRelationType(Diversicons.RELATION_DIVERSICON_DOMAIN));
+                        newSsr.setSource(ssr.getSource());
+                        newSsr.setTarget(ssr.getTarget());
+
+                        ssr.getSource()
+                           .getSynsetRelations()
+                           .add(newSsr);
+                        session.save(newSsr);
+                        session.saveOrUpdate(ssr.getSource());
+                        insStats.inc(Diversicons.RELATION_DIVERSICON_DOMAIN);
+                    }
+                    
+                    
                     if (Diversicons.hasInverse(ssr.getRelName())) {
                         String inverseRelName = Diversicons.getInverse(ssr.getRelName());
                         if (Diversicons.isCanonicalRelation(inverseRelName)
@@ -920,7 +947,7 @@ public class Diversicon extends Uby {
         }
 
         LOG.info("Going to import " + importConfig.getFileUrls()
-                                            .size()
+                                                  .size()
                 + " files by import author " + importConfig.getAuthor() + "...");
 
         DbInfo oldDbInfo = prepareDbForImport();
@@ -964,7 +991,7 @@ public class Diversicon extends Uby {
         checkNotNull(jobs);
 
         String plural = importConfig.getFileUrls()
-                              .size() > 1 ? "s" : "";
+                                    .size() > 1 ? "s" : "";
 
         Date end = new Date();
 
@@ -974,7 +1001,7 @@ public class Diversicon extends Uby {
         LOG.info("");
         LOG.info("");
         LOG.info("Done importing " + importConfig.getFileUrls()
-                                           .size()
+                                                 .size()
                 + " LMF" + plural + " by import author " + importConfig.getAuthor());
         LOG.info("");
         LOG.info("Imported lexical resources: ");
@@ -1003,7 +1030,7 @@ public class Diversicon extends Uby {
         File file;
         try {
             file = Diversicons.readData(config, url, true)
-                            .toTempFile();
+                              .toTempFile();
         } catch (Exception ex) {
             throw new InvalidImportException("Couldn't read file to import: " + url, ex);
         }
@@ -1096,14 +1123,14 @@ public class Diversicon extends Uby {
         }
 
     }
-    
+
     /**
-     * Returns Diversicon Configuration (which contains also  UBY's DBConfig) 
+     * Returns Diversicon Configuration (which contains also UBY's DBConfig)
      * 
      * @since 0.1.0
      * @see #getDbConfig()
      */
-    public DivConfig getConfig(){
+    public DivConfig getConfig() {
         return config;
     }
 
@@ -1409,11 +1436,10 @@ public class Diversicon extends Uby {
      * 
      * @since 0.1.0
      */
-    public static Diversicon connectToDb(DivConfig config) {        
+    public static Diversicon connectToDb(DivConfig config) {
         Diversicon ret = new Diversicon(config);
         return ret;
     }
-    
 
     /**
      * Simple export to a UBY-LMF {@code .xml} file.
@@ -1973,6 +1999,70 @@ public class Diversicon extends Uby {
      * }
      */
 
-    
-    
+    /**
+     * Returns all domains in the db, as synsets
+     * 
+     * @since 0.1.0
+     */
+    public List<Synset> getDomains(@Nullable Lexicon lexicon) {
+
+        Criteria criteria = session.createCriteria(Synset.class);
+        if (lexicon != null) {
+            criteria.add(Restrictions.eq("lexicon", lexicon));
+        }
+
+        criteria = criteria.createCriteria("senses")
+                           .createCriteria("semanticLabels")
+                           .add(Restrictions.in("type",
+                                   Arrays.asList(ELabelTypeSemantics.domain,
+                                           ELabelTypeSemantics.regionOfUsage,
+                                           ELabelTypeSemantics.usage)));
+
+        @SuppressWarnings("unchecked")
+        List<Synset> ret = criteria.list();
+
+        return ret;
+
+    }
+
+    /**
+     * Returns true if provided synset is a domain.
+     * 
+     * @since 0.1.0
+     */
+    public boolean isDomain(Synset synset) {
+        checkNotNull(synset);
+
+        Criteria criteria = session.createCriteria(Synset.class);
+
+        criteria = criteria.add(Restrictions.eq("id", synset.getId()))
+                           .createCriteria("senses")
+                           .createCriteria("semanticLabels")
+                           .add(Restrictions.in("type", Diversicons.getDomainLabelTypes()));
+
+        return !criteria.list()
+                        .isEmpty();
+
+    }
+
+    /**
+     * Returns the domain indicated by the given lemma
+     * 
+     * @since 0.1.0
+     */
+    public Synset getDomain(String lemma, String lang) {
+        checkNotEmpty(lemma, "Invalid lemma!");
+        throw new UnsupportedOperationException("TODO IMPLEMENT ME!");
+
+    }
+
+    /**
+     * Returns true if {@code synset1} is a subdomain of {@code synset2}
+     * 
+     * @since 0.1.0
+     */
+    public boolean isSubdomain(Synset synset1, Synset synset2) {
+        throw new UnsupportedOperationException("TODO IMPLEMENT ME!");
+    }
+
 }

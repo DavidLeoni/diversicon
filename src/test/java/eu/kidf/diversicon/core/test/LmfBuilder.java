@@ -168,7 +168,7 @@ public class LmfBuilder {
     }
 
     /**
-     * Creates synset with id like 'synset-n'
+     * Creates synset with id like 'prefix_synset-n'
      * 
      * @since 0.1.0
      */
@@ -181,6 +181,7 @@ public class LmfBuilder {
 
     
     /**
+     * See {@link #synset()}
      * @since 0.1.0
      */
     public LmfBuilder synset(long id) {
@@ -422,7 +423,7 @@ public class LmfBuilder {
     }
 
     /**
-     * Calls {@link #lmf(String)} with defualt prefix.
+     * Calls {@link #lmf(String)} with {@link DivTester#DEFAULT_TEST_PREFIX}.
      * 
      * @since 0.1.0
      */
