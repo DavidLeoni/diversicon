@@ -621,7 +621,10 @@ public class Diversicon extends Uby {
                 boolean hasDomain = false;
                 if (isDomain(synset)){
                     for (SynsetRelation sr : relations) {
-                        throw new UnsupportedOperationException("Todo IMPLEMENT ME!");
+                        if (Diversicons.RELATION_DIVERSICON_SUB_DOMAIN.equals(sr.getRelName())
+                            && Diversicons.SYNSET_ROOT_DOMAIN.equals(sr.getTarget().getId())){
+                            hasDomain = true;
+                        }
                     }
                 }
                 
@@ -2030,7 +2033,7 @@ public class Diversicon extends Uby {
      * 
      * @since 0.1.0
      */
-    public boolean isDomain(Synset synset) {
+    public boolean looksLikeDomain(Synset synset) {
         checkNotNull(synset);
 
         Criteria criteria = session.createCriteria(Synset.class);

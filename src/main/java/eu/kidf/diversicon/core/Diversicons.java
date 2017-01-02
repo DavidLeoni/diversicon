@@ -27,8 +27,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.compress.archivers.ArchiveEntry;
@@ -40,8 +38,6 @@ import org.apache.commons.compress.compressors.CompressorInputStream;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.http.client.fluent.Request;
-import org.apache.http.client.fluent.Response;
 import org.apache.xerces.impl.Constants;
 import org.basex.core.Context;
 import org.basex.io.serial.Serializer;
@@ -89,7 +85,6 @@ import javax.xml.validation.Validator;
 
 import de.tudarmstadt.ukp.lmf.hibernate.HibernateConnect;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
-import de.tudarmstadt.ukp.lmf.model.enums.ELabelNameSemantics;
 import de.tudarmstadt.ukp.lmf.model.enums.ELabelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
@@ -393,6 +388,15 @@ public final class Diversicons {
      */
     public static final String RELATION_DIVERSICON_SUB_DOMAIN = "subDomain";
 
+    /**
+     * 
+     * Synset id of the root of all domains, as specified in DivUpper lexical resource 
+     *
+     * @since 0.1.0
+     */
+    public static final String SYNSET_ROOT_DOMAIN = "div_ss_n_domain";
+    
+    
     /**
      * 
      * @since 0.1.0

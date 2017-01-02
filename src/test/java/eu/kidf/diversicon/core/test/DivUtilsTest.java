@@ -297,8 +297,8 @@ public class DivUtilsTest {
         Diversicon div = Diversicon.connectToDb(divConfig);
         assertNotNull(div.getLexicalResource(DivUpper.of().getName()));
         
-        Synset root_domain = div.getSynsetById("div_ss_n_domain");
-        assertEquals("div_ss_n_domain", root_domain.getId());
+        Synset root_domain = div.getSynsetById(Diversicons.SYNSET_ROOT_DOMAIN);
+        assertEquals(Diversicons.SYNSET_ROOT_DOMAIN, root_domain.getId());
 
         // modifies db
         LexicalResource res = LmfBuilder.simpleLexicalResource();                       
