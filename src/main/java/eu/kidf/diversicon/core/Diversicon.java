@@ -1812,13 +1812,15 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * A list of the imports performed so far.
+     * A list of the imports performed so far, ordered by ascending import time.
      * 
      * @since 0.1.0
      *
      */
     public List<ImportJob> getImportJobs() {
-        Criteria crit = session.createCriteria(ImportJob.class);
+        Criteria crit = session.createCriteria(ImportJob.class);     
+        crit.addOrder(Order.asc("id"));
+        
         @SuppressWarnings("unchecked")
         List<ImportJob> ret = crit.list();
         return ret;
