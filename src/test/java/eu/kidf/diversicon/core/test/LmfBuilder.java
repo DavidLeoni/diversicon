@@ -422,7 +422,7 @@ public class LmfBuilder {
     }
 
     /**
-     * Calls {@link #lmf(String)} with defualt prefix.
+     * Calls {@link #lmf(String)} with default prefix.
      * 
      * @since 0.1.0
      */
