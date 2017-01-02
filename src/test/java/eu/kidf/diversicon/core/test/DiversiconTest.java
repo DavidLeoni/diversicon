@@ -116,11 +116,14 @@ public class DiversiconTest {
 
         Diversicons.dropCreateTables(divConfig.getDbConfig());
 
-        LexicalResource lexicalResource = new LexicalResource();
-        lexicalResource.setName("lexical-resource-1");
+        String lexResName = "lexical-resource-1";
+        String lexiconName = "lexicon-1";
+        
+        LexicalResource lexRes = new LexicalResource();
+        lexRes.setName(lexResName);
         Lexicon lexicon = new Lexicon();
-        lexicalResource.addLexicon(lexicon);
-        lexicon.setId("lexicon-1");
+        lexRes.addLexicon(lexicon);
+        lexicon.setId(lexiconName);
         LexicalEntry lexicalEntry = new LexicalEntry();
         lexicon.addLexicalEntry(lexicalEntry);
         lexicalEntry.setId("lexical-entry-1");
@@ -140,14 +143,13 @@ public class DiversiconTest {
 
         Diversicon div = Diversicon.connectToDb(divConfig);
 
-        DivTester.importResource(div, lexicalResource, true);
+        DivTester.importResource(div, lexRes, true);
 
-        assertNotNull(div.getLexicalResource("lexical-resource-1"));
-        assertEquals(1, div.getLexicons()
+        assertNotNull(div.getLexicalResource(lexResName));
+        assertEquals(2, div.getLexicons()
                                   .size());
 
-        Lexicon rlexicon = div.getLexicons()
-                                     .get(0);
+        Lexicon rlexicon = div.getLexiconById(lexiconName);
 
         List<Synset> rsynsets = rlexicon.getSynsets();
 
@@ -651,7 +653,7 @@ public class DiversiconTest {
         DbInfo dbInfo1 = div.getDbInfo();
 
         assertNotNull(dbInfo1);
-        assertEquals(0, div.getImportJobs()
+        assertEquals(1, div.getImportJobs()
                            .size());
         assertEquals(null, dbInfo1.getCurrentImportJob());
 
@@ -659,14 +661,14 @@ public class DiversiconTest {
 
         DivTester.importResource(div,g, true);
 
-        assertEquals(1, div.getImportJobs()
+        assertEquals(2, div.getImportJobs()
                            .size());
         
         assertEquals(null, div.getDbInfo()
                               .getCurrentImportJob());
 
         ImportJob job = div.getImportJobs()
-                           .get(0);
+                           .get(1);
         assertEquals(Diversicons.DEFAULT_AUTHOR, job.getAuthor());
 
         // assertNotEquals(-1, job.getId());
@@ -782,7 +784,7 @@ public class DiversiconTest {
                 createLexResPackage(lexRes2, prefix2), 
                 true);
 
-        assertEquals(2, div.getNamespaces().size());
+        assertEquals(5, div.getNamespaces().size());
         
         LexResPackage pack2 = job2.getLexResPackage();
         assertEquals(prefix2, pack2.getPrefix());
@@ -1138,19 +1140,19 @@ public class DiversiconTest {
 
         DivTester.checkDb(GRAPH_1_HYPERNYM, div);        
 
-        assertEquals(2, div.getImportJobs()
+        assertEquals(3, div.getImportJobs()
                            .size());
 
-        ImportJob import0 = div.getImportJobs()
-                               .get(0);
         ImportJob import1 = div.getImportJobs()
                                .get(1);
+        ImportJob import2 = div.getImportJobs()
+                               .get(2);
 
-        assertEquals("test lexical resource", import0.getLexResPackage().getLabel());
-        assertNotEquals(-1, import0.getId());
-
-        assertEquals(prefix2 + " lexical resource", import1.getLexResPackage().getLabel());
+        assertEquals("test lexical resource", import1.getLexResPackage().getLabel());
         assertNotEquals(-1, import1.getId());
+
+        assertEquals(prefix2 + " lexical resource", import2.getLexResPackage().getLabel());
+        assertNotEquals(-1, import2.getId());
                         
         List<Synset> synsets = Internals.newArrayList(div.getConnectedSynsets("test2_synset-1", -1, ERelNameSemantics.HYPERNYM));
         

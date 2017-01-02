@@ -572,6 +572,7 @@ public class Diversicon extends Uby {
                                 .uniqueResult()).longValue();
 
     }
+    
 
     /*
      * Adds missing edges of depth 1 for relations we consider as canonical.
@@ -595,6 +596,8 @@ public class Diversicon extends Uby {
             
             tx = session.beginTransaction();
 
+            Synset rootDomain = getSynsetById(Diversicons.SYNSET_ROOT_DOMAIN);
+            
             long totalSynsets = getSynsetCount();
 
             String hql = "FROM Synset";
@@ -618,70 +621,14 @@ public class Diversicon extends Uby {
 
                 List<SynsetRelation> relations = synset.getSynsetRelations();
 
-                boolean hasDomain = false;
-                if (isDomain(synset)){
-                    for (SynsetRelation sr : relations) {
-                        if (Diversicons.RELATION_DIVERSICON_SUB_DOMAIN.equals(sr.getRelName())
-                            && Diversicons.SYNSET_ROOT_DOMAIN.equals(sr.getTarget().getId())){
-                            hasDomain = true;
-                        }
-                    }
-                }
+                normalizeDomain(synset, rootDomain, insStats);
                 
                 for (SynsetRelation sr : relations) {
                     DivSynsetRelation ssr = (DivSynsetRelation) sr;
 
-                    if (Diversicons.RELATION_WORDNET_TOPIC.equals(ssr.getRelName())
-                            && !containsRel(ssr.getSource(),
-                                    ssr.getTarget(),
-                                    Diversicons.RELATION_DIVERSICON_DOMAIN)) {
-                        DivSynsetRelation newSsr = new DivSynsetRelation();
-
-                        newSsr.setDepth(1);
-                        newSsr.setProvenance(Diversicon.getProvenanceId());
-                        newSsr.setRelName(Diversicons.RELATION_DIVERSICON_DOMAIN);
-                        newSsr.setRelType(Diversicons.getRelationType(Diversicons.RELATION_DIVERSICON_DOMAIN));
-                        newSsr.setSource(ssr.getSource());
-                        newSsr.setTarget(ssr.getTarget());
-
-                        ssr.getSource()
-                           .getSynsetRelations()
-                           .add(newSsr);
-                        session.save(newSsr);
-                        session.saveOrUpdate(ssr.getSource());
-                        insStats.inc(Diversicons.RELATION_DIVERSICON_DOMAIN);
-                    }
-                    
-                    
-                    if (Diversicons.hasInverse(ssr.getRelName())) {
-                        String inverseRelName = Diversicons.getInverse(ssr.getRelName());
-                        if (Diversicons.isCanonicalRelation(inverseRelName)
-                                && Diversicons.isTransitive(inverseRelName)
-                                // don't want to add cycles
-                                && !(ssr.getSource()
-                                        .getId()
-                                        .equals(ssr.getTarget()
-                                                   .getId()))
-                                && !containsRel(ssr.getTarget(),
-                                        ssr.getSource(),
-                                        inverseRelName)) {
-                            DivSynsetRelation newSsr = new DivSynsetRelation();
-
-                            newSsr.setDepth(1);
-                            newSsr.setProvenance(Diversicon.getProvenanceId());
-                            newSsr.setRelName(inverseRelName);
-                            newSsr.setRelType(Diversicons.getRelationType(inverseRelName));
-                            newSsr.setSource(ssr.getTarget());
-                            newSsr.setTarget(ssr.getSource());
-
-                            ssr.getTarget()
-                               .getSynsetRelations()
-                               .add(newSsr);
-                            session.save(newSsr);
-                            session.saveOrUpdate(ssr.getTarget());
-                            insStats.inc(inverseRelName);
-                        }
-                    }
+                    normalizeTopicToDomain(ssr, insStats);
+                                        
+                    normalizeInverses(ssr, insStats);
 
                 }
 
@@ -712,6 +659,128 @@ public class Diversicon extends Uby {
                 tx.rollback();
             }
             throw new DivException("Error while computing normalizing graph!", ex);
+        }
+    }
+
+    /**
+     * Checks if synset looks like a domain, and if needed connects it by 
+     * {@link Diversicons#RELATION_DIVERSICON_SUPER_DOMAIN superDomain} relation
+     * to {@link Diversicons#SYNSET_ROOT_DOMAIN root domain}
+     * 
+     * @param synset
+     * @param insertion stats to modify
+     * 
+     * @see #isDomain(Synset)
+     * @since 0.1.0 
+     */
+    private void normalizeDomain(Synset synset, Synset rootDomain, InsertionStats insStats) {
+        checkNotNull(synset);
+        checkNotNull(insStats);
+                
+        String superDomain = Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN;
+        
+        if (looksLikeDomain(synset)){
+            if (!isDomain(synset)){
+                DivSynsetRelation newSsr = new DivSynsetRelation();
+
+                newSsr.setDepth(1);
+                newSsr.setProvenance(Diversicon.getProvenanceId());
+                
+                newSsr.setRelName(superDomain);
+                newSsr.setRelType(Diversicons.getRelationType(superDomain));
+                newSsr.setSource(synset);
+                newSsr.setTarget(rootDomain);
+                synset
+                .getSynsetRelations()
+                .add(newSsr);
+             session.save(newSsr);
+             session.saveOrUpdate(synset);
+             insStats.inc(superDomain);
+            }
+        }
+    }
+
+    /**
+     * Normalizes the inverses
+     * 
+     * @param ssr a SynsetRelation to check
+     * @param insStats insertion stats to modify
+     * 
+     * @since 0.1.0
+     */
+    private void normalizeInverses(DivSynsetRelation ssr, InsertionStats insStats) {
+        checkNotNull(ssr);
+        checkNotNull(insStats);
+        
+        
+        if (Diversicons.hasInverse(ssr.getRelName())) {
+            String inverseRelName = Diversicons.getInverse(ssr.getRelName());
+            if (Diversicons.isCanonicalRelation(inverseRelName)
+                    && Diversicons.isTransitive(inverseRelName)
+                    // don't want to add cycles
+                    && !(ssr.getSource()
+                            .getId()
+                            .equals(ssr.getTarget()
+                                       .getId()))
+                    && !containsRel(ssr.getTarget(),
+                            ssr.getSource(),
+                            inverseRelName)) {
+                DivSynsetRelation newSsr = new DivSynsetRelation();
+
+                newSsr.setDepth(1);
+                newSsr.setProvenance(Diversicon.getProvenanceId());
+                newSsr.setRelName(inverseRelName);
+                newSsr.setRelType(Diversicons.getRelationType(inverseRelName));
+                newSsr.setSource(ssr.getTarget());
+                newSsr.setTarget(ssr.getSource());
+
+                ssr.getTarget()
+                   .getSynsetRelations()
+                   .add(newSsr);
+                session.save(newSsr);
+                session.saveOrUpdate(ssr.getTarget());
+                insStats.inc(inverseRelName);
+            }
+        }
+    }
+
+   
+    
+    /**
+     * @param ssr a SynsetRelation to check
+     * @param insStats insertion stats to modify
+     * 
+     * @since 0.1.0
+     */
+    private void normalizeTopicToDomain(SynsetRelation ssr, InsertionStats  insStats) {
+        checkNotNull(ssr);
+        checkNotNull(insStats);        
+        
+        if ((Diversicons.RELATION_WORDNET_TOPIC.equals(ssr.getRelName())
+                && !containsRel(ssr.getSource(),
+                        ssr.getTarget(),
+                        Diversicons.RELATION_DIVERSICON_DOMAIN))
+            || (Diversicons.RELATION_WORDNET_IS_TOPIC_OF.equals(ssr.getRelName())
+            && !containsRel(ssr.getTarget(),
+                    ssr.getSource(),
+                    Diversicons.RELATION_DIVERSICON_DOMAIN    
+                
+                ))) {
+            DivSynsetRelation newSsr = new DivSynsetRelation();
+
+            newSsr.setDepth(1);
+            newSsr.setProvenance(Diversicon.getProvenanceId());
+            newSsr.setRelName(Diversicons.RELATION_DIVERSICON_DOMAIN);
+            newSsr.setRelType(Diversicons.getRelationType(Diversicons.RELATION_DIVERSICON_DOMAIN));
+            newSsr.setSource(ssr.getSource());
+            newSsr.setTarget(ssr.getTarget());
+
+            ssr.getSource()
+               .getSynsetRelations()
+               .add(newSsr);
+            session.save(newSsr);
+            session.saveOrUpdate(ssr.getSource());
+            insStats.inc(Diversicons.RELATION_DIVERSICON_DOMAIN);
         }
     }
 
@@ -1604,7 +1673,57 @@ public class Diversicon extends Uby {
             String... relNames) {
         return isConnected(sourceSynsetId, targetSynsetId, depth, Arrays.asList(relNames));
     }
+   
+    /**
+     * 
+     * See {@link #isInstanceConnected(String, String, int, String, List)}
+     * 
+     * @since 0.1.0
+     */    
+    public boolean isInstanceConnected(
+            String sourceSynsetId,
+            String targetSynsetId,
+            int depth,
+            String instanceRel, 
+            String... relNames){
+        return isInstanceConnected(sourceSynsetId, targetSynsetId, depth, instanceRel, 
+                Arrays.asList(relNames));
+    }
+    
+    /**
+     * 
+     * Checks connection among paths starting with a specific relation, like i.e.
+     *  {@link ERelNameSemantics#HYPERNYMINSTANCE hypernymInstance} followed by {@link ERelNameSemantics#HYPERNYMIN hypernym}) 
+     * 
+     * Works like {@link #isConnected(String, String, int, List)}, but checks also that first
+     * relation encountered equals instanceRel. Following links can be of any of 
+     * the relations in {@code relNames}. 
+     * 
+     * @since 0.1.0
+     */    
+    public boolean isInstanceConnected(
+            String sourceSynsetId,
+            String targetSynsetId,
+            int depth,
+            String instanceRel, 
+            List<String> relNames){
+        checkNotEmpty(instanceRel, "Invelid instance relation");
+        checkNotNull(relNames);
 
+        if (isConnected(sourceSynsetId, targetSynsetId, 1, instanceRel)){
+            return true;
+        }
+        Synset src = getSynsetById(sourceSynsetId);
+        
+        for (SynsetRelation ssr : src.getSynsetRelations()){
+            if (isConnected(ssr.getTarget().getId(), targetSynsetId, -1, relNames)){
+                return true;
+            }
+        }
+                
+        return false;        
+    }
+    
     /**
      * 
      * Returns true if {@code sourceSynset} is connected to {@code targetSynset}
@@ -1841,13 +1960,15 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * A list of the imports performed so far.
+     * A list of the imports performed so far, ordered by ascending import time.
      * 
      * @since 0.1.0
      *
      */
     public List<ImportJob> getImportJobs() {
-        Criteria crit = session.createCriteria(ImportJob.class);
+        Criteria crit = session.createCriteria(ImportJob.class);     
+        crit.addOrder(Order.asc("id"));
+        
         @SuppressWarnings("unchecked")
         List<ImportJob> ret = crit.list();
         return ret;
@@ -2029,43 +2150,85 @@ public class Diversicon extends Uby {
     }
 
     /**
+     * Returns true if provided synset is a domain. 
+     * 
+     * @since 0.1.0
+     */    
+    public boolean isDomain(Synset synset){
+        checkNotNull(synset);
+
+        return isConnected(synset.getId(),
+                Diversicons.SYNSET_ROOT_DOMAIN, -1,                
+                Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN);        
+    }
+    
+    
+    /**
      * Returns true if provided synset is a domain.
      * 
      * @since 0.1.0
      */
+    // todo performance is improvable 
     public boolean looksLikeDomain(Synset synset) {
         checkNotNull(synset);
 
-        Criteria criteria = session.createCriteria(Synset.class);
+        if (isDomain(synset)){
+            return true;
+        };
+        
+        Criteria criteria_1 = session.createCriteria(Synset.class);
 
-        criteria = criteria.add(Restrictions.eq("id", synset.getId()))
+        criteria_1 = criteria_1.add(Restrictions.eq("id", synset.getId()))
                            .createCriteria("senses")
                            .createCriteria("semanticLabels")
                            .add(Restrictions.in("type", Diversicons.getDomainLabelTypes()));
 
-        return !criteria.list()
-                        .isEmpty();
+        if (!criteria_1.list().isEmpty()){
+            return true;
+        }
 
+        Criteria criteria_2 = session.createCriteria(SynsetRelation.class);
+
+        criteria_2 = criteria_2
+                            .add(Restrictions.eq("target", synset.getId()))                           
+                            .add(Restrictions.eq("name", Diversicons.RELATION_WORDNET_TOPIC));
+
+        if (!criteria_2.list().isEmpty()){
+            return true;
+        }
+        
+        Criteria criteria_3 = session.createCriteria(SynsetRelation.class);
+
+        criteria_3 = criteria_3
+                            .add(Restrictions.eq("source", synset.getId()))                           
+                            .add(Restrictions.eq("name", Diversicons.RELATION_WORDNET_IS_TOPIC_OF));
+
+        if (!criteria_3.list().isEmpty()){
+            return true;
+        }
+        
+        return false;
     }
 
-    /**
-     * Returns the domain indicated by the given lemma
-     * 
-     * @since 0.1.0
-     */
-    public Synset getDomain(String lemma, String lang) {
-        checkNotEmpty(lemma, "Invalid lemma!");
-        throw new UnsupportedOperationException("TODO IMPLEMENT ME!");
-
-    }
+    
+    
 
     /**
      * Returns true if {@code synset1} is a subdomain of {@code synset2}
      * 
+     * It synsets coincide returns true.
+     * 
      * @since 0.1.0
      */
     public boolean isSubdomain(Synset synset1, Synset synset2) {
-        throw new UnsupportedOperationException("TODO IMPLEMENT ME!");
+        checkArgument(isDomain(synset1), "synset1 is not a domain !");
+        checkArgument(isDomain(synset2), "synset2 is not a domain !");
+        
+        return isConnected( synset1.getId(), 
+                            synset2.getId(), 
+                            -1, 
+                            Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN);
     }
 
 }
+

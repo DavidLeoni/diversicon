@@ -407,19 +407,19 @@ public final class Diversicons {
      * @since 0.1.0
      */
     // Names taken directly from DKPRO SynsetRelationGenerator
-    public static final String RELATION_IS_TOPIC_OF = "isTopicOf";
+    public static final String RELATION_WORDNET_IS_TOPIC_OF = "isTopicOf";
 
     /**
      * @since 0.1.0
      */
     // Names taken directly from DKPRO SynsetRelationGenerator
-    public static final String RELATION_IS_REGION_OF = "isRegionOf";
+    public static final String RELATION_WORDNET_IS_REGION_OF = "isRegionOf";
 
     /**
      * @since 0.1.0
      */
     // Names taken directly from DKPRO SynsetRelationGenerator
-    public static final String RELATION_IS_USAGE_OF = "isUsageOf";
+    public static final String RELATION_WORDNET_IS_USAGE_OF = "isUsageOf";
 
     /**
      * 
@@ -552,13 +552,13 @@ public final class Diversicons {
         // https://github.com/diversicon-kb/dkpro-uby/issues/3
         // note in Sense SematicLabel.type we will have
         // ELabelTypeSemantics.domain
-        putRelations(RELATION_WORDNET_TOPIC, RELATION_IS_TOPIC_OF, ERelTypeSemantics.label, false, false, true);
+        putRelations(RELATION_WORDNET_TOPIC, RELATION_WORDNET_IS_TOPIC_OF, ERelTypeSemantics.label, false, false, true);
         // note in Sense SematicLabel.type we will have
         // ELabelTypeSemantics.regionOfUsage
-        putRelations(RELATION_WORDNET_REGION, RELATION_IS_REGION_OF, ERelTypeSemantics.label, false, false, true);
+        putRelations(RELATION_WORDNET_REGION, RELATION_WORDNET_IS_REGION_OF, ERelTypeSemantics.label, false, false, true);
         // note in Sense SematicLabel.type we will have
         // ELabelTypeSemantics.usage
-        putRelations(RELATION_WORDNET_USAGE, RELATION_IS_USAGE_OF, ERelTypeSemantics.label, false, false, true);
+        putRelations(RELATION_WORDNET_USAGE, RELATION_WORDNET_IS_USAGE_OF, ERelTypeSemantics.label, false, false, true);
 
         putRelations(RELATION_DIVERSICON_DOMAIN, RELATION_DIVERSICON_DOMAIN_OF, ERelTypeSemantics.label, false, false,
                 true);

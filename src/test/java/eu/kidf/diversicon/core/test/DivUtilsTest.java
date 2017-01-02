@@ -39,6 +39,7 @@ import eu.kidf.diversicon.core.DivXmlHandler;
 import eu.kidf.diversicon.core.Diversicon;
 import eu.kidf.diversicon.core.Diversicons;
 import eu.kidf.diversicon.core.ExtractedStream;
+import eu.kidf.diversicon.core.ImportJob;
 import eu.kidf.diversicon.core.LexResPackage;
 import eu.kidf.diversicon.core.XmlValidationConfig;
 import eu.kidf.diversicon.core.exceptions.DivIoException;
@@ -297,6 +298,9 @@ public class DivUtilsTest {
         Diversicon div = Diversicon.connectToDb(divConfig);
         assertNotNull(div.getLexicalResource(DivUpper.of().getName()));
         
+        ImportJob job = div.getImportJobs().get(0);
+        assertEquals(Diversicons.DIVERSICON_AUTHOR, job.getAuthor());        
+                
         Synset root_domain = div.getSynsetById(Diversicons.SYNSET_ROOT_DOMAIN);
         assertEquals(Diversicons.SYNSET_ROOT_DOMAIN, root_domain.getId());
 
