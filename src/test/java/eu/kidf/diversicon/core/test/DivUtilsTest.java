@@ -4,11 +4,12 @@ import static eu.kidf.diversicon.core.test.DivTester.*;
 import static eu.kidf.diversicon.core.test.LmfBuilder.lmf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,8 +45,10 @@ import eu.kidf.diversicon.core.exceptions.DivIoException;
 import eu.kidf.diversicon.core.exceptions.DivNotFoundException;
 import eu.kidf.diversicon.core.exceptions.InvalidXmlException;
 import eu.kidf.diversicon.core.internal.Internals;
+import eu.kidf.diversicon.data.DivUpper;
 import eu.kidf.diversicon.data.DivWn31;
 import eu.kidf.diversicon.data.Examplicon;
+import eu.kidf.diversicon.data.Smartphones;
 
 /**
  * @since 0.1.0
@@ -91,7 +94,7 @@ public class DivUtilsTest {
     }
 
     @Test
-    public void testExistsDb() {
+    public void testIsSchemaValid() {
         assertFalse(Diversicons.isSchemaValid(divConfig.getDbConfig()));
 
         Diversicons.dropCreateTables(divConfig.getDbConfig());
@@ -210,6 +213,8 @@ public class DivUtilsTest {
                                                     .namespace());
     }
 
+    
+    
     /**
      * @since 0.1.0
      */
@@ -237,16 +242,45 @@ public class DivUtilsTest {
      * @since 0.1.0
      */
     @Test
-    public void testDropCreateTables() {
+    public void testDropCreateTables() {               
+        
+        Diversicons.createTables(divConfig.getDbConfig());
+        
+        
+        Diversicon div1 = Diversicon.connectToDb(divConfig);
+        LexicalResource res = LmfBuilder.simpleLexicalResource();                       
+        div1.importResource(res, DivTester.createLexResPackage(res), false);
+        
+        assertNotNull(div1.getLexicalResource(res.getName()));
+        
+        div1.getSession().close();
+        
         Diversicons.dropCreateTables(divConfig.getDbConfig());
 
-        Diversicon div = Diversicon.connectToDb(divConfig);
+        Diversicon div2 = Diversicon.connectToDb(divConfig);
 
-        div.getSession()
+        assertNull(div2.getLexicalResource(res.getName()));
+        
+        div2.getSession()
            .close();
 
     }
 
+    
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testExists() {
+        
+        DBConfig dbc = divConfig.getDbConfig();
+        
+        assertFalse(Diversicons.exists(dbc));
+        assertFalse(Diversicons.exists(dbc)); // double, so we check it is not autocreating stuff
+        Diversicons.createTables(dbc);
+        assertTrue(Diversicons.exists(dbc));        
+    }
+    
     /**
      * Tricky for logging!
      * 
@@ -254,9 +288,33 @@ public class DivUtilsTest {
      */
     @Test
     public void testCreateTables() {
+        
         Diversicons.createTables(divConfig.getDbConfig());
 
-        // todo improve test
+        Diversicon div1 = Diversicon.connectToDb(divConfig);               
+        
+        // checks div upper preloading
+        Diversicon div = Diversicon.connectToDb(divConfig);
+        assertNotNull(div.getLexicalResource(DivUpper.of().getName()));
+        
+        Synset root_domain = div.getSynsetById("div_ss_n_domain");
+        assertEquals("div_ss_n_domain", root_domain.getId());
+
+        // modifies db
+        LexicalResource res = LmfBuilder.simpleLexicalResource();                       
+        div1.importResource(res, DivTester.createLexResPackage(res), false);       
+        assertNotNull(div1.getLexicalResource(res.getName()));
+        
+        
+        div1.getSession().close();
+        
+        try {
+            Diversicons.createTables(divConfig.getDbConfig());
+            Assert.fail("Shouldn't arrive here!");
+        } catch (DivIoException ex){
+            
+        }
+        
     }
 
     /**
