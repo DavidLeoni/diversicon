@@ -18,6 +18,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -109,6 +110,7 @@ import eu.kidf.diversicon.core.exceptions.InvalidSchemaException;
 import eu.kidf.diversicon.core.exceptions.InvalidXmlException;
 import eu.kidf.diversicon.core.internal.DivXmlValidator;
 import eu.kidf.diversicon.core.internal.Internals;
+import eu.kidf.diversicon.data.DivUpper;
 import eu.kidf.diversicon.data.DivWn31;
 
 import org.apache.xerces.dom.DOMInputImpl;
@@ -227,6 +229,14 @@ public final class Diversicons {
      */
     public static final String DEFAULT_AUTHOR = "Default author";
 
+    /**
+     * Used in automatic imports.
+     * 
+     * @since 0.1.0
+     */
+    public static final String DIVERSICON_AUTHOR = "Diversicon";
+    
+    
     /**
      * The url protocol for lexical resources loaded from memory.
      */
@@ -668,46 +678,36 @@ public final class Diversicons {
      * @since 0.1.0
      */
     public static void dropCreateTables(DBConfig dbConfig) {
-
-        LOG.info("Recreating tables in database  " + dbConfig.getJdbc_url() + "    ...");
-
-        Configuration hcfg = getHibernateConfig(dbConfig, false);
-
-        Session session = openSession(dbConfig, false);
-        Transaction tx = null;
-
-        SchemaExport se = new SchemaExport(hcfg);
-        se.create(false, true);
-        try {
-            tx = session.beginTransaction();
-            DbInfo dbInfo = new DbInfo();
-            session.save(dbInfo);
-            tx.commit();
-        } catch (Exception ex) {
-            LOG.error("Error while saving DbInfo! Rolling back!");
-            if (tx != null) {
-                tx.rollback();
-            }
-            throw new DivException("Error while while saving DbInfo!", ex);
-        }
-        session.flush();
-        session.close();
-        LOG.info("Done recreating tables in database:  " + dbConfig.getJdbc_url());
-
+        createDb(dbConfig, true);
     }
 
     /**
-     * Creates a database based on the hibernate mappings
+     * Creates a database based on the hibernate mappings.
      * 
      * (adapted from
      * {@link de.tudarmstadt.ukp.lmf.transform.LMFDBUtils#createTables(DBConfig)
      * LMFDBUtils.createTables} )
      * 
+     * @throws DivIoException if database already exists.
+     * 
      * @since 0.1.0
      */
     public static void createTables(DBConfig dbConfig) {
 
-        LOG.info("Creating tables in database  " + dbConfig.getJdbc_url() + " ...");
+        if (Diversicons.exists(dbConfig)){
+            throw new DivIoException("Found already existing database!");
+        }
+        
+        createDb(dbConfig, false);
+    }
+    
+    /**
+     * @since 0.10.
+     */
+    static private void createDb(DBConfig dbConfig, boolean drop){
+        
+        String creatingMsg = drop ? "Recreating" : "Creating";
+        LOG.info(creatingMsg + " tables in database  " + dbConfig.getJdbc_url() + " ...");
 
         Configuration hcfg = getHibernateConfig(dbConfig, false);
 
@@ -715,7 +715,7 @@ public final class Diversicons {
         Transaction tx = null;
 
         SchemaExport se = new SchemaExport(hcfg);
-        se.create(false, true);
+        se.create(drop, true);
         try {
             tx = session.beginTransaction();
             DbInfo dbInfo = new DbInfo();
@@ -730,8 +730,17 @@ public final class Diversicons {
         }
         session.flush();
         session.close();
-        LOG.info("Done creating tables in database  " + dbConfig.getJdbc_url());
+        
+        // todo make it load a sql dump ....
+        Diversicon div = Diversicon.connectToDb(DivConfig.of(dbConfig));
+        ImportConfig config = new ImportConfig();
 
+        config.setAuthor(Diversicons.DIVERSICON_AUTHOR);
+        config.setFileUrls(Arrays.asList(DivUpper.of().getXmlUri()));
+        div.importFiles(config);               
+        
+        LOG.info("Done " + creatingMsg.toLowerCase() + " tables in database  " + dbConfig.getJdbc_url());
+        
     }
 
     static Session openSession(DBConfig dbConfig, boolean validate) {
@@ -1508,9 +1517,15 @@ public final class Diversicons {
         Session session = sessionFactory.openSession();
 
         // dude, this is crude
-        return session.createQuery("from java.lang.Object")
-                      .iterate()
-                      .hasNext();
+        // div dirty
+        try {
+            session.createQuery("from java.lang.Object")
+                          .iterate()
+                          .hasNext();
+        } catch (org.hibernate.exception.SQLGrammarException ex){
+            return false;
+        }
+        return true;
 
     }
 
