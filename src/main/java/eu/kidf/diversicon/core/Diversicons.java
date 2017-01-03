@@ -27,8 +27,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.compress.archivers.ArchiveEntry;
@@ -40,8 +38,6 @@ import org.apache.commons.compress.compressors.CompressorInputStream;
 import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.http.client.fluent.Request;
-import org.apache.http.client.fluent.Response;
 import org.apache.xerces.impl.Constants;
 import org.basex.core.Context;
 import org.basex.io.serial.Serializer;
@@ -89,6 +85,7 @@ import javax.xml.validation.Validator;
 
 import de.tudarmstadt.ukp.lmf.hibernate.HibernateConnect;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
+import de.tudarmstadt.ukp.lmf.model.enums.ELabelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 
@@ -321,6 +318,110 @@ public final class Diversicons {
                     + "\\p{L}(\\w|-|_|\\.)*");
 
     /**
+     * @since 0.1.0
+     */
+    // Names taken directly from DKPRO SynsetRelationGenerator
+    public static final String RELATION_WORDNET_TOPIC = "topic";
+
+    /**
+     * @since 0.1.0
+     */
+    // Names taken directly from DKPRO SynsetRelationGenerator
+    public static final String RELATION_WORDNET_REGION = "region";
+
+    /**
+     * @since 0.1.0
+     */
+    // Names taken directly from DKPRO SynsetRelationGenerator
+    public static final String RELATION_WORDNET_USAGE = "usage";
+
+    /**
+     * Canonical relation to specify a synset belongs to a domain (which will be
+     * another synset),
+     * see also {@link #RELATION_DIVERSICON_SUPER_DOMAIN}
+     * 
+     * <p>
+     * Example:
+     * 
+     * <pre>
+     * ss_pop-music domain-> ss_music superDomain-> ss_arts superDomain-> ss_domain
+     * </pre>
+     * </p>
+     * 
+     * @since 0.1.0
+     */
+    public static final String RELATION_DIVERSICON_DOMAIN = "domain";
+
+    /**
+     * Inverse of {@link #RELATION_DIVERSICON_DOMAIN}. See also
+     * {@link #RELATION_DIVERSICON_SUB_DOMAIN}
+     * 
+     * <p>
+     * Example:
+     * 
+     * <pre>
+     * ss_domain subDomain-> ss_arts subDomain-> ss_music domainOf-> ss_pop-music
+     * </pre>
+     * </p>
+     * 
+     * @since 0.1.0
+     */
+    public static final String RELATION_DIVERSICON_DOMAIN_OF = "domainOf";
+
+    /**
+     * 
+     * Canonical relation to specify a synset domain is included in another
+     * synset domain,
+     * For examples, see {@link #RELATION_DIVERSICON_DOMAIN}
+     * 
+     * @since 0.1.0
+     */
+    public static final String RELATION_DIVERSICON_SUPER_DOMAIN = "superDomain";
+
+    /**
+     * 
+     * Inverse of {@link #RELATION_DIVERSICON_SUPER_DOMAIN}.
+     * For examples, see {@link #RELATION_DIVERSICON_DOMAIN_OF}
+     * 
+     *
+     * @since 0.1.0
+     */
+    public static final String RELATION_DIVERSICON_SUB_DOMAIN = "subDomain";
+
+    /**
+     * 
+     * Synset id of the root of all domains, as specified in DivUpper lexical resource 
+     *
+     * @since 0.1.0
+     */
+    public static final String SYNSET_ROOT_DOMAIN = "div_ss_n_domain";
+    
+    
+    /**
+     * 
+     * @since 0.1.0
+     */
+    private static final List<ELabelTypeSemantics> domainLabelTypeSemantics;
+
+    /**
+     * @since 0.1.0
+     */
+    // Names taken directly from DKPRO SynsetRelationGenerator
+    public static final String RELATION_WORDNET_IS_TOPIC_OF = "isTopicOf";
+
+    /**
+     * @since 0.1.0
+     */
+    // Names taken directly from DKPRO SynsetRelationGenerator
+    public static final String RELATION_WORDNET_IS_REGION_OF = "isRegionOf";
+
+    /**
+     * @since 0.1.0
+     */
+    // Names taken directly from DKPRO SynsetRelationGenerator
+    public static final String RELATION_WORDNET_IS_USAGE_OF = "isUsageOf";
+
+    /**
      * 
      * Mnemonic shorthand for H2 database
      * 
@@ -405,6 +506,9 @@ public final class Diversicons {
     private static final LinkedHashSet<String> partOfRelations = new LinkedHashSet<String>();
     private static final LinkedHashSet<String> canonicalPartOfRelations = new LinkedHashSet<String>();
 
+    private static final LinkedHashSet<String> domainRelations = new LinkedHashSet<String>();
+    private static final LinkedHashSet<String> canonicalDomainRelations = new LinkedHashSet<String>();
+
     /**
      * 
      * Couldn't find a smarter default way to provide input files in scripts.
@@ -422,25 +526,46 @@ public final class Diversicons {
     private static LinkedHashMap<String, String> customClassMappings;
 
     static {
-        putRelations(HYPERNYM, HYPONYM, ERelTypeSemantics.taxonomic, true, false);
-        putRelations(HYPERNYMINSTANCE, HYPONYMINSTANCE, ERelTypeSemantics.taxonomic, false, false);
-        putRelations(HOLONYM, MERONYM, ERelTypeSemantics.partWhole, true, true);
-        putRelations(HOLONYMCOMPONENT, MERONYMCOMPONENT, ERelTypeSemantics.partWhole, false, true); // todo
-                                                                                                    // is
-                                                                                                    // it
-                                                                                                    // transitive?
-        putRelations(HOLONYMMEMBER, MERONYMMEMBER, ERelTypeSemantics.partWhole, false, true);
-        putRelations(HOLONYMPART, MERONYMPART, ERelTypeSemantics.partWhole, true, true);
-        putRelations(HOLONYMPORTION, MERONYMPORTION, ERelTypeSemantics.partWhole, false, true); // todo
-                                                                                                // is
-                                                                                                // it
-                                                                                                // transitive?
-        putRelations(HOLONYMSUBSTANCE, MERONYMSUBSTANCE, ERelTypeSemantics.partWhole, false, true);
-        putRelations(SYNONYM, SYNONYM, ERelTypeSemantics.association, false, false);
-        putRelations(SYNONYMNEAR, SYNONYMNEAR, ERelTypeSemantics.association, false, false);
-        putRelations(ANTONYM, ANTONYM, ERelTypeSemantics.complementary, false, false);
 
-        customClassMappings = new LinkedHashMap();
+        domainLabelTypeSemantics = new ArrayList<>();
+
+        domainLabelTypeSemantics.add(ELabelTypeSemantics.domain);
+        domainLabelTypeSemantics.add(ELabelTypeSemantics.regionOfUsage);
+        domainLabelTypeSemantics.add(ELabelTypeSemantics.usage);
+
+        putRelations(HYPERNYM, HYPONYM, ERelTypeSemantics.taxonomic, true, false, false);
+        putRelations(HYPERNYMINSTANCE, HYPONYMINSTANCE, ERelTypeSemantics.taxonomic, false, false, false);
+        putRelations(HOLONYM, MERONYM, ERelTypeSemantics.partWhole, true, true, false);
+        putRelations(HOLONYMCOMPONENT, MERONYMCOMPONENT, ERelTypeSemantics.partWhole, false, true, false); // todo
+
+        // is it transitive?
+        putRelations(HOLONYMMEMBER, MERONYMMEMBER, ERelTypeSemantics.partWhole, false, true, false);
+        putRelations(HOLONYMPART, MERONYMPART, ERelTypeSemantics.partWhole, true, true, false);
+        putRelations(HOLONYMPORTION, MERONYMPORTION, ERelTypeSemantics.partWhole, false, true, false); // todo
+        // is it transitive?
+        putRelations(HOLONYMSUBSTANCE, MERONYMSUBSTANCE, ERelTypeSemantics.partWhole, false, true, false);
+        putRelations(SYNONYM, SYNONYM, ERelTypeSemantics.association, false, false, false);
+        putRelations(SYNONYMNEAR, SYNONYMNEAR, ERelTypeSemantics.association, false, false, false);
+        putRelations(ANTONYM, ANTONYM, ERelTypeSemantics.complementary, false, false, false);
+
+        // DOMAINS IN UBY ARE A LITTLE MESSY, SEE NOTE HERE:
+        // https://github.com/diversicon-kb/dkpro-uby/issues/3
+        // note in Sense SematicLabel.type we will have
+        // ELabelTypeSemantics.domain
+        putRelations(RELATION_WORDNET_TOPIC, RELATION_WORDNET_IS_TOPIC_OF, ERelTypeSemantics.label, false, false, true);
+        // note in Sense SematicLabel.type we will have
+        // ELabelTypeSemantics.regionOfUsage
+        putRelations(RELATION_WORDNET_REGION, RELATION_WORDNET_IS_REGION_OF, ERelTypeSemantics.label, false, false, true);
+        // note in Sense SematicLabel.type we will have
+        // ELabelTypeSemantics.usage
+        putRelations(RELATION_WORDNET_USAGE, RELATION_WORDNET_IS_USAGE_OF, ERelTypeSemantics.label, false, false, true);
+
+        putRelations(RELATION_DIVERSICON_DOMAIN, RELATION_DIVERSICON_DOMAIN_OF, ERelTypeSemantics.label, false, false,
+                true);
+        putRelations(RELATION_DIVERSICON_SUPER_DOMAIN, RELATION_DIVERSICON_SUB_DOMAIN, ERelTypeSemantics.label, true,
+                false, true);
+
+        customClassMappings = new LinkedHashMap<>();
         customClassMappings.put(de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation.class.getCanonicalName(),
                 DivSynsetRelation.class.getCanonicalName());
 
@@ -460,7 +585,8 @@ public final class Diversicons {
             String relNameB,
             ERelTypeSemantics relType,
             boolean transitive,
-            boolean partof) {
+            boolean partof,
+            boolean domain) {
         checkNotEmpty(relNameA, "Invalid first relation!");
         checkNotEmpty(relNameB, "Invalid second relation!");
 
@@ -482,6 +608,12 @@ public final class Diversicons {
             partOfRelations.add(relNameA);
             canonicalPartOfRelations.add(relNameA);
             partOfRelations.add(relNameB);
+        }
+
+        if (domain) {
+            domainRelations.add(relNameA);
+            canonicalDomainRelations.add(relNameA);
+            domainRelations.add(relNameB);
         }
 
     }
@@ -821,7 +953,7 @@ public final class Diversicons {
      * @since 0.1.0
      */
     public static List<String> getCanonicalRelations() {
-        return new ArrayList(canonicalRelations);
+        return new ArrayList<>(canonicalRelations);
     }
 
     /**
@@ -926,7 +1058,7 @@ public final class Diversicons {
      * @since 0.1.0
      */
     public static List<String> getCanonicalTransitiveRelations() {
-        return new ArrayList(canonicalTransitiveRelations);
+        return new ArrayList<>(canonicalTransitiveRelations);
     }
 
     /**
@@ -935,7 +1067,38 @@ public final class Diversicons {
      * @since 0.1.0
      */
     public static List<String> getTransitiveRelations() {
-        return new ArrayList(transitiveRelations);
+        return new ArrayList<>(transitiveRelations);
+    }
+
+    /**
+     * Returns all the domain relations (inverses included).
+     * 
+     * @since 0.1.0
+     */
+    public static List<String> getDomainRelations() {
+        return new ArrayList<>(domainRelations);
+    }
+
+    /**
+     * Returns all the dkpro domain label type semantics.
+     * For more info see
+     * <a href="https://github.com/diversicon-kb/dkpro-uby/issues/3" target=
+     * "_blank">issue on Github</a>
+     * 
+     * @since 0.1.0
+     */
+    public static List<ELabelTypeSemantics> getDomainLabelTypes() {
+        return new ArrayList<>(domainLabelTypeSemantics);
+    }
+
+    /**
+     * Returns true if {@code relName} is known to be a domain relation.
+     * 
+     * @since 0.1.0
+     */
+    public static boolean isDomainRelation(String relName) {
+        checkNotEmpty(relName, "Invalid relation name!");
+        return domainRelations.contains(relName);
     }
 
     /**
@@ -946,7 +1109,7 @@ public final class Diversicons {
      * @since 0.1.0
      */
     public static List<String> getCanonicalPartOfRelations() {
-        return new ArrayList(canonicalPartOfRelations);
+        return new ArrayList<>(canonicalPartOfRelations);
     }
 
     /**
@@ -955,7 +1118,7 @@ public final class Diversicons {
      * @since 0.1.0
      */
     public static List<String> getPartOfRelations() {
-        return new ArrayList(partOfRelations);
+        return new ArrayList<>(partOfRelations);
     }
 
     /**

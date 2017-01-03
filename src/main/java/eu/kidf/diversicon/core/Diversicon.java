@@ -2,7 +2,6 @@ package eu.kidf.diversicon.core;
 
 import static eu.kidf.diversicon.core.Diversicons.checkId;
 import static eu.kidf.diversicon.core.internal.Internals.checkArgument;
-import static eu.kidf.diversicon.core.internal.Internals.checkEquals;
 import static eu.kidf.diversicon.core.internal.Internals.checkLexResPackage;
 import static eu.kidf.diversicon.core.internal.Internals.checkNotBlank;
 import static eu.kidf.diversicon.core.internal.Internals.checkNotEmpty;
@@ -31,8 +30,6 @@ import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.http.HttpHost;
-import org.apache.http.client.fluent.Request;
 import org.h2.tools.Script;
 import org.hibernate.CacheMode;
 import org.hibernate.Criteria;
@@ -53,6 +50,7 @@ import de.tudarmstadt.ukp.lmf.api.Uby;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalEntry;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
+import de.tudarmstadt.ukp.lmf.model.enums.ELabelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.enums.EPartOfSpeech;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.model.morphology.FormRepresentation;
@@ -121,8 +119,7 @@ public class Diversicon extends Uby {
      * @since 0.1.0
      */
     private DivConfig config;
-    
-    
+
     /**
      * @throws DivIoException
      * @throws InvalidSchemaException
@@ -132,13 +129,12 @@ public class Diversicon extends Uby {
     protected Diversicon(DivConfig config) {
         super(); // so it doesn't open connections! Let's hope they don't delete
                  // it!
-        
+
         checkNotNull(config);
         Internals.checkNotNull(config.getDbConfig());
 
-        
         this.config = config;
-        
+
         this.dbConfig = config.getDbConfig();
 
         LOG.info("Connecting to database   " + dbConfig.getJdbc_url());
@@ -153,8 +149,8 @@ public class Diversicon extends Uby {
         if (INSTANCES.containsKey(hashcode)) {
             throw new DivException("INTERNAL ERROR: Seems like there is some sort of duplicate Diversicon session!!");
         }
-        INSTANCES.put(hashcode, this);       
-        
+        INSTANCES.put(hashcode, this);
+
         LOG.info("Connected!");
     }
 
@@ -235,8 +231,6 @@ public class Diversicon extends Uby {
 
     }
 
-    
-    
     /**
      * Note: search is done by exact match on {@code wordWrittenForm}
      *
@@ -270,7 +264,7 @@ public class Diversicon extends Uby {
         }
         return ret;
     }
-    
+
     /**
      * See {@link #getLemmasByWrittenForm(String, EPartOfSpeech, Lexicon)}.
      * 
@@ -575,6 +569,7 @@ public class Diversicon extends Uby {
                                 .uniqueResult()).longValue();
 
     }
+    
 
     /*
      * Adds missing edges of depth 1 for relations we consider as canonical.
@@ -587,16 +582,19 @@ public class Diversicon extends Uby {
 
         checkArgument(!getDbInfo().isToValidate(), "Tried to normalize a graph which is yet to validate!");
 
-        LOG.info("Normalizing SynsetRelations...");
-
+        LOG.info("Normalizing SynsetRelations...");        
+        
         Transaction tx = null;
         Date checkpoint = new Date();
 
         Date start = checkpoint;
 
-        try {
+        try {                                           
+            
             tx = session.beginTransaction();
 
+            Synset rootDomain = getSynsetById(Diversicons.SYNSET_ROOT_DOMAIN);
+            
             long totalSynsets = getSynsetCount();
 
             String hql = "FROM Synset";
@@ -620,38 +618,16 @@ public class Diversicon extends Uby {
 
                 List<SynsetRelation> relations = synset.getSynsetRelations();
 
-                for (SynsetRelation sr : relations) {
+                normalizeDomain(synset, rootDomain, insStats);
+                
+                                
+                for (SynsetRelation sr : new ArrayList<>(relations)){                    
+                    
                     DivSynsetRelation ssr = (DivSynsetRelation) sr;
 
-                    if (Diversicons.hasInverse(ssr.getRelName())) {
-                        String inverseRelName = Diversicons.getInverse(ssr.getRelName());
-                        if (Diversicons.isCanonicalRelation(inverseRelName)
-                                && Diversicons.isTransitive(inverseRelName)
-                                // don't want to add cycles
-                                && !(ssr.getSource()
-                                        .getId()
-                                        .equals(ssr.getTarget()
-                                                   .getId()))
-                                && !containsRel(ssr.getTarget(),
-                                        ssr.getSource(),
-                                        inverseRelName)) {
-                            DivSynsetRelation newSsr = new DivSynsetRelation();
-
-                            newSsr.setDepth(1);
-                            newSsr.setProvenance(Diversicon.getProvenanceId());
-                            newSsr.setRelName(inverseRelName);
-                            newSsr.setRelType(Diversicons.getRelationType(inverseRelName));
-                            newSsr.setSource(ssr.getTarget());
-                            newSsr.setTarget(ssr.getSource());
-
-                            ssr.getTarget()
-                               .getSynsetRelations()
-                               .add(newSsr);
-                            session.save(newSsr);
-                            session.saveOrUpdate(ssr.getTarget());
-                            insStats.inc(inverseRelName);
-                        }
-                    }
+                    normalizeTopicToDomain(ssr, insStats);
+                                        
+                    normalizeInverses(ssr, insStats);
 
                 }
 
@@ -681,7 +657,128 @@ public class Diversicon extends Uby {
             if (tx != null) {
                 tx.rollback();
             }
-            throw new DivException("Error while computing normalizing graph!", ex);
+            throw new DivException("Error while computing normalized graph!", ex);
+        }
+    }
+
+    /**
+     * Checks if synset looks like a domain, and if needed connects it by 
+     * {@link Diversicons#RELATION_DIVERSICON_SUPER_DOMAIN superDomain} relation
+     * to {@link Diversicons#SYNSET_ROOT_DOMAIN root domain}
+     * 
+     * @param synset
+     * @param insertion stats to modify
+     * 
+     * @see #isDomain(Synset)
+     * @since 0.1.0 
+     */
+    private void normalizeDomain(Synset synset, Synset rootDomain, InsertionStats insStats) {
+        checkNotNull(synset);
+        checkNotNull(insStats);
+                
+        String superDomain = Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN;
+        
+        if (looksLikeDomain(synset.getId())){
+            if (!isDomain(synset.getId())){
+                DivSynsetRelation newSsr = new DivSynsetRelation();
+
+                newSsr.setDepth(1);
+                newSsr.setProvenance(Diversicon.getProvenanceId());
+                
+                newSsr.setRelName(superDomain);
+                newSsr.setRelType(Diversicons.getRelationType(superDomain));
+                newSsr.setSource(synset);
+                newSsr.setTarget(rootDomain);
+                synset
+                .getSynsetRelations()
+                .add(newSsr);
+             session.save(newSsr);
+             session.saveOrUpdate(synset);
+             insStats.inc(superDomain);
+            }
+        }
+    }
+
+    /**
+     * Normalizes the inverses
+     * 
+     * @param ssr a SynsetRelation to check
+     * @param insStats insertion stats to modify
+     * 
+     * @since 0.1.0
+     */
+    private void normalizeInverses(DivSynsetRelation ssr, InsertionStats insStats) {
+        checkNotNull(ssr);
+        checkNotNull(insStats);
+        
+        
+        if (Diversicons.hasInverse(ssr.getRelName())) {
+            String inverseRelName = Diversicons.getInverse(ssr.getRelName());
+            if (Diversicons.isCanonicalRelation(inverseRelName)
+                    // don't want to add cycles
+                    && !(ssr.getSource()
+                            .getId()
+                            .equals(ssr.getTarget()
+                                       .getId()))
+                    && !containsRel(ssr.getTarget(),
+                            ssr.getSource(),
+                            inverseRelName)) {
+                DivSynsetRelation newSsr = new DivSynsetRelation();
+
+                newSsr.setDepth(1);
+                newSsr.setProvenance(Diversicon.getProvenanceId());
+                newSsr.setRelName(inverseRelName);
+                newSsr.setRelType(Diversicons.getRelationType(inverseRelName));
+                newSsr.setSource(ssr.getTarget());
+                newSsr.setTarget(ssr.getSource());
+
+                ssr.getTarget()
+                   .getSynsetRelations()
+                   .add(newSsr);
+                session.save(newSsr);
+                session.saveOrUpdate(ssr.getTarget());
+                insStats.inc(inverseRelName);
+            }
+        }
+    }
+
+   
+    
+    /**
+     * @param ssr a SynsetRelation to check
+     * @param insStats insertion stats to modify
+     * 
+     * @since 0.1.0
+     */
+    private void normalizeTopicToDomain(SynsetRelation ssr, InsertionStats  insStats) {
+        checkNotNull(ssr);
+        checkNotNull(insStats);        
+        
+        if ((Diversicons.RELATION_WORDNET_TOPIC.equals(ssr.getRelName())
+                && !containsRel(ssr.getSource(),
+                        ssr.getTarget(),
+                        Diversicons.RELATION_DIVERSICON_DOMAIN))
+            || (Diversicons.RELATION_WORDNET_IS_TOPIC_OF.equals(ssr.getRelName())
+            && !containsRel(ssr.getTarget(),
+                    ssr.getSource(),
+                    Diversicons.RELATION_DIVERSICON_DOMAIN    
+                
+                ))) {
+            DivSynsetRelation newSsr = new DivSynsetRelation();
+
+            newSsr.setDepth(1);
+            newSsr.setProvenance(Diversicon.getProvenanceId());
+            newSsr.setRelName(Diversicons.RELATION_DIVERSICON_DOMAIN);
+            newSsr.setRelType(Diversicons.getRelationType(Diversicons.RELATION_DIVERSICON_DOMAIN));
+            newSsr.setSource(ssr.getSource());
+            newSsr.setTarget(ssr.getTarget());
+
+            ssr.getSource()
+               .getSynsetRelations()
+               .add(newSsr);
+            session.save(newSsr);
+            session.saveOrUpdate(ssr.getSource());
+            insStats.inc(Diversicons.RELATION_DIVERSICON_DOMAIN);
         }
     }
 
@@ -920,7 +1017,7 @@ public class Diversicon extends Uby {
         }
 
         LOG.info("Going to import " + importConfig.getFileUrls()
-                                            .size()
+                                                  .size()
                 + " files by import author " + importConfig.getAuthor() + "...");
 
         DbInfo oldDbInfo = prepareDbForImport();
@@ -964,7 +1061,7 @@ public class Diversicon extends Uby {
         checkNotNull(jobs);
 
         String plural = importConfig.getFileUrls()
-                              .size() > 1 ? "s" : "";
+                                    .size() > 1 ? "s" : "";
 
         Date end = new Date();
 
@@ -974,7 +1071,7 @@ public class Diversicon extends Uby {
         LOG.info("");
         LOG.info("");
         LOG.info("Done importing " + importConfig.getFileUrls()
-                                           .size()
+                                                 .size()
                 + " LMF" + plural + " by import author " + importConfig.getAuthor());
         LOG.info("");
         LOG.info("Imported lexical resources: ");
@@ -1003,7 +1100,7 @@ public class Diversicon extends Uby {
         File file;
         try {
             file = Diversicons.readData(config, url, true)
-                            .toTempFile();
+                              .toTempFile();
         } catch (Exception ex) {
             throw new InvalidImportException("Couldn't read file to import: " + url, ex);
         }
@@ -1096,14 +1193,14 @@ public class Diversicon extends Uby {
         }
 
     }
-    
+
     /**
-     * Returns Diversicon Configuration (which contains also  UBY's DBConfig) 
+     * Returns Diversicon Configuration (which contains also UBY's DBConfig)
      * 
      * @since 0.1.0
      * @see #getDbConfig()
      */
-    public DivConfig getConfig(){
+    public DivConfig getConfig() {
         return config;
     }
 
@@ -1409,11 +1506,10 @@ public class Diversicon extends Uby {
      * 
      * @since 0.1.0
      */
-    public static Diversicon connectToDb(DivConfig config) {        
+    public static Diversicon connectToDb(DivConfig config) {
         Diversicon ret = new Diversicon(config);
         return ret;
     }
-    
 
     /**
      * Simple export to a UBY-LMF {@code .xml} file.
@@ -1575,7 +1671,57 @@ public class Diversicon extends Uby {
             String... relNames) {
         return isConnected(sourceSynsetId, targetSynsetId, depth, Arrays.asList(relNames));
     }
+   
+    /**
+     * 
+     * See {@link #isInstanceConnected(String, String, int, String, List)}
+     * 
+     * @since 0.1.0
+     */    
+    public boolean isInstanceConnected(
+            String sourceSynsetId,
+            String targetSynsetId,
+            int depth,
+            String instanceRel, 
+            String... relNames){
+        return isInstanceConnected(sourceSynsetId, targetSynsetId, depth, instanceRel, 
+                Arrays.asList(relNames));
+    }
+    
+    /**
+     * 
+     * Checks connection among paths starting with a specific relation, like i.e.
+     *  {@link ERelNameSemantics#HYPERNYMINSTANCE hypernymInstance} followed by {@link ERelNameSemantics#HYPERNYMIN hypernym}) 
+     * 
+     * Works like {@link #isConnected(String, String, int, List)}, but checks also that first
+     * relation encountered equals instanceRel. Following links can be of any of 
+     * the relations in {@code relNames}. 
+     * 
+     * @since 0.1.0
+     */    
+    public boolean isInstanceConnected(
+            String sourceSynsetId,
+            String targetSynsetId,
+            int depth,
+            String instanceRel, 
+            List<String> relNames){
+        checkNotEmpty(instanceRel, "Invelid instance relation");
+        checkNotNull(relNames);
 
+        if (isConnected(sourceSynsetId, targetSynsetId, 1, instanceRel)){
+            return true;
+        }
+        Synset src = getSynsetById(sourceSynsetId);
+        
+        for (SynsetRelation ssr : src.getSynsetRelations()){
+            if (isConnected(ssr.getTarget().getId(), targetSynsetId, -1, relNames)){
+                return true;
+            }
+        }
+                
+        return false;        
+    }
+    
     /**
      * 
      * Returns true if {@code sourceSynset} is connected to {@code targetSynset}
@@ -1975,6 +2121,144 @@ public class Diversicon extends Uby {
      * }
      */
 
+    /**
+     * Returns all domains in the db, according to Uby definition.
+     * 
+     * @since 0.1.0
+     */
+    // todo put link to definition
+    public List<Synset> getUbyDomains(@Nullable Lexicon lexicon) {
+
+        Criteria criteria = session.createCriteria(Synset.class);
+        if (lexicon != null) {
+            criteria.add(Restrictions.eq("lexicon", lexicon));
+        }
+
+        criteria = criteria.createCriteria("senses")
+                           .createCriteria("semanticLabels")
+                           .add(Restrictions.in("type",
+                                   Arrays.asList(ELabelTypeSemantics.domain,
+                                           ELabelTypeSemantics.regionOfUsage,
+                                           ELabelTypeSemantics.usage)));
+
+        @SuppressWarnings("unchecked")
+        List<Synset> ret = criteria.list();
+
+        return ret;
+
+    }
+    
+    /**
+     * Returns all domains in the db, according to the {@link #isDomain(Synset) Diversicon definition}.
+     * 
+     * @see #getUbyDomains(Lexicon)
+     * @since 0.1.0
+     */    
+    public List<Synset> getDomains(@Nullable Lexicon lexicon) {
+        Criteria criteria = session.createCriteria(Synset.class);
+        if (lexicon != null) {
+            criteria.add(Restrictions.eq("lexicon", lexicon));
+        }
+
+        Synset rootDomain = getSynsetById(Diversicons.SYNSET_ROOT_DOMAIN);
+        
+        criteria = criteria
+                .createCriteria("synsetRelations")
+                .add(Restrictions.eq("relName", Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN))
+                .add(Restrictions.eq("target", rootDomain ));
+
+        @SuppressWarnings("unchecked")
+        List<Synset> ret = criteria.list();
+
+        return ret;
+        
+    }    
     
     
+    /**
+     * Returns true if provided synset is a domain. 
+     * 
+     * @since 0.1.0
+     */    
+    public boolean isDomain(String synsetId){
+        checkId(synsetId, "Invalid synset id!");
+
+        return isConnected(synsetId,
+                Diversicons.SYNSET_ROOT_DOMAIN, -1,                
+                Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN);        
+    }
+    
+    
+    /**
+     * Returns true if provided synset is a domain.
+     * 
+     * @since 0.1.0
+     */
+    // todo performance is improvable 
+    public boolean looksLikeDomain(String synsetId) {
+        checkId(synsetId, "Invalid synset id!");
+
+        if (isDomain(synsetId)){
+            return true;
+        };
+        
+        Criteria criteria_1 = session.createCriteria(Synset.class);
+
+        criteria_1 = criteria_1.add(Restrictions.eq("id", synsetId))
+                           .createCriteria("senses")
+                           .createCriteria("semanticLabels")
+                           .add(Restrictions.in("type", Diversicons.getDomainLabelTypes()));
+
+        if (!criteria_1.list().isEmpty()){
+            return true;
+        }
+
+        Criteria criteria_2 = session.createCriteria(DivSynsetRelation.class);
+
+        criteria_2 = criteria_2                                                      
+                            .add(Restrictions.eq("relName", Diversicons.RELATION_WORDNET_TOPIC))
+                            .createCriteria("target")
+                            .add(Restrictions.eq("id", synsetId));
+
+        if (!criteria_2.list().isEmpty()){
+            return true;
+        }
+        
+        Criteria criteria_3 = session.createCriteria(DivSynsetRelation.class);
+
+        criteria_3 = criteria_3                                                      
+                            .add(Restrictions.eq("relName", Diversicons.RELATION_WORDNET_IS_TOPIC_OF))
+                            .createCriteria("source")
+                            .add(Restrictions.eq("id", synsetId));                            
+
+        if (!criteria_3.list().isEmpty()){
+            return true;
+        }
+        
+        return false;
+    }
+
+    
+    
+
+    /**
+     * Returns true if {@code synsetId1} is a subdomain of {@code synsetId2}
+     * 
+     * It synsets coincide returns true.
+     * 
+     * @throws IllegalArgumentException if one or both synsets are not domains 
+     * 
+     * @since 0.1.0
+     */
+    public boolean isSubdomain(String synsetId1, String synsetId2) {
+        checkArgument(isDomain(synsetId1), "First synset is not a domain! Id is %s", synsetId1);
+        checkArgument(isDomain(synsetId2), "Second synset is not a domain! Id is %s", synsetId2);
+        
+        return isConnected( synsetId1, 
+                            synsetId2, 
+                            -1, 
+                            Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN);
+    }
+
 }
+
