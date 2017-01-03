@@ -31,12 +31,10 @@ import de.tudarmstadt.ukp.lmf.model.core.Definition;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalEntry;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
-import de.tudarmstadt.ukp.lmf.model.core.Sense;
 import de.tudarmstadt.ukp.lmf.model.core.TextRepresentation;
 import de.tudarmstadt.ukp.lmf.model.enums.ELabelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.model.interfaces.IHasID;
-import de.tudarmstadt.ukp.lmf.model.meta.SemanticLabel;
 import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
@@ -58,19 +56,7 @@ public final class DivTester {
      * @since 0.1.0
      */
     public static final String DEFAULT_TEST_PREFIX = "test";
-
-    /**
-     * @since 0.1.0
-     */
-    private static final String MINIMAL_XML = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-            + "<LexicalResource name=\"lexical resource 1\">   \n"
-            + "     <Lexicon id=\"lexicon 1\">       \n"
-            + "         <Synset id=\"synset 1\"/>    \n"
-            + "     </Lexicon>                       \n"
-            + "</LexicalResource>";
-
-    private static final String TEST_RESOURCES_PATH = "it/unitn/disi/diversicon/test/";
-
+   
     static final String DIVERSICON_TEST_STRING = Internals.DIVERSICON_STRING + "-test-";
 
     /**
@@ -159,74 +145,92 @@ public final class DivTester {
                                                                .synsetRelation(ERelNameSemantics.HOLONYM, 1)
                                                                .build();
 
+
     /**
-     * syn1
-     * 
-     * 
-     * syn2 domain
-     * ^
-     * |
-     * syn3
-     * ^
-     * |
-     * syn4 regionOfUsage
+     * <pre>
+     * div_ss_n_domain
+     *    ^
+     *    | superDomain
+     * synset 1
+     *    ^
+     *    | superDomain
+     * synset 2
+     *    ^
+     *    |  domain
+     * synset 3
+     *    
+     * synset 4  // detached
+     * <pre/>
+     * @since 0.1.0
+     */
+    public static final LexicalResource GRAPH_DOMAINS_SIMPLE = lmf().lexicon()
+            .synset()
+            .synsetRelation(Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN, Diversicons.SYNSET_ROOT_DOMAIN)
+            .lexicalEntry()
+            .synset()
+            .synsetRelation(Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN, 1)
+            .lexicalEntry()                
+            .synset()
+            .synsetRelation(Diversicons.RELATION_DIVERSICON_DOMAIN, 2)
+            .lexicalEntry()
+            .synset()               
+            .build();
+
+    /**
+     * <pre>
+     * synset-1
+     *   ^
+     *   |  topic
+     * synset-2
+     * <pre/>
      * 
      * @since 0.1.0
      */
-    public static final LexicalResource GRAPH_DOMAINS;
+    public static final LexicalResource GRAPH_TOPIC = lmf().lexicon()
+                        .synset()                        
+                        .lexicalEntry()
+                        .synset()
+                        .synsetRelation(Diversicons.RELATION_WORDNET_TOPIC, 1)
+                        .lexicalEntry()                                      
+                        .build();
 
-    static {
-        GRAPH_DOMAINS = lmf().lexicon()
-                             .synset()
-                             .lexicalEntry()
-                             .synset() // domain
-                             .lexicalEntry()
-                             .synset()                              
-                             .lexicalEntry()
-                             .synset()  // domain
-                             .synsetRelation(ERelNameSemantics.HYPERNYM,3)                             
-                             .lexicalEntry()
-                             .build();
-
-        Sense sense1 = GRAPH_DOMAINS.getLexicons()
-                                    .get(0)
-                                    .getLexicalEntries()
-                                    .get(0)
-                                    .getSenses()
-                                    .get(0);
-
-        SemanticLabel semLabel1 = new SemanticLabel();
-        semLabel1.setLabel("d1");
-        semLabel1.setType(ELabelTypeSemantics.category); // category is *NOT* a
-                                                         // domain !!!
-        sense1.addSemanticLabel(semLabel1);
-
-        Sense sense2 = GRAPH_DOMAINS.getLexicons()
-                                    .get(0)
-                                    .getLexicalEntries()
-                                    .get(1)
-                                    .getSenses()
-                                    .get(0);
-
-        SemanticLabel semLabel2 = new SemanticLabel();
-        semLabel2.setLabel("d2");
-        semLabel2.setType(ELabelTypeSemantics.domain);
-        sense2.addSemanticLabel(semLabel2);
-
-        Sense sense4 = GRAPH_DOMAINS.getLexicons()
-                                    .get(0)
-                                    .getLexicalEntries()
-                                    .get(3)
-                                    .getSenses()
-                                    .get(0);
-
-        SemanticLabel semLabel4 = new SemanticLabel();
-        semLabel4.setLabel("d4");
-        semLabel4.setType(ELabelTypeSemantics.regionOfUsage);
-        sense4.addSemanticLabel(semLabel4);
-
-    }
-
+    /**
+     * <pre>
+     * synset-1  - lexical-entry-1 - sense-1 - SemanticLabel type = 'domain'
+     *     
+     * synset-2  - lexical-entry-2 - sense-2 - SemanticLabel type = 'category' 
+     * <pre/>
+     * 
+     * @since 0.1.0
+     */
+    public static final LexicalResource GRAPH_DOMAIN_SEMANTIC_LABEL = lmf().lexicon()
+            .synset()                        
+            .lexicalEntry()
+            .semanticLabel("d1", ELabelTypeSemantics.domain)
+            .synset()
+            .lexicalEntry()
+            .semanticLabel("d2", ELabelTypeSemantics.category) // category is *NOT* a domain !
+            .build();
+    
+    /**
+     * <pre>
+     * 
+     *  synset-1 
+     *     | is-topic-of 
+     *  synset-2
+     *   
+     * <pre/>
+     * 
+     * @since 0.1.0
+     */
+    public static final LexicalResource GRAPH_DOMAIN_IS_TOPIC_OF = lmf().lexicon()
+                            .synset()                                       
+                            .lexicalEntry()
+                            .synset()                    
+                            .lexicalEntry()
+                            .synsetRelation(Diversicons.RELATION_WORDNET_IS_TOPIC_OF, 1,2)                    
+                            .build();
+    
     private static final Logger LOG = LoggerFactory.getLogger(DivTester.class);
 
     /**
@@ -515,7 +519,7 @@ public final class DivTester {
                                    .size(); i++) {
                 normalPerm[i] = i;
             }
-            permutations = new ArrayList();
+            permutations = new ArrayList<>();
             permutations.add(normalPerm);
         }
 

@@ -31,6 +31,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
+import de.tudarmstadt.ukp.lmf.model.enums.ELabelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
@@ -129,7 +130,8 @@ public class DivUtilsTest {
                                             .synset()
                                             .definition("cool")
                                             .lexicalEntry("a")
-                                            .wordform("w")                                            
+                                            .wordform("w")
+                                            .semanticLabel("bla", ELabelTypeSemantics.domain)
                                             .synset()
                                             .lexicalEntry("b")
                                             .synsetRelation(ERelNameSemantics.HYPERNYM, 1)

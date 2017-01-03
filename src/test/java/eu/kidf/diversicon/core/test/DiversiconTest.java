@@ -31,12 +31,10 @@ import org.slf4j.LoggerFactory;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalEntry;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
-import de.tudarmstadt.ukp.lmf.model.core.Sense;
 import de.tudarmstadt.ukp.lmf.model.enums.ELabelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.meta.MetaData;
-import de.tudarmstadt.ukp.lmf.model.meta.SemanticLabel;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
@@ -56,6 +54,9 @@ import eu.kidf.diversicon.core.exceptions.InvalidSchemaException;
 import eu.kidf.diversicon.core.internal.Internals;
 import eu.kidf.diversicon.data.DivWn31;
 import eu.kidf.diversicon.data.Smartphones;
+import static eu.kidf.diversicon.core.internal.Internals.newHashSet;
+import static eu.kidf.diversicon.core.internal.Internals.newArrayList;
+import static eu.kidf.diversicon.core.Diversicons.SYNSET_ROOT_DOMAIN;
 
 /**
  * @since 0.1.0
@@ -200,8 +201,7 @@ public class DiversiconTest {
 
         checkDb(expectedLexicalResource, div, Internals.newHashSet(DivTester.Flags.UNORDERED_SYNSET_RELATIONS));
 
-        div.getSession()
-                  .close();
+        div.getSession().close();
 
     };
 
@@ -531,9 +531,9 @@ public class DiversiconTest {
 
         DivTester.importResource(div, res, true);
 
-        assertEquals(Internals.newArrayList("a"), div.getLemmaStringsByWrittenForm("a", null, null));
-        assertEquals(Internals.newArrayList("c"), div.getLemmaStringsByWrittenForm("c", null, null));
-        assertEquals(Internals.newArrayList(), div.getLemmaStringsByWrittenForm("666", null, null));
+        assertEquals(newArrayList("a"), div.getLemmaStringsByWrittenForm("a", null, null));
+        assertEquals(newArrayList("c"), div.getLemmaStringsByWrittenForm("c", null, null));
+        assertEquals(newArrayList(), div.getLemmaStringsByWrittenForm("666", null, null));
 
         div.getSession()
            .close();
@@ -1154,7 +1154,7 @@ public class DiversiconTest {
         assertEquals(prefix2 + " lexical resource", import2.getLexResPackage().getLabel());
         assertNotEquals(-1, import2.getId());
                         
-        List<Synset> synsets = Internals.newArrayList(div.getConnectedSynsets("test2_synset-1", -1, ERelNameSemantics.HYPERNYM));
+        List<Synset> synsets = newArrayList(div.getConnectedSynsets("test2_synset-1", -1, ERelNameSemantics.HYPERNYM));
         
         assertEquals(2, synsets.size());
         assertEquals("test_synset-2", synsets.get(0).getId());
@@ -1386,7 +1386,7 @@ public class DiversiconTest {
         Diversicon div = Diversicon.connectToDb(divConfig);        
         DivTester.importResource(div, WORDFORMS_LEX_RES, true);
         
-        assertEquals(Internals.newArrayList("a"),
+        assertEquals(newArrayList("a"),
                     div.getLemmaStringsByWordForm("x", null, null));
 
     }    
@@ -1397,33 +1397,132 @@ public class DiversiconTest {
      */
     @Test
     public void testGetDomains(){
-        
+
         Diversicons.dropCreateTables(divConfig.getDbConfig());
         Diversicon div = Diversicon.connectToDb(divConfig);                
-        DivTester.importResource(div, DivTester.GRAPH_DOMAINS, false);
-
-        Synset syn2 = div.getSynsetById(tid("synset-2"));
-        Synset syn4 = div.getSynsetById(tid("synset-4"));
-        List<String> ids = Internals.getIds(div.getDomains(null));
-        assertEquals(2, ids.size());
-        assertTrue(ids.contains(syn2.getId()));
-        assertTrue(ids.contains(syn4.getId()));
+                    
+        DivTester.importResource(div, DivTester.GRAPH_DOMAINS_SIMPLE, false);
+        
+        List<Synset> syns = div.getDomains(null);
+                        
+        assertEquals(new HashSet<>(Internals.getIds(syns)), 
+                     newHashSet(tid("synset-1"), tid("synset-2")));      
     }
     
+    /**
+     * @since 0.1.0
+     */    
+    @Test
+    public void testDomainNormalizationTopic(){       
+        
+        assertAugmentation(
+                DivTester.GRAPH_TOPIC,
+                
+                lmf().lexicon()
+                    .synset()                        
+                    .lexicalEntry()
+                    .synsetRelation(Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN, Diversicons.SYNSET_ROOT_DOMAIN)                
+                    .synset()
+                    .synsetRelation(Diversicons.RELATION_WORDNET_TOPIC, 1)
+                    .synsetRelation(Diversicons.RELATION_DIVERSICON_DOMAIN, 1)
+                    .lexicalEntry()                                      
+                    .build());
+    }
+
+    /**
+     * @since 0.1.0
+     */    
+    @Test
+    public void testDomainNormalizationSenseLabel(){       
+        
+        assertAugmentation(
+                DivTester.GRAPH_DOMAIN_SEMANTIC_LABEL,
+                
+                lmf().lexicon()
+                        .synset()                        
+                        .lexicalEntry()
+                        .semanticLabel("d1", ELabelTypeSemantics.domain)
+                        .synsetRelation(Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN, Diversicons.SYNSET_ROOT_DOMAIN)
+                        .synset()
+                        .lexicalEntry()
+                        .semanticLabel("d2", ELabelTypeSemantics.category)
+                        .build());
+    }
     
+    /**
+     * @since 0.1.0
+     */    
+    @Test
+    public void testDomainNormalizationInverse(){       
+        
+                
+        assertAugmentation(
+                DivTester.GRAPH_DOMAIN_IS_TOPIC_OF,
+                
+                lmf().lexicon()
+                    .synset()                        
+                    .lexicalEntry()
+                    .synsetRelation(Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN, Diversicons.SYNSET_ROOT_DOMAIN)                
+                    .synset()
+                    .synsetRelation(Diversicons.RELATION_WORDNET_TOPIC, 1)
+                    .synsetRelation(Diversicons.RELATION_DIVERSICON_DOMAIN, 1)
+                    .synsetRelation(Diversicons.RELATION_WORDNET_IS_TOPIC_OF, 1,2)                    
+                    .lexicalEntry()                                      
+                    .build());
+    }
+
+    /**
+     * @since 0.1.0
+     */    
+    @Test
+    @Ignore
+    // we aleeady test this in testDomainNormalization*
+    public void testLooksLikeDomainSense(){
+        
+    }
+        
+    
+    /**
+     * @since 0.1.0
+     */    
     @Test
     public void testIsDomain(){
         Diversicons.dropCreateTables(divConfig.getDbConfig());
         Diversicon div = Diversicon.connectToDb(divConfig);                
-        DivTester.importResource(div, DivTester.GRAPH_DOMAINS, false);
+        DivTester.importResource(div, DivTester.GRAPH_DOMAINS_SIMPLE, false);
+                               
+        assertTrue(div.isDomain(tid("synset-1")));               
+        assertTrue(div.isDomain(tid("synset-2")));                
+        assertFalse(div.isDomain(tid("synset-3")));                        
+        assertFalse(div.isDomain(tid("synset-4")));
+    }
+
+    
+    /**
+     * @since 0.1.0
+     */    
+    @Test
+    public void testIsSubDomain(){
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
+        Diversicon div = Diversicon.connectToDb(divConfig);                
+        DivTester.importResource(div, DivTester.GRAPH_DOMAINS_SIMPLE, false);
         
-        
-        Synset syn1 = div.getSynsetById(tid("synset-1"));        
-        assertFalse(div.isDomain(syn1));
-        Synset syn2 = div.getSynsetById(tid("synset-2"));        
-        assertTrue(div.isDomain(syn2));
-        Synset syn4 = div.getSynsetById(tid("synset-4"));        
-        assertTrue(div.isDomain(syn4));
+        assertTrue(div.isSubdomain(SYNSET_ROOT_DOMAIN, SYNSET_ROOT_DOMAIN));        
+        assertTrue(div.isSubdomain(tid("synset-1"), SYNSET_ROOT_DOMAIN));
+        assertTrue(div.isSubdomain(tid("synset-2"), tid("synset-1")));
+        assertTrue(div.isSubdomain(tid("synset-2"), SYNSET_ROOT_DOMAIN));
+        try {
+            assertFalse(div.isSubdomain(tid("synset-3"), tid("synset-2")));
+            Assert.fail("Shouldn't arrive here!");
+        } catch (IllegalArgumentException ex){
+            
+        }
+        try {
+            assertFalse(div.isSubdomain(tid("synset-4"), SYNSET_ROOT_DOMAIN));
+        } catch (IllegalArgumentException ex){
+            
+        }
+
     }
     
     

@@ -7,8 +7,10 @@ import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
 import de.tudarmstadt.ukp.lmf.model.core.Sense;
 import de.tudarmstadt.ukp.lmf.model.core.TextRepresentation;
+import de.tudarmstadt.ukp.lmf.model.enums.ELabelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.enums.EPartOfSpeech;
 import de.tudarmstadt.ukp.lmf.model.meta.MetaData;
+import de.tudarmstadt.ukp.lmf.model.meta.SemanticLabel;
 import de.tudarmstadt.ukp.lmf.model.morphology.FormRepresentation;
 import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.morphology.WordForm;
@@ -37,8 +39,8 @@ import org.slf4j.LoggerFactory;
  * use for testing purposes.
  * 
  * The builder will automatically create necessary ids for you, like
- * 'lexical-resource 1'
- * , 'synset-3', ... according to the order of insertion.
+ * 'test_lexical-resource-1'
+ * , 'test_synset-3', ... according to the order of insertion.
  * 
  * Start building with {@link #lmf()} or {@link #lmf(String)} and finish with
  * {@link #build()}. Each builder instance can build only one object.
@@ -572,4 +574,38 @@ public class LmfBuilder {
 
     }
 
+    /**
+     * Adds a semantic label to current sense.
+     * 
+     * @since 0.1.0
+     */
+    public LmfBuilder semanticLabel(String label, ELabelTypeSemantics type){
+        SemanticLabel semLabel = new SemanticLabel();
+        semLabel.setLabel(label);
+        semLabel.setType(type);
+        Sense sense = getCurSense();
+        sense.addSemanticLabel(semLabel);
+        return this;
+    }
+
+    /**
+     * Returns the current Sense. If there is none, throws IllegalStateException 
+     * 
+     * @since 0.1.0
+     */
+    private Sense getCurSense() {
+        checkBuilt();
+        
+        LexicalEntry entry = getCurLexicalEntry();
+                
+        int size = entry.getSenses()
+                          .size();
+        if (size == 0) {
+            throw new IllegalStateException("There are no senses in current lexical entry " + entry.getId() + "!");
+        }
+        return entry.getSenses()
+                      .get(size - 1);
+        
+    }
+    
 }

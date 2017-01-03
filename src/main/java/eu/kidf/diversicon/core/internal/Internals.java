@@ -1819,6 +1819,7 @@ public final class Internals {
     /**
      * 
      * Returns the id of the items in the provided collection.
+     * Null collection items are reported with warnings.
      * 
      * @since 0.1.0
      */
@@ -1828,8 +1829,9 @@ public final class Internals {
         List<String> ret = new ArrayList<>();
         
        for (IHasID hasId : col){
-           if (hasId != null){
+           if (hasId == null){
                LOG.warn("Found collection with null item, skipping it !");
+           } else {
                ret.add(hasId.getId());
            }
        }
