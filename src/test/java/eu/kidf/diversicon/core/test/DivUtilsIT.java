@@ -6,12 +6,10 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.h2.tools.Restore;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -100,7 +98,6 @@ public class DivUtilsIT {
         Diversicon div = Diversicon.connectToDb(DivConfig.of(dbCfg));               
         
         div.importXml(Smartphones.of().getXmlUri());    
-        LOG.debug("hello");
     }
     
     /**
