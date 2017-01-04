@@ -24,8 +24,9 @@ public class XmlValidationConfig {
     @Nullable
     private String xsdUrl;
     
-    private DivConfig diversiconConfig;
-
+    private DivConfig diversiconConfig;    // to access resources via proxy
+    
+    
     /**
      * @since 0.1.0
      */
@@ -34,7 +35,7 @@ public class XmlValidationConfig {
         this.logLimit = Diversicons.DEFAULT_LOG_LIMIT;
         this.failFast = false;
         this.xsdUrl = null;
-        this.diversiconConfig = DivConfig.of();
+        this.diversiconConfig = DivConfig.of();        
     }
 
     /**
@@ -54,9 +55,7 @@ public class XmlValidationConfig {
     public long getLogLimit() {
         return logLimit;
     }
-
   
-
     /**
      * If true the handler will throw an error as soon {{@link #getLogLimit()}
      * log limit} errors
@@ -68,9 +67,7 @@ public class XmlValidationConfig {
         return failFast;
     }
 
-    
    
-
     /**
      * The logger where to which messages are redirected.
      * 
@@ -83,7 +80,7 @@ public class XmlValidationConfig {
     /**
      * @since 0.1.0
      */
-    public DivConfig getdiversiconConfig(){
+    public DivConfig getDiversiconConfig(){
         return diversiconConfig;
     }
     
@@ -163,7 +160,7 @@ public class XmlValidationConfig {
         
         
         /**
-         * See {@link XmlValidationConfig#getdiversiconConfig()}
+         * See {@link XmlValidationConfig#getDiversiconConfig()}
          * 
          * @since 0.1.0
          */    
@@ -205,7 +202,8 @@ public class XmlValidationConfig {
             
             config.failFast = failFast;
             return this;
-        }
+        }               
+        
         /**
          * See {@link XmlValidationConfig#getXsdUrl()}
          * 

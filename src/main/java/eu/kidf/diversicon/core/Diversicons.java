@@ -103,7 +103,6 @@ import eu.kidf.diversicon.core.exceptions.DivIoException;
 import eu.kidf.diversicon.core.exceptions.DivNotFoundException;
 import eu.kidf.diversicon.core.exceptions.InvalidSchemaException;
 import eu.kidf.diversicon.core.exceptions.InvalidXmlException;
-import eu.kidf.diversicon.core.internal.DivXmlValidator;
 import eu.kidf.diversicon.core.internal.Internals;
 import eu.kidf.diversicon.data.DivUpper;
 import eu.kidf.diversicon.data.DivWn31;
@@ -308,6 +307,12 @@ public final class Diversicons {
             + " unicode letters, dots '.', dashes '-', underscores '_', but no spaces.";
 
     /**
+     * @since 0.1.0
+     */
+    public static final Map<String, String> DEFAULT_NAMESPACES = 
+            Collections.unmodifiableMap(Internals.newMap(DivUpper.PREFIX, DivUpper.of().namespace()));
+        
+    /**
      * {@value #NAMESPACE_ID_PATTERN_DESCRIPTION}
      * 
      * @since 0.1.0
@@ -387,14 +392,6 @@ public final class Diversicons {
      * @since 0.1.0
      */
     public static final String RELATION_DIVERSICON_SUB_DOMAIN = "subDomain";
-
-    /**
-     * 
-     * Synset id of the root of all domains, as specified in DivUpper lexical resource 
-     *
-     * @since 0.1.0
-     */
-    public static final String SYNSET_ROOT_DOMAIN = "div_ss_n_domain";
     
     
     /**
@@ -719,7 +716,7 @@ public final class Diversicons {
         Transaction tx = null;
 
         SchemaExport se = new SchemaExport(hcfg);
-        se.create(drop, true);
+        se.create(dbConfig.isShowSQL(), true);
         try {
             tx = session.beginTransaction();
             DbInfo dbInfo = new DbInfo();
@@ -1199,6 +1196,7 @@ public final class Diversicons {
         ret.setJdbc_driver_class("org.h2.Driver");
         ret.setUser(DEFAULT_USER); // same as UBY
         ret.setPassword(DEFAULT_PASSWORD); // same as UBY
+        // NOTE: in UBY isShowSQL is false by default.
         return ret;
     }
 
@@ -1749,20 +1747,15 @@ public final class Diversicons {
     /**
      * 
      * @throws IllegalArgumentException
+     * 
      * @since 0.1.0
      */
     public static Map<String, String> checkNamespaces(@Nullable Map<String, String> namespaces) {
         checkNotNull(namespaces);
 
         for (String prefix : namespaces.keySet()) {
-            checkNotNull(prefix);
-            if (!NAMESPACE_PREFIX_PATTERN.matcher(prefix)
-                                         .matches()) {
-                throw new IllegalArgumentException(
-                        "Invalid prefix '" + prefix + "', it must match " + NAMESPACE_PREFIX_PATTERN.toString());
-            }
-
-            checkNotBlank(namespaces.get(prefix), "Invalid namespace url!");
+            checkPrefix(prefix);
+            checkNamespace(namespaces.get(prefix));
         }
         return namespaces;
     }
@@ -1846,16 +1839,57 @@ public final class Diversicons {
                 "Couldn't find xml resource for namespace=" + namespaceUri + " and systemId=" + systemId);
     }
 
+    
+    /**
+     * Validates a {@link LexicalResource}. Returned validator will contain collected info.
+     * 
+     * <p>
+     * <b>*EXPERIMENTAL*, does not validate nor collect much. For XMLs, 
+     * use {@link #validateXml(File, XmlValidationConfig)} instead !!!</b>
+     * </p>
+     * @throws DivException
+     * @throws InvalidXmlException
+     * @since 0.1.0
+     */
+    public static DivXmlValidator validateResource(
+            LexResPackage pack, 
+            @Nullable LexicalResource resource, 
+            final XmlValidationConfig config) {
+
+        checkNotNull(pack);
+        checkNotNull(config);
+
+        DivXmlHandler errorHandler = new DivXmlHandler(config, resource.getName()); // todo using name as sysmId, hope it's correct
+               
+        if (errorHandler.invalid()) {
+            config.getLog()
+                  .error("Invalid lexical resource! " + errorHandler.summary() + " in " + pack.getName());
+            throw new InvalidXmlException(errorHandler,
+                    "Invalid lexical resource! " + errorHandler.summary() + " in " + pack.getName()
+                            + "\n" + errorHandler.firstIssueAsString());
+        }
+        
+        return new DivXmlValidator(pack, errorHandler);
+    }    
+    
+    
+    
     /**
      * Validates an xml file. You can pass schema overrides in the provided
-     * config.
+     * config. Returned validator will contain collected info. Optionally, 
+     * can make a third pass of validation against a db. 
+     *
+     * 
+     *  @param div only needed for third-pass validation against the db
      * 
      * @throws DivException
      * @throws InvalidXmlException
      * 
      * @since 0.1.0
      */
-    public static void validateXml(File xmlFile, final XmlValidationConfig config) {
+    public static DivXmlValidator validateXml(
+                            File xmlFile, 
+                            final XmlValidationConfig config) {
 
         checkNotNull(xmlFile);
         checkNotNull(config);
@@ -1902,7 +1936,7 @@ public final class Diversicons {
                         + "\n systemId     = " + systemId
                         + "\n baseURI      = " + baseURI);
 
-                return resolveXmlResource(config.getdiversiconConfig(), namespaceURI, systemId);
+                return resolveXmlResource(config.getDiversiconConfig(), namespaceURI, systemId);
             }
         };
 
@@ -1918,9 +1952,9 @@ public final class Diversicons {
 
         DivXmlValidator divXmlValidator = new DivXmlValidator(new LexResPackage(), errorHandler);
 
-        validateXmlJavaStep(xmlFile, errorHandler, divXmlValidator, lsResResolver);
+        validateXmlJavaStep(xmlFile, divXmlValidator, lsResResolver);
         // need to steps!
-        validateXmlJavaStep(xmlFile, errorHandler, divXmlValidator, lsResResolver);
+        validateXmlJavaStep(xmlFile, divXmlValidator, lsResResolver);
 
         if (errorHandler.invalid()) {
             config.getLog()
@@ -1930,24 +1964,24 @@ public final class Diversicons {
                             + "\n" + errorHandler.firstIssueAsString());
         }
 
+        return divXmlValidator;
     }
 
     /**
      * Performs validation with custom Java code. Needed because current Xerces
      * Xml Schema 1.1 assert implemention has problems, see
      * https://github.com/diversicon-kb/diversicon/issues/21
-     * 
-     * @param file
-     * @param errorHandler
-     * 
+     *        
      * @since 0.1.0
      */
     // TODO probably we could pass less parameters
-    public static void validateXmlJavaStep(
-            File file,
-            DivXmlHandler errorHandler,
+    static void validateXmlJavaStep(
+            File file,           
             DivXmlValidator divXmlValidator,
             LSResourceResolver resRes) {
+        
+        DivXmlHandler errorHandler = divXmlValidator.getErrorHandler();
+        
         SAXParserFactory factory = SAXParserFactory.newInstance();
         factory.setValidating(false);
         SAXParser parser;
@@ -2038,13 +2072,27 @@ public final class Diversicons {
      * 
      * @since 0.1.0
      */
-    public static String checkPrefix(String prefix) {
+    public static String checkPrefix(String prefix) {               
+        checkNotNull(prefix);
         if (!NAMESPACE_PREFIX_PATTERN.matcher(prefix)
                                      .matches()) {
-            throw new IllegalArgumentException("Invalid prefix!");
+            throw new IllegalArgumentException(
+                    "Invalid prefix '" + prefix + "', it must match " + NAMESPACE_PREFIX_PATTERN.toString());
         }
-        return prefix;
+        return prefix;        
     }
+    
+    /**
+     * 
+     * Checks a prefix is valid, throwing IllegalArgumentException otherwise
+     * 
+     * @throws IllegalArgumentException
+     * 
+     * @since 0.1.0
+     */
+    public static String checkNamespace(String namespace) {
+        return checkNotBlank(namespace, "Invalid namespace url!");
+    }       
 
     /**
      * 
@@ -2384,6 +2432,6 @@ public final class Diversicons {
         } catch (URISyntaxException e) {
             throw new DivException("Couldn't parse subDataUrl " + subDataUri, e);
         }
-    }
+    }   
 
 }

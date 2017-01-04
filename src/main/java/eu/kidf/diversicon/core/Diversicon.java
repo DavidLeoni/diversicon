@@ -68,7 +68,9 @@ import eu.kidf.diversicon.core.exceptions.InterruptedImportException;
 import eu.kidf.diversicon.core.exceptions.InvalidImportException;
 import eu.kidf.diversicon.core.exceptions.InvalidSchemaException;
 import eu.kidf.diversicon.core.exceptions.InvalidStateException;
+import eu.kidf.diversicon.core.exceptions.InvalidXmlException;
 import eu.kidf.diversicon.core.internal.Internals;
+import eu.kidf.diversicon.data.DivUpper;
 
 /**
  * Extension of {@link de.tudarmstadt.ukp.lmf.api.Uby Uby} LMF knowledge base
@@ -569,7 +571,6 @@ public class Diversicon extends Uby {
                                 .uniqueResult()).longValue();
 
     }
-    
 
     /*
      * Adds missing edges of depth 1 for relations we consider as canonical.
@@ -582,19 +583,19 @@ public class Diversicon extends Uby {
 
         checkArgument(!getDbInfo().isToValidate(), "Tried to normalize a graph which is yet to validate!");
 
-        LOG.info("Normalizing SynsetRelations...");        
-        
+        LOG.info("Normalizing SynsetRelations...");
+
         Transaction tx = null;
         Date checkpoint = new Date();
 
         Date start = checkpoint;
 
-        try {                                           
-            
+        try {
+
             tx = session.beginTransaction();
 
-            Synset rootDomain = getSynsetById(Diversicons.SYNSET_ROOT_DOMAIN);
-            
+            Synset rootDomain = getSynsetById(DivUpper.SYNSET_ROOT_DOMAIN);
+
             long totalSynsets = getSynsetCount();
 
             String hql = "FROM Synset";
@@ -619,14 +620,13 @@ public class Diversicon extends Uby {
                 List<SynsetRelation> relations = synset.getSynsetRelations();
 
                 normalizeDomain(synset, rootDomain, insStats);
-                
-                                
-                for (SynsetRelation sr : new ArrayList<>(relations)){                    
-                    
+
+                for (SynsetRelation sr : new ArrayList<>(relations)) {
+
                     DivSynsetRelation ssr = (DivSynsetRelation) sr;
 
                     normalizeTopicToDomain(ssr, insStats);
-                                        
+
                     normalizeInverses(ssr, insStats);
 
                 }
@@ -662,39 +662,40 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * Checks if synset looks like a domain, and if needed connects it by 
+     * Checks if synset looks like a domain, and if needed connects it by
      * {@link Diversicons#RELATION_DIVERSICON_SUPER_DOMAIN superDomain} relation
      * to {@link Diversicons#SYNSET_ROOT_DOMAIN root domain}
      * 
      * @param synset
-     * @param insertion stats to modify
+     * @param insertion
+     *            stats to modify
      * 
      * @see #isDomain(Synset)
-     * @since 0.1.0 
+     * @since 0.1.0
      */
     private void normalizeDomain(Synset synset, Synset rootDomain, InsertionStats insStats) {
         checkNotNull(synset);
         checkNotNull(insStats);
-                
+
         String superDomain = Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN;
-        
-        if (looksLikeDomain(synset.getId())){
-            if (!isDomain(synset.getId())){
+
+        if (looksLikeDomain(synset.getId())) {
+            if (!isDomain(synset.getId())) {
                 DivSynsetRelation newSsr = new DivSynsetRelation();
 
                 newSsr.setDepth(1);
                 newSsr.setProvenance(Diversicon.getProvenanceId());
-                
+
                 newSsr.setRelName(superDomain);
                 newSsr.setRelType(Diversicons.getRelationType(superDomain));
                 newSsr.setSource(synset);
                 newSsr.setTarget(rootDomain);
                 synset
-                .getSynsetRelations()
-                .add(newSsr);
-             session.save(newSsr);
-             session.saveOrUpdate(synset);
-             insStats.inc(superDomain);
+                      .getSynsetRelations()
+                      .add(newSsr);
+                session.save(newSsr);
+                session.saveOrUpdate(synset);
+                insStats.inc(superDomain);
             }
         }
     }
@@ -702,16 +703,17 @@ public class Diversicon extends Uby {
     /**
      * Normalizes the inverses
      * 
-     * @param ssr a SynsetRelation to check
-     * @param insStats insertion stats to modify
+     * @param ssr
+     *            a SynsetRelation to check
+     * @param insStats
+     *            insertion stats to modify
      * 
      * @since 0.1.0
      */
     private void normalizeInverses(DivSynsetRelation ssr, InsertionStats insStats) {
         checkNotNull(ssr);
         checkNotNull(insStats);
-        
-        
+
         if (Diversicons.hasInverse(ssr.getRelName())) {
             String inverseRelName = Diversicons.getInverse(ssr.getRelName());
             if (Diversicons.isCanonicalRelation(inverseRelName)
@@ -742,28 +744,28 @@ public class Diversicon extends Uby {
         }
     }
 
-   
-    
     /**
-     * @param ssr a SynsetRelation to check
-     * @param insStats insertion stats to modify
+     * @param ssr
+     *            a SynsetRelation to check
+     * @param insStats
+     *            insertion stats to modify
      * 
      * @since 0.1.0
      */
-    private void normalizeTopicToDomain(SynsetRelation ssr, InsertionStats  insStats) {
+    private void normalizeTopicToDomain(SynsetRelation ssr, InsertionStats insStats) {
         checkNotNull(ssr);
-        checkNotNull(insStats);        
-        
+        checkNotNull(insStats);
+
         if ((Diversicons.RELATION_WORDNET_TOPIC.equals(ssr.getRelName())
                 && !containsRel(ssr.getSource(),
                         ssr.getTarget(),
                         Diversicons.RELATION_DIVERSICON_DOMAIN))
-            || (Diversicons.RELATION_WORDNET_IS_TOPIC_OF.equals(ssr.getRelName())
-            && !containsRel(ssr.getTarget(),
-                    ssr.getSource(),
-                    Diversicons.RELATION_DIVERSICON_DOMAIN    
-                
-                ))) {
+                || (Diversicons.RELATION_WORDNET_IS_TOPIC_OF.equals(ssr.getRelName())
+                        && !containsRel(ssr.getTarget(),
+                                ssr.getSource(),
+                                Diversicons.RELATION_DIVERSICON_DOMAIN
+
+        ))) {
             DivSynsetRelation newSsr = new DivSynsetRelation();
 
             newSsr.setDepth(1);
@@ -1241,8 +1243,11 @@ public class Diversicon extends Uby {
 
     /**
      * 
-     * Creates an {@link ImportJob} Java object. No data will be written into
-     * the db.
+     * Validates metadata and xml (if present), then returns an
+     * {@link ImportJob}. No data will
+     * be written into the db.
+     * 
+     * 
      * Still, db can get accessed to validate the input.
      * 
      * !!!! IMPORTANT !!!!! {@code pack} must already contain data about the
@@ -1252,61 +1257,116 @@ public class Diversicon extends Uby {
      *             if thrown means some validation failed but no
      *             LexicalResource data was written to disk.
      * 
-     * @param the
-     *            phyisical source LMF XML file. If there was none, use
-     *            {@code null}
+     * @param fileUrl
+     *            Url to the file to import. This is what will be used to
+     *            actually import the file
+     * @param xmlFile
+     *            the physical source LMF XML file. If there was none, use
+     *            {@code null}. This will only be used to validate the file
+     *            prior import.
      * @see #setCurrentImportJob(ImportJob)
      * @since 0.1.0
      */
     private ImportJob newImportJob(
-            ImportConfig config,
+            ImportConfig importConfig,
             String fileUrl,
             @Nullable File file,
             LexResPackage pack) {
 
-        try {
-            checkNotNull(config);
-            checkNotEmpty(fileUrl, "Invalid fileUrl!");
-            checkArgument(config.getFileUrls()
-                                .contains(fileUrl),
-                    "Couldn't find fileUrl " + fileUrl + "in importConfig!");
+        validateImport(importConfig, fileUrl, file, pack);
 
+        ImportJob job = new ImportJob();
+
+        job.setAuthor(importConfig.getAuthor());
+        job.setDescription(importConfig.getDescription());
+        job.setStartDate(new Date());
+        job.setFileUrl(fileUrl);
+        job.setLexResPackage(pack);
+
+        return job;
+
+    }
+
+    /**
+     * Validates import checking for:
+     * 
+     * <ol>
+     * <li>metadata</li>
+     * <li>(if present) xml alone</li>
+     * <li>(if present) xml data against the db</li>
+     * </ol>
+     * 
+     * No write is performed on the db.
+     * 
+     * @see #newImportJob(ImportConfig, String, File, LexResPackage) for more
+     *      info.
+     * @since 0.1.0
+     */
+    private void validateImport(
+            ImportConfig importConfig,
+            String fileUrl,
+            @Nullable File xmlFile,
+            LexResPackage pack) {
+        try {
+            checkNotNull(importConfig);
+            checkArgument(importConfig.getFileUrls()
+                                      .contains(fileUrl),
+                    "Couldn't find fileUrl " + fileUrl + "in importConfig!");
+            checkNotEmpty(fileUrl, "Invalid fileUrl!");
             Internals.checkLexResPackage(pack);
 
-            if (file != null) {
-                LOG.info("");
-                LOG.info("Validating XML Schema of " + file.getAbsolutePath() + "   ...");
-                LOG.info("");
-                try {
-                    XmlValidationConfig xmlValidationConfig = XmlValidationConfig.builder()
-                                                                                 .setLog(LOG)
-                                                                                 .setLogLimit(config.getLogLimit())
-                                                                                 .setFailFast(true)
-                                                                                 .build();
+            DivXmlValidator divValidator;
 
-                    Diversicons.validateXml(file, xmlValidationConfig);
-                    LOG.info("XML is valid!");
+            XmlValidationConfig xmlValidationConfig = XmlValidationConfig.builder()
+                                                                         .setLog(LOG)
+                                                                         .setLogLimit(importConfig.getLogLimit())
+                                                                         .setFailFast(true)
+                                                                         .build();
+
+            if (xmlFile == null) {
+                try {
+                    divValidator = Diversicons.validateResource(pack, null, xmlValidationConfig);
+                    LOG.info("Resource is valid!");
                     LOG.info("");
                 } catch (Exception ex) {
+                    throw new InvalidImportException("Found invalid resource !", ex);
+                }
+            } else {
+                LOG.info("");
+                LOG.info("Validating XML Schema of " + xmlFile.getAbsolutePath() + "   ...");
+                LOG.info("");
+                try {
+                    divValidator = Diversicons.validateXml(xmlFile, xmlValidationConfig);
+                    LOG.info("XML is valid!");
+                    LOG.info("");
+                } catch (InvalidXmlException ex) {
                     throw new InvalidImportException("Found invalid XML !", ex);
+                } catch (Exception ex) {
+                    throw new InvalidImportException("Internal error while validating XML !", ex);
                 }
             }
+
+            DivXmlHandler errHandler = divValidator.getErrorHandler();
+
+            LOG.info("Validating import data against the db....");
 
             List<ImportJob> jobs = getImportJobs();
 
             for (ImportJob job : jobs) {
 
-                if (pack.equals(job.getLexResPackage())) {
+                if (pack.getName()
+                        .equals(job.getLexResPackage()
+                                   .getName())) {
                     throw new InvalidImportException(
                             "Looks like you're trying to import the same lexical resource twice!");
                 }
 
                 if (Objects.equals(pack.getPrefix(), job.getLexResPackage()
                                                         .getPrefix())) {
-                    throw new InvalidImportException("Tried to import a lexical resource which "
-                            + "has the same prefix of resource:\n " + job.getLexResPackage()
-                                                                         .getName(),
-                            config, fileUrl, pack);
+                    throw new InvalidImportException("Tried to import a lexical resource which"
+                            + " has the same prefix of resource: " + job.getLexResPackage()
+                                                                        .getName(),
+                            importConfig, fileUrl, pack);
                 }
             }
 
@@ -1320,10 +1380,20 @@ public class Diversicon extends Uby {
                                              .get(prefix);
                     if (!Objects.equals(urlInDb, urlToImport)) {
                         throw new InvalidImportException(
-                                "Tried to import a prefix which is assigned to another resource url in the db! "
-                                        + "Prefix is " + prefix + "  ; url to import = " + urlToImport
-                                        + "  ;  url in the db = " + urlInDb,
-                                config, fileUrl, pack);
+                                "Tried to import a prefix which is assigned to another resource url in the db!"
+                                        + "\n  Prefix        = " + prefix
+                                        + "\n  url to import = " + urlToImport
+                                        + "\n  url in the db = " + urlInDb,
+                                importConfig, fileUrl, pack);
+                    }
+                }
+
+                if (!dbNss.containsKey(prefix)) {
+                    String msg = "Prefix '" + prefix + "' is not present in database prefixes!";
+                    if (importConfig.isForce()) {
+                        divValidator.warning(XmlValidationError.INVALID_PREFIX, msg);
+                    } else {
+                        divValidator.error(XmlValidationError.INVALID_PREFIX, msg);                        
                     }
                 }
             }
@@ -1331,19 +1401,8 @@ public class Diversicon extends Uby {
         } catch (Exception ex) {
             throw new InvalidImportException(
                     "Invalid import for " + fileUrl + "! \n", ex,
-                    config, fileUrl, pack);
+                    importConfig, fileUrl, pack);
         }
-
-        ImportJob job = new ImportJob();
-
-        job.setAuthor(config.getAuthor());
-        job.setDescription(config.getDescription());
-        job.setStartDate(new Date());
-        job.setFileUrl(fileUrl);
-        job.setLexResPackage(pack);
-
-        return job;
-
     }
 
     /**
@@ -1671,57 +1730,62 @@ public class Diversicon extends Uby {
             String... relNames) {
         return isConnected(sourceSynsetId, targetSynsetId, depth, Arrays.asList(relNames));
     }
-   
+
     /**
      * 
      * See {@link #isInstanceConnected(String, String, int, String, List)}
      * 
      * @since 0.1.0
-     */    
+     */
     public boolean isInstanceConnected(
             String sourceSynsetId,
             String targetSynsetId,
             int depth,
-            String instanceRel, 
-            String... relNames){
-        return isInstanceConnected(sourceSynsetId, targetSynsetId, depth, instanceRel, 
+            String instanceRel,
+            String... relNames) {
+        return isInstanceConnected(sourceSynsetId, targetSynsetId, depth, instanceRel,
                 Arrays.asList(relNames));
     }
-    
+
     /**
      * 
-     * Checks connection among paths starting with a specific relation, like i.e.
-     *  {@link ERelNameSemantics#HYPERNYMINSTANCE hypernymInstance} followed by {@link ERelNameSemantics#HYPERNYMIN hypernym}) 
+     * Checks connection among paths starting with a specific relation, like
+     * i.e.
+     * {@link ERelNameSemantics#HYPERNYMINSTANCE hypernymInstance} followed by
+     * {@link ERelNameSemantics#HYPERNYMIN hypernym})
      * 
-     * Works like {@link #isConnected(String, String, int, List)}, but checks also that first
-     * relation encountered equals instanceRel. Following links can be of any of 
-     * the relations in {@code relNames}. 
+     * Works like {@link #isConnected(String, String, int, List)}, but checks
+     * also that first
+     * relation encountered equals instanceRel. Following links can be of any of
+     * the relations in {@code relNames}.
      * 
      * @since 0.1.0
-     */    
+     */
     public boolean isInstanceConnected(
             String sourceSynsetId,
             String targetSynsetId,
             int depth,
-            String instanceRel, 
-            List<String> relNames){
+            String instanceRel,
+            List<String> relNames) {
         checkNotEmpty(instanceRel, "Invelid instance relation");
         checkNotNull(relNames);
 
-        if (isConnected(sourceSynsetId, targetSynsetId, 1, instanceRel)){
+        if (isConnected(sourceSynsetId, targetSynsetId, 1, instanceRel)) {
             return true;
         }
         Synset src = getSynsetById(sourceSynsetId);
-        
-        for (SynsetRelation ssr : src.getSynsetRelations()){
-            if (isConnected(ssr.getTarget().getId(), targetSynsetId, -1, relNames)){
+
+        for (SynsetRelation ssr : src.getSynsetRelations()) {
+            if (isConnected(ssr.getTarget()
+                               .getId(),
+                    targetSynsetId, -1, relNames)) {
                 return true;
             }
         }
-                
-        return false;        
+
+        return false;
     }
-    
+
     /**
      * 
      * Returns true if {@code sourceSynset} is connected to {@code targetSynset}
@@ -1964,9 +2028,9 @@ public class Diversicon extends Uby {
      *
      */
     public List<ImportJob> getImportJobs() {
-        Criteria crit = session.createCriteria(ImportJob.class);     
+        Criteria crit = session.createCriteria(ImportJob.class);
         crit.addOrder(Order.asc("id"));
-        
+
         @SuppressWarnings("unchecked")
         List<ImportJob> ret = crit.list();
         return ret;
@@ -2147,118 +2211,118 @@ public class Diversicon extends Uby {
         return ret;
 
     }
-    
+
     /**
-     * Returns all domains in the db, according to the {@link #isDomain(Synset) Diversicon definition}.
+     * Returns all domains in the db, according to the {@link #isDomain(Synset)
+     * Diversicon definition}.
      * 
      * @see #getUbyDomains(Lexicon)
      * @since 0.1.0
-     */    
+     */
     public List<Synset> getDomains(@Nullable Lexicon lexicon) {
         Criteria criteria = session.createCriteria(Synset.class);
         if (lexicon != null) {
             criteria.add(Restrictions.eq("lexicon", lexicon));
         }
 
-        Synset rootDomain = getSynsetById(Diversicons.SYNSET_ROOT_DOMAIN);
-        
+        Synset rootDomain = getSynsetById(DivUpper.SYNSET_ROOT_DOMAIN);
+
         criteria = criteria
-                .createCriteria("synsetRelations")
-                .add(Restrictions.eq("relName", Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN))
-                .add(Restrictions.eq("target", rootDomain ));
+                           .createCriteria("synsetRelations")
+                           .add(Restrictions.eq("relName", Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN))
+                           .add(Restrictions.eq("target", rootDomain));
 
         @SuppressWarnings("unchecked")
         List<Synset> ret = criteria.list();
 
         return ret;
-        
-    }    
-    
-    
-    /**
-     * Returns true if provided synset is a domain. 
-     * 
-     * @since 0.1.0
-     */    
-    public boolean isDomain(String synsetId){
-        checkId(synsetId, "Invalid synset id!");
 
-        return isConnected(synsetId,
-                Diversicons.SYNSET_ROOT_DOMAIN, -1,                
-                Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN);        
     }
-    
-    
+
     /**
      * Returns true if provided synset is a domain.
      * 
      * @since 0.1.0
      */
-    // todo performance is improvable 
+    public boolean isDomain(String synsetId) {
+        checkId(synsetId, "Invalid synset id!");
+
+        return isConnected(synsetId,
+                DivUpper.SYNSET_ROOT_DOMAIN, -1,
+                Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN);
+    }
+
+    /**
+     * Returns true if provided synset is a domain.
+     * 
+     * @since 0.1.0
+     */
+    // todo performance is improvable
     public boolean looksLikeDomain(String synsetId) {
         checkId(synsetId, "Invalid synset id!");
 
-        if (isDomain(synsetId)){
+        if (isDomain(synsetId)) {
             return true;
-        };
-        
+        }
+        ;
+
         Criteria criteria_1 = session.createCriteria(Synset.class);
 
         criteria_1 = criteria_1.add(Restrictions.eq("id", synsetId))
-                           .createCriteria("senses")
-                           .createCriteria("semanticLabels")
-                           .add(Restrictions.in("type", Diversicons.getDomainLabelTypes()));
+                               .createCriteria("senses")
+                               .createCriteria("semanticLabels")
+                               .add(Restrictions.in("type", Diversicons.getDomainLabelTypes()));
 
-        if (!criteria_1.list().isEmpty()){
+        if (!criteria_1.list()
+                       .isEmpty()) {
             return true;
         }
 
         Criteria criteria_2 = session.createCriteria(DivSynsetRelation.class);
 
-        criteria_2 = criteria_2                                                      
-                            .add(Restrictions.eq("relName", Diversicons.RELATION_WORDNET_TOPIC))
-                            .createCriteria("target")
-                            .add(Restrictions.eq("id", synsetId));
+        criteria_2 = criteria_2
+                               .add(Restrictions.eq("relName", Diversicons.RELATION_WORDNET_TOPIC))
+                               .createCriteria("target")
+                               .add(Restrictions.eq("id", synsetId));
 
-        if (!criteria_2.list().isEmpty()){
+        if (!criteria_2.list()
+                       .isEmpty()) {
             return true;
         }
-        
+
         Criteria criteria_3 = session.createCriteria(DivSynsetRelation.class);
 
-        criteria_3 = criteria_3                                                      
-                            .add(Restrictions.eq("relName", Diversicons.RELATION_WORDNET_IS_TOPIC_OF))
-                            .createCriteria("source")
-                            .add(Restrictions.eq("id", synsetId));                            
+        criteria_3 = criteria_3
+                               .add(Restrictions.eq("relName", Diversicons.RELATION_WORDNET_IS_TOPIC_OF))
+                               .createCriteria("source")
+                               .add(Restrictions.eq("id", synsetId));
 
-        if (!criteria_3.list().isEmpty()){
+        if (!criteria_3.list()
+                       .isEmpty()) {
             return true;
         }
-        
+
         return false;
     }
-
-    
-    
 
     /**
      * Returns true if {@code synsetId1} is a subdomain of {@code synsetId2}
      * 
      * It synsets coincide returns true.
      * 
-     * @throws IllegalArgumentException if one or both synsets are not domains 
+     * @throws IllegalArgumentException
+     *             if one or both synsets are not domains
      * 
      * @since 0.1.0
      */
     public boolean isSubdomain(String synsetId1, String synsetId2) {
         checkArgument(isDomain(synsetId1), "First synset is not a domain! Id is %s", synsetId1);
         checkArgument(isDomain(synsetId2), "Second synset is not a domain! Id is %s", synsetId2);
-        
-        return isConnected( synsetId1, 
-                            synsetId2, 
-                            -1, 
-                            Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN);
+
+        return isConnected(synsetId1,
+                synsetId2,
+                -1,
+                Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN);
     }
 
 }
-

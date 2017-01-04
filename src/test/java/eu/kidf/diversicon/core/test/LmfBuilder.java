@@ -181,20 +181,29 @@ public class LmfBuilder {
                 + 1);
     }
 
+    /**
+     * Creates synset with given custom id (won't get automatically prefixed)
+     * 
+     * @since 0.1.0
+     */
+    public LmfBuilder synset(String id) {
+        checkBuilt();
+        checkNotEmpty(id, "Invalid synsetId!");
+        Synset synset = new Synset();
+        Lexicon lexicon = getCurLexicon();
+        synset.setId(id);
+
+        lexicon.getSynsets()
+               .add(synset);
+        return this;       
+    }    
     
     /**
      * See {@link #synset()}
      * @since 0.1.0
      */
-    public LmfBuilder synset(long id) {
-        checkBuilt();
-        Synset synset = new Synset();
-        Lexicon lexicon = getCurLexicon();
-        synset.setId(id("synset", id));
-
-        lexicon.getSynsets()
-               .add(synset);
-        return this;
+    public LmfBuilder synset(long id) {        
+        return synset(id("synset", id));
     }
 
     /**

@@ -447,4 +447,11 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
         }
     }
 
+    /**
+     * @since 0.1.0
+     */
+    public XmlValidationConfig getConfig(){
+        return config;
+    }
+    
 }
