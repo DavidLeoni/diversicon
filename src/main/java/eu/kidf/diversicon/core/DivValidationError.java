@@ -3,7 +3,7 @@ package eu.kidf.diversicon.core;
 /**
  * @since 0.1.0
  */
-public enum XmlValidationError {
+public enum DivValidationError {
 
     /**
      * @since 0.1.0
@@ -38,7 +38,12 @@ public enum XmlValidationError {
     /**
      * @since 0.1.0
      */    
-    INVALID_NAMESPACE;        
+    INVALID_NAMESPACE, 
+    
+    /**
+     * @since 0.1.0
+     */
+    NAMESPACE_CLASH;        
     
     /**
      * @since 0.1.0

@@ -1265,6 +1265,7 @@ public class Diversicon extends Uby {
      *            {@code null}. This will only be used to validate the file
      *            prior import.
      * @see #setCurrentImportJob(ImportJob)
+     * @throws InvalidImportException
      * @since 0.1.0
      */
     private ImportJob newImportJob(
@@ -1288,16 +1289,18 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * Validates import checking for:
+     * Checks import is correct, validating:
      * 
      * <ol>
      * <li>metadata</li>
-     * <li>(if present) xml alone</li>
-     * <li>(if present) xml data against the db</li>
+     * <li>(if present) XML alone
+     * <li>(if present) XML data against the db </li>
      * </ol>
      * 
-     * No write is performed on the db.
+     * No write is performed on the db. 
+     * By default fails on warnings unless {@link ImportConfig#isForce()} is enabled</li>
      * 
+     * @throws InvalidImportException
      * @see #newImportJob(ImportConfig, String, File, LexResPackage) for more
      *      info.
      * @since 0.1.0
@@ -1308,6 +1311,7 @@ public class Diversicon extends Uby {
             @Nullable File xmlFile,
             LexResPackage pack) {
         try {
+
             checkNotNull(importConfig);
             checkArgument(importConfig.getFileUrls()
                                       .contains(fileUrl),
@@ -1321,82 +1325,49 @@ public class Diversicon extends Uby {
                                                                          .setLog(LOG)
                                                                          .setLogLimit(importConfig.getLogLimit())
                                                                          .setFailFast(true)
+                                                                         .setStrict(!importConfig.isForce())
                                                                          .build();
-
-            if (xmlFile == null) {
-                try {
-                    divValidator = Diversicons.validateResource(pack, null, xmlValidationConfig);
-                    LOG.info("Resource is valid!");
-                    LOG.info("");
-                } catch (Exception ex) {
-                    throw new InvalidImportException("Found invalid resource !", ex);
-                }
+            
+        
+            // FIRST AND SECOND STEP
+            
+            if (xmlFile == null) {                
+                divValidator = Diversicons.validateResource(pack, null, xmlValidationConfig);
+                LOG.info("Resource is valid!");
+                LOG.info("");                
             } else {
                 LOG.info("");
                 LOG.info("Validating XML Schema of " + xmlFile.getAbsolutePath() + "   ...");
                 LOG.info("");
-                try {
-                    divValidator = Diversicons.validateXml(xmlFile, xmlValidationConfig);
-                    LOG.info("XML is valid!");
-                    LOG.info("");
-                } catch (InvalidXmlException ex) {
-                    throw new InvalidImportException("Found invalid XML !", ex);
-                } catch (Exception ex) {
-                    throw new InvalidImportException("Internal error while validating XML !", ex);
-                }
+                divValidator = Diversicons.validateXml(xmlFile, xmlValidationConfig);                    
+                
+                LOG.info("XML is valid!");
+                LOG.info("");
             }
 
-            DivXmlHandler errHandler = divValidator.getErrorHandler();
-
-            LOG.info("Validating import data against the db....");
-
-            List<ImportJob> jobs = getImportJobs();
-
-            for (ImportJob job : jobs) {
-
-                if (pack.getName()
-                        .equals(job.getLexResPackage()
-                                   .getName())) {
-                    throw new InvalidImportException(
-                            "Looks like you're trying to import the same lexical resource twice!");
-                }
-
-                if (Objects.equals(pack.getPrefix(), job.getLexResPackage()
-                                                        .getPrefix())) {
-                    throw new InvalidImportException("Tried to import a lexical resource which"
-                            + " has the same prefix of resource: " + job.getLexResPackage()
-                                                                        .getName(),
-                            importConfig, fileUrl, pack);
+            DivXmlHandler errorHandler = divValidator.getErrorHandler();
+            
+            if ( errorHandler.getWarningCount() > 0  ) {                
+                if (importConfig.isForce()){
+                    
+                } else {
+                    LOG.info("There were warnings during , stopping import.");
                 }
             }
-
-            Map<String, String> dbNss = getNamespaces();
-
-            for (String prefix : pack.getNamespaces()
-                                     .keySet()) {
-                if (dbNss.containsKey(prefix)) {
-                    String urlInDb = dbNss.get(prefix);
-                    String urlToImport = pack.getNamespaces()
-                                             .get(prefix);
-                    if (!Objects.equals(urlInDb, urlToImport)) {
-                        throw new InvalidImportException(
-                                "Tried to import a prefix which is assigned to another resource url in the db!"
-                                        + "\n  Prefix        = " + prefix
-                                        + "\n  url to import = " + urlToImport
-                                        + "\n  url in the db = " + urlInDb,
-                                importConfig, fileUrl, pack);
-                    }
-                }
-
-                if (!dbNss.containsKey(prefix)) {
-                    String msg = "Prefix '" + prefix + "' is not present in database prefixes!";
-                    if (importConfig.isForce()) {
-                        divValidator.warning(XmlValidationError.INVALID_PREFIX, msg);
-                    } else {
-                        divValidator.error(XmlValidationError.INVALID_PREFIX, msg);                        
-                    }
-                }
-            }
+            
+            // THIRD STEP 
+            
+            LOG.info("Checking XML external references against the database ...");
+            LOG.info("");
+            
+            
+            divValidator.prepareThirdPass(this, importConfig);
+            Diversicons.validateXmlJavaStep(xmlFile, divValidator);
+            divValidator.checkPassed();
+            
+            LOG.info("XML can be merged!");
+            LOG.info("");
+            
 
         } catch (Exception ex) {
             throw new InvalidImportException(

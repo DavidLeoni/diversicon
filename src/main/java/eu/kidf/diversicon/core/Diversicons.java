@@ -1860,19 +1860,16 @@ public final class Diversicons {
         checkNotNull(config);
 
         DivXmlHandler errorHandler = new DivXmlHandler(config, resource.getName()); // todo using name as sysmId, hope it's correct
-               
-        if (errorHandler.invalid()) {
-            config.getLog()
-                  .error("Invalid lexical resource! " + errorHandler.summary() + " in " + pack.getName());
-            throw new InvalidXmlException(errorHandler,
-                    "Invalid lexical resource! " + errorHandler.summary() + " in " + pack.getName()
-                            + "\n" + errorHandler.firstIssueAsString());
-        }
+                              
+        DivXmlValidator divXmlValidator =  new DivXmlValidator(pack, errorHandler);
         
-        return new DivXmlValidator(pack, errorHandler);
+        // todo nothing to check for now...
+        // divXmlValidator.checkPassed(file);
+
+        return divXmlValidator;
+        
     }    
-    
-    
+        
     
     /**
      * Validates an xml file. You can pass schema overrides in the provided
@@ -1952,20 +1949,16 @@ public final class Diversicons {
 
         DivXmlValidator divXmlValidator = new DivXmlValidator(new LexResPackage(), errorHandler);
 
-        validateXmlJavaStep(xmlFile, divXmlValidator, lsResResolver);
-        // need to steps!
-        validateXmlJavaStep(xmlFile, divXmlValidator, lsResResolver);
+        validateXmlJavaStep(xmlFile, divXmlValidator);
+        // need two steps!
+        validateXmlJavaStep(xmlFile, divXmlValidator);
 
-        if (errorHandler.invalid()) {
-            config.getLog()
-                  .error("Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath());
-            throw new InvalidXmlException(errorHandler,
-                    "Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath()
-                            + "\n" + errorHandler.firstIssueAsString());
-        }
+        divXmlValidator.checkPassed();
 
         return divXmlValidator;
     }
+
+      
 
     /**
      * Performs validation with custom Java code. Needed because current Xerces
@@ -1973,12 +1966,10 @@ public final class Diversicons {
      * https://github.com/diversicon-kb/diversicon/issues/21
      *        
      * @since 0.1.0
-     */
-    // TODO probably we could pass less parameters
+     */    
     static void validateXmlJavaStep(
             File file,           
-            DivXmlValidator divXmlValidator,
-            LSResourceResolver resRes) {
+            DivXmlValidator divXmlValidator) {
         
         DivXmlHandler errorHandler = divXmlValidator.getErrorHandler();
         
@@ -1989,14 +1980,14 @@ public final class Diversicons {
             parser = factory.newSAXParser();
             parser.getXMLReader()
                   .setErrorHandler(errorHandler);
-            DivXmlValidator handler = divXmlValidator;
+            
 
             InputSource is = new InputSource(new FileInputStream(file));
 
-            parser.parse(is, handler);
+            parser.parse(is, divXmlValidator);
         } catch (ParserConfigurationException | SAXException | IOException e) {
             throw new DivException(e);
-        }
+        }        
 
     }
 

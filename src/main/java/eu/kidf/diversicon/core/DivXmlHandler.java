@@ -289,7 +289,7 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
     }
 
     /**
-     * Returns the total number of issues found so far.
+     * Returns the total number of issues found so far (including warnings).
      * 
      * @since 0.1.0
      */
@@ -333,16 +333,7 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
         config.getLog()
               .error("FATAL!  " + exceptionToString(ex, getDefaultSystemId()));
         throw ex;
-    }
-
-    /**
-     * Returns true if there were validation problems.
-     * 
-     * @since 0.1.0
-     */
-    public boolean invalid() {
-        return issuesCount() > 0;
-    }
+    }   
 
     /**
      * @since 0.1.0

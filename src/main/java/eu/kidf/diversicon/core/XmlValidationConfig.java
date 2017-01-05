@@ -16,17 +16,18 @@ import eu.kidf.diversicon.core.internal.Internals;
  */
 public class XmlValidationConfig {
 
-    private static final Logger LOG = LoggerFactory.getLogger(XmlValidationConfig.class);                
-    
+    private static final Logger LOG = LoggerFactory.getLogger(XmlValidationConfig.class);
+
     private Logger log;
     private long logLimit;
     private boolean failFast;
     @Nullable
     private String xsdUrl;
-    
-    private DivConfig diversiconConfig;    // to access resources via proxy
-    
-    
+
+    private boolean strict;
+
+    private DivConfig diversiconConfig; // to access resources via proxy
+
     /**
      * @since 0.1.0
      */
@@ -35,16 +36,18 @@ public class XmlValidationConfig {
         this.logLimit = Diversicons.DEFAULT_LOG_LIMIT;
         this.failFast = false;
         this.xsdUrl = null;
-        this.diversiconConfig = DivConfig.of();        
+        this.diversiconConfig = DivConfig.of();
+        this.strict = false;
     }
 
     /**
      * Once done building, call {@link Builder#build()}
+     * 
      * @since 0.1.0
      */
-    public static Builder builder(){
+    public static Builder builder() {
         return new Builder();
-    }  
+    }
 
     /**
      * Returns the amount of logs which will be outputted. If -1 all
@@ -55,7 +58,7 @@ public class XmlValidationConfig {
     public long getLogLimit() {
         return logLimit;
     }
-  
+
     /**
      * If true the handler will throw an error as soon {{@link #getLogLimit()}
      * log limit} errors
@@ -67,7 +70,16 @@ public class XmlValidationConfig {
         return failFast;
     }
 
-   
+    /**
+     * Under strict validation, if any warning
+     * is found, validation fails emitting a final error. False by default.
+     * 
+     * @since 0.1.0
+     */
+    public boolean isStrict() {
+        return strict;
+    }
+
     /**
      * The logger where to which messages are redirected.
      * 
@@ -80,10 +92,10 @@ public class XmlValidationConfig {
     /**
      * @since 0.1.0
      */
-    public DivConfig getDiversiconConfig(){
+    public DivConfig getDiversiconConfig() {
         return diversiconConfig;
     }
-    
+
     /**
      * The Xml Schema to use to validate the document. Will override the
      * schema pointed to in the document. If unknown, use an empty string.
@@ -101,15 +113,15 @@ public class XmlValidationConfig {
     public static class Builder {
         private XmlValidationConfig config;
         private boolean built;
-        
+
         /**
          * @since 0.1.0
-         */        
-        private Builder(){
+         */
+        private Builder() {
             this.built = false;
-            this.config = new XmlValidationConfig();            
+            this.config = new XmlValidationConfig();
         }
-        
+
         /**
          * Creates a validation config object.
          * <p>
@@ -122,33 +134,31 @@ public class XmlValidationConfig {
          *             if an object was already built with this builder.
          * 
          * @since 0.1.0
-         */       
-        public XmlValidationConfig build(){
+         */
+        public XmlValidationConfig build() {
             checkBuilt();
-            
+
             this.built = true;
             return config;
         }
-        
+
         /**
          * @since 0.1.0
          */
-        private void checkBuilt(){
-            if (built){
+        private void checkBuilt() {
+            if (built) {
                 throw new DivException("A Validation config was already built!");
             }
         }
-        
-        
-        
+
         /**
          * See {@link XmlValidationConfig#getLog()}
          * 
          * @since 0.1.0
-         */    
+         */
         public Builder setLog(@Nullable Logger log) {
             checkBuilt();
-            
+
             if (log == null) {
                 config.log.error("Found null log, using default one!");
             } else {
@@ -156,23 +166,22 @@ public class XmlValidationConfig {
             }
             return this;
         }
-        
-        
-        
+
         /**
          * See {@link XmlValidationConfig#getDiversiconConfig()}
          * 
          * @since 0.1.0
-         */    
+         */
         public Builder setdiversiconConfig(DivConfig diversiconConfig) {
             checkBuilt();
-            Internals.checkNotNull(diversiconConfig, "Locator config can't be null! If you want to use the default one, calle diversiconConfig.of()!");
-            
-            config.diversiconConfig= diversiconConfig;
-            
+            Internals.checkNotNull(diversiconConfig,
+                    "Locator config can't be null! If you want to use the default one, calle diversiconConfig.of()!");
+
+            config.diversiconConfig = diversiconConfig;
+
             return this;
         }
-               
+
         /**
          * See {@link XmlValidationConfig#getLogLimit()}.
          * 
@@ -183,7 +192,7 @@ public class XmlValidationConfig {
          */
         public Builder setLogLimit(long logLimit) {
             checkBuilt();
-            
+
             if (logLimit < -1) {
                 config.log.error("Found config.getLogLimit() < -1, setting it to -1");
                 config.logLimit = -1;
@@ -192,6 +201,7 @@ public class XmlValidationConfig {
             }
             return this;
         }
+
         /**
          * See {@link XmlValidationConfig#isFailFast()}
          * 
@@ -199,19 +209,31 @@ public class XmlValidationConfig {
          */
         public Builder setFailFast(boolean failFast) {
             checkBuilt();
-            
+
             config.failFast = failFast;
             return this;
-        }               
-        
+        }
+
+        /**
+         * See {@link XmlValidationConfig#isStrict()}
+         * 
+         * @since 0.1.0
+         */
+        public Builder setStrict(boolean strict) {
+            checkBuilt();
+
+            config.strict = strict;
+            return this;
+        }
+
         /**
          * See {@link XmlValidationConfig#getXsdUrl()}
          * 
          * @since 0.1.0
          */
-        public Builder setXsdUrl( String xsdUrl) {
+        public Builder setXsdUrl(String xsdUrl) {
             checkBuilt();
-            if (xsdUrl == null){
+            if (xsdUrl == null) {
                 LOG.error("Found null xsdUrl, setting it to the empty string!");
                 this.config.xsdUrl = "";
             } else {
@@ -219,21 +241,22 @@ public class XmlValidationConfig {
             }
             return this;
         }
-        
 
-         
     }
 
     /**
      * 
      * Creates an instance of the config with provided log.
      * 
-     * @param log see {@link #getLog()}
+     * @param log
+     *            see {@link #getLog()}
      * 
      * @since 0.1.0
      */
     public static XmlValidationConfig of(Logger log) {
-        return XmlValidationConfig.builder().setLog(log).build();
+        return XmlValidationConfig.builder()
+                                  .setLog(log)
+                                  .build();
     }
 
 }

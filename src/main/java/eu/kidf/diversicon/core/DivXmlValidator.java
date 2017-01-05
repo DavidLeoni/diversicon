@@ -3,9 +3,12 @@ package eu.kidf.diversicon.core;
 import static eu.kidf.diversicon.core.internal.Internals.checkNotNull;
 import static eu.kidf.diversicon.core.internal.Internals.checkNotEmpty;
 
+import java.io.File;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
@@ -17,20 +20,23 @@ import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import eu.kidf.diversicon.core.LexResPackage;
+import eu.kidf.diversicon.core.exceptions.DivException;
+import eu.kidf.diversicon.core.exceptions.InvalidImportException;
+import eu.kidf.diversicon.core.exceptions.InvalidXmlException;
 import eu.kidf.diversicon.data.DivUpper;
 
 /**
  * 
- * Validates an XML. 
+ * Validates an XML.
  * 
  * <p>
  * It remembers the number of times it has been launched to
  * perform finer and finer validation :
  * 
  * <ol>
- *  <li>Validate structure, collect ids 
- *  <li>Verify internal ids links, external ids syntax</li>
- *  <li>Verify external ids against the db</li> 
+ * <li>Validate structure, collect ids
+ * <li>Verify internal ids links, external ids syntax</li>
+ * <li>Verify external ids against the db</li>
  * </ol>
  * </p>
  * 
@@ -38,7 +44,8 @@ import eu.kidf.diversicon.data.DivUpper;
  * @since 0.1.0
  *
  */
-// Also made to overcome poor implementation of Xerces Xml Schema 1.1 assertions,
+// Also made to overcome poor implementation of Xerces Xml Schema 1.1
+// assertions,
 // see https://github.com/diversicon-kb/diversicon/issues/21
 // from here
 // http://www.java2s.com/Tutorials/Java/XML/SAX/Output_line_number_for_SAX_parser_event_handler_in_Java.htm
@@ -49,28 +56,28 @@ public class DivXmlValidator extends DefaultHandler {
     /**
      * @since 0.1.0
      */
-    protected static final int STEP_1 = 1;
+    private static final int STEP_1 = 1;
 
     /**
      * @since 0.1.0
      */
-    protected static final int STEP_2 = 2;
+    private static final int STEP_2 = 2;
 
     /**
      * @since 0.1.0
      */
     private static final int STEP_3 = 3;
 
-    protected LexResPackage pack;
+    private LexResPackage pack;
 
     @Nullable
-    protected Locator locator;
+    private Locator locator;
 
-    protected DivXmlHandler errorHandler;
+    private DivXmlHandler errorHandler;
 
-    protected int step;
+    private int step;
 
-    protected Map<String, String> tagIds;
+    private Map<String, String> tagIds;
 
     /**
      * Needed only in step 3
@@ -82,6 +89,8 @@ public class DivXmlValidator extends DefaultHandler {
      */
     private @Nullable ImportConfig importConfig;
 
+    private DivXmlValidator(){}
+    
     /**
      * @param pack
      *            the package to fill with metadata extracted from the XML.
@@ -138,60 +147,85 @@ public class DivXmlValidator extends DefaultHandler {
 
     /**
      * 
-     * See {@link #error(XmlValidationError, String, Exception)}
+     * See {@link #error(DivValidationError, String, Exception)}
      * 
      * @since 0.1.0
      */
-    protected void error(XmlValidationError xmlValidationError, 
+    private void error(DivValidationError xmlValidationError,
             String msg) throws SAXException {
-        
-        error(xmlValidationError, msg, null);                
-    }    
-    
-    /**
-     * @since 0.1.0
-     */
-    protected void error(XmlValidationError xmlValidationError, 
-            String msg, 
-            @Nullable Exception ex) throws SAXException {
-        
-        String fmsg = String.valueOf(xmlValidationError) + ": " + msg;
-        if (ex == null) {
-            errorHandler.error(new SAXParseException(fmsg, locator));
-        } else {
-            errorHandler.error(new SAXParseException(fmsg, locator, ex));
-        }                
+
+        error(xmlValidationError, msg, null);
     }
 
     /**
      * @since 0.1.0
      */
-    protected void warning(
-            XmlValidationError xmlValidationError, 
-            String msg, 
-            @Nullable Exception ex) {
-        
+    private void error(DivValidationError xmlValidationError,
+            String msg,
+            @Nullable Exception ex) throws SAXException {
+
         String fmsg = String.valueOf(xmlValidationError) + ": " + msg;
-        
+        if (ex == null) {
+            errorHandler.error(new SAXParseException(fmsg, locator));
+        } else {
+            errorHandler.error(new SAXParseException(fmsg, locator, ex));
+        }
+    }
+
+    /**
+     * See {@link #fatalError(DivValidationError, String, Exception)}
+     * 
+     * @since 0.1.0
+     */
+    private void fatalError(DivValidationError xmlValidationError,
+            String msg) throws SAXException {
+        fatalError(xmlValidationError, msg, null);
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    private void fatalError(DivValidationError xmlValidationError,
+            String msg,
+            @Nullable Exception ex) throws SAXException {
+
+        String fmsg = String.valueOf(xmlValidationError) + ": " + msg;
+        if (ex == null) {
+            errorHandler.fatalError(new SAXParseException(fmsg, locator));
+        } else {
+            errorHandler.fatalError(new SAXParseException(fmsg, locator, ex));
+        }
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    private void warning(
+            DivValidationError xmlValidationError,
+            String msg,
+            @Nullable Exception ex) {
+
+        String fmsg = String.valueOf(xmlValidationError) + ": " + msg;
+
         if (ex == null) {
             errorHandler.warning(new SAXParseException(fmsg, locator));
         } else {
             errorHandler.warning(new SAXParseException(fmsg, locator, ex));
-        }        
+        }
     }
-    
+
     /**
-     * See {@link #warning(XmlValidationError, String, Exception)}
+     * See {@link #warning(DivValidationError, String, Exception)}
      * 
      * @since 0.1.0
      */
-    protected void warning(
-            XmlValidationError xmlValidationError, 
+    private void warning(
+            DivValidationError xmlValidationError,
             String msg) {
-        
+
         warning(xmlValidationError, msg, null);
-    }        
-    
+    }
+
     /**
      * @since 0.1.0
      */
@@ -206,6 +240,56 @@ public class DivXmlValidator extends DefaultHandler {
             if (this.importConfig == null) {
                 throw new IllegalStateException(
                         "Trying to do a third validation pass but no import config was specified!");
+            }
+
+            LOG.info("Validating import data against the db....");
+
+            List<ImportJob> jobs = diversicon.getImportJobs();
+
+            for (ImportJob job : jobs) {
+
+                if (pack.getName()
+                        .equals(job.getLexResPackage()
+                                   .getName())) {
+                    fatalError(DivValidationError.NAMESPACE_CLASH,
+                            "Tried to import a lexical resource which has the same name of "
+                                    + " an already imported lexical resource!");
+                }
+
+                if (Objects.equals(pack.getPrefix(), job.getLexResPackage()
+                                                        .getPrefix())) {
+                    fatalError(DivValidationError.NAMESPACE_CLASH,
+                            "Tried to import a lexical resource which has the same"
+                                    + " prefix of an already imported resource: " + job.getLexResPackage()
+                                                                                       .getName());
+                }
+            }
+
+            Map<String, String> dbNss = diversicon.getNamespaces();
+
+            for (String prefix : pack.getNamespaces()
+                                     .keySet()) {
+                if (dbNss.containsKey(prefix)) {
+                    String urlInDb = dbNss.get(prefix);
+                    String urlToImport = pack.getNamespaces()
+                                             .get(prefix);
+                    if (!Objects.equals(urlInDb, urlToImport)) {
+                        fatalError(DivValidationError.NAMESPACE_CLASH,
+                                "Tried to import a prefix which is assigned to another resource url in the db!"
+                                        + "\n  Prefix        = " + prefix
+                                        + "\n  url to import = " + urlToImport
+                                        + "\n  url in the db = " + urlInDb);
+                    }
+                }
+
+                if (!dbNss.containsKey(prefix)) {
+                    String msg = "Prefix '" + prefix + "' is not present in database prefixes!";
+                    if (importConfig.isForce()) {
+                        warning(DivValidationError.INVALID_PREFIX, msg);
+                    } else {
+                        error(DivValidationError.INVALID_PREFIX, msg);
+                    }
+                }
             }
         }
     }
@@ -222,8 +306,7 @@ public class DivXmlValidator extends DefaultHandler {
         String tagName = qName;
 
         final String sep = Diversicons.NAMESPACE_SEPARATOR;
-                
-        
+
         switch (step) {
         case STEP_1:
             if ("LexicalResource".equals(tagName)) {
@@ -244,7 +327,7 @@ public class DivXmlValidator extends DefaultHandler {
 
                         if (!Diversicons.NAMESPACE_PREFIX_PATTERN.matcher(prefix)
                                                                  .matches()) {
-                            this.error(XmlValidationError.INVALID_PREFIX, "Invalid prefix '"
+                            this.error(DivValidationError.INVALID_PREFIX, "Invalid prefix '"
                                     + prefix + "', it must match "
                                     + Diversicons.NAMESPACE_PREFIX_PATTERN.toString());
                         }
@@ -252,7 +335,7 @@ public class DivXmlValidator extends DefaultHandler {
                         try {
                             Diversicons.checkNamespace(ns);
                         } catch (Exception ex) {
-                            this.error(XmlValidationError.INVALID_PREFIX, "Invalid namespace for prefix '"
+                            this.error(DivValidationError.INVALID_PREFIX, "Invalid namespace for prefix '"
                                     + prefix + "': '" + ns + '"');
                         }
 
@@ -262,7 +345,7 @@ public class DivXmlValidator extends DefaultHandler {
                             if (!DivUpper.of()
                                          .namespace()
                                          .equals(ns)) {
-                                error(XmlValidationError.INVALID_DIVUPPER_NAMESPACE,
+                                error(DivValidationError.INVALID_DIVUPPER_NAMESPACE,
                                         "Invalid DivUpper namespace. Expected: \n" +
                                                 DivUpper.of()
                                                         .namespace()
@@ -286,7 +369,7 @@ public class DivXmlValidator extends DefaultHandler {
                 String id = attrs.getValue("id");
                 if (id != null) {
                     if (!id.startsWith(pack.getPrefix() + sep)) {
-                        errorHandler.error(new SAXParseException(XmlValidationError.INVALID_INTERNAL_ID
+                        errorHandler.error(new SAXParseException(DivValidationError.INVALID_INTERNAL_ID
                                 + ": Found " + tagName + " id " + id
                                 + " not starting with LexicalResource prefix '" + pack.getPrefix() + "'",
                                 locator));
@@ -301,12 +384,11 @@ public class DivXmlValidator extends DefaultHandler {
         case STEP_2:
 
             // todo crude, need to find smarter ways with reflection..
-            String prov;
-            if ("SynsetRelation".equals(tagName)) {                
-                validateRefAgainstXml(calcProv(tagName,  "target"), attrs.getValue("target"), "Synset");
+            if ("SynsetRelation".equals(tagName)) {
+                validateRefAgainstXml(calcProv(tagName, "target"), attrs.getValue("target"), "Synset");
             }
             if ("Sense".equals(tagName)) {
-                validateRefAgainstXml(calcProv(tagName,  "synset"), attrs.getValue("synset"), "Synset");
+                validateRefAgainstXml(calcProv(tagName, "synset"), attrs.getValue("synset"), "Synset");
             }
 
             // Commented as problematic for now, think about DivUpper SenseAxis
@@ -330,12 +412,12 @@ public class DivXmlValidator extends DefaultHandler {
 
             break;
         case STEP_3: // checks against db
-                       
+
             if ("SynsetRelation".equals(tagName)) {
-                validateRefAgainstDb(calcProv(tagName,  "target"), attrs.getValue("target"), "Synset");
+                validateRefAgainstDb(calcProv(tagName, "target"), attrs.getValue("target"), "Synset");
             }
             if ("Sense".equals(tagName)) {
-                validateRefAgainstDb(calcProv(tagName,  "synset"), attrs.getValue("synset"), "Synset");
+                validateRefAgainstDb(calcProv(tagName, "synset"), attrs.getValue("synset"), "Synset");
             }
 
             break;
@@ -346,6 +428,8 @@ public class DivXmlValidator extends DefaultHandler {
     }
 
     /**
+     * Returns an informative provenance description
+     * 
      * @since 0.1.0
      */
     private static String calcProv(String tagName, String attr) {
@@ -354,30 +438,30 @@ public class DivXmlValidator extends DefaultHandler {
 
     /**
      * See
-     * {@link #errorId(String, XmlValidationError, String, String, Exception)}
+     * {@link #errorRef(String, DivValidationError, String, String, Exception)}
      * 
      * @since 0.1.0
      */
-    protected void errorRef(
+    private void errorRef(
             String id,
-            XmlValidationError validationCode,
+            DivValidationError validationCode,
             String prov,
             String details) throws SAXException {
-        errorId(id, validationCode, prov, details, null);
+        errorRef(id, validationCode, prov, details, null);
     }
 
     /**
      * See
-     * {@link #warningId(String, XmlValidationError, String, String, Exception)}
+     * {@link #warningRef(String, DivValidationError, String, String, Exception)}
      * 
      * @since 0.1.0
      */
-    protected void warningRef(
+    private void warningRef(
             String id,
-            XmlValidationError validationCode,
+            DivValidationError validationCode,
             String prov,
             String details) {
-        warningId(id, validationCode, prov, details, null);
+        warningRef(id, validationCode, prov, details, null);
     }
 
     /**
@@ -386,15 +470,15 @@ public class DivXmlValidator extends DefaultHandler {
      *            'SynsetRelation.target'
      * @since 0.1.0
      */
-    protected void errorId(String id,
-            XmlValidationError valCode,
+    private void errorRef(String id,
+            DivValidationError valCode,
             String prov,
             String details,
             @Nullable Exception ex) throws SAXException {
 
         String msg = valCode + ": " + prov + " id " + id + " : " + details;
-        
-        error(msg,locator,ex);
+
+        error(valCode, msg, ex);
 
     }
 
@@ -404,22 +488,14 @@ public class DivXmlValidator extends DefaultHandler {
      *            'SynsetRelation.target'
      * @since 0.1.0
      */
-    protected void warningId(String id,
-            XmlValidationError valCode,
+    private void warningRef(String id,
+            DivValidationError valCode,
             String prov,
             String details,
             @Nullable Exception ex) {
-
         String msg = valCode + ": " + prov + " id " + id + " : " + details;
-        if (ex == null) {
-            errorHandler.warning(new SAXParseException(msg, locator));
-        } else {
-            errorHandler.warning(new SAXParseException(msg, locator, ex));
-        }
-
+        warning(valCode, msg, ex);
     }
-   
-    
 
     /**
      * @param msg
@@ -430,7 +506,7 @@ public class DivXmlValidator extends DefaultHandler {
      */
     private void validateRefAgainstDb(String prov, String targetId, String targetTag)
             throws SAXException {
-        
+
         checkNotEmpty(prov, "Invalid prov!");
         checkNotEmpty(targetTag, "Invalid target tag!");
 
@@ -444,12 +520,12 @@ public class DivXmlValidator extends DefaultHandler {
 
                     if (importConfig.isForce()) {
                         errorRef(targetId,
-                                XmlValidationError.MISSING_EXTERNAL_ID,
+                                DivValidationError.MISSING_EXTERNAL_ID,
                                 prov,
                                 details);
                     } else {
                         warningRef(targetId,
-                                XmlValidationError.MISSING_EXTERNAL_ID,
+                                DivValidationError.MISSING_EXTERNAL_ID,
                                 prov,
                                 details);
                     }
@@ -463,12 +539,12 @@ public class DivXmlValidator extends DefaultHandler {
 
                     if (importConfig.isForce()) {
                         errorRef(targetId,
-                                XmlValidationError.MISSING_EXTERNAL_ID,
+                                DivValidationError.MISSING_EXTERNAL_ID,
                                 prov,
                                 details);
                     } else {
                         warningRef(targetId,
-                                XmlValidationError.MISSING_EXTERNAL_ID,
+                                DivValidationError.MISSING_EXTERNAL_ID,
                                 prov,
                                 details);
                     }
@@ -491,13 +567,13 @@ public class DivXmlValidator extends DefaultHandler {
     private void validateRefAgainstXml(String prov, String targetId, String targetTag)
             throws SAXException {
 
-        String prefix = null;        
+        String prefix = null;
 
         try {
             prefix = Diversicons.namespacePrefixFromId(targetId);
 
         } catch (IllegalArgumentException ex) {
-            errorId(targetId, XmlValidationError.INVALID_PREFIX, prov, "Invalid prefix !", ex);
+            errorRef(targetId, DivValidationError.INVALID_PREFIX, prov, "Invalid prefix !", ex);
             return;
         }
 
@@ -507,7 +583,7 @@ public class DivXmlValidator extends DefaultHandler {
                 || Diversicons.DEFAULT_NAMESPACES.keySet()
                                                  .contains(prefix))) {
             errorRef(targetId,
-                    XmlValidationError.UNDECLARED_NAMESPACE,
+                    DivValidationError.UNDECLARED_NAMESPACE,
                     prov,
                     "Found undeclared prefix in id!");
         }
@@ -515,7 +591,7 @@ public class DivXmlValidator extends DefaultHandler {
         if (prefix.equals(pack.getPrefix())) { // internal
             if (!targetTag.equals(tagIds.get(targetId))) {
                 errorRef(targetId,
-                        XmlValidationError.MISSING_INTERNAL_ID,
+                        DivValidationError.MISSING_INTERNAL_ID,
                         prov,
                         "XML does not contain referenced synset! ");
             }
@@ -544,17 +620,58 @@ public class DivXmlValidator extends DefaultHandler {
     public LexResPackage getLexResPackage() {
         return pack;
     }
-    
+
     /**
      * 
      * Sets required parameters for third pass.
      * 
      * @since 0.1.0
      */
-    public void prepareThirdPass(Diversicon diversicon, ImportConfig importConfig){
+    public void prepareThirdPass(Diversicon diversicon, ImportConfig importConfig) {
         checkNotNull(diversicon);
         checkNotNull(importConfig);
         this.diversicon = diversicon;
         this.importConfig = importConfig;
+    }
+
+    /**
+     * If validation failed, throws InvalidXmlException
+     * 
+     * @throws InvalidXmlException
+     * 
+     * @since 0.1.0
+     */
+    public void checkPassed() {
+
+        String sysId = errorHandler.getDefaultSystemId();
+
+        if (errorHandler.isFatal() || errorHandler.getErrorsCount() > 0) {
+            errorHandler.getConfig()
+                        .getLog()
+                        .error("Invalid xml! " + errorHandler.summary() + " in " + sysId);
+            throw new InvalidXmlException(errorHandler,
+                    "Invalid xml! " + errorHandler.summary() + " in " + sysId
+                            + "\n" + errorHandler.firstIssueAsString());
+        } else {
+            if (errorHandler.getWarningCount() > 0) {
+                if (errorHandler.getConfig()
+                                .isStrict()) {
+                    errorHandler.getConfig()
+                                .getLog()
+                                .error("Found warnings during strict validation! " + errorHandler.summary() + " in "
+                                        + sysId);
+                    throw new InvalidXmlException(errorHandler,
+                            "Found warnings during strict validation! " + errorHandler.summary() + " in "
+                                    + sysId
+                                    + "\n" + errorHandler.firstIssueAsString());
+
+                } else {
+                    errorHandler.getConfig()
+                                .getLog()
+                                .warn("Found warnings, ignoring them. " + errorHandler.summary() + " in "
+                                        + sysId);
+                }
+            }
+        }
     }
 }
