@@ -339,8 +339,27 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
      * @since 0.1.0
      */
     public String summary() {
-        String fat = isFatal() ? "Fatal error: " + fatalReason + " - " : "";
-        return fat + "Found " + errorCount + " errors and " + warningCount + " warnings";
+        
+        if (issuesCount() == 0){
+            return "XML is valid!";
+        } else {
+            StringBuilder sb = new StringBuilder();                    
+            if (isFatal()){
+                sb.append( "Fatal error: " + fatalReason + " - ");
+            }
+            if (errorCount > 0){
+                sb.append("Found " + errorCount + " errors"); 
+            }
+            if (warningCount > 0){
+                if (errorCount > 0){
+                    sb.append(" and  " + warningCount + " warnings");
+                } else {
+                    sb.append("Found " + warningCount + " warnings");
+                }                
+            } 
+            
+            return sb.toString();
+        }
     }
 
     /**

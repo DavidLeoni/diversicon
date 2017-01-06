@@ -1347,13 +1347,7 @@ public class Diversicon extends Uby {
 
             DivXmlHandler errorHandler = divValidator.getErrorHandler();
             
-            if ( errorHandler.getWarningCount() > 0  ) {                
-                if (importConfig.isForce()){
-                    
-                } else {
-                    LOG.info("There were warnings during , stopping import.");
-                }
-            }
+           
             
             // THIRD STEP 
             

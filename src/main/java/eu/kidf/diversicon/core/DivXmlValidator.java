@@ -88,8 +88,7 @@ public class DivXmlValidator extends DefaultHandler {
      * Needed only in step 3
      */
     private @Nullable ImportConfig importConfig;
-
-    private DivXmlValidator(){}
+    
     
     /**
      * @param pack
@@ -284,11 +283,9 @@ public class DivXmlValidator extends DefaultHandler {
 
                 if (!dbNss.containsKey(prefix)) {
                     String msg = "Prefix '" + prefix + "' is not present in database prefixes!";
-                    if (importConfig.isForce()) {
-                        warning(DivValidationError.INVALID_PREFIX, msg);
-                    } else {
-                        error(DivValidationError.INVALID_PREFIX, msg);
-                    }
+                    
+                    warning(DivValidationError.INVALID_PREFIX, msg);
+                    
                 }
             }
         }
@@ -517,18 +514,11 @@ public class DivXmlValidator extends DefaultHandler {
                     this.diversicon.getSynsetById(targetId);
                 } catch (Exception ex) {
                     String details = "Db does not contain referenced synset!";
-
-                    if (importConfig.isForce()) {
-                        errorRef(targetId,
+                    
+                    warningRef(targetId,
                                 DivValidationError.MISSING_EXTERNAL_ID,
                                 prov,
-                                details);
-                    } else {
-                        warningRef(targetId,
-                                DivValidationError.MISSING_EXTERNAL_ID,
-                                prov,
-                                details);
-                    }
+                                details);                                           
 
                 }
             case "Sense":
@@ -537,17 +527,10 @@ public class DivXmlValidator extends DefaultHandler {
                 } catch (Exception ex) {
                     String details = "Db does not contain referenced sense!";
 
-                    if (importConfig.isForce()) {
-                        errorRef(targetId,
-                                DivValidationError.MISSING_EXTERNAL_ID,
-                                prov,
-                                details);
-                    } else {
-                        warningRef(targetId,
-                                DivValidationError.MISSING_EXTERNAL_ID,
-                                prov,
-                                details);
-                    }
+                    warningRef(targetId,
+                            DivValidationError.MISSING_EXTERNAL_ID,
+                            prov,
+                            details);
 
                 }
 
@@ -668,7 +651,7 @@ public class DivXmlValidator extends DefaultHandler {
                 } else {
                     errorHandler.getConfig()
                                 .getLog()
-                                .warn("Found warnings, ignoring them. " + errorHandler.summary() + " in "
+                                .warn(errorHandler.summary() + " in "
                                         + sysId);
                 }
             }

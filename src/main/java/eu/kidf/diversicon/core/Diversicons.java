@@ -1963,7 +1963,7 @@ public final class Diversicons {
     /**
      * Performs validation with custom Java code. Needed because current Xerces
      * Xml Schema 1.1 assert implemention has problems, see
-     * https://github.com/diversicon-kb/diversicon/issues/21
+     * https://github.com/diversicon-kb/diversicon-core/issues/21
      *        
      * @since 0.1.0
      */    
