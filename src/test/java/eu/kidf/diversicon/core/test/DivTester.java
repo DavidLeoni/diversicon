@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Array;
+import java.net.ServerSocket;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -56,7 +57,28 @@ public final class DivTester {
      * @since 0.1.0
      */
     public static final String DEFAULT_TEST_PREFIX = "test";
-   
+    
+    /**
+     * @since 0.1.0
+     */
+    public static final String DIVERSICON_ORG_URL = "https://github.com/diversicon-kb";
+        
+    
+    /**
+     * @since 0.1.0
+     */
+    private static final String MINIMAL_XML =         
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+            + "<LexicalResource name=\"lexical resource 1\">   \n" 
+            + "     <Lexicon id=\"lexicon 1\">       \n"
+            + "         <Synset id=\"synset 1\"/>    \n"        
+            + "     </Lexicon>                       \n" 
+            + "</LexicalResource>";        
+    
+
+    private static final String TEST_RESOURCES_PATH = "it/unitn/disi/diversicon/test/";
+
+
     static final String DIVERSICON_TEST_STRING = Internals.DIVERSICON_STRING + "-test-";
 
     /**
@@ -858,5 +880,4 @@ public final class DivTester {
         }
 
     }
-
 }

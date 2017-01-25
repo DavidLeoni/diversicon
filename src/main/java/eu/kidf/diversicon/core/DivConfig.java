@@ -146,7 +146,10 @@ public class DivConfig {
 
 
         /**
-         * Sets the proxy used to perform HTTP calls
+         * Sets the proxy used to perform GET and POST calls
+         * 
+         * @param proxyUri the proxy used by the client, usually in a format with 
+         * address and port like {@code my.own-proxy.org:1234}
          * 
          * @since 0.1.0
          */
@@ -165,6 +168,7 @@ public class DivConfig {
         /**
          * Sets the connection timeout expressed as number of milliseconds. Must
          * be greater than zero, otherwise IllegalArgumentException is thrown.
+         * Defaults to {@link #DEFAULT_TIMEOUT}.
          *
          * @throws IllegalArgumentException
          *             is value is less than 1.
