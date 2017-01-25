@@ -20,9 +20,21 @@
 
 	<logger name="org.hibernate" level="warn"/> 	 
 
+	<!--  for WireMock  -->
+	<logger name="org.eclipse.jetty" level="info"/>
+	<logger name="org.eclipse.jetty.util.log" level="warn"/>
+	
+	<logger name="org.eclipse.jetty.server.handler.ContextHandler" level="warn"/>
+	<logger name="org.eclipse.jetty.server" level="info"/> 
+	<logger name="org.eclipse.jetty.server.Server" level="debug"/>
+	<logger name="org.eclipse.jetty.server.NetworkTrafficServerConnector" level="warn"/>
+
+
 	<root level="info">
 		<appender-ref ref="STDOUT" />
 	</root>
+	
+	
 	
 	<!--
 		Notice it is not possible to set damned c3p0 logging from here, 

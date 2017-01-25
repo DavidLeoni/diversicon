@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Array;
+import java.net.ServerSocket;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,6 +56,12 @@ public final class DivTester {
      * @since 0.1.0
      */
     public static final String DEFAULT_TEST_PREFIX = "test";
+    
+    /**
+     * @since 0.1.0
+     */
+    public static final String DIVERSICON_ORG_URL = "https://github.com/diversicon-kb";
+        
     
     /**
      * @since 0.1.0
@@ -776,5 +783,7 @@ public final class DivTester {
         }
 
     }
+    
+
     
 }
