@@ -742,7 +742,7 @@ public class DivUtilsTest {
      */
     @Test
     public void testIdPattern() {
-        Pattern p = Diversicons.ID_PATTERN;
+        Pattern p = Diversicons.NAMESPACE_ID_PATTERN;
 
         assertFalse(p.matcher("t")
                      .matches());

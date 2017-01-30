@@ -294,8 +294,20 @@ public final class Diversicons {
     public static final String NAMESPACE_SEPARATOR = "_";
 
     /**
+     * A Pattern for LexicalResource 'name' field and part after the prefix of other IDs.
      * 
-     * See {@link #ID_PATTERN} for the regex.
+     * See {@link #NAMESPACE_NAME_PATTERN} for the regex.
+     * 
+     * @since 0.1.0
+     */
+    public static final String NAMESPACE_NAME_PATTERN_DESCRIPTION =
+    "a word beginning with a unicode letter. The rest of the word may contain"
+    + " unicode letters, dots '.', dashes '-', underscores '_', but no spaces.";    
+    
+    
+    /**
+     * 
+     * See {@link #NAMESPACE_ID_PATTERN} for the regex.
      * 
      * @since 0.1.0
      */
@@ -303,26 +315,34 @@ public final class Diversicons {
             + " should look something like 'wn31_blabla', with the first part being a prefix (i.e. 'wn31'),"
             + " followed by an underscore '_'. More technically, it should be"
             + " an XML NCName with the further restriction"
-            + " of having a prefix followed by an underscore and a word"
-            + " beginning with a unicode letter. The rest of the word may contain"
-            + " unicode letters, dots '.', dashes '-', underscores '_', but no spaces.";
+            + " of having a prefix followed by an underscore and "+ NAMESPACE_NAME_PATTERN_DESCRIPTION;
 
+    
     /**
      * @since 0.1.0
      */
     public static final Map<String, String> DEFAULT_NAMESPACES = 
             Collections.unmodifiableMap(Internals.newMap(DivUpper.PREFIX, DivUpper.of().namespace()));
-        
+
+    /**
+     * {@value #NAMESPACE_NAME_PATTERN_DESCRIPTION}
+     * 
+     * @since 0.1.0
+     */
+    public static final Pattern NAMESPACE_NAME_PATTERN = Pattern.compile("\\p{L}(\\w|-|_|\\.)*");
+
+
+    
     /**
      * {@value #NAMESPACE_ID_PATTERN_DESCRIPTION}
      * 
      * @since 0.1.0
      */
-    public static final Pattern ID_PATTERN = Pattern.compile(
+    public static final Pattern NAMESPACE_ID_PATTERN = Pattern.compile(
             NAMESPACE_PREFIX_PATTERN.toString()
                     + NAMESPACE_SEPARATOR
-                    + "\\p{L}(\\w|-|_|\\.)*");
-
+                    + NAMESPACE_NAME_PATTERN.toString());
+    
     /**
      * @since 0.1.0
      */
@@ -1718,7 +1738,7 @@ public final class Diversicons {
      * Extracts the namespace prefix from provided {@code id}
      * 
      * @param id
-     *            an identifier in {@link #ID_PATTERN} format
+     *            an identifier in {@link #NAMESPACE_ID_PATTERN} format
      * @throws IllegalArgumentException
      *             when id has no valid prefix
      * 
@@ -1828,12 +1848,12 @@ public final class Diversicons {
                             && systemId.contains(Diversicons.SCHEMA_FILENAME))) {
                 String classpathUrl = Diversicons.SCHEMA_1_0_CLASSPATH_URL;
 
-                LOG.debug("Defaulting to " + classpathUrl + " for unfetchable resource "
-                        + " \n     systemId=" + systemId
-                        + " \n namespaceUrl=" + namespaceUri);
+                LOG.debug("Couldn't fetch online schema, defaulting to classpath schema."                        
+                        + "\n     systemId=" + systemId
+                        + "\n namespaceUrl=" + namespaceUri
+                        + "\n classpathUrl=" + classpathUrl);
 
-                ret.setByteStream(readData(classpathUrl)
-                                                        .stream());
+                ret.setByteStream(readData(classpathUrl).stream());
                 return ret;
             }
         }
@@ -2133,7 +2153,7 @@ public final class Diversicons {
      * @since 0.1.0
      */
     public static void checkId(String id, @Nullable String prependedMsg) {
-        if (!ID_PATTERN.matcher(id)
+        if (!NAMESPACE_ID_PATTERN.matcher(id)
                        .matches()) {
             throw new IllegalArgumentException(String.valueOf(prependedMsg)
                     + " '" + id + "' doesn't match Diversicon ID pattern. "

@@ -401,11 +401,11 @@ public class DivXmlValidator extends DefaultHandler {
         BuildInfo build = BuildInfo.of(Diversicon.class);
 
                 
-        if (!Diversicons.ID_PATTERN.matcher(pack.getName())
+        if (!Diversicons.NAMESPACE_NAME_PATTERN.matcher(pack.getName())
                 .matches()) {
                 this.error(DivValidationError.INVALID_LEXRES_NAME, "Invalid lexical resource name: '"
                             + pack.getName()+ "', must match "
-                                + Diversicons.ID_PATTERN.toString());
+                                + Diversicons.NAMESPACE_NAME_PATTERN.toString());
         }
 
         if (!Diversicons.NAMESPACE_PREFIX_PATTERN.matcher(pack.getPrefix())
@@ -428,7 +428,7 @@ public class DivXmlValidator extends DefaultHandler {
         try {
             Internals.checkNotBlank(pack.getLabel(), "Invalid lexical resource label!");
         } catch (Exception ex){
-           this.error(DivValidationError.INVALID_LABEL, "Invalid LexicalRessource label !", ex); 
+           this.error(DivValidationError.INVALID_LABEL, "Invalid LexicalResource label:", ex); 
         }
 
         if (!pack.getNamespaces()
