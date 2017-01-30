@@ -25,14 +25,14 @@ import eu.kidf.diversicon.data.DivWn31;
 import eu.kidf.diversicon.data.Smartphones;
 
 /**
- * @since 0.1.0 
+ * @since 0.1.0
  */
 public class DivUtilsIT {
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(DivUtilsTest.class);
-    
+
     private DivConfig divConfig;
-        
+
     /**
      * @since 0.1.0
      */
@@ -41,44 +41,45 @@ public class DivUtilsIT {
         // needed for testing caching
         Path newHome = Internals.createTempDir(DivTester.DIVERSICON_TEST_STRING + "-home");
         System.setProperty("user.home", newHome.toString());
-        
-        divConfig = DivTester.createNewDivConfig();                
+
+        divConfig = DivTester.createNewDivConfig();
     }
 
     /**
      * @since 0.1.0
-     */    
+     */
     @After
-    public void afterMethod(){
-        divConfig = null;       
+    public void afterMethod() {
+        divConfig = null;
     }
 
-  
-    
     /**
-     * @since 0.1.0 
+     * @since 0.1.0
      */
     @Test
     public void testRestoreWordnetH2DbToFile() throws IOException {
 
         Path dir = DivTester.createTestDir();
-        
+
         File target = new File(dir.toString() + "/test");
-        
-        Diversicons.restoreH2Db(DivWn31.of().getH2DbUri(), target.getAbsolutePath());
-        
-        DBConfig dbCfg = Diversicons.h2MakeDefaultFileDbConfig(target.getAbsolutePath(), false); 
-        
+
+        Diversicons.restoreH2Db(DivWn31.of()
+                                       .getH2DbUri(),
+                target.getAbsolutePath());
+
+        DBConfig dbCfg = Diversicons.h2MakeDefaultFileDbConfig(target.getAbsolutePath(), false);
+
         Diversicon div = Diversicon.connectToDb(DivConfig.of(dbCfg));
-        
+
         div.getLexiconNames();
-                
-        div.getSession().close();
+
+        div.getSession()
+           .close();
     }
 
-
     /**
-     *  
+     * We should be able to import Smartphones and compute transitive closure
+     * even without Wordnet loaded.
      * 
      * @since 0.1.0
      * 
@@ -88,7 +89,7 @@ public class DivUtilsIT {
     public void testImportSmartPhonesXmlWithWordnet() {
 
         Path dir = DivTester.createTestDir();
-        
+
         File target = new File(dir.toString() + "/test");
         
         Diversicons.restoreH2Db(DivWn31.of().getH2DbUri(), target.getAbsolutePath());
@@ -99,60 +100,68 @@ public class DivUtilsIT {
         
         div.importXml(Smartphones.of().getXmlUri());    
     }
-    
+
     /**
      * @since 0.1.0
      */
     @Test
-    public void testReadDataWordnetSql(){
-        ExtractedStream es = Diversicons.readData(DivWn31.of().getSqlUri(), true);
+    public void testReadDataWordnetSql() {
+        ExtractedStream es = Diversicons.readData(DivWn31.of()
+                                                         .getSqlUri(),
+                true);
         assertTrue(es.isExtracted());
         assertEquals("div-wn31.sql", es.getFilepath());
-        assertEquals(DivWn31.of().getSqlUri(), es.getSourceUrl());
+        assertEquals(DivWn31.of()
+                            .getSqlUri(),
+                es.getSourceUrl());
         File f = es.toTempFile();
         assertTrue(f.exists());
-        assertTrue(f.length() > 0);        
-    }
-    
-    /**
-     * @since 0.1.0
-     */
-    @Test
-    public void testReadDataWordnetXml(){
-        ExtractedStream es = Diversicons.readData(DivWn31.of().getXmlUri(), true);
-        assertTrue(es.isExtracted());
-        assertEquals("div-wn31.xml", es.getFilepath());
-        assertEquals(DivWn31.of().getXmlUri(), es.getSourceUrl());
-        File f = es.toTempFile();
-        assertTrue(f.exists());
-        assertTrue(f.length() > 0);                
+        assertTrue(f.length() > 0);
     }
 
     /**
      * @since 0.1.0
      */
     @Test
-    public void testImportXmlWordnetSample(){
-        
-        Diversicons.createTables(divConfig.getDbConfig());
-        
-        Diversicon div = Diversicon.connectToDb(divConfig);
-                
-        div.importXml(DivWn31.SAMPLE_XML_URI);
-        
-    }    
-    
-    
+    public void testReadDataWordnetXml() {
+        ExtractedStream es = Diversicons.readData(DivWn31.of()
+                                                         .getXmlUri(),
+                true);
+        assertTrue(es.isExtracted());
+        assertEquals("div-wn31.xml", es.getFilepath());
+        assertEquals(DivWn31.of()
+                            .getXmlUri(),
+                es.getSourceUrl());
+        File f = es.toTempFile();
+        assertTrue(f.exists());
+        assertTrue(f.length() > 0);
+    }
+
     /**
-     * Pretty useless, H2 can only Restore  to a file
+     * @since 0.1.0
+     */
+    @Test
+    public void testImportXmlWordnetSample() {
+
+        Diversicons.createTables(divConfig.getDbConfig());
+
+        Diversicon div = Diversicon.connectToDb(divConfig);
+
+        div.importXml(DivWn31.SAMPLE_XML_URI);
+
+    }
+
+    /**
+     * Pretty useless, H2 can only Restore to a file
      * 
      * @since 0.1.0
      */
     // @Test
-    public void testRestoreNativeH2Db(){
-        Restore.execute("../../diversicon-wordnet-3.1/src/main/resources/it/unitn/disi/diversicon/data/wn30/div-wn30.h2.db.zip", "target/restored-wn31", "restored-db", false);
+    public void testRestoreNativeH2Db() {
+        Restore.execute(
+                "../../diversicon-wordnet-3.1/src/main/resources/it/unitn/disi/diversicon/data/wn30/div-wn30.h2.db.zip",
+                "target/restored-wn31", "restored-db", false);
     }
-
 
     /**
      * @since 0.1.0
@@ -166,33 +175,32 @@ public class DivUtilsIT {
         Diversicons.fetchH2Db(cacheRoot.toFile(), DivWn31.NAME, DivWn31.of().getVersion());        
         assertTrue(Diversicons.getCachedDir(cacheRoot.toFile(), DivWn31.NAME, DivWn31.of().getVersion()).exists());
         // should be faster ...
-        DBConfig config = Diversicons.fetchH2Db(cacheRoot.toFile(), DivWn31.NAME, DivWn31.of().getVersion());
-        
+        DBConfig config = Diversicons.fetchH2Db(cacheRoot.toFile(), DivWn31.NAME, DivWn31.of()
+                                                                                         .getVersion());
+
         // should allow multiple connections ...
-        
+
         Diversicon div1 = null;
         Diversicon div2 = null;
 
         try {
             div1 = Diversicon.connectToDb(DivConfig.of(config));
             div2 = Diversicon.connectToDb(DivConfig.of(config));
-            
+
             LOG.debug(div1.formatImportJobs(false));
-            LOG.debug(div2.formatImportJobs(false));            
+            LOG.debug(div2.formatImportJobs(false));
         } finally {
-            if (div1 != null){
-                div1.getSession().close();    
+            if (div1 != null) {
+                div1.getSession()
+                    .close();
             }
-            if (div2 != null){
-                div2.getSession().close();    
-            }    
+            if (div2 != null) {
+                div2.getSession()
+                    .close();
+            }
         }
-        
-        
+
     }
-    
-    
- 
-    
+
 
 }

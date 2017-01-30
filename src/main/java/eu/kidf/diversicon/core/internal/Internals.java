@@ -33,6 +33,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.logging.Level;
@@ -56,8 +57,20 @@ import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpResponse;
+import org.apache.http.ProtocolException;
+import org.apache.http.StatusLine;
+import org.apache.http.client.RedirectStrategy;
+import org.apache.http.client.fluent.Executor;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.client.fluent.Response;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.DefaultRedirectStrategy;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.RedirectLocations;
+import org.apache.http.protocol.HttpContext;
 import org.apache.xerces.impl.Constants;
 import org.apache.xerces.impl.dtd.DTDGrammar;
 import org.apache.xerces.impl.dtd.XMLDTDLoader;
@@ -113,6 +126,37 @@ public final class Internals {
 
     @Nullable
     private static DTDGrammar DTD_GRAMMAR;
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String NON_EXISTING_URL_1 = "http://a-probe-non-existent.url";
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String NON_EXISTING_URL_2 = "http://b-probe-non-existent.url";
+
+    /**
+     * 
+     * 
+     * @since 0.1.0
+     */
+    private static boolean checkedIsp = false;
+
+    /**
+     * Sinful ISPs that redirect on issed pages,
+     * see <a href="https://github.com/diversicon-kb/diversicon-core/issues/29"
+     * target="_blank">
+     * issue 29 on Github</a>
+     * 
+     * <p>
+     * Can be updated during program execution.
+     * </p>
+     * 
+     * @since 0.1.0
+     */
+    private final static ConcurrentSkipListSet<String> redirectingISPs = new ConcurrentSkipListSet<>();
 
     /**
      * @since 0.1.0
@@ -730,7 +774,7 @@ public final class Internals {
             return str;
         }
     }
-    
+
     /**
      * @since 0.1.0
      */
@@ -741,7 +785,6 @@ public final class Internals {
 
         return m.matches();
     }
-
 
     /**
      * If outPath is something like {@code a/b/c.sql.zip} and {@code ext} is
@@ -1786,31 +1829,138 @@ public final class Internals {
     /**
      * Performs HTTP GET on server.
      *
-     * @param diversiconConfig
+     * @param divConfig
      *            if unknown use {@link DivConfig#of()}
      *
      * @throws DivIoException
      * 
      * @since 0.1.0
      */
-    public static InputStream httpGet(DivConfig diversiconConfig, URI url) {
+    public static InputStream httpGet(DivConfig divConfig, URI url) {
 
-        LOG.debug("Fetching " + url);
-        Request request = Request.Get(url);
-
-        configureRequest(diversiconConfig, request);
-
-        Response response;
         try {
-            response = request.execute();
-            return response.returnResponse()
-                           .getEntity()
-                           .getContent();
-        } catch (IOException e) {
 
+            if (!checkedIsp) {
+                LOG.debug("First get, checking if behind a redirecting ISP...");
+                detectRedirectingISP(divConfig);
+                checkedIsp = true;
+            }
+
+            LOG.debug("Fetching " + url);
+
+            Request request = Request.Get(url);
+
+            configureRequest(divConfig, request);
+            DivRedirectStrategy stra = new DivRedirectStrategy();
+            CloseableHttpClient client = HttpClientBuilder.create()
+                                                          .setRedirectStrategy(stra)
+                                                          .build();
+            Executor executor = Executor.newInstance(client);
+
+            Response response = executor.execute(request);
+
+            List<URI> uris1 = stra.getRedirectUris();
+            if (uris1.size() > 0) {
+                URI lastUri = uris1.get(uris1.size() - 1);
+                if (isIspRedirectedUrl(lastUri.toString())) {
+                    throw new DivIoException("Couldn't find the request url " + url
+                            + " (seems like your ISP redirected to this landing page: " + lastUri + "   )");
+                }
+            }
+
+            HttpResponse httpResponse = response.returnResponse();
+
+            StatusLine statusLine = httpResponse.getStatusLine();
+            if (statusLine.getStatusCode() >= 400) {
+                throw new DivIoException("ERROR: " + statusLine.getStatusCode() + ": " + statusLine.getReasonPhrase());
+            }
+
+            return httpResponse
+                               .getEntity()
+                               .getContent();
+        } catch (Exception e) {
             throw new DivIoException(e);
         }
 
+    }
+
+    /**
+     * Returns true if {@code url} could be the result of an inappropriate
+     * reidrection from the ISP.
+     * 
+     * See https://github.com/diversicon-kb/diversicon-core/issues/29
+     * 
+     * @since 0.1.0
+     */
+    private static boolean isIspRedirectedUrl(String url) {
+        for (String u : redirectingISPs) {
+            if (url.startsWith(u)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Detects if behind a redirecting ISP and updates {@link #redirectingISPs}
+     * accordingly. Never throws.
+     * 
+     * <p>
+     * Some bastards ISP redirect on ad pages instead of giving 404. ,
+     * see <a href="https://github.com/diversicon-kb/diversicon-core/issues/29"
+     * target="_blank">
+     * issue 29 on Github</a>
+     * </p>
+     * 
+     * @since 0.1.0
+     */
+    private static void detectRedirectingISP(DivConfig config) {
+
+        try {
+
+            String url1 = NON_EXISTING_URL_1;
+            LOG.debug("Fetching non-existent url " + url1);
+
+            Request request1 = configureRequest(config, Request.Get(url1));
+            DivRedirectStrategy stra1 = new DivRedirectStrategy();
+            CloseableHttpClient client1 = HttpClientBuilder.create()
+                                                           .setRedirectStrategy(stra1)
+                                                           .build();
+            Executor executor1 = Executor.newInstance(client1);
+
+            Response resp1 = executor1.execute(request1);
+            LOG.debug(resp1.returnContent()
+                           .asString());
+            List<URI> uris1 = stra1.getRedirectUris();
+            URI lastUri_1 = uris1.get(uris1.size() - 1);
+
+            String url2 = NON_EXISTING_URL_2;
+            LOG.debug("Fetching non-existent url " + url2);
+
+            DivRedirectStrategy stra2 = new DivRedirectStrategy();
+            CloseableHttpClient client2 = HttpClientBuilder.create()
+                                                           .setRedirectStrategy(stra2)
+                                                           .build();
+            Executor executor2 = Executor.newInstance(client2);
+
+            Request request2 = configureRequest(config, Request.Get(url2));
+            executor2.execute(request2);
+            List<URI> uris2 = stra2.getRedirectUris();
+            URI lastUri_2 = uris2.get(uris2.size() - 1);
+
+            String commonUrl = longestCommonPrefix(lastUri_1.toString(), lastUri_2.toString());
+            LOG.debug("***  Seems like your nasty ISP is hacking HTTP to redirect missed pages to " + commonUrl);
+            LOG.debug("***  This may cause troubles when downloading some files !");
+            redirectingISPs.add(commonUrl);
+
+        } catch (IOException e) {
+
+            LOG.trace("Couldn't fetch non existing page. With well-behaved ISPs"
+                    + " this is the expected behaviour !", e);
+
+        } catch (Exception ex) {
+            LOG.debug("Caught some unexpected excpetion while probing if behind a redirecting ISP!", ex);
+        }
     }
 
     /**
@@ -1819,10 +1969,11 @@ public final class Internals {
      * @since 0.1.0
      */
     private static Request configureRequest(DivConfig config, Request request) {
-        checkNotNull(config, "Invalid null locator, if unknown use diversiconConfig.of()");
+        checkNotNull(config, "Invalid null config, if unknown use DivConfig.of()");
         checkNotNull(request);
 
         if (config.getHttpProxy() != null) {
+
             request.viaProxy(config.getHttpProxy());
         }
         request.socketTimeout(config.getTimeout())
@@ -1855,4 +2006,25 @@ public final class Internals {
         
     }
     
+    /**
+     * Returns the longest common prefix among strings {@code a} and {@code b}.
+     * If any of them is empty, returns the empty string.
+     * 
+     * @since 0.1.0
+     */
+    public static String longestCommonPrefix(String a, String b) {
+        checkNotNull(a);
+        checkNotNull(b);
+        if (a.isEmpty() || b.isEmpty()) {
+            return "";
+        }
+        int minLength = Math.min(a.length(), b.length());
+        for (int i = 0; i < minLength; i++) {
+            if (a.charAt(i) != b.charAt(i)) {
+                return a.substring(0, i);
+            }
+        }
+        return a.substring(0, minLength);
+    }
+
 }
