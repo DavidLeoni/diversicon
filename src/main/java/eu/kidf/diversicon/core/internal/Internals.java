@@ -1883,6 +1883,9 @@ public final class Internals {
      */
     private static void detectRedirectingISP(DivConfig config) {
 
+        URI lastUri_1 = null;
+        URI lastUri_2 = null;
+        
         try {
 
             String url1 = NON_EXISTING_URL_1;
@@ -1899,11 +1902,22 @@ public final class Internals {
             LOG.trace(resp1.returnContent()
                            .asString());
             List<URI> uris1 = stra1.getRedirectUris();
-            URI lastUri_1 = uris1.get(uris1.size() - 1);
+            lastUri_1 = uris1.get(uris1.size() - 1);
 
+        } catch (IOException e) {
+
+            LOG.trace("Couldn't fetch non existing page " + NON_EXISTING_URL_1
+                    + "\nWith well-behaved ISPs"
+                    + " this is the expected behaviour !", e);
+
+        
+        } catch (Exception ex) {
+            LOG.debug("Caught some unexpected exception while probing if behind a redirecting ISP with url " + NON_EXISTING_URL_1, ex);
+        }
+        
+        try {
             String url2 = NON_EXISTING_URL_2;
             LOG.debug("Fetching non-existent url " + url2);
-
             DivRedirectStrategy stra2 = new DivRedirectStrategy();
             CloseableHttpClient client2 = HttpClientBuilder.create()
                                                            .setRedirectStrategy(stra2)
@@ -1913,21 +1927,36 @@ public final class Internals {
             Request request2 = configureRequest(config, Request.Get(url2));
             executor2.execute(request2);
             List<URI> uris2 = stra2.getRedirectUris();
-            URI lastUri_2 = uris2.get(uris2.size() - 1);
-
-            String commonUrl = longestCommonPrefix(lastUri_1.toString(), lastUri_2.toString());
-            LOG.debug("***  Seems like your nasty ISP is hacking HTTP to redirect missed pages to " + commonUrl);
-            LOG.debug("***  This may cause troubles when downloading some files !");
-            redirectingISPs.add(commonUrl);
-
+            lastUri_2 = uris2.get(uris2.size() - 1);
+            
         } catch (IOException e) {
 
-            LOG.trace("Couldn't fetch non existing page. With well-behaved ISPs"
+            LOG.trace("Couldn't fetch non existing page " + NON_EXISTING_URL_2
+                    + "\nWith well-behaved ISPs"
                     + " this is the expected behaviour !", e);
 
         } catch (Exception ex) {
-            LOG.debug("Caught some unexpected excpetion while probing if behind a redirecting ISP!", ex);
+            LOG.debug("Caught some unexpected exception while probing if behind a redirecting ISP with url " + NON_EXISTING_URL_2, ex);
         }
+    
+    
+        String commonUrl = "";
+        
+        if (lastUri_1 != null && lastUri_2 != null){
+            commonUrl = longestCommonPrefix(lastUri_1.toString(), lastUri_2.toString());
+        } else {
+            if (lastUri_1 != null){
+                commonUrl = lastUri_1.toString(); 
+            } else if (lastUri_2 != null){                    
+                commonUrl = lastUri_2.toString();                     
+            }
+        }
+        if (lastUri_1 != null || lastUri_2 != null ){
+            LOG.debug("***  Seems like your nasty ISP is hacking HTTP to redirect missed pages to " + commonUrl);
+            LOG.debug("***  This may cause troubles when downloading some files !");
+            redirectingISPs.add(commonUrl);
+        }                      
+        
     }
 
     /**
