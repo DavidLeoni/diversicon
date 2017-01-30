@@ -1925,8 +1925,11 @@ public final class Internals {
             Executor executor2 = Executor.newInstance(client2);
 
             Request request2 = configureRequest(config, Request.Get(url2));
-            executor2.execute(request2);
+            Response resp2 = executor2.execute(request2);
+            LOG.trace(resp2.returnContent()
+                           .asString());
             List<URI> uris2 = stra2.getRedirectUris();
+            
             lastUri_2 = uris2.get(uris2.size() - 1);
             
         } catch (IOException e) {
