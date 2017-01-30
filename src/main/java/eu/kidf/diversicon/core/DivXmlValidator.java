@@ -58,6 +58,11 @@ public class DivXmlValidator extends DefaultHandler {
 
     private ValidationStep step;
 
+    /**
+     * See {@link #getTagIds()}
+     * 
+     * @since 0.1.0
+     */
     private Map<String, String> tagIds;
 
     /**
@@ -321,9 +326,18 @@ public class DivXmlValidator extends DefaultHandler {
                     tagIds.put(name, tagName);
                 }
                 
-                validatePack();
+                
 
             } else {
+                
+                // remember it ALWAYS find GlobalInformation because of previous DTD check !
+                if ("GlobalInformation".equals(tagName)){                    
+                    String label = attrs.getValue("label");
+                    if (label != null){
+                        pack.setLabel(label);
+                    }
+                    validatePack();    
+                }
 
                 // Would have liked to get it from class, but if we
                 // assume xml schema pass was done before it should still be ok
