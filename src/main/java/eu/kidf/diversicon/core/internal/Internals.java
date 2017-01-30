@@ -85,6 +85,7 @@ import de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata.UBYLMFFieldMetadata;
 import eu.kidf.diversicon.core.BuildInfo;
 import eu.kidf.diversicon.core.DivSynsetRelation;
 import eu.kidf.diversicon.core.DivXmlHandler;
+import eu.kidf.diversicon.core.DivXmlValidator;
 import eu.kidf.diversicon.core.Diversicon;
 import eu.kidf.diversicon.core.Diversicons;
 import eu.kidf.diversicon.core.LexResPackage;
@@ -1229,7 +1230,7 @@ public final class Internals {
     @Nullable
     public static String prepareXmlElement(Object inputLmfObject,
             boolean closeTag,
-            LexResPackage lexResPackage,
+            LexResPackage pack,
             UBYLMFClassMetadata classMetadata,
             AttributesImpl atts,
             List<Object> children) throws SAXException {
@@ -1237,8 +1238,11 @@ public final class Internals {
         checkNotNull(inputLmfObject);
         checkNotNull(atts);
         checkNotNull(children);
-        Internals.checkLexResPackage(lexResPackage);
-
+        // TODO think if it is necessary
+        // Internals.checkLexResPackage(lexResPackage);
+        checkNotNull(pack);
+        
+        
         Object lmfObject = inputLmfObject;
         String elementName = lmfObject.getClass()
                                       .getSimpleName();
@@ -1246,7 +1250,7 @@ public final class Internals {
         if (inputLmfObject instanceof LexicalResource) {
 
             atts.addAttribute("", "", "prefix", "CDATA",
-                    lexResPackage.getPrefix());
+                    pack.getPrefix());
 
             // note at the end of the method we put xmlns
         } else if (inputLmfObject instanceof DivSynsetRelation) {
@@ -1337,9 +1341,9 @@ public final class Internals {
         if (inputLmfObject instanceof LexicalResource) {
 
             // note at the beginning of the method we put id and prefix
-            for (String prefix : lexResPackage.getNamespaces()
+            for (String prefix : pack.getNamespaces()
                                               .keySet()) {
-                String url = lexResPackage.getNamespaces()
+                String url = pack.getNamespaces()
                                           .get(prefix);
                 atts.addAttribute("", "", "xmlns:" + prefix, "CDATA",
                         url);
@@ -1471,22 +1475,37 @@ public final class Internals {
     }
 
     /**
-     * Performs a coherence check on provided lexical resource package.
+     * Performs a coherence check on provided lexical resource package. 
+     * If the check succeeds, return the package.
      * 
      * To match it against a LexicalResource, see
      * {@link #checkLexResPackage(LexResPackage, LexicalResource)}
+     * 
+     * <p>
+     * <strong>
+     * NOTE: This check partially duplicates the checking done in {@link DivXmlValidator} and so 
+     * it should be done only when that validation is not performed.
+     * </strong> 
+     * </p>
      * 
      * @throws IllegalArgumentException
      * 
      * @since 0.1.0
      */
-    public static LexResPackage checkLexResPackage(LexResPackage lexResPackage) {
+    public static LexResPackage checkLexResPackage(LexResPackage lexResPackage) {        
         return checkLexResPackage(lexResPackage, null);
     }
 
     /**
-     * Checks provided {@code LexicalResourcePackage} matches fields in
-     * {@code LexicalResource}
+     * Check provided {@code LexicalResourcePackage} matches fields in
+     * {@code LexicalResource}. If check passes, return the validated package.
+     * 
+     * <p>
+     * <strong>
+     * NOTE: This check partially duplicates the checking done in {@link DivXmlValidator} and so 
+     * it should be done only when that validation is not performed.
+     * </strong> 
+     * </p>
      * 
      * @throws IllegalArgumentException
      * 
@@ -1495,31 +1514,27 @@ public final class Internals {
     public static LexResPackage checkLexResPackage(
             LexResPackage pack,
             @Nullable LexicalResource lexRes) {
-
-        BuildInfo build = BuildInfo.of(Diversicon.class);
-
-        checkNotBlank(pack.getName(), "Invalid lexical resource name!");
-        Diversicons.checkPrefix(pack.getPrefix());
-
-        checkNotBlank(pack.getLabel(), "Invalid lexical resource label!");
-
-        if (pack.getPrefix()
-                .length() > Diversicons.LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH) {
-            LOG.warn("Lexical resource prefix " + pack.getPrefix() + " longer than "
-                    + Diversicons.LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH
-                    + ": this may cause memory issues.");
+        
+        Diversicons.checkId(pack.getName(), "Invalid lexical resource 'name' field!");
+        if (lexRes != null){
+            Internals.checkEquals("Lexical resource name " + lexRes.getName() 
+            + " doesn't match name in pack: " + pack.getName(), pack.getName(), lexRes.getName());
         }
+        Diversicons.checkPrefix(pack.getPrefix());
+        
+        checkNotBlank(pack.getLabel(), "Invalid lexical resource label!");
 
         Diversicons.checkNamespaces(pack.getNamespaces());
 
         if (!pack.getNamespaces()
                  .containsKey(pack.getPrefix())) {
             throw new IllegalArgumentException(
-                    "Couldn't find LexicalResource prefix '" + pack.getPrefix() + "' among namespace prefixes! "
-                            + "See " + build.docsAtVersion() + "/diversicon-lmf.html"
-                            + " for info on how to structure a Diversicon XML!");
+                    "Couldn't find LexicalResource prefix '" + pack.getPrefix() + "' among namespace prefixes! ");
+                           //  TODO put good docs link
+                           //  + "See " + build.docsAtVersion() + "/diversicon-lmf.html"
+                           //  + " for info on how to structure a Diversicon XML!");
         }
-
+              
         return pack;
     }
 

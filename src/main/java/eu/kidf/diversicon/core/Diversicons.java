@@ -295,6 +295,7 @@ public final class Diversicons {
 
     /**
      * 
+     * See {@link #ID_PATTERN} for the regex.
      * 
      * @since 0.1.0
      */
@@ -735,7 +736,8 @@ public final class Diversicons {
         // todo make it load a sql dump ....
         Diversicon div = Diversicon.connectToDb(DivConfig.of(dbConfig));
         ImportConfig config = new ImportConfig();
-
+        config.setForce(true);  // because prefix 'div' is not yet in the db !
+        
         config.setAuthor(Diversicons.DIVERSICON_AUTHOR);
         config.setFileUrls(Arrays.asList(DivUpper.of().getXmlUri()));
         div.importFiles(config);               
@@ -1853,18 +1855,27 @@ public final class Diversicons {
      */
     public static DivXmlValidator validateResource(
             LexResPackage pack, 
-            @Nullable LexicalResource resource, 
+            @Nullable LexicalResource lexRes, 
             final XmlValidationConfig config) {
 
         checkNotNull(pack);
         checkNotNull(config);
 
-        DivXmlHandler errorHandler = new DivXmlHandler(config, resource.getName()); // todo using name as sysmId, hope it's correct
+        //  todo using name as sysmId, hope it's correct
+        DivXmlHandler errorHandler = new DivXmlHandler(config, pack.getName()); 
                               
         DivXmlValidator divXmlValidator =  new DivXmlValidator(pack, errorHandler);
         
-        // todo nothing to check for now...
-        // divXmlValidator.checkPassed(file);
+        validateResourceStep(pack, lexRes, divXmlValidator);
+        try {
+            divXmlValidator.validatePack();
+        } catch (SAXException e) {
+            
+            throw new InvalidXmlException(errorHandler);
+        }
+        
+        // twice, so does second step
+        validateResourceStep(pack, lexRes, divXmlValidator);
 
         return divXmlValidator;
         
@@ -1949,9 +1960,9 @@ public final class Diversicons {
 
         DivXmlValidator divXmlValidator = new DivXmlValidator(new LexResPackage(), errorHandler);
 
-        validateXmlJavaStep(xmlFile, divXmlValidator);
+        validateXmlStep(xmlFile, divXmlValidator);
         // need two steps!
-        validateXmlJavaStep(xmlFile, divXmlValidator);
+        validateXmlStep(xmlFile, divXmlValidator);
 
         divXmlValidator.checkPassed();
 
@@ -1961,13 +1972,18 @@ public final class Diversicons {
       
 
     /**
-     * Performs validation with custom Java code. Needed because current Xerces
+     * Performs one XML validation step with custom Java code. 
+     * 
+     * <p>
+     * Needed because current Xerces
      * Xml Schema 1.1 assert implemention has problems, see
-     * https://github.com/diversicon-kb/diversicon-core/issues/21
+     * <a href="https://github.com/diversicon-kb/diversicon-core/issues/21" target="_blank"> 
+     * issue 21 </a>
+     * </p>
      *        
      * @since 0.1.0
      */    
-    static void validateXmlJavaStep(
+    static void validateXmlStep(
             File file,           
             DivXmlValidator divXmlValidator) {
         
@@ -1991,6 +2007,29 @@ public final class Diversicons {
 
     }
 
+    /**
+     * Performs one validation step on a lexical resource (a bit hacky)
+     *        
+     * @since 0.1.0
+     * 
+     * @throws InvalidXmlException
+     */    
+    static void validateResourceStep(
+            LexResPackage pack,
+            @Nullable
+            LexicalResource lexRes, // not much needed for now           
+            DivXmlValidator divXmlValidator) {
+        
+        try {
+            divXmlValidator.startDocument();            
+            divXmlValidator.endDocument();
+        } catch (SAXException ex) {
+            throw new InvalidXmlException(divXmlValidator.getErrorHandler(), ex);
+        }        
+
+    }
+    
+    
     /**
      * Reads metadata about a given resource.
      * 
@@ -2030,19 +2069,19 @@ public final class Diversicons {
      */
     public static File writeLexResToXml(
             LexicalResource lexRes,
-            LexResPackage lexResPackage,
+            LexResPackage pack,
             File xmlFile) {
 
         checkNotNull(lexRes);
 
-        Internals.checkLexResPackage(lexResPackage, lexRes);
+        Internals.checkLexResPackage(pack, lexRes);
 
         DivXmlWriter writer;
         try {
             writer = new DivXmlWriter(new FileOutputStream(
                     xmlFile),
                     null,
-                    lexResPackage); // todo check if setting dtd means something
+                    pack); // todo check if setting dtd means something
 
             writer.writeElement(lexRes);
             writer.writeEndDocument();

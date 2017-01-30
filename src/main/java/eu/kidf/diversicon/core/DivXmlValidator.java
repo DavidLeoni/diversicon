@@ -23,6 +23,7 @@ import eu.kidf.diversicon.core.LexResPackage;
 import eu.kidf.diversicon.core.exceptions.DivException;
 import eu.kidf.diversicon.core.exceptions.InvalidImportException;
 import eu.kidf.diversicon.core.exceptions.InvalidXmlException;
+import eu.kidf.diversicon.core.internal.Internals;
 import eu.kidf.diversicon.data.DivUpper;
 
 /**
@@ -31,13 +32,8 @@ import eu.kidf.diversicon.data.DivUpper;
  * 
  * <p>
  * It remembers the number of times it has been launched to
- * perform finer and finer validation :
+ * perform finer and finer validation, see {@link ValidationStep}
  * 
- * <ol>
- * <li>Validate structure, collect ids
- * <li>Verify internal ids links, external ids syntax</li>
- * <li>Verify external ids against the db</li>
- * </ol>
  * </p>
  * 
  * 
@@ -53,21 +49,6 @@ public class DivXmlValidator extends DefaultHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(DivXmlValidator.class);
 
-    /**
-     * @since 0.1.0
-     */
-    private static final int STEP_1 = 1;
-
-    /**
-     * @since 0.1.0
-     */
-    private static final int STEP_2 = 2;
-
-    /**
-     * @since 0.1.0
-     */
-    private static final int STEP_3 = 3;
-
     private LexResPackage pack;
 
     @Nullable
@@ -75,7 +56,7 @@ public class DivXmlValidator extends DefaultHandler {
 
     private DivXmlHandler errorHandler;
 
-    private int step;
+    private ValidationStep step;
 
     private Map<String, String> tagIds;
 
@@ -88,8 +69,7 @@ public class DivXmlValidator extends DefaultHandler {
      * Needed only in step 3
      */
     private @Nullable ImportConfig importConfig;
-    
-    
+
     /**
      * @param pack
      *            the package to fill with metadata extracted from the XML.
@@ -106,10 +86,10 @@ public class DivXmlValidator extends DefaultHandler {
         checkNotNull(errorHandler);
         this.pack = pack;
         this.errorHandler = errorHandler;
-        this.step = STEP_1;
+
+        this.step = ValidationStep.STEP_1_STRUCTURAL;
         this.tagIds = new HashMap<>();
         this.diversicon = null;
-        this.errorHandler = null;
     }
 
     public DivXmlValidator(
@@ -231,7 +211,10 @@ public class DivXmlValidator extends DefaultHandler {
     @Override
     public void startDocument() throws SAXException {
 
-        if (this.step == STEP_3) {
+        switch (this.step) {
+
+        case STEP_3_EXTERNAL:
+
             if (this.diversicon == null) {
                 throw new IllegalStateException(
                         "Trying to do a third validation pass but no diversicon connection was specified!");
@@ -281,15 +264,22 @@ public class DivXmlValidator extends DefaultHandler {
                     }
                 }
 
-                if (!dbNss.containsKey(prefix)) {
+                if (!pack.getPrefix()
+                         .equals(prefix)
+                        && !dbNss.containsKey(prefix)) {
                     String msg = "Prefix '" + prefix + "' is not present in database prefixes!";
-                    
+
                     warning(DivValidationError.INVALID_PREFIX, msg);
-                    
+
                 }
             }
+            break;
+        default:
+            break;
+        // do nothing
         }
     }
+
 
     /**
      * {@inheritDoc}
@@ -305,7 +295,7 @@ public class DivXmlValidator extends DefaultHandler {
         final String sep = Diversicons.NAMESPACE_SEPARATOR;
 
         switch (step) {
-        case STEP_1:
+        case STEP_1_STRUCTURAL:
             if ("LexicalResource".equals(tagName)) {
 
                 String name = attrs.getValue("name");
@@ -322,40 +312,16 @@ public class DivXmlValidator extends DefaultHandler {
                         String prefix = qname.split(":")[1];
                         String ns = attrs.getValue(i);
 
-                        if (!Diversicons.NAMESPACE_PREFIX_PATTERN.matcher(prefix)
-                                                                 .matches()) {
-                            this.error(DivValidationError.INVALID_PREFIX, "Invalid prefix '"
-                                    + prefix + "', it must match "
-                                    + Diversicons.NAMESPACE_PREFIX_PATTERN.toString());
-                        }
-
-                        try {
-                            Diversicons.checkNamespace(ns);
-                        } catch (Exception ex) {
-                            this.error(DivValidationError.INVALID_PREFIX, "Invalid namespace for prefix '"
-                                    + prefix + "': '" + ns + '"');
-                        }
-
-                        if (DivUpper.of()
-                                    .getPrefix()
-                                    .equals(prefix)) {
-                            if (!DivUpper.of()
-                                         .namespace()
-                                         .equals(ns)) {
-                                error(DivValidationError.INVALID_DIVUPPER_NAMESPACE,
-                                        "Invalid DivUpper namespace. Expected: \n" +
-                                                DivUpper.of()
-                                                        .namespace()
-                                                + "\nFound instead: " + ns);
-                            }
-                        }
-
                         pack.putNamespace(prefix, ns);
+
                     }
-                }
+                }                
+
                 if (!tagIds.containsKey(name)) {
                     tagIds.put(name, tagName);
                 }
+                
+                validatePack();
 
             } else {
 
@@ -378,7 +344,7 @@ public class DivXmlValidator extends DefaultHandler {
             }
 
             break;
-        case STEP_2:
+        case STEP_2_INTERNAL:
 
             // todo crude, need to find smarter ways with reflection..
             if ("SynsetRelation".equals(tagName)) {
@@ -408,7 +374,7 @@ public class DivXmlValidator extends DefaultHandler {
             // }
 
             break;
-        case STEP_3: // checks against db
+        case STEP_3_EXTERNAL: // checks against db
 
             if ("SynsetRelation".equals(tagName)) {
                 validateRefAgainstDb(calcProv(tagName, "target"), attrs.getValue("target"), "Synset");
@@ -422,6 +388,93 @@ public class DivXmlValidator extends DefaultHandler {
         default:
             LOG.warn("Tried to do an unsupported step: " + this.step);
         }
+    }
+
+    /**
+     * Validates the lexical resource package.
+     * 
+     * @since 0.1.0
+     * @throws SAXException
+     */
+    void validatePack() throws SAXException {
+
+        BuildInfo build = BuildInfo.of(Diversicon.class);
+
+                
+        if (!Diversicons.ID_PATTERN.matcher(pack.getName())
+                .matches()) {
+                this.error(DivValidationError.INVALID_LEXRES_NAME, "Invalid lexical resource name: '"
+                            + pack.getName()+ "', must match "
+                                + Diversicons.ID_PATTERN.toString());
+        }
+
+        if (!Diversicons.NAMESPACE_PREFIX_PATTERN.matcher(pack.getPrefix())
+                .matches()) {
+            this.error(DivValidationError.INVALID_PREFIX, "Invalid prefix '"
+                    + pack.getPrefix() + "', it must match "
+                    + Diversicons.NAMESPACE_PREFIX_PATTERN.toString());
+        }
+        
+        // TODO can we express warnings in xml schema ?
+        if (pack.getPrefix()
+                .length() > Diversicons.LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH) {
+            this.warning(DivValidationError.TOO_LONG_PREFIX, "Lexical resource prefix " + pack.getPrefix() 
+                    + " longer than " + Diversicons.LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH
+                    + ": this may cause memory issues.");
+        }
+        
+        
+        // TODO: put this in schema
+        try {
+            Internals.checkNotBlank(pack.getLabel(), "Invalid lexical resource label!");
+        } catch (Exception ex){
+           this.error(DivValidationError.INVALID_LABEL, "Invalid LexicalRessource label !", ex); 
+        }
+
+        if (!pack.getNamespaces()
+                 .containsKey(pack.getPrefix())) {
+            this.error(DivValidationError.MISSING_NAMESPACE_DECLARATION,
+                    "Couldn't find LexicalResource prefix '" + pack.getPrefix() + "' among namespace prefixes! ");
+            // TODO put good docs link
+            // + "See " + build.docsAtVersion() + "/diversicon-lmf.html"
+            // + " for info on how to structure a Diversicon XML!");
+        }
+
+        for (String prefix : pack.getNamespaces()
+                                 .keySet()) {
+                        
+            if (!Diversicons.NAMESPACE_PREFIX_PATTERN.matcher(prefix)
+                                                     .matches()) {
+                this.error(DivValidationError.INVALID_PREFIX, "Invalid prefix '"
+                        + prefix + "', it must match "
+                        + Diversicons.NAMESPACE_PREFIX_PATTERN.toString());
+            }
+            
+            String ns = pack.getNamespaces().get(prefix);
+
+            try {
+                Diversicons.checkNamespace(ns);
+            } catch (Exception ex) {
+                this.error(DivValidationError.INVALID_NAMESPACE, "Invalid namespace for prefix '"
+                        + prefix + "': '" + ns + '"');
+            }
+
+            if (DivUpper.of()
+                        .getPrefix()
+                        .equals(prefix)) {
+                if (!DivUpper.of()
+                             .namespace()
+                             .equals(ns)) {
+                    error(DivValidationError.INVALID_DIVUPPER_NAMESPACE,
+                            "Invalid DivUpper namespace. Expected: \n" +
+                                    DivUpper.of()
+                                            .namespace()
+                                    + "\nFound instead: " + ns);
+                }
+            }
+
+        }
+
     }
 
     /**
@@ -495,8 +548,8 @@ public class DivXmlValidator extends DefaultHandler {
     }
 
     /**
-     * @param msg
-     * @param targetId
+     * @param prov
+     *            a human readable provenance description
      * @throws SAXException
      * 
      * @since 0.1.0
@@ -507,18 +560,18 @@ public class DivXmlValidator extends DefaultHandler {
         checkNotEmpty(prov, "Invalid prov!");
         checkNotEmpty(targetTag, "Invalid target tag!");
 
-        if (this.step == STEP_3) {
+        if (this.step == ValidationStep.STEP_3_EXTERNAL) {
             switch (targetTag) {
             case "Synset":
                 try {
                     this.diversicon.getSynsetById(targetId);
                 } catch (Exception ex) {
                     String details = "Db does not contain referenced synset!";
-                    
+
                     warningRef(targetId,
-                                DivValidationError.MISSING_EXTERNAL_ID,
-                                prov,
-                                details);                                           
+                            DivValidationError.MISSING_EXTERNAL_ID,
+                            prov,
+                            details);
 
                 }
             case "Sense":
@@ -541,8 +594,8 @@ public class DivXmlValidator extends DefaultHandler {
     }
 
     /**
-     * @param msg
-     * @param targetId
+     * @param prov
+     *            a human readable provenance description
      * @throws SAXException
      * 
      * @since 0.1.0
@@ -585,7 +638,7 @@ public class DivXmlValidator extends DefaultHandler {
     @Override
     public void endDocument() throws SAXException {
         super.endDocument();
-        step += 1;
+        step = ValidationStep.values()[step.ordinal() + 1];
     }
 
     /**

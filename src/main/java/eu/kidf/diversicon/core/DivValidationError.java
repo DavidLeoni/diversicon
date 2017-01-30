@@ -39,11 +39,40 @@ public enum DivValidationError {
      * @since 0.1.0
      */    
     INVALID_NAMESPACE, 
+
+
+    /**
+     * A prefix should have length less or equal to {@link Diversicons#LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH} 
+     * to prevent memory issues.
+     * @since 0.1.0
+     */    
+    TOO_LONG_PREFIX, 
     
     /**
+     * A LExicalResource needs a proper descriptive label (i.e. "Diversicon Wordnet 3.1")
+     * 
+     * @since 0.1.0
+     */    
+    INVALID_LABEL, 
+        
+    /**
+     * @since 0.1.0
+     */        
+    NAMESPACE_CLASH,
+    
+    /**
+     * Each resource must have a corresponding namespace associated to its prefix.
+     * 
      * @since 0.1.0
      */
-    NAMESPACE_CLASH;        
+    MISSING_NAMESPACE_DECLARATION,
+    
+    /**
+     * A Lexical resource must have a valid identifier, see {@link Diversicons#ID_PATTERN}
+     * 
+     * @since 0.1.0
+     */
+     INVALID_LEXRES_NAME;        
     
     /**
      * @since 0.1.0

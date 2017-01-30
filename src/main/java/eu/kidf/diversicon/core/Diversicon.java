@@ -2,7 +2,6 @@ package eu.kidf.diversicon.core;
 
 import static eu.kidf.diversicon.core.Diversicons.checkId;
 import static eu.kidf.diversicon.core.internal.Internals.checkArgument;
-import static eu.kidf.diversicon.core.internal.Internals.checkLexResPackage;
 import static eu.kidf.diversicon.core.internal.Internals.checkNotBlank;
 import static eu.kidf.diversicon.core.internal.Internals.checkNotEmpty;
 import static eu.kidf.diversicon.core.internal.Internals.checkNotNull;
@@ -765,7 +764,7 @@ public class Diversicon extends Uby {
                                 ssr.getSource(),
                                 Diversicons.RELATION_DIVERSICON_DOMAIN
 
-        ))) {
+                        ))) {
             DivSynsetRelation newSsr = new DivSynsetRelation();
 
             newSsr.setDepth(1);
@@ -1294,11 +1293,12 @@ public class Diversicon extends Uby {
      * <ol>
      * <li>metadata</li>
      * <li>(if present) XML alone
-     * <li>(if present) XML data against the db </li>
+     * <li>(if present) XML data against the db</li>
      * </ol>
      * 
-     * No write is performed on the db. 
-     * By default fails on warnings unless {@link ImportConfig#isForce()} is enabled</li>
+     * No write is performed on the db.
+     * By default fails on warnings unless {@link ImportConfig#isForce()} is
+     * enabled</li>
      * 
      * @throws InvalidImportException
      * @see #newImportJob(ImportConfig, String, File, LexResPackage) for more
@@ -1317,7 +1317,7 @@ public class Diversicon extends Uby {
                                       .contains(fileUrl),
                     "Couldn't find fileUrl " + fileUrl + "in importConfig!");
             checkNotEmpty(fileUrl, "Invalid fileUrl!");
-            Internals.checkLexResPackage(pack);
+            checkNotNull(pack);
 
             DivXmlValidator divValidator;
 
@@ -1327,41 +1327,39 @@ public class Diversicon extends Uby {
                                                                          .setFailFast(true)
                                                                          .setStrict(!importConfig.isForce())
                                                                          .build();
-            
-        
+
             // FIRST AND SECOND STEP
-            
-            if (xmlFile == null) {                
+
+            if (xmlFile == null) {
                 divValidator = Diversicons.validateResource(pack, null, xmlValidationConfig);
                 LOG.info("Resource is valid!");
-                LOG.info("");                
+                LOG.info("");
             } else {
                 LOG.info("");
                 LOG.info("Validating XML Schema of " + xmlFile.getAbsolutePath() + "   ...");
                 LOG.info("");
-                divValidator = Diversicons.validateXml(xmlFile, xmlValidationConfig);                    
-                
+                divValidator = Diversicons.validateXml(xmlFile, xmlValidationConfig);
+
                 LOG.info("XML is valid!");
                 LOG.info("");
             }
 
-            DivXmlHandler errorHandler = divValidator.getErrorHandler();
-            
-           
-            
-            // THIRD STEP 
-            
+            // THIRD STEP
+
             LOG.info("Checking XML external references against the database ...");
             LOG.info("");
-            
-            
+
             divValidator.prepareThirdPass(this, importConfig);
-            Diversicons.validateXmlJavaStep(xmlFile, divValidator);
+            if (xmlFile == null) {
+                Diversicons.validateResourceStep(pack, null, divValidator);
+            } else {
+                Diversicons.validateXmlStep(xmlFile, divValidator);
+            }
+
             divValidator.checkPassed();
-            
+
             LOG.info("XML can be merged!");
             LOG.info("");
-            
 
         } catch (Exception ex) {
             throw new InvalidImportException(
@@ -1448,6 +1446,9 @@ public class Diversicon extends Uby {
      *            if true, after the import prevents the graph froom being
      *            normalized
      *            and augmented with transitive closure.
+     * @param pack
+     *            A LexicalResource doesn't contain stuff like namespaces, so we
+     *            have to provide them by ourselves in pack.
      * @throws InvalidImportException
      * @throws InterruptedImportException
      * 
@@ -1455,11 +1456,12 @@ public class Diversicon extends Uby {
      * @since 0.1.0
      */
     public ImportJob importResource(
-            LexicalResource lexicalResource,
-            LexResPackage lexResPackage,
+            LexicalResource lexRes,
+            LexResPackage pack,
             boolean skipAugment) {
 
-        checkLexResPackage(lexResPackage, lexicalResource);
+        checkNotNull(lexRes);
+        checkNotNull(pack);
 
         LOG.info("Going to save lexical resource to database...");
 
@@ -1469,7 +1471,7 @@ public class Diversicon extends Uby {
         config = new ImportConfig();
         config.setSkipAugment(skipAugment);
         config.setAuthor(Diversicons.DEFAULT_AUTHOR);
-        String fileUrl = Diversicons.MEMORY_PROTOCOL + ":" + lexicalResource.hashCode();
+        String fileUrl = Diversicons.MEMORY_PROTOCOL + ":" + lexRes.hashCode();
         config.addLexicalResource(fileUrl);
 
         try {
@@ -1477,13 +1479,13 @@ public class Diversicon extends Uby {
             job = newImportJob(config,
                     fileUrl,
                     null,
-                    lexResPackage);
+                    pack);
 
             prepareDbForImport();
 
             setCurrentImportJob(job);
 
-            new JavaToDbTransformer(this, lexicalResource).transform();
+            new JavaToDbTransformer(this, lexRes).transform();
 
             if (!skipAugment) {
                 processGraph();
@@ -1498,7 +1500,7 @@ public class Diversicon extends Uby {
             throw ex;
         } catch (Exception ex) {
             throw new InterruptedImportException("Error when importing lexical resource "
-                    + lexicalResource.getName() + " !", ex);
+                    + lexRes.getName() + " !", ex);
         }
 
         LOG.info("Done saving.");

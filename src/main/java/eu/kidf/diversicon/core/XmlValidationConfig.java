@@ -73,7 +73,6 @@ public class XmlValidationConfig {
     /**
      * Under strict validation, if any warning
      * is found, validation fails emitting a final error. False by default.
-     * 
      * @since 0.1.0
      */
     public boolean isStrict() {

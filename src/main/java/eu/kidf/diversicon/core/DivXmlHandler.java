@@ -447,7 +447,7 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
             return prefix + exceptionToString(getFirstErrors().get(0), getDefaultSystemId());
         } else if (!getFirstWarnings().isEmpty()) {
             if (getFirstWarnings().size() == 1) {
-                prefix = "Wrror was: ";
+                prefix = "Error was: ";
             } else {
                 prefix = "First warning was: ";
             }

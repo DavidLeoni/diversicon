@@ -603,7 +603,7 @@ public final class DivTester {
      * @since 0.1.0
      */
     public static void checkDb(LexicalResource lr, Diversicon diversicon) {
-        checkDb(lr, diversicon, new HashSet());
+        checkDb(lr, diversicon, new HashSet<Flags>());
     }
 
     /**
@@ -626,12 +626,8 @@ public final class DivTester {
 
     /**
      * Creates an xml file out of the provided lexical resource. Written
-     * lexical resource will include provided namespaces as {@code xmlns}
-     * attributes
-     * 
-     * @param namespaces
-     *            Namespaces expressed as prefix : url
-     * 
+     * lexical resource will include provided package metadata.
+     *  
      * @since 0.1.0
      */
     public static File writeXml(

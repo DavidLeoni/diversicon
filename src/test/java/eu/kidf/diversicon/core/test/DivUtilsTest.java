@@ -27,6 +27,7 @@ import org.dom4j.io.SAXReader;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -367,6 +368,48 @@ public class DivUtilsTest {
     /**
      * @since 0.1.0
      */
+    @Test
+    @Ignore
+    public void testValidateTwoNamespaces() throws IOException {
+    }    
+    
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testValidateXmlStrict() throws IOException {
+
+        LexicalResource lexRes = lmf()
+                                      .lexicon()
+                                      .synset()
+                                      .lexicalEntry()
+                                      .synset()                                      
+                                      .build();
+        
+        LexResPackage pack = DivTester.createLexResPackage(lexRes);
+                
+        pack.getNamespaces().put(DivTester.DEFAULT_TEST_PREFIX, 
+                                 pack.getNamespaces().get(DivTester.DEFAULT_TEST_PREFIX));
+        
+        File xml = DivTester.writeXml(lexRes, pack);
+
+        LOG.debug("\n" + FileUtils.readFileToString(xml));
+
+        XmlValidationConfig config = XmlValidationConfig.builder()
+                                        .setStrict(true)                                        
+                                        .build(); 
+        
+        try {
+            Diversicons.validateXml(xml, config);
+            Assert.fail("Shouldn't arrive here!");
+        } catch (InvalidXmlException ex) {
+
+        }
+    }    
+
+    /**
+     * @since 0.1.0
+     */
     // todo test could be improved
     @Test
     public void testValidateOverrideWrongSchema() {
@@ -563,7 +606,9 @@ public class DivUtilsTest {
 
         }
     }
+    
 
+    
     /**
      * @since 0.1.0
      */
