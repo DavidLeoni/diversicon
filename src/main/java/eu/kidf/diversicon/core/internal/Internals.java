@@ -1896,7 +1896,7 @@ public final class Internals {
             Executor executor1 = Executor.newInstance(client1);
 
             Response resp1 = executor1.execute(request1);
-            LOG.debug(resp1.returnContent()
+            LOG.trace(resp1.returnContent()
                            .asString());
             List<URI> uris1 = stra1.getRedirectUris();
             URI lastUri_1 = uris1.get(uris1.size() - 1);
