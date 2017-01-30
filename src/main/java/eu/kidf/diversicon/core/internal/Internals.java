@@ -128,12 +128,12 @@ public final class Internals {
     /**
      * @since 0.1.0
      */
-    public static final String NON_EXISTING_URL_1 = "http://a-probe-non-existent.url";
+    public static final String NON_EXISTING_URL_1 = "http://a-probe-non-existent.eu";
 
     /**
      * @since 0.1.0
      */
-    public static final String NON_EXISTING_URL_2 = "http://b-probe-non-existent.url";
+    public static final String NON_EXISTING_URL_2 = "http://b-probe-non-existent.eu";
 
     /**
      * 
