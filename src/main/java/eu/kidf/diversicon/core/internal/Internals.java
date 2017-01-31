@@ -1,26 +1,15 @@
 package eu.kidf.diversicon.core.internal;
 
-import static eu.kidf.diversicon.core.internal.Internals.checkNotBlank;
-import static eu.kidf.diversicon.core.internal.Internals.checkNotNull;
-
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.HttpURLConnection;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -36,24 +25,10 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
-import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import javax.xml.XMLConstants;
-import javax.xml.transform.Source;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import javax.xml.validation.Validator;
-
-import org.apache.commons.compress.archivers.ArchiveEntry;
-import org.apache.commons.compress.archivers.ArchiveException;
-import org.apache.commons.compress.archivers.ArchiveInputStream;
-import org.apache.commons.compress.archivers.ArchiveStreamFactory;
-import org.apache.commons.compress.compressors.CompressorException;
-import org.apache.commons.compress.compressors.CompressorInputStream;
-import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -95,18 +70,15 @@ import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata;
 import de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata.UBYLMFFieldMetadata;
-import eu.kidf.diversicon.core.BuildInfo;
 import eu.kidf.diversicon.core.DivSynsetRelation;
-import eu.kidf.diversicon.core.DivXmlHandler;
+import eu.kidf.diversicon.core.DivXmlValidator;
 import eu.kidf.diversicon.core.Diversicon;
 import eu.kidf.diversicon.core.Diversicons;
 import eu.kidf.diversicon.core.LexResPackage;
 import eu.kidf.diversicon.core.DivConfig;
-import eu.kidf.diversicon.core.XmlValidationConfig;
 import eu.kidf.diversicon.core.exceptions.DivException;
 import eu.kidf.diversicon.core.exceptions.DivIoException;
 import eu.kidf.diversicon.core.exceptions.DivNotFoundException;
-import eu.kidf.diversicon.core.exceptions.InvalidXmlException;
 
 /**
  * 
@@ -129,12 +101,12 @@ public final class Internals {
     /**
      * @since 0.1.0
      */
-    public static final String NON_EXISTING_URL_1 = "http://a-probe-non-existent.url";
+    public static final String NON_EXISTING_URL_1 = "http://a-probe-non-existent.eu";
 
     /**
      * @since 0.1.0
      */
-    public static final String NON_EXISTING_URL_2 = "http://b-probe-non-existent.url";
+    public static final String NON_EXISTING_URL_2 = "http://b-probe-non-existent.eu";
 
     /**
      * 
@@ -1272,7 +1244,7 @@ public final class Internals {
     @Nullable
     public static String prepareXmlElement(Object inputLmfObject,
             boolean closeTag,
-            LexResPackage lexResPackage,
+            LexResPackage pack,
             UBYLMFClassMetadata classMetadata,
             AttributesImpl atts,
             List<Object> children) throws SAXException {
@@ -1280,8 +1252,11 @@ public final class Internals {
         checkNotNull(inputLmfObject);
         checkNotNull(atts);
         checkNotNull(children);
-        Internals.checkLexResPackage(lexResPackage);
-
+        // TODO think if it is necessary
+        // Internals.checkLexResPackage(lexResPackage);
+        checkNotNull(pack);
+        
+        
         Object lmfObject = inputLmfObject;
         String elementName = lmfObject.getClass()
                                       .getSimpleName();
@@ -1289,7 +1264,7 @@ public final class Internals {
         if (inputLmfObject instanceof LexicalResource) {
 
             atts.addAttribute("", "", "prefix", "CDATA",
-                    lexResPackage.getPrefix());
+                    pack.getPrefix());
 
             // note at the end of the method we put xmlns
         } else if (inputLmfObject instanceof DivSynsetRelation) {
@@ -1380,9 +1355,9 @@ public final class Internals {
         if (inputLmfObject instanceof LexicalResource) {
 
             // note at the beginning of the method we put id and prefix
-            for (String prefix : lexResPackage.getNamespaces()
+            for (String prefix : pack.getNamespaces()
                                               .keySet()) {
-                String url = lexResPackage.getNamespaces()
+                String url = pack.getNamespaces()
                                           .get(prefix);
                 atts.addAttribute("", "", "xmlns:" + prefix, "CDATA",
                         url);
@@ -1514,22 +1489,37 @@ public final class Internals {
     }
 
     /**
-     * Performs a coherence check on provided lexical resource package.
+     * Performs a coherence check on provided lexical resource package. 
+     * If the check succeeds, return the package.
      * 
      * To match it against a LexicalResource, see
      * {@link #checkLexResPackage(LexResPackage, LexicalResource)}
+     * 
+     * <p>
+     * <strong>
+     * NOTE: This check partially duplicates the checking done in {@link DivXmlValidator} and so 
+     * it should be done only when that validation is not performed.
+     * </strong> 
+     * </p>
      * 
      * @throws IllegalArgumentException
      * 
      * @since 0.1.0
      */
-    public static LexResPackage checkLexResPackage(LexResPackage lexResPackage) {
+    public static LexResPackage checkLexResPackage(LexResPackage lexResPackage) {        
         return checkLexResPackage(lexResPackage, null);
     }
 
     /**
-     * Checks provided {@code LexicalResourcePackage} matches fields in
-     * {@code LexicalResource}
+     * Check provided {@code LexicalResourcePackage} matches fields in
+     * {@code LexicalResource}. If check passes, return the validated package.
+     * 
+     * <p>
+     * <strong>
+     * NOTE: This check partially duplicates the checking done in {@link DivXmlValidator} and so 
+     * it should be done only when that validation is not performed.
+     * </strong> 
+     * </p>
      * 
      * @throws IllegalArgumentException
      * 
@@ -1538,31 +1528,27 @@ public final class Internals {
     public static LexResPackage checkLexResPackage(
             LexResPackage pack,
             @Nullable LexicalResource lexRes) {
-
-        BuildInfo build = BuildInfo.of(Diversicon.class);
-
-        checkNotBlank(pack.getName(), "Invalid lexical resource name!");
-        Diversicons.checkPrefix(pack.getPrefix());
-
-        checkNotBlank(pack.getLabel(), "Invalid lexical resource label!");
-
-        if (pack.getPrefix()
-                .length() > Diversicons.LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH) {
-            LOG.warn("Lexical resource prefix " + pack.getPrefix() + " longer than "
-                    + Diversicons.LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH
-                    + ": this may cause memory issues.");
+        
+        Diversicons.checkId(pack.getName(), "Invalid lexical resource 'name' field!");
+        if (lexRes != null){
+            Internals.checkEquals("Lexical resource name " + lexRes.getName() 
+            + " doesn't match name in pack: " + pack.getName(), pack.getName(), lexRes.getName());
         }
+        Diversicons.checkPrefix(pack.getPrefix());
+        
+        checkNotBlank(pack.getLabel(), "Invalid lexical resource label!");
 
         Diversicons.checkNamespaces(pack.getNamespaces());
 
         if (!pack.getNamespaces()
                  .containsKey(pack.getPrefix())) {
             throw new IllegalArgumentException(
-                    "Couldn't find LexicalResource prefix '" + pack.getPrefix() + "' among namespace prefixes! "
-                            + "See " + build.docsAtVersion() + "/diversicon-lmf.html"
-                            + " for info on how to structure a Diversicon XML!");
+                    "Couldn't find LexicalResource prefix '" + pack.getPrefix() + "' among namespace prefixes! ");
+                           //  TODO put good docs link
+                           //  + "See " + build.docsAtVersion() + "/diversicon-lmf.html"
+                           //  + " for info on how to structure a Diversicon XML!");
         }
-
+              
         return pack;
     }
 
@@ -1869,6 +1855,102 @@ public final class Internals {
 
     }
 
+
+
+    /**
+     * Detects if behind a redirecting ISP and updates {@link #redirectingISPs}
+     * accordingly. Never throws.
+     * 
+     * <p>
+     * Some bastards ISP redirect on ad pages instead of giving 404. ,
+     * see <a href="https://github.com/diversicon-kb/diversicon-core/issues/29"
+     * target="_blank">
+     * issue 29 on Github</a>
+     * </p>
+     * 
+     * @since 0.1.0
+     */
+    private static void detectRedirectingISP(DivConfig config) {
+
+        URI lastUri_1 = null;
+        URI lastUri_2 = null;
+        
+        try {
+
+            String url1 = NON_EXISTING_URL_1;
+            LOG.debug("Fetching non-existent url " + url1);
+
+            Request request1 = configureRequest(config, Request.Get(url1));
+            DivRedirectStrategy stra1 = new DivRedirectStrategy();
+            CloseableHttpClient client1 = HttpClientBuilder.create()
+                                                           .setRedirectStrategy(stra1)
+                                                           .build();
+            Executor executor1 = Executor.newInstance(client1);
+
+            Response resp1 = executor1.execute(request1);
+            LOG.trace(resp1.returnContent()
+                           .asString());
+            List<URI> uris1 = stra1.getRedirectUris();
+            lastUri_1 = uris1.get(uris1.size() - 1);
+
+        } catch (IOException e) {
+
+            LOG.trace("Couldn't fetch non existing page " + NON_EXISTING_URL_1
+                    + "\nWith well-behaved ISPs"
+                    + " this is the expected behaviour !", e);
+
+        
+        } catch (Exception ex) {
+            LOG.debug("Caught some unexpected exception while probing if behind a redirecting ISP with url " + NON_EXISTING_URL_1, ex);
+        }
+        
+        try {
+            String url2 = NON_EXISTING_URL_2;
+            LOG.debug("Fetching non-existent url " + url2);
+            DivRedirectStrategy stra2 = new DivRedirectStrategy();
+            CloseableHttpClient client2 = HttpClientBuilder.create()
+                                                           .setRedirectStrategy(stra2)
+                                                           .build();
+            Executor executor2 = Executor.newInstance(client2);
+
+            Request request2 = configureRequest(config, Request.Get(url2));
+            Response resp2 = executor2.execute(request2);
+            LOG.trace(resp2.returnContent()
+                           .asString());
+            List<URI> uris2 = stra2.getRedirectUris();
+            
+            lastUri_2 = uris2.get(uris2.size() - 1);
+            
+        } catch (IOException e) {
+
+            LOG.trace("Couldn't fetch non existing page " + NON_EXISTING_URL_2
+                    + "\nWith well-behaved ISPs"
+                    + " this is the expected behaviour !", e);
+
+        } catch (Exception ex) {
+            LOG.debug("Caught some unexpected exception while probing if behind a redirecting ISP with url " + NON_EXISTING_URL_2, ex);
+        }
+    
+    
+        String commonUrl = "";
+        
+        if (lastUri_1 != null && lastUri_2 != null){
+            commonUrl = longestCommonPrefix(lastUri_1.toString(), lastUri_2.toString());
+        } else {
+            if (lastUri_1 != null){
+                commonUrl = lastUri_1.toString(); 
+            } else if (lastUri_2 != null){                    
+                commonUrl = lastUri_2.toString();                     
+            }
+        }
+        if (lastUri_1 != null || lastUri_2 != null ){
+            LOG.debug("***  Seems like your nasty ISP is hacking HTTP to redirect missed pages to " + commonUrl);
+            LOG.debug("***  This may cause troubles when downloading some files !");
+            redirectingISPs.add(commonUrl);
+        }                      
+        
+    }
+
     /**
      * Returns true if {@code url} could be the result of an inappropriate
      * reidrection from the ISP.
@@ -1886,67 +1968,7 @@ public final class Internals {
         return false;
     }
 
-    /**
-     * Detects if behind a redirecting ISP and updates {@link #redirectingISPs}
-     * accordingly. Never throws.
-     * 
-     * <p>
-     * Some bastards ISP redirect on ad pages instead of giving 404. ,
-     * see <a href="https://github.com/diversicon-kb/diversicon-core/issues/29"
-     * target="_blank">
-     * issue 29 on Github</a>
-     * </p>
-     * 
-     * @since 0.1.0
-     */
-    private static void detectRedirectingISP(DivConfig config) {
-
-        try {
-
-            String url1 = NON_EXISTING_URL_1;
-            LOG.debug("Fetching non-existent url " + url1);
-
-            Request request1 = configureRequest(config, Request.Get(url1));
-            DivRedirectStrategy stra1 = new DivRedirectStrategy();
-            CloseableHttpClient client1 = HttpClientBuilder.create()
-                                                           .setRedirectStrategy(stra1)
-                                                           .build();
-            Executor executor1 = Executor.newInstance(client1);
-
-            Response resp1 = executor1.execute(request1);
-            LOG.debug(resp1.returnContent()
-                           .asString());
-            List<URI> uris1 = stra1.getRedirectUris();
-            URI lastUri_1 = uris1.get(uris1.size() - 1);
-
-            String url2 = NON_EXISTING_URL_2;
-            LOG.debug("Fetching non-existent url " + url2);
-
-            DivRedirectStrategy stra2 = new DivRedirectStrategy();
-            CloseableHttpClient client2 = HttpClientBuilder.create()
-                                                           .setRedirectStrategy(stra2)
-                                                           .build();
-            Executor executor2 = Executor.newInstance(client2);
-
-            Request request2 = configureRequest(config, Request.Get(url2));
-            executor2.execute(request2);
-            List<URI> uris2 = stra2.getRedirectUris();
-            URI lastUri_2 = uris2.get(uris2.size() - 1);
-
-            String commonUrl = longestCommonPrefix(lastUri_1.toString(), lastUri_2.toString());
-            LOG.debug("***  Seems like your nasty ISP is hacking HTTP to redirect missed pages to " + commonUrl);
-            LOG.debug("***  This may cause troubles when downloading some files !");
-            redirectingISPs.add(commonUrl);
-
-        } catch (IOException e) {
-
-            LOG.trace("Couldn't fetch non existing page. With well-behaved ISPs"
-                    + " this is the expected behaviour !", e);
-
-        } catch (Exception ex) {
-            LOG.debug("Caught some unexpected excpetion while probing if behind a redirecting ISP!", ex);
-        }
-    }
+   
 
     /**
      * Configures the request. Should work both for GETs and POSTs.
@@ -1968,7 +1990,6 @@ public final class Internals {
     }
 
     /**
-<<<<<<< HEAD
      * 
      * Returns the id of the items in the provided collection.
      * Null collection items are reported with warnings.
@@ -1993,25 +2014,25 @@ public final class Internals {
     }
     
     /**
-    * Returns the longest common prefix among strings {@code a} and {@code b}.
-    * If any of them is empty, returns the empty string.
-    * 
-    * @since 0.1.0
-    */
-   public static String longestCommonPrefix(String a, String b) {
-       checkNotNull(a);
-       checkNotNull(b);
-       if (a.isEmpty() || b.isEmpty()) {
-           return "";
-       }
-       int minLength = Math.min(a.length(), b.length());
-       for (int i = 0; i < minLength; i++) {
-           if (a.charAt(i) != b.charAt(i)) {
-               return a.substring(0, i);
-           }
-       }
-       return a.substring(0, minLength);
-   }
+     * Returns the longest common prefix among strings {@code a} and {@code b}.
+     * If any of them is empty, returns the empty string.
+     * 
+     * @since 0.1.0
+     */
+    public static String longestCommonPrefix(String a, String b) {
+        checkNotNull(a);
+        checkNotNull(b);
+        if (a.isEmpty() || b.isEmpty()) {
+            return "";
+        }
+        int minLength = Math.min(a.length(), b.length());
+        for (int i = 0; i < minLength; i++) {
+            if (a.charAt(i) != b.charAt(i)) {
+                return a.substring(0, i);
+            }
+        }
+        return a.substring(0, minLength);
+    }
 
-    
+
 }

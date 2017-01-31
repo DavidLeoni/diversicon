@@ -289,7 +289,7 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
     }
 
     /**
-     * Returns the total number of issues found so far.
+     * Returns the total number of issues found so far (including warnings).
      * 
      * @since 0.1.0
      */
@@ -307,7 +307,7 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
     @Override
     public void fatalError(SAXParseException ex) throws SAXException {
         this.fatalError = ex;
-
+        
         if (ex.getSystemId()
               .contains(Diversicons.DTD_FILENAME)) {
             config.getLog()
@@ -333,23 +333,33 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
         config.getLog()
               .error("FATAL!  " + exceptionToString(ex, getDefaultSystemId()));
         throw ex;
-    }
-
-    /**
-     * Returns true if there were validation problems.
-     * 
-     * @since 0.1.0
-     */
-    public boolean invalid() {
-        return issuesCount() > 0;
-    }
+    }   
 
     /**
      * @since 0.1.0
      */
     public String summary() {
-        String fat = isFatal() ? "Fatal error: " + fatalReason + " - " : "";
-        return fat + "Found " + errorCount + " errors and " + warningCount + " warnings";
+        
+        if (issuesCount() == 0){
+            return "XML is valid!";
+        } else {
+            StringBuilder sb = new StringBuilder();                    
+            if (isFatal()){
+                sb.append( "Fatal error: " + fatalReason + " - ");
+            }
+            if (errorCount > 0){
+                sb.append("Found " + errorCount + " errors"); 
+            }
+            if (warningCount > 0){
+                if (errorCount > 0){
+                    sb.append(" and  " + warningCount + " warnings");
+                } else {
+                    sb.append("Found " + warningCount + " warnings");
+                }                
+            } 
+            
+            return sb.toString();
+        }
     }
 
     /**
@@ -437,7 +447,7 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
             return prefix + exceptionToString(getFirstErrors().get(0), getDefaultSystemId());
         } else if (!getFirstWarnings().isEmpty()) {
             if (getFirstWarnings().size() == 1) {
-                prefix = "Wrror was: ";
+                prefix = "Error was: ";
             } else {
                 prefix = "First warning was: ";
             }
@@ -447,4 +457,11 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
         }
     }
 
+    /**
+     * @since 0.1.0
+     */
+    public XmlValidationConfig getConfig(){
+        return config;
+    }
+    
 }

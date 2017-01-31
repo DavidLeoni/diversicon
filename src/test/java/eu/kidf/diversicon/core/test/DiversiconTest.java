@@ -52,11 +52,12 @@ import eu.kidf.diversicon.core.exceptions.InterruptedImportException;
 import eu.kidf.diversicon.core.exceptions.InvalidImportException;
 import eu.kidf.diversicon.core.exceptions.InvalidSchemaException;
 import eu.kidf.diversicon.core.internal.Internals;
+import eu.kidf.diversicon.data.DivUpper;
 import eu.kidf.diversicon.data.DivWn31;
 import eu.kidf.diversicon.data.Smartphones;
 import static eu.kidf.diversicon.core.internal.Internals.newHashSet;
 import static eu.kidf.diversicon.core.internal.Internals.newArrayList;
-import static eu.kidf.diversicon.core.Diversicons.SYNSET_ROOT_DOMAIN;
+import static eu.kidf.diversicon.data.DivUpper.SYNSET_ROOT_DOMAIN;
 
 /**
  * @since 0.1.0
@@ -912,7 +913,13 @@ public class DiversiconTest {
 
         Diversicon div = Diversicon.connectToDb(divConfig);
         
-        ImportJob job = div.importXml(Smartphones.of().getXmlUri());        
+        ImportConfig ic = new ImportConfig();
+        ic.setAuthor(Diversicons.DEFAULT_AUTHOR);
+        // ic.setDescription(DivTester.);
+        ic.setForce(true); // otherwise it will complain there is wordnet in the db
+        ic.addLexicalResource(Smartphones.of().getXmlUri());
+        
+        ImportJob job = div.importFiles(ic).get(0);
                 
         LexicalResource lr = div.getLexicalResource(Smartphones.NAME);
         
@@ -929,6 +936,8 @@ public class DiversiconTest {
         assertEquals(5 + 2 + 2 + 2, div.getSynsetRelationsCount());
         
     }    
+
+    
     
     /** 
      * @since 0.1.0
@@ -1106,8 +1115,6 @@ public class DiversiconTest {
             div.getSession()
             .close();    
         }
-
-
         
     }
 
@@ -1421,7 +1428,7 @@ public class DiversiconTest {
                 lmf().lexicon()
                     .synset()                        
                     .lexicalEntry()
-                    .synsetRelation(Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN, Diversicons.SYNSET_ROOT_DOMAIN)                
+                    .synsetRelation(Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN, DivUpper.SYNSET_ROOT_DOMAIN)                
                     .synset()
                     .synsetRelation(Diversicons.RELATION_WORDNET_TOPIC, 1)
                     .synsetRelation(Diversicons.RELATION_DIVERSICON_DOMAIN, 1)
@@ -1442,7 +1449,7 @@ public class DiversiconTest {
                         .synset()                        
                         .lexicalEntry()
                         .semanticLabel("d1", ELabelTypeSemantics.domain)
-                        .synsetRelation(Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN, Diversicons.SYNSET_ROOT_DOMAIN)
+                        .synsetRelation(Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN, DivUpper.SYNSET_ROOT_DOMAIN)
                         .synset()
                         .lexicalEntry()
                         .semanticLabel("d2", ELabelTypeSemantics.category)
@@ -1462,7 +1469,7 @@ public class DiversiconTest {
                 lmf().lexicon()
                     .synset()                        
                     .lexicalEntry()
-                    .synsetRelation(Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN, Diversicons.SYNSET_ROOT_DOMAIN)                
+                    .synsetRelation(Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN, DivUpper.SYNSET_ROOT_DOMAIN)                
                     .synset()
                     .synsetRelation(Diversicons.RELATION_WORDNET_TOPIC, 1)
                     .synsetRelation(Diversicons.RELATION_DIVERSICON_DOMAIN, 1)
@@ -1525,5 +1532,28 @@ public class DiversiconTest {
 
     }
     
+    /**
+     *  
+     * @since 0.1.0
+     * 
+     */
+    @Test
+    public void testImportExternalIdsUndeclaredNamespace() {        
+        
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
+
+        Diversicon div = Diversicon.connectToDb(divConfig);
+        
+        LexicalResource res = lmf().lexicon()
+                                  .synset()
+                                  .lexicalEntry()
+                                  .synset()
+                                  .synsetRelation(ERelNameSemantics.HYPERNYM, "bla_ss")
+                                  .build(); 
+        
+        DivTester.importResource(div, res, false);
+               
+    }    
+
     
 }

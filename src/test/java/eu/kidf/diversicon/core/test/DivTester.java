@@ -50,6 +50,7 @@ import eu.kidf.diversicon.core.exceptions.DivException;
 import eu.kidf.diversicon.core.exceptions.DivNotFoundException;
 import eu.kidf.diversicon.core.exceptions.DivValidationException;
 import eu.kidf.diversicon.core.internal.Internals;
+import eu.kidf.diversicon.data.DivUpper;
 
 public final class DivTester {
 
@@ -187,7 +188,7 @@ public final class DivTester {
      */
     public static final LexicalResource GRAPH_DOMAINS_SIMPLE = lmf().lexicon()
             .synset()
-            .synsetRelation(Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN, Diversicons.SYNSET_ROOT_DOMAIN)
+            .synsetRelation(Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN, DivUpper.SYNSET_ROOT_DOMAIN)
             .lexicalEntry()
             .synset()
             .synsetRelation(Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN, 1)
@@ -624,7 +625,7 @@ public final class DivTester {
      * @since 0.1.0
      */
     public static void checkDb(LexicalResource lr, Diversicon diversicon) {
-        checkDb(lr, diversicon, new HashSet());
+        checkDb(lr, diversicon, new HashSet<Flags>());
     }
 
     /**
@@ -647,12 +648,8 @@ public final class DivTester {
 
     /**
      * Creates an xml file out of the provided lexical resource. Written
-     * lexical resource will include provided namespaces as {@code xmlns}
-     * attributes
-     * 
-     * @param namespaces
-     *            Namespaces expressed as prefix : url
-     * 
+     * lexical resource will include provided package metadata.
+     *  
      * @since 0.1.0
      */
     public static File writeXml(

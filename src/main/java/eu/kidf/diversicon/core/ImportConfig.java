@@ -7,12 +7,15 @@ import static eu.kidf.diversicon.core.internal.Internals.checkNotNull;
 import java.util.ArrayList;
 import java.util.List;
 
+import eu.kidf.diversicon.core.XmlValidationConfig.Builder;
+
 /**
  * Configuration for a whole {@link ImportJob} process.
  * 
  * @since 0.1.0
  * @see ImportJob
  */
+// TODO Why is it not immutable ??
 public class ImportConfig {
 
     private List<String> fileUrls;
@@ -20,11 +23,12 @@ public class ImportConfig {
     private String description;
     private boolean skipAugment;
     private int logLimit;   
+    private boolean force;
 
     /**
      * Default constructor.
      * 
-     * By default augments graph after import.
+     * By default augments graph after import and fails on missing dependencies.
      * 
      * @since 0.1.0
      */
@@ -34,6 +38,7 @@ public class ImportConfig {
         this.description = "";
         this.skipAugment = false;
         this.logLimit = Diversicons.DEFAULT_LOG_LIMIT;
+        this.force = false;
     }
 
     /**
@@ -173,4 +178,21 @@ public class ImportConfig {
         this.logLimit = logLimit;
     }
 
+    /**
+     * Force import even on missing external references.  
+     * 
+     * @since 0.1.0
+     */
+    public boolean isForce() {
+        return force;
+    }
+    
+    /**
+     * See {@link #isForce()}
+     * 
+     * @since 0.1.0
+     */
+    public void setForce(boolean force) {        
+        this.force = force;
+    }        
 }

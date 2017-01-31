@@ -31,6 +31,7 @@ import org.dom4j.io.SAXReader;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +57,11 @@ import eu.kidf.diversicon.core.internal.Internals;
 import eu.kidf.diversicon.data.DivUpper;
 import eu.kidf.diversicon.data.DivWn31;
 import eu.kidf.diversicon.data.Examplicon;
+
 import eu.kidf.diversicon.data.Smartphones;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 
@@ -313,8 +318,8 @@ public class DivUtilsTest {
         ImportJob job = div.getImportJobs().get(0);
         assertEquals(Diversicons.DIVERSICON_AUTHOR, job.getAuthor());        
 
-        Synset root_domain = div.getSynsetById(Diversicons.SYNSET_ROOT_DOMAIN);
-        assertEquals(Diversicons.SYNSET_ROOT_DOMAIN, root_domain.getId());
+        Synset root_domain = div.getSynsetById(DivUpper.SYNSET_ROOT_DOMAIN);
+        assertEquals(DivUpper.SYNSET_ROOT_DOMAIN, root_domain.getId());
 
         // modifies db
         LexicalResource res = LmfBuilder.simpleLexicalResource();                       
@@ -374,6 +379,48 @@ public class DivUtilsTest {
                                    .setXsdUrl(file.getAbsolutePath())
                                    .build());
     }
+
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    @Ignore
+    public void testValidateTwoNamespaces() throws IOException {
+    }    
+    
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testValidateXmlStrict() throws IOException {
+
+        LexicalResource lexRes = lmf()
+                                      .lexicon()
+                                      .synset()
+                                      .lexicalEntry()
+                                      .synset()                                      
+                                      .build();
+        
+        LexResPackage pack = DivTester.createLexResPackage(lexRes);
+                
+        pack.getNamespaces().put(DivTester.DEFAULT_TEST_PREFIX, 
+                                 pack.getNamespaces().get(DivTester.DEFAULT_TEST_PREFIX));
+        
+        File xml = DivTester.writeXml(lexRes, pack);
+
+        LOG.debug("\n" + FileUtils.readFileToString(xml));
+
+        XmlValidationConfig config = XmlValidationConfig.builder()
+                                        .setStrict(true)                                        
+                                        .build(); 
+        
+        try {
+            Diversicons.validateXml(xml, config);
+            Assert.fail("Shouldn't arrive here!");
+        } catch (InvalidXmlException ex) {
+
+        }
+    }    
 
     /**
      * @since 0.1.0
@@ -535,14 +582,9 @@ public class DivUtilsTest {
                                       .lexicon()
                                       .synset()
                                       .lexicalEntry()
-                                      .synset()
+                                      .synset("prefix666_synset-2")
                                       .build();
 
-        lexRes.getLexicons()
-              .get(0)
-              .getSynsets()
-              .get(1)
-              .setId("prefix666_synset-2");
         File xml = DivTester.writeXml(lexRes);
 
         try {
@@ -578,7 +620,9 @@ public class DivUtilsTest {
 
         }
     }
+    
 
+    
     /**
      * @since 0.1.0
      */
@@ -701,7 +745,7 @@ public class DivUtilsTest {
      */
     @Test
     public void testIdPattern() {
-        Pattern p = Diversicons.ID_PATTERN;
+        Pattern p = Diversicons.NAMESPACE_ID_PATTERN;
 
         assertFalse(p.matcher("t")
                      .matches());
