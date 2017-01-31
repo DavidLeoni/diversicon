@@ -307,7 +307,7 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
     @Override
     public void fatalError(SAXParseException ex) throws SAXException {
         this.fatalError = ex;
-
+        
         if (ex.getSystemId()
               .contains(Diversicons.DTD_FILENAME)) {
             config.getLog()

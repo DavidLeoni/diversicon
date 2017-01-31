@@ -7,11 +7,12 @@ package eu.kidf.diversicon.core;
  *
  */
 public enum ValidationStep {
-    
+        
     STEP_1_STRUCTURAL("Validate structure, collect ids"),
     STEP_2_INTERNAL("Verify internal ids links, external ids syntax"),
-    STEP_3_EXTERNAL("Verify external ids against the db");    
-        
+    STEP_3_EXTERNAL("Verify external ids against the db"),   
+    STEP_4_COMPLETED("Validation process is completed");
+    
     private String descr;
 
     /**

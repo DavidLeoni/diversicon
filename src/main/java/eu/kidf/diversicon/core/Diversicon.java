@@ -972,12 +972,15 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * See {@link #importFiles(ImportConfig)}
-     * 
-     * For supported URL formats see
+     * Imports an XML using defualt config. 
+     * <ul>
+     * <li>For more options, see {@link #importFiles(ImportConfig)}.</li>
+     * <li>For supported URL formats, see
      * {@link eu.kidf.diversicon.core.internal.Internals#readData(String, boolean)
      * Internals.readData}
-     * 
+     * </li>
+     * </ul>
+     * </p>
      * @since 0.1.0
      */
     public ImportJob importXml(String fileUrl) {
@@ -991,10 +994,13 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * Imports files, and each file import is going to be a separate
-     * transaction. In case one
-     * fails... TODO! Call is synchronous, after finishing returns logs of each
-     * import.
+     * Imports lexical resource files. Each file import is going to be a separate
+     * transaction. 
+     * 
+     * <p> In case one import fails, stops and tries to roll back as much as it can.
+     * (See <a href="https://github.com/diversicon-kb/diversicon-core/issues/38" target="_blank">
+     * issue 38</a> for more info on transactions)
+     * </p>
      * 
      * @throws DivValidationException
      * 
@@ -1288,17 +1294,13 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * Checks import is correct, validating:
+     * Checks import is correct, performing all {@link ValidationStep}s
      * 
-     * <ol>
-     * <li>metadata</li>
-     * <li>(if present) XML alone
-     * <li>(if present) XML data against the db</li>
-     * </ol>
-     * 
-     * No write is performed on the db.
-     * By default fails on warnings unless {@link ImportConfig#isForce()} is
-     * enabled</li>
+     * <ul>
+     * <li>No write is performed on the db.</li>
+     * <li>Fails on warnings unless {@link ImportConfig#isForce()} is
+     * enabled
+     * </ul>
      * 
      * @throws InvalidImportException
      * @see #newImportJob(ImportConfig, String, File, LexResPackage) for more
@@ -1358,6 +1360,11 @@ public class Diversicon extends Uby {
 
             divValidator.checkPassed();
 
+            if (divValidator.getErrorHandler().getWarningCount() > 0
+                    && importConfig.isForce()) {
+                LOG.warn("Ignoring warnings because of force flag.\n");                
+            }
+            
             LOG.info("XML can be merged!");
             LOG.info("");
 

@@ -913,7 +913,13 @@ public class DiversiconTest {
 
         Diversicon div = Diversicon.connectToDb(divConfig);
         
-        ImportJob job = div.importXml(Smartphones.of().getXmlUri());        
+        ImportConfig ic = new ImportConfig();
+        ic.setAuthor(Diversicons.DEFAULT_AUTHOR);
+        // ic.setDescription(DivTester.);
+        ic.setForce(true); // otherwise it will complain there is wordnet in the db
+        ic.addLexicalResource(Smartphones.of().getXmlUri());
+        
+        ImportJob job = div.importFiles(ic).get(0);
                 
         LexicalResource lr = div.getLexicalResource(Smartphones.NAME);
         
@@ -1109,8 +1115,6 @@ public class DiversiconTest {
             div.getSession()
             .close();    
         }
-
-
         
     }
 

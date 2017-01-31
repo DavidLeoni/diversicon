@@ -3,7 +3,6 @@ package eu.kidf.diversicon.core;
 import static eu.kidf.diversicon.core.internal.Internals.checkNotNull;
 import static eu.kidf.diversicon.core.internal.Internals.checkNotEmpty;
 
-import java.io.File;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -20,8 +19,6 @@ import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import eu.kidf.diversicon.core.LexResPackage;
-import eu.kidf.diversicon.core.exceptions.DivException;
-import eu.kidf.diversicon.core.exceptions.InvalidImportException;
 import eu.kidf.diversicon.core.exceptions.InvalidXmlException;
 import eu.kidf.diversicon.core.internal.Internals;
 import eu.kidf.diversicon.data.DivUpper;
@@ -125,7 +122,7 @@ public class DivXmlValidator extends DefaultHandler {
      * @since 0.1.0
      */
     @Override
-    public void setDocumentLocator(Locator locator) {
+    public void setDocumentLocator(@Nullable Locator locator) {
         this.locator = locator;
     }
 
@@ -285,7 +282,6 @@ public class DivXmlValidator extends DefaultHandler {
         }
     }
 
-
     /**
      * {@inheritDoc}
      * 
@@ -320,23 +316,22 @@ public class DivXmlValidator extends DefaultHandler {
                         pack.putNamespace(prefix, ns);
 
                     }
-                }                
+                }
 
                 if (!tagIds.containsKey(name)) {
                     tagIds.put(name, tagName);
                 }
-                
-                
 
             } else {
-                
-                // remember it ALWAYS find GlobalInformation because of previous DTD check !
-                if ("GlobalInformation".equals(tagName)){                    
+
+                // remember it ALWAYS find GlobalInformation because of previous
+                // DTD check !
+                if ("GlobalInformation".equals(tagName)) {
                     String label = attrs.getValue("label");
-                    if (label != null){
+                    if (label != null) {
                         pack.setLabel(label);
                     }
-                    validatePack();    
+                    validatePack();
                 }
 
                 // Would have liked to get it from class, but if we
@@ -414,35 +409,33 @@ public class DivXmlValidator extends DefaultHandler {
 
         BuildInfo build = BuildInfo.of(Diversicon.class);
 
-                
         if (!Diversicons.NAMESPACE_NAME_PATTERN.matcher(pack.getName())
-                .matches()) {
-                this.error(DivValidationError.INVALID_LEXRES_NAME, "Invalid lexical resource name: '"
-                            + pack.getName()+ "', must match "
-                                + Diversicons.NAMESPACE_NAME_PATTERN.toString());
+                                               .matches()) {
+            this.error(DivValidationError.INVALID_LEXRES_NAME, "Invalid lexical resource name: '"
+                    + pack.getName() + "', must match "
+                    + Diversicons.NAMESPACE_NAME_PATTERN.toString());
         }
 
         if (!Diversicons.NAMESPACE_PREFIX_PATTERN.matcher(pack.getPrefix())
-                .matches()) {
+                                                 .matches()) {
             this.error(DivValidationError.INVALID_PREFIX, "Invalid prefix '"
                     + pack.getPrefix() + "', it must match "
                     + Diversicons.NAMESPACE_PREFIX_PATTERN.toString());
         }
-        
+
         // TODO can we express warnings in xml schema ?
         if (pack.getPrefix()
                 .length() > Diversicons.LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH) {
-            this.warning(DivValidationError.TOO_LONG_PREFIX, "Lexical resource prefix " + pack.getPrefix() 
+            this.warning(DivValidationError.TOO_LONG_PREFIX, "Lexical resource prefix " + pack.getPrefix()
                     + " longer than " + Diversicons.LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH
                     + ": this may cause memory issues.");
         }
-        
-        
+
         // TODO: put this in schema
         try {
             Internals.checkNotBlank(pack.getLabel(), "Invalid lexical resource label!");
-        } catch (Exception ex){
-           this.error(DivValidationError.INVALID_LABEL, "Invalid LexicalResource label:", ex); 
+        } catch (Exception ex) {
+            this.error(DivValidationError.INVALID_LABEL, "Invalid LexicalResource label:", ex);
         }
 
         if (!pack.getNamespaces()
@@ -456,15 +449,16 @@ public class DivXmlValidator extends DefaultHandler {
 
         for (String prefix : pack.getNamespaces()
                                  .keySet()) {
-                        
+
             if (!Diversicons.NAMESPACE_PREFIX_PATTERN.matcher(prefix)
                                                      .matches()) {
                 this.error(DivValidationError.INVALID_PREFIX, "Invalid prefix '"
                         + prefix + "', it must match "
                         + Diversicons.NAMESPACE_PREFIX_PATTERN.toString());
             }
-            
-            String ns = pack.getNamespaces().get(prefix);
+
+            String ns = pack.getNamespaces()
+                            .get(prefix);
 
             try {
                 Diversicons.checkNamespace(ns);
@@ -540,7 +534,7 @@ public class DivXmlValidator extends DefaultHandler {
             String details,
             @Nullable Exception ex) throws SAXException {
 
-        String msg = valCode + ": " + prov + " id " + id + " : " + details;
+        String msg = prov + " " + id + " : " + details;
 
         error(valCode, msg, ex);
 
@@ -557,7 +551,7 @@ public class DivXmlValidator extends DefaultHandler {
             String prov,
             String details,
             @Nullable Exception ex) {
-        String msg = valCode + ": " + prov + " id " + id + " : " + details;
+        String msg = prov + " " + id + " : " + details;
         warning(valCode, msg, ex);
     }
 
@@ -575,32 +569,37 @@ public class DivXmlValidator extends DefaultHandler {
         checkNotEmpty(targetTag, "Invalid target tag!");
 
         if (this.step == ValidationStep.STEP_3_EXTERNAL) {
-            switch (targetTag) {
-            case "Synset":
-                try {
-                    this.diversicon.getSynsetById(targetId);
-                } catch (Exception ex) {
-                    String details = "Db does not contain referenced synset!";
+            if (!targetId.startsWith(pack.getPrefix())) {
+                
+                switch (targetTag) {
+                case "Synset":
 
-                    warningRef(targetId,
-                            DivValidationError.MISSING_EXTERNAL_ID,
-                            prov,
-                            details);
+                    try {
+                        this.diversicon.getSynsetById(targetId);
+                    } catch (Exception ex) {
+                        String details = "Db does not contain referenced synset!";
 
+                        warningRef(targetId,
+                                DivValidationError.MISSING_EXTERNAL_ID,
+                                prov,
+                                details);
+
+                    }
+                    break;
+                case "Sense":
+                    try {
+                        this.diversicon.getSenseById(targetId);
+                    } catch (Exception ex) {
+                        String details = "Db does not contain referenced sense!";
+
+                        warningRef(targetId,
+                                DivValidationError.MISSING_EXTERNAL_ID,
+                                prov,
+                                details);
+
+                    }
+                    break;
                 }
-            case "Sense":
-                try {
-                    this.diversicon.getSenseById(targetId);
-                } catch (Exception ex) {
-                    String details = "Db does not contain referenced sense!";
-
-                    warningRef(targetId,
-                            DivValidationError.MISSING_EXTERNAL_ID,
-                            prov,
-                            details);
-
-                }
-
             }
 
         }
@@ -652,6 +651,7 @@ public class DivXmlValidator extends DefaultHandler {
     @Override
     public void endDocument() throws SAXException {
         super.endDocument();
+
         step = ValidationStep.values()[step.ordinal() + 1];
     }
 

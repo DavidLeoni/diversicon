@@ -66,7 +66,9 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.w3c.dom.ls.LSInput;
 import org.w3c.dom.ls.LSResourceResolver;
 import org.xml.sax.InputSource;
+import org.xml.sax.Locator;
 import org.xml.sax.SAXException;
+import org.xml.sax.helpers.LocatorImpl;
 
 import javax.annotation.Nullable;
 import javax.xml.parsers.ParserConfigurationException;
@@ -2041,6 +2043,14 @@ public final class Diversicons {
             DivXmlValidator divXmlValidator) {
         
         try {
+            LocatorImpl locator = new LocatorImpl();
+            locator.setLineNumber(-1);
+            locator.setColumnNumber(-1);
+            // locator.setPublicId(publicId);
+            locator.setSystemId(divXmlValidator.getErrorHandler().getDefaultSystemId());
+            
+            
+            divXmlValidator.setDocumentLocator(locator);
             divXmlValidator.startDocument();            
             divXmlValidator.endDocument();
         } catch (SAXException ex) {
