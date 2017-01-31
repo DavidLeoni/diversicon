@@ -654,12 +654,12 @@ public final class DivTester {
      */
     public static File writeXml(
             LexicalResource lexRes,
-            LexResPackage lexResPackage) {
-        checkNotNull(lexRes);
-        checkNotNull(lexResPackage);
+            LexResPackage pack) {
+        
+        Internals.checkLexResPackage(pack, lexRes);
 
         File ret = createTempFile(DivTester.DIVERSICON_TEST_STRING, ".xml").toFile();
-        Diversicons.writeLexResToXml(lexRes, lexResPackage, ret);
+        Diversicons.writeLexResToXml(lexRes, pack, ret);
 
         return ret;
     }

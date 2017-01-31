@@ -127,7 +127,7 @@ public class ImportConfig {
      * 
      * @since 0.1.0
      */
-    public void addLexicalResource(String fileUrl) {
+    public void addLexResFileUrl(String fileUrl) {
         checkNotEmpty(fileUrl, "Invalid lexical resource file URL!");
         this.fileUrls.add(fileUrl);
     }

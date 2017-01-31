@@ -425,9 +425,9 @@ public class DivXmlValidator extends DefaultHandler {
 
         // TODO can we express warnings in xml schema ?
         if (pack.getPrefix()
-                .length() > Diversicons.LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH) {
+                .length() > Diversicons.LEXRES_PREFIX_SUGGESTED_LENGTH) {
             this.warning(DivValidationError.TOO_LONG_PREFIX, "Lexical resource prefix " + pack.getPrefix()
-                    + " longer than " + Diversicons.LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH
+                    + " longer than " + Diversicons.LEXRES_PREFIX_SUGGESTED_LENGTH
                     + ": this may cause memory issues.");
         }
 
@@ -685,7 +685,14 @@ public class DivXmlValidator extends DefaultHandler {
     }
 
     /**
-     * If validation failed, throws InvalidXmlException
+     * If validation failed, throws InvalidXmlException, otherwise does nothing.
+     * 
+     * <p><strong>
+     * 
+     * NOTE: must be called from *outside* DivXmlValidator. It is meant for special
+     * final checks, such as checking if warnings occurred during strict 
+     * validation.
+     * </strong></p>
      * 
      * @throws InvalidXmlException
      * 
@@ -703,12 +710,13 @@ public class DivXmlValidator extends DefaultHandler {
                     "Invalid xml! " + errorHandler.summary() + " in " + sysId
                             + "\n" + errorHandler.firstIssueAsString());
         } else {
+            
             if (errorHandler.getWarningCount() > 0) {
                 if (errorHandler.getConfig()
                                 .isStrict()) {
                     errorHandler.getConfig()
                                 .getLog()
-                                .error("Found warnings during strict validation! " + errorHandler.summary() + " in "
+                                .error("Found warnings during strict validation:\n" + errorHandler.summary() + " in "
                                         + sysId);
                     throw new InvalidXmlException(errorHandler,
                             "Found warnings during strict validation! " + errorHandler.summary() + " in "

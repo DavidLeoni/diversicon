@@ -1529,7 +1529,7 @@ public final class Internals {
             LexResPackage pack,
             @Nullable LexicalResource lexRes) {
         
-        Diversicons.checkId(pack.getName(), "Invalid lexical resource 'name' field!");
+        Diversicons.checkLexResName(pack.getName(), "Invalid lexical resource 'name' field!");
         if (lexRes != null){
             Internals.checkEquals("Lexical resource name " + lexRes.getName() 
             + " doesn't match name in pack: " + pack.getName(), pack.getName(), lexRes.getName());

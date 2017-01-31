@@ -1431,6 +1431,28 @@ public class Diversicon extends Uby {
     }
 
     /**
+     * Shorthand for {@link #importResource(LexicalResource, LexResPackage, ImportConfig)}
+     * with default values.
+     * 
+     * @since 0.1.0
+     */
+    public ImportJob importResource(
+            LexicalResource lexRes,
+            LexResPackage pack,
+            boolean skipAugment) {
+
+        ImportConfig importConfig;
+
+        importConfig = new ImportConfig();
+        importConfig.setSkipAugment(skipAugment);
+        importConfig.setAuthor(Diversicons.DEFAULT_AUTHOR);
+        String fileUrl = Diversicons.MEMORY_PROTOCOL + ":" + lexRes.hashCode();
+        importConfig.addLexResFileUrl(fileUrl);
+        return importResource(lexRes, pack, importConfig);
+    }
+
+
+    /**
      * 
      * Saves a {@link LexicalResource} complete with all the lexicons, synsets,
      * etc into
@@ -1465,25 +1487,19 @@ public class Diversicon extends Uby {
     public ImportJob importResource(
             LexicalResource lexRes,
             LexResPackage pack,
-            boolean skipAugment) {
+            ImportConfig importConfig) {
 
-        checkNotNull(lexRes);
-        checkNotNull(pack);
-
+        Internals.checkLexResPackage(pack, lexRes);
+        Internals.checkEquals(1, importConfig.getFileUrls().size());
+        
         LOG.info("Going to save lexical resource to database...");
 
         ImportJob job = null;
-        ImportConfig config;
 
-        config = new ImportConfig();
-        config.setSkipAugment(skipAugment);
-        config.setAuthor(Diversicons.DEFAULT_AUTHOR);
-        String fileUrl = Diversicons.MEMORY_PROTOCOL + ":" + lexRes.hashCode();
-        config.addLexicalResource(fileUrl);
-
+        String fileUrl = importConfig.getFileUrls().get(0);
         try {
 
-            job = newImportJob(config,
+            job = newImportJob(importConfig,
                     fileUrl,
                     null,
                     pack);
@@ -1494,7 +1510,7 @@ public class Diversicon extends Uby {
 
             new JavaToDbTransformer(this, lexRes).transform();
 
-            if (!skipAugment) {
+            if (!importConfig.isSkipAugment()) {
                 processGraph();
             }
 

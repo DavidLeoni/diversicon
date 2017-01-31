@@ -795,7 +795,7 @@ public class DiversiconTest {
     }
     
     /**
-     * Shows we can calculate transitive closure using relations
+     * Shows using force flag we can calculate transitive closure using relations
      * pointing to missing synsets
      *  
      * @since 0.1.0
@@ -805,7 +805,7 @@ public class DiversiconTest {
         
         Diversicons.dropCreateTables(divConfig.getDbConfig());
         Diversicon div = Diversicon.connectToDb(divConfig);               
-        String upp = "upp";
+        String ext = "ext";
         
         /**
          * 2 verteces and 1 hypernym edge, plus one hypernym to upper ontology synset
@@ -813,15 +813,20 @@ public class DiversiconTest {
         LexicalResource lexRes = lmf().lexicon()
                                               .synset()
                                               .lexicalEntry()
-                                              .synsetRelation(ERelNameSemantics.HYPERNYM, upp +":ss-1")
+                                              .synsetRelation(ERelNameSemantics.HYPERNYM, ext +":ss-1")
                                               .synset()
                                               .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
                                               .build();
         LexResPackage pack = DivTester.createLexResPackage(lexRes);
-        pack.putNamespace(upp,
-                           "http://upp");
+        pack.putNamespace(ext,
+                           "http://external");
                
-        div.importResource( lexRes, pack, false);
+        ImportConfig importConfig = new ImportConfig();
+        importConfig.setAuthor(Diversicons.DEFAULT_AUTHOR);
+        importConfig.setForce(true);
+        importConfig.addLexResFileUrl(Diversicons.MEMORY_PROTOCOL + ":" + lexRes.hashCode());
+        
+        div.importResource( lexRes, pack, importConfig);
         assertEquals(3, div.getSynsetRelationsCount());                                       
         
     }
@@ -917,7 +922,7 @@ public class DiversiconTest {
         ic.setAuthor(Diversicons.DEFAULT_AUTHOR);
         // ic.setDescription(DivTester.);
         ic.setForce(true); // otherwise it will complain there is wordnet in the db
-        ic.addLexicalResource(Smartphones.of().getXmlUri());
+        ic.addLexResFileUrl(Smartphones.of().getXmlUri());
         
         ImportJob job = div.importFiles(ic).get(0);
                 
@@ -1060,8 +1065,8 @@ public class DiversiconTest {
 
         ImportConfig config = new ImportConfig();
 
-        config.addLexicalResource(xml1.getAbsolutePath());
-        config.addLexicalResource(xml2.getAbsolutePath());
+        config.addLexResFileUrl(xml1.getAbsolutePath());
+        config.addLexResFileUrl(xml2.getAbsolutePath());
 
         config.setAuthor("Someone With A Very Long Name");
         config.setDescription(

@@ -44,6 +44,7 @@ import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import eu.kidf.diversicon.core.DivConfig;
 import eu.kidf.diversicon.core.DivXmlHandler;
+import eu.kidf.diversicon.core.DivXmlValidator;
 import eu.kidf.diversicon.core.Diversicon;
 import eu.kidf.diversicon.core.Diversicons;
 import eu.kidf.diversicon.core.ExtractedStream;
@@ -393,20 +394,21 @@ public class DivUtilsTest {
      */
     @Test
     public void testValidateXmlStrict() throws IOException {
-
-        LexicalResource lexRes = lmf()
+        
+        // this should issue a warning
+        String tooLongPrefix = new String(new char[Diversicons.LEXRES_PREFIX_SUGGESTED_LENGTH+1]).replace("\0", "p");
+               
+        LexicalResource lexRes = lmf(tooLongPrefix)
                                       .lexicon()
                                       .synset()
                                       .lexicalEntry()
                                       .synset()                                      
                                       .build();
         
-        LexResPackage pack = DivTester.createLexResPackage(lexRes);
-                
-        pack.getNamespaces().put(DivTester.DEFAULT_TEST_PREFIX, 
-                                 pack.getNamespaces().get(DivTester.DEFAULT_TEST_PREFIX));
-        
+        LexResPackage pack = DivTester.createLexResPackage(lexRes, tooLongPrefix);
+                        
         File xml = DivTester.writeXml(lexRes, pack);
+                
 
         LOG.debug("\n" + FileUtils.readFileToString(xml));
 
@@ -418,7 +420,12 @@ public class DivUtilsTest {
             Diversicons.validateXml(xml, config);
             Assert.fail("Shouldn't arrive here!");
         } catch (InvalidXmlException ex) {
-
+            DivXmlHandler errorHandler = ex.getErrorHandler();
+            
+            // 0 because strict warnings error report is done 
+            // outside DivXmlValidator SAXException mechanism
+            assertEquals(0, errorHandler.getErrorsCount()); 
+            assertTrue(errorHandler.getWarningCount() > 0);
         }
     }    
 
@@ -854,7 +861,7 @@ public class DivUtilsTest {
 
         LexResPackage pack = new LexResPackage();
 
-        pack.setName(DEFAULT_TEST_PREFIX);
+        pack.setName(DivTester.GRAPH_1_HYPERNYM.getName());
         pack.setPrefix(DEFAULT_TEST_PREFIX);
         pack.setLabel(DivTester.GRAPH_1_HYPERNYM.getName());
         pack.setNamespaces(Internals.newMap(
