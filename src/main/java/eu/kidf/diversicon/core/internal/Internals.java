@@ -74,6 +74,7 @@ import eu.kidf.diversicon.core.DivSynsetRelation;
 import eu.kidf.diversicon.core.DivXmlValidator;
 import eu.kidf.diversicon.core.Diversicon;
 import eu.kidf.diversicon.core.Diversicons;
+import eu.kidf.diversicon.core.ImportConfig;
 import eu.kidf.diversicon.core.LexResPackage;
 import eu.kidf.diversicon.core.DivConfig;
 import eu.kidf.diversicon.core.exceptions.DivException;
@@ -2034,5 +2035,18 @@ public final class Internals {
         return a.substring(0, minLength);
     }
 
+    /**
+     * @since 0.1.0
+     */
+    public static ImportConfig createImportConfig(LexicalResource lexRes){
+        checkNotNull(lexRes);
+        
+        ImportConfig importConfig = new ImportConfig();
+        importConfig.setAuthor(Diversicons.DEFAULT_AUTHOR);
+        importConfig.setForce(true);
+        importConfig.addLexResFileUrl(Diversicons.MEMORY_PROTOCOL + ":" + lexRes.hashCode());
+        return importConfig;
+
+    }
 
 }

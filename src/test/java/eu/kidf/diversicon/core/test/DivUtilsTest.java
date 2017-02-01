@@ -393,23 +393,13 @@ public class DivUtilsTest {
      * @since 0.1.0
      */
     @Test
-    public void testValidateXmlStrict() throws IOException {
-        
-        // this should issue a warning
-        String tooLongPrefix = new String(new char[Diversicons.LEXRES_PREFIX_SUGGESTED_LENGTH+1]).replace("\0", "p");
-               
-        LexicalResource lexRes = lmf(tooLongPrefix)
-                                      .lexicon()
-                                      .synset()
-                                      .lexicalEntry()
-                                      .synset()                                      
-                                      .build();
-        
-        LexResPackage pack = DivTester.createLexResPackage(lexRes, tooLongPrefix);
+    public void testValidateXmlStrict() throws IOException {        
+                        
+        LexicalResource lexRes = DivTester.GRAPH_WARNING;                
+        LexResPackage pack = DivTester.createLexResPackage(lexRes, DivTester.TOO_LONG_PREFIX);
                         
         File xml = DivTester.writeXml(lexRes, pack);
                 
-
         LOG.debug("\n" + FileUtils.readFileToString(xml));
 
         XmlValidationConfig config = XmlValidationConfig.builder()
@@ -429,6 +419,33 @@ public class DivUtilsTest {
         }
     }    
 
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testValidateXmlNonStrict() throws IOException {        
+                        
+        LexicalResource lexRes = DivTester.GRAPH_WARNING;                
+        LexResPackage pack = DivTester.createLexResPackage(lexRes, DivTester.TOO_LONG_PREFIX);
+                        
+        File xml = DivTester.writeXml(lexRes, pack);
+                
+        LOG.debug("\n" + FileUtils.readFileToString(xml));
+
+        XmlValidationConfig config = XmlValidationConfig.builder()
+                                        .setStrict(false)                                        
+                                        .build();         
+
+        DivXmlValidator v = Diversicons.validateXml(xml, config);
+        DivXmlHandler errorHandler = v.getErrorHandler();            
+        // 0 because strict warnings error report is done 
+        // outside DivXmlValidator SAXException mechanism
+        assertEquals(0, errorHandler.getErrorsCount()); 
+        assertTrue(errorHandler.getWarningCount() > 0);
+        
+    }    
+    
+    
     /**
      * @since 0.1.0
      */

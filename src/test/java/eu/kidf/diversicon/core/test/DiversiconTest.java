@@ -27,6 +27,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import de.tudarmstadt.ukp.lmf.model.core.LexicalEntry;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
@@ -41,6 +42,8 @@ import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import eu.kidf.diversicon.core.DbInfo;
 import eu.kidf.diversicon.core.DivConfig;
 import eu.kidf.diversicon.core.DivSynsetRelation;
+import eu.kidf.diversicon.core.DivXmlHandler;
+import eu.kidf.diversicon.core.DivXmlValidator;
 import eu.kidf.diversicon.core.Diversicon;
 import eu.kidf.diversicon.core.Diversicons;
 import eu.kidf.diversicon.core.ImportConfig;
@@ -820,16 +823,70 @@ public class DiversiconTest {
         LexResPackage pack = DivTester.createLexResPackage(lexRes);
         pack.putNamespace(ext,
                            "http://external");
-               
-        ImportConfig importConfig = new ImportConfig();
-        importConfig.setAuthor(Diversicons.DEFAULT_AUTHOR);
-        importConfig.setForce(true);
-        importConfig.addLexResFileUrl(Diversicons.MEMORY_PROTOCOL + ":" + lexRes.hashCode());
+        
+        
+        ImportConfig importConfig = Internals.createImportConfig(lexRes);        
         
         div.importResource( lexRes, pack, importConfig);
         assertEquals(3, div.getSynsetRelationsCount());                                       
         
     }
+
+    /**
+     * 
+     * Imports a resource which triggers a validation warning.
+     * Since by default import is done in strict validation mode, import should fail.
+     * 
+     * Expected result: exception is thrown.
+     * 
+     * @since 0.1.0
+     * 
+     */
+    @Test
+    public void testImportWithWarning() throws IOException {
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
+
+        Diversicon div = Diversicon.connectToDb(divConfig);       
+        
+        try {
+            div.importResource(GRAPH_WARNING, 
+                    DivTester.createLexResPackage(GRAPH_WARNING, DivTester.TOO_LONG_PREFIX),
+                    true);
+            Assert.fail("Shouldn't arrive here!");
+        } catch (InvalidImportException ex){
+            assertEquals(1, ex.getValidator().getErrorHandler().getWarningCount());
+        }
+        
+    }
+    
+    /**
+     * 
+     * Imports a resource which triggers a validation warning.
+     * Using the force flag will disable default strict validation mode.
+     * 
+     * Expected result: import succeeds
+     * 
+     * @since 0.1.0
+     * 
+     */
+    @Test
+    public void testImportWithWarningForce() throws IOException {
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
+
+        Diversicon div = Diversicon.connectToDb(divConfig);       
+        
+        ImportConfig importConfig = Internals.createImportConfig(GRAPH_WARNING);        
+        importConfig.setForce(true);
+        importConfig.setSkipAugment(true);
+        
+        div.importResource(GRAPH_WARNING, 
+                DivTester.createLexResPackage(GRAPH_WARNING, DivTester.TOO_LONG_PREFIX),                    
+                importConfig);
+        assertNotNull(div.getLexicalResource(GRAPH_WARNING.getName()));
+        // Won't find it here, only applications can redirect stuff to ImportJob logs 
+        // assertEquals(1, job.getLogMessages(Level.WARN));
+    }
+    
     
     /**
      * 
@@ -904,7 +961,7 @@ public class DiversiconTest {
 
     /**
      * We should be able to import Smartphones and compute transitive closure 
-     * even without Wordnet loaded. 
+     * even without Wordnet loaded, by using the {@code force} flag. 
      * 
      * @see DivUtilsIT#testImportSmartPhonesXmlWithWordnet()
      * 
@@ -912,7 +969,7 @@ public class DiversiconTest {
      * 
      */
     @Test
-    public void testImportSmartPhonesXmlWithoutWordnet() {        
+    public void testImportSmartPhonesXmlWithoutWordnet() {
         
         Diversicons.dropCreateTables(divConfig.getDbConfig());
 
