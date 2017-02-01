@@ -1537,8 +1537,7 @@ public class Diversicon extends Uby {
      * @since 0.1.0
      */
     public static String getProvenanceId() {
-        return Diversicon.class.getPackage()
-                               .getName();
+        return DivUpper.PREFIX;
     }
 
     /**
