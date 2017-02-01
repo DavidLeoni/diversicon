@@ -1312,6 +1312,8 @@ public class Diversicon extends Uby {
             String fileUrl,
             @Nullable File xmlFile,
             LexResPackage pack) {
+        
+        DivXmlValidator divValidator = null;
         try {
 
             checkNotNull(importConfig);
@@ -1321,7 +1323,7 @@ public class Diversicon extends Uby {
             checkNotEmpty(fileUrl, "Invalid fileUrl!");
             checkNotNull(pack);
 
-            DivXmlValidator divValidator;
+            
 
             XmlValidationConfig xmlValidationConfig = XmlValidationConfig.builder()
                                                                          .setLog(LOG)
@@ -1371,7 +1373,7 @@ public class Diversicon extends Uby {
         } catch (Exception ex) {
             throw new InvalidImportException(
                     "Invalid import for " + fileUrl + "! \n", ex,
-                    importConfig, fileUrl, pack);
+                    importConfig, fileUrl, pack, divValidator);
         }
     }
 
@@ -1441,13 +1443,11 @@ public class Diversicon extends Uby {
             LexResPackage pack,
             boolean skipAugment) {
 
-        ImportConfig importConfig;
-
-        importConfig = new ImportConfig();
+        Internals.checkLexResPackage(pack, lexRes);
+        
+        ImportConfig importConfig = Internals.createImportConfig(lexRes);
         importConfig.setSkipAugment(skipAugment);
-        importConfig.setAuthor(Diversicons.DEFAULT_AUTHOR);
-        String fileUrl = Diversicons.MEMORY_PROTOCOL + ":" + lexRes.hashCode();
-        importConfig.addLexResFileUrl(fileUrl);
+        
         return importResource(lexRes, pack, importConfig);
     }
 

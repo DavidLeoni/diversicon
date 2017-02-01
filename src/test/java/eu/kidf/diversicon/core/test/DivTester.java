@@ -44,6 +44,7 @@ import eu.kidf.diversicon.core.DivConfig;
 import eu.kidf.diversicon.core.DivSynsetRelation;
 import eu.kidf.diversicon.core.Diversicon;
 import eu.kidf.diversicon.core.Diversicons;
+import eu.kidf.diversicon.core.ImportConfig;
 import eu.kidf.diversicon.core.ImportJob;
 import eu.kidf.diversicon.core.LexResPackage;
 import eu.kidf.diversicon.core.exceptions.DivException;
@@ -168,7 +169,25 @@ public final class DivTester {
                                                                .synsetRelation(ERelNameSemantics.HOLONYM, 1)
                                                                .build();
 
-
+    /**
+     * A prefix longer than recommended length
+     * 
+     * @since 0.1.0
+     */
+    public static final String TOO_LONG_PREFIX = new String(new char[Diversicons.LEXRES_PREFIX_SUGGESTED_LENGTH+1]).replace("\0", "p");
+    
+    /**
+     * Graph that issues a warning when validated because it uses a too long prefix.
+     * Useful when checking strict validation.
+     * 
+     * @since 0.1.0
+     */
+    public static final LexicalResource GRAPH_WARNING = lmf(TOO_LONG_PREFIX)
+                                                        .lexicon()
+                                                        .synset()
+                                                        .lexicalEntry()                                                                           
+                                                        .build();    
+    
     /**
      * <pre>
      * div_ss_n_domain
@@ -877,4 +896,5 @@ public final class DivTester {
         }
 
     }
+
 }
