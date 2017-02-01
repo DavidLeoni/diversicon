@@ -826,7 +826,7 @@ public class DiversiconTest {
         
         
         ImportConfig importConfig = Internals.createImportConfig(lexRes);        
-        
+        importConfig.setForce(true);        
         div.importResource( lexRes, pack, importConfig);
         assertEquals(3, div.getSynsetRelationsCount());                                       
         
