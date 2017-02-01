@@ -2042,8 +2042,7 @@ public final class Internals {
         checkNotNull(lexRes);
         
         ImportConfig importConfig = new ImportConfig();
-        importConfig.setAuthor(Diversicons.DEFAULT_AUTHOR);
-        importConfig.setForce(true);
+        importConfig.setAuthor(Diversicons.DEFAULT_AUTHOR);        
         importConfig.addLexResFileUrl(Diversicons.MEMORY_PROTOCOL + ":" + lexRes.hashCode());
         return importConfig;
 

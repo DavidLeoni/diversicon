@@ -426,8 +426,8 @@ public class DivXmlValidator extends DefaultHandler {
         // TODO can we express warnings in xml schema ?
         if (pack.getPrefix()
                 .length() > Diversicons.LEXRES_PREFIX_SUGGESTED_LENGTH) {
-            this.warning(DivValidationError.TOO_LONG_PREFIX, "Lexical resource prefix " + pack.getPrefix()
-                    + " longer than " + Diversicons.LEXRES_PREFIX_SUGGESTED_LENGTH
+            this.warning(DivValidationError.TOO_LONG_PREFIX, "Lexical resource prefix '" + pack.getPrefix()
+                    + "' is longer than " + Diversicons.LEXRES_PREFIX_SUGGESTED_LENGTH
                     + ": this may cause memory issues.");
         }
 
