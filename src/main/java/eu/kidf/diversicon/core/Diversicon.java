@@ -72,6 +72,7 @@ import eu.kidf.diversicon.core.exceptions.InvalidImportException;
 import eu.kidf.diversicon.core.exceptions.InvalidSchemaException;
 import eu.kidf.diversicon.core.exceptions.InvalidStateException;
 import eu.kidf.diversicon.core.internal.Internals;
+import eu.kidf.diversicon.data.DivUpper;
 
 /**
  * Extension of {@link de.tudarmstadt.ukp.lmf.api.Uby Uby} LMF knowledge base
@@ -596,7 +597,7 @@ public class Diversicon extends Uby {
             
             tx = session.beginTransaction();
 
-            Synset rootDomain = getSynsetById(Diversicons.SYNSET_ROOT_DOMAIN);
+            Synset rootDomain = getSynsetById(DivUpper.SYNSET_ROOT_DOMAIN);
             Set<String> domainCandidates = domainCandidates();
             
             long totalSynsets = getSynsetCount();
@@ -2166,7 +2167,7 @@ public class Diversicon extends Uby {
             criteria.add(Restrictions.eq("lexicon", lexicon));
         }
 
-        Synset rootDomain = getSynsetById(Diversicons.SYNSET_ROOT_DOMAIN);
+        Synset rootDomain = getSynsetById(DivUpper.SYNSET_ROOT_DOMAIN);
         
         criteria = criteria
                 .createCriteria("synsetRelations")
@@ -2175,6 +2176,10 @@ public class Diversicon extends Uby {
 
         @SuppressWarnings("unchecked")
         List<Synset> ret = criteria.list();
+
+        if (lexicon == null || lexicon != null && DivUpper.LEXICON_ENG.equals(lexicon.getId())) {
+            ret.add(rootDomain);
+        }
 
         return ret;
         
@@ -2190,7 +2195,7 @@ public class Diversicon extends Uby {
         checkId(synsetId, "Invalid synset id!");
 
         return isConnected(synsetId,
-                Diversicons.SYNSET_ROOT_DOMAIN, -1,                
+                DivUpper.SYNSET_ROOT_DOMAIN, -1,                
                 Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN);        
     }
 
@@ -2209,26 +2214,33 @@ public class Diversicon extends Uby {
                            .createCriteria("semanticLabels")
                            .add(Restrictions.in("type", Diversicons.getDomainLabelTypes()))                           
                            .list();
-
-        List<String> synsetIdsByWordnetTopic = session.createCriteria(DivSynsetRelation.class)
+        
+        HashSet<String> ret = new HashSet<>();
+        
+        // couldn't find better way to project ids - screw Hibernate !!!!!
+        
+        List<DivSynsetRelation> divsWordnetTopic = session.createCriteria(DivSynsetRelation.class)                
                 .add(Restrictions.eq("relName", Diversicons.RELATION_WORDNET_TOPIC))
-                .createCriteria("target")
-                .setProjection(Property.forName("id"))
+                .createCriteria("target")                                
                 .list();
+
+        for (DivSynsetRelation dsr : divsWordnetTopic){
+            ret.add(dsr.getTarget().getId());
+        }
         
-        List<String> synsetIdsByWordnetIsTopicOf =  session.createCriteria(DivSynsetRelation.class)                      
-                .add(Restrictions.eq("relName", Diversicons.RELATION_WORDNET_IS_TOPIC_OF))
-                .createCriteria("source")
-                .setProjection(Property.forName("id"))
-                .list();
+        List<DivSynsetRelation> divsWordnetIsTopicOf = session.createCriteria(DivSynsetRelation.class)                      
+        .add(Restrictions.eq("relName", Diversicons.RELATION_WORDNET_IS_TOPIC_OF))
+        .createCriteria("source")                
+        .list();
+        for (DivSynsetRelation dsr : divsWordnetIsTopicOf){
+            ret.add(dsr.getSource().getId());
+        }
         
-        HashSet<String> s = new HashSet<>();
-        s.addAll(synsetIdsBySemLabel);
-        s.addAll(synsetIdsByWordnetTopic);
-        s.addAll(synsetIdsByWordnetIsTopicOf);
-        s.removeAll(domainIds);
+
+        ret.addAll(synsetIdsBySemLabel);        
+        ret.removeAll(domainIds);
         
-        return s;
+        return ret;
     }
     
     /**

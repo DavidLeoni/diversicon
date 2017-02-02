@@ -387,14 +387,6 @@ public final class Diversicons {
      * @since 0.1.0
      */
     public static final String RELATION_DIVERSICON_SUB_DOMAIN = "subDomain";
-
-    /**
-     * 
-     * Synset id of the root of all domains, as specified in DivUpper lexical resource 
-     *
-     * @since 0.1.0
-     */
-    public static final String SYNSET_ROOT_DOMAIN = "div_ss_n_domain";
     
     
     /**

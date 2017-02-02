@@ -52,11 +52,11 @@ import eu.kidf.diversicon.core.exceptions.InterruptedImportException;
 import eu.kidf.diversicon.core.exceptions.InvalidImportException;
 import eu.kidf.diversicon.core.exceptions.InvalidSchemaException;
 import eu.kidf.diversicon.core.internal.Internals;
+import eu.kidf.diversicon.data.DivUpper;
 import eu.kidf.diversicon.data.DivWn31;
 import eu.kidf.diversicon.data.Smartphones;
 import static eu.kidf.diversicon.core.internal.Internals.newHashSet;
 import static eu.kidf.diversicon.core.internal.Internals.newArrayList;
-import static eu.kidf.diversicon.core.Diversicons.SYNSET_ROOT_DOMAIN;
 
 /**
  * @since 0.1.0
@@ -1400,13 +1400,18 @@ public class DiversiconTest {
 
         Diversicons.dropCreateTables(divConfig.getDbConfig());
         Diversicon div = Diversicon.connectToDb(divConfig);                
-                    
+        
+        assertEquals(newArrayList(DivUpper.SYNSET_ROOT_DOMAIN), 
+                     Internals.getIds(div.getDomains(null)));
+        assertEquals(newArrayList(DivUpper.SYNSET_ROOT_DOMAIN), 
+                     Internals.getIds(div.getDomains(div.getLexiconById(DivUpper.LEXICON_ENG))));
+        
         DivTester.importResource(div, DivTester.GRAPH_DOMAINS_SIMPLE, false);
         
         List<Synset> syns = div.getDomains(null);
                         
         assertEquals(new HashSet<>(Internals.getIds(syns)), 
-                     newHashSet(tid("synset-1"), tid("synset-2")));      
+                     newHashSet(tid("synset-1"), tid("synset-2"), DivUpper.SYNSET_ROOT_DOMAIN));      
     }
     
     /**
@@ -1421,7 +1426,7 @@ public class DiversiconTest {
                 lmf().lexicon()
                     .synset()                        
                     .lexicalEntry()
-                    .synsetRelation(Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN, Diversicons.SYNSET_ROOT_DOMAIN)                
+                    .synsetRelation(Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN, DivUpper.SYNSET_ROOT_DOMAIN)                
                     .synset()
                     .synsetRelation(Diversicons.RELATION_WORDNET_TOPIC, 1)
                     .synsetRelation(Diversicons.RELATION_DIVERSICON_DOMAIN, 1)
@@ -1442,7 +1447,7 @@ public class DiversiconTest {
                         .synset()                        
                         .lexicalEntry()
                         .semanticLabel("d1", ELabelTypeSemantics.domain)
-                        .synsetRelation(Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN, Diversicons.SYNSET_ROOT_DOMAIN)
+                        .synsetRelation(Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN, DivUpper.SYNSET_ROOT_DOMAIN)
                         .synset()
                         .lexicalEntry()
                         .semanticLabel("d2", ELabelTypeSemantics.category)
@@ -1462,7 +1467,7 @@ public class DiversiconTest {
                 lmf().lexicon()
                     .synset()                        
                     .lexicalEntry()
-                    .synsetRelation(Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN, Diversicons.SYNSET_ROOT_DOMAIN)                
+                    .synsetRelation(Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN, DivUpper.SYNSET_ROOT_DOMAIN)                
                     .synset()
                     .synsetRelation(Diversicons.RELATION_WORDNET_TOPIC, 1)
                     .synsetRelation(Diversicons.RELATION_DIVERSICON_DOMAIN, 1)
@@ -1489,7 +1494,7 @@ public class DiversiconTest {
     public void testIsDomain(){
         Diversicons.dropCreateTables(divConfig.getDbConfig());
         Diversicon div = Diversicon.connectToDb(divConfig);
-        assertTrue(div.isDomain(Diversicons.SYNSET_ROOT_DOMAIN));
+        assertTrue(div.isDomain(DivUpper.SYNSET_ROOT_DOMAIN));
         
         DivTester.importResource(div, DivTester.GRAPH_DOMAINS_SIMPLE, false);
                                
@@ -1510,10 +1515,10 @@ public class DiversiconTest {
         Diversicon div = Diversicon.connectToDb(divConfig);                
         DivTester.importResource(div, DivTester.GRAPH_DOMAINS_SIMPLE, false);
         
-        assertTrue(div.isSubdomain(SYNSET_ROOT_DOMAIN, SYNSET_ROOT_DOMAIN));        
-        assertTrue(div.isSubdomain(tid("synset-1"), SYNSET_ROOT_DOMAIN));
+        assertTrue(div.isSubdomain(DivUpper.SYNSET_ROOT_DOMAIN, DivUpper.SYNSET_ROOT_DOMAIN));        
+        assertTrue(div.isSubdomain(tid("synset-1"), DivUpper.SYNSET_ROOT_DOMAIN));
         assertTrue(div.isSubdomain(tid("synset-2"), tid("synset-1")));
-        assertTrue(div.isSubdomain(tid("synset-2"), SYNSET_ROOT_DOMAIN));
+        assertTrue(div.isSubdomain(tid("synset-2"), DivUpper.SYNSET_ROOT_DOMAIN));
         try {
             assertFalse(div.isSubdomain(tid("synset-3"), tid("synset-2")));
             Assert.fail("Shouldn't arrive here!");
@@ -1521,7 +1526,7 @@ public class DiversiconTest {
             
         }
         try {
-            assertFalse(div.isSubdomain(tid("synset-4"), SYNSET_ROOT_DOMAIN));
+            assertFalse(div.isSubdomain(tid("synset-4"), DivUpper.SYNSET_ROOT_DOMAIN));
         } catch (IllegalArgumentException ex){
             
         }

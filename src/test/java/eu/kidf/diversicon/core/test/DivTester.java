@@ -49,6 +49,7 @@ import eu.kidf.diversicon.core.exceptions.DivException;
 import eu.kidf.diversicon.core.exceptions.DivNotFoundException;
 import eu.kidf.diversicon.core.exceptions.DivValidationException;
 import eu.kidf.diversicon.core.internal.Internals;
+import eu.kidf.diversicon.data.DivUpper;
 
 public final class DivTester {
 
@@ -165,7 +166,7 @@ public final class DivTester {
      */
     public static final LexicalResource GRAPH_DOMAINS_SIMPLE = lmf().lexicon()
             .synset()
-            .synsetRelation(Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN, Diversicons.SYNSET_ROOT_DOMAIN)
+            .synsetRelation(Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN, DivUpper.SYNSET_ROOT_DOMAIN)
             .lexicalEntry()
             .synset()
             .synsetRelation(Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN, 1)
