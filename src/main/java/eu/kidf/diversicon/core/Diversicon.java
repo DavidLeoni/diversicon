@@ -17,10 +17,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.zip.Deflater;
 
 import javax.annotation.Nullable;
@@ -39,6 +41,7 @@ import org.hibernate.ScrollableResults;
 import org.hibernate.Transaction;
 import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Projections;
+import org.hibernate.criterion.Property;
 import org.hibernate.criterion.Restrictions;
 import org.hibernate.service.ServiceRegistryBuilder;
 import org.slf4j.Logger;
@@ -594,7 +597,8 @@ public class Diversicon extends Uby {
             tx = session.beginTransaction();
 
             Synset rootDomain = getSynsetById(DivUpper.SYNSET_ROOT_DOMAIN);
-
+            Set<String> domainCandidates = domainCandidates();
+            
             long totalSynsets = getSynsetCount();
 
             String hql = "FROM Synset";
@@ -611,6 +615,8 @@ public class Diversicon extends Uby {
 
             LOG.info("\nFound " + totalSynsets + " synsets.\n");
 
+
+            
             while (synsets.next()) {
 
                 Synset synset = (Synset) synsets.get(0);
@@ -618,10 +624,13 @@ public class Diversicon extends Uby {
 
                 List<SynsetRelation> relations = synset.getSynsetRelations();
 
-                normalizeDomain(synset, rootDomain, insStats);
-
-                for (SynsetRelation sr : new ArrayList<>(relations)) {
-
+                if (domainCandidates.contains(synset.getId())){
+                    normalizeCandidateDomain(synset, rootDomain, insStats);    
+                }
+                              
+                                
+                for (SynsetRelation sr : new ArrayList<>(relations)){                    
+                    
                     DivSynsetRelation ssr = (DivSynsetRelation) sr;
 
                     normalizeTopicToDomain(ssr, insStats);
@@ -661,42 +670,41 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * Checks if synset looks like a domain, and if needed connects it by
+     * Connects provided candidate domain synset by 
      * {@link Diversicons#RELATION_DIVERSICON_SUPER_DOMAIN superDomain} relation
-     * to {@link Diversicons#SYNSET_ROOT_DOMAIN root domain}
+     * to {@link DivUpper#SYNSET_ROOT_DOMAIN root domain}
      * 
-     * @param synset
-     * @param insertion
-     *            stats to modify
+     * @param synset MUST *NOT* ALREADY BE A DOMAIN (see {@link  #isDomain(String)}!!
+     * @param insertion stats to modify
      * 
      * @see #isDomain(Synset)
      * @since 0.1.0
      */
-    private void normalizeDomain(Synset synset, Synset rootDomain, InsertionStats insStats) {
+    private void normalizeCandidateDomain(Synset synset, Synset rootDomain, InsertionStats insStats) {
         checkNotNull(synset);
         checkNotNull(insStats);
 
         String superDomain = Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN;
 
-        if (looksLikeDomain(synset.getId())) {
-            if (!isDomain(synset.getId())) {
-                DivSynsetRelation newSsr = new DivSynsetRelation();
+       
+                
+        DivSynsetRelation newSsr = new DivSynsetRelation();
 
-                newSsr.setDepth(1);
-                newSsr.setProvenance(Diversicon.getProvenanceId());
+        newSsr.setDepth(1);
+        newSsr.setProvenance(Diversicon.getProvenanceId());
+        
+        newSsr.setRelName(superDomain);
+        newSsr.setRelType(Diversicons.getRelationType(superDomain));
+        newSsr.setSource(synset);
+        newSsr.setTarget(rootDomain);
+        synset
+        .getSynsetRelations()
+        .add(newSsr);
 
-                newSsr.setRelName(superDomain);
-                newSsr.setRelType(Diversicons.getRelationType(superDomain));
-                newSsr.setSource(synset);
-                newSsr.setTarget(rootDomain);
-                synset
-                      .getSynsetRelations()
-                      .add(newSsr);
-                session.save(newSsr);
-                session.saveOrUpdate(synset);
-                insStats.inc(superDomain);
-            }
-        }
+        session.save(newSsr);
+        session.saveOrUpdate(synset);
+        insStats.inc(superDomain);           
+        
     }
 
     /**
@@ -2242,6 +2250,44 @@ public class Diversicon extends Uby {
     }
 
     /**
+     * Returns a list of probable domains, *excluding* the ones we already know are cerdomains.
+     * 
+     * @since 0.1.0
+     */    
+    private Set<String> domainCandidates() {
+                               
+        List<String> domainIds = Internals.getIds(getDomains(null));               
+        
+        List<String> synsetIdsBySemLabel = session.createCriteria(Synset.class)
+                            .setProjection(Property.forName("id"))
+                           .createCriteria("senses")
+                           .createCriteria("semanticLabels")
+                           .add(Restrictions.in("type", Diversicons.getDomainLabelTypes()))                           
+                           .list();
+
+        List<String> synsetIdsByWordnetTopic = session.createCriteria(DivSynsetRelation.class)
+                .add(Restrictions.eq("relName", Diversicons.RELATION_WORDNET_TOPIC))
+                .createCriteria("target")
+                .setProjection(Property.forName("id"))
+                .list();
+        
+        List<String> synsetIdsByWordnetIsTopicOf =  session.createCriteria(DivSynsetRelation.class)                      
+                .add(Restrictions.eq("relName", Diversicons.RELATION_WORDNET_IS_TOPIC_OF))
+                .createCriteria("source")
+                .setProjection(Property.forName("id"))
+                .list();
+        
+        HashSet<String> s = new HashSet<>();
+        s.addAll(synsetIdsBySemLabel);
+        s.addAll(synsetIdsByWordnetTopic);
+        s.addAll(synsetIdsByWordnetIsTopicOf);
+        s.removeAll(domainIds);
+        
+        return s;
+    }
+    
+
+    /**
      * Returns true if provided synset is a domain.
      * 
      * @since 0.1.0
@@ -2249,12 +2295,11 @@ public class Diversicon extends Uby {
     // todo performance is improvable
     public boolean looksLikeDomain(String synsetId) {
         checkId(synsetId, "Invalid synset id!");
-
-        if (isDomain(synsetId)) {
+                
+        if (isDomain(synsetId)){
             return true;
         }
-        ;
-
+        
         Criteria criteria_1 = session.createCriteria(Synset.class);
 
         criteria_1 = criteria_1.add(Restrictions.eq("id", synsetId))

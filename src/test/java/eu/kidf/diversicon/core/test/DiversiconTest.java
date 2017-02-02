@@ -1557,13 +1557,16 @@ public class DiversiconTest {
     @Test
     public void testIsDomain(){
         Diversicons.dropCreateTables(divConfig.getDbConfig());
-        Diversicon div = Diversicon.connectToDb(divConfig);                
+        Diversicon div = Diversicon.connectToDb(divConfig);
+        assertTrue(div.isDomain(DivUpper.SYNSET_ROOT_DOMAIN));
+        
         DivTester.importResource(div, DivTester.GRAPH_DOMAINS_SIMPLE, false);
                                
         assertTrue(div.isDomain(tid("synset-1")));               
         assertTrue(div.isDomain(tid("synset-2")));                
         assertFalse(div.isDomain(tid("synset-3")));                        
         assertFalse(div.isDomain(tid("synset-4")));
+        
     }
 
     
