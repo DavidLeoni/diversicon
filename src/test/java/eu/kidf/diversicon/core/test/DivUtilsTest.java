@@ -318,7 +318,6 @@ public class DivUtilsTest {
         
         ImportJob job = div.getImportJobs().get(0);
         assertEquals(Diversicons.DIVERSICON_AUTHOR, job.getAuthor());        
-
         Synset root_domain = div.getSynsetById(DivUpper.SYNSET_ROOT_DOMAIN);
         assertEquals(DivUpper.SYNSET_ROOT_DOMAIN, root_domain.getId());
 

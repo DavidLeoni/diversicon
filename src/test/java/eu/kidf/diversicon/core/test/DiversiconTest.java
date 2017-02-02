@@ -60,6 +60,7 @@ import eu.kidf.diversicon.data.DivWn31;
 import eu.kidf.diversicon.data.Smartphones;
 import static eu.kidf.diversicon.core.internal.Internals.newHashSet;
 import static eu.kidf.diversicon.core.internal.Internals.newArrayList;
+
 import static eu.kidf.diversicon.data.DivUpper.SYNSET_ROOT_DOMAIN;
 
 /**
@@ -1469,13 +1470,18 @@ public class DiversiconTest {
 
         Diversicons.dropCreateTables(divConfig.getDbConfig());
         Diversicon div = Diversicon.connectToDb(divConfig);                
-                    
+        
+        assertEquals(newArrayList(DivUpper.SYNSET_ROOT_DOMAIN), 
+                     Internals.getIds(div.getDomains(null)));
+        assertEquals(newArrayList(DivUpper.SYNSET_ROOT_DOMAIN), 
+                     Internals.getIds(div.getDomains(div.getLexiconById(DivUpper.LEXICON_ENG))));
+        
         DivTester.importResource(div, DivTester.GRAPH_DOMAINS_SIMPLE, false);
         
         List<Synset> syns = div.getDomains(null);
                         
         assertEquals(new HashSet<>(Internals.getIds(syns)), 
-                     newHashSet(tid("synset-1"), tid("synset-2")));      
+                     newHashSet(tid("synset-1"), tid("synset-2"), DivUpper.SYNSET_ROOT_DOMAIN));      
     }
     
     /**
@@ -1579,10 +1585,10 @@ public class DiversiconTest {
         Diversicon div = Diversicon.connectToDb(divConfig);                
         DivTester.importResource(div, DivTester.GRAPH_DOMAINS_SIMPLE, false);
         
-        assertTrue(div.isSubdomain(SYNSET_ROOT_DOMAIN, SYNSET_ROOT_DOMAIN));        
-        assertTrue(div.isSubdomain(tid("synset-1"), SYNSET_ROOT_DOMAIN));
+        assertTrue(div.isSubdomain(DivUpper.SYNSET_ROOT_DOMAIN, DivUpper.SYNSET_ROOT_DOMAIN));        
+        assertTrue(div.isSubdomain(tid("synset-1"), DivUpper.SYNSET_ROOT_DOMAIN));
         assertTrue(div.isSubdomain(tid("synset-2"), tid("synset-1")));
-        assertTrue(div.isSubdomain(tid("synset-2"), SYNSET_ROOT_DOMAIN));
+        assertTrue(div.isSubdomain(tid("synset-2"), DivUpper.SYNSET_ROOT_DOMAIN));
         try {
             assertFalse(div.isSubdomain(tid("synset-3"), tid("synset-2")));
             Assert.fail("Shouldn't arrive here!");
@@ -1590,7 +1596,7 @@ public class DiversiconTest {
             
         }
         try {
-            assertFalse(div.isSubdomain(tid("synset-4"), SYNSET_ROOT_DOMAIN));
+            assertFalse(div.isSubdomain(tid("synset-4"), DivUpper.SYNSET_ROOT_DOMAIN));
         } catch (IllegalArgumentException ex){
             
         }
