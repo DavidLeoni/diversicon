@@ -1618,6 +1618,7 @@ public class DiversiconTest {
         
         try {
             div.importXml(xml.getAbsolutePath());
+            Assert.fail("Shouldn't arrive here!");
         } catch (InvalidImportException ex){
             
         }
