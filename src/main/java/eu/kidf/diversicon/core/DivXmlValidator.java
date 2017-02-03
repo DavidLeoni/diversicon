@@ -716,10 +716,10 @@ public class DivXmlValidator extends DefaultHandler {
                                 .isStrict()) {
                     errorHandler.getConfig()
                                 .getLog()
-                                .error("Found warnings during strict validation:\n" + errorHandler.summary() + " in "
+                                .error("There were warnings during strict validation:\n" + errorHandler.summary() + " in "
                                         + sysId);
                     throw new InvalidXmlException(errorHandler,
-                            "Found warnings during strict validation! " + errorHandler.summary() + " in "
+                            "There were warnings during strict validation:\n " + errorHandler.summary() + " in "
                                     + sysId
                                     + "\n" + errorHandler.firstIssueAsString());
 

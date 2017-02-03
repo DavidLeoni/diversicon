@@ -1998,6 +1998,8 @@ public final class Diversicons {
      * issue 21 </a>
      * </p>
      * 
+     * @throws InvalidXmlException
+     * 
      * @since 0.1.0
      */
     static void validateXmlStep(
@@ -2018,7 +2020,7 @@ public final class Diversicons {
 
             parser.parse(is, divXmlValidator);
         } catch (ParserConfigurationException | SAXException | IOException e) {
-            throw new DivException(e);
+            throw new InvalidXmlException(errorHandler, e);
         }
 
     }
