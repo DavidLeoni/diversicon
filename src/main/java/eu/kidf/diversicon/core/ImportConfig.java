@@ -7,7 +7,6 @@ import static eu.kidf.diversicon.core.internal.Internals.checkNotNull;
 import java.util.ArrayList;
 import java.util.List;
 
-import eu.kidf.diversicon.core.XmlValidationConfig.Builder;
 
 /**
  * Configuration for a whole {@link ImportJob} process.
@@ -15,7 +14,7 @@ import eu.kidf.diversicon.core.XmlValidationConfig.Builder;
  * @since 0.1.0
  * @see ImportJob
  */
-// TODO Why is it not immutable ??
+// TODO: make it immutable https://github.com/diversicon-kb/diversicon-core/issues/35
 public class ImportConfig {
 
     private List<String> fileUrls;
@@ -24,6 +23,7 @@ public class ImportConfig {
     private boolean skipAugment;
     private int logLimit;   
     private boolean force;
+    private boolean dryRun;
 
     /**
      * Default constructor.
@@ -39,6 +39,7 @@ public class ImportConfig {
         this.skipAugment = false;
         this.logLimit = Diversicons.DEFAULT_LOG_LIMIT;
         this.force = false;
+        this.dryRun = false;
     }
 
     /**
@@ -57,9 +58,10 @@ public class ImportConfig {
      * 
      * @since 0.1.0
      */
-    public void setFileUrls(List<String> fileUrls) {
+    public ImportConfig setFileUrls(List<String> fileUrls) {
         checkNotNull(fileUrls);
         this.fileUrls = fileUrls;
+        return this;
     }
 
     /**
@@ -76,9 +78,10 @@ public class ImportConfig {
      * 
      * @since 0.1.0
      */
-    public void setAuthor(String author) {
+    public ImportConfig setAuthor(String author) {
         checkNotNull(author);
         this.author = author;
+        return this;
     }
 
     /**
@@ -98,9 +101,10 @@ public class ImportConfig {
      * 
      * @since 0.1.0
      */
-    public void setDescription(String description) {
+    public ImportConfig setDescription(String description) {
         checkNotNull(description);
         this.description = description;
+        return this;
     }
 
     /**
@@ -119,17 +123,19 @@ public class ImportConfig {
      * 
      * @since 0.1.0
      */
-    public void setSkipAugment(boolean skipAugment) {
+    public ImportConfig setSkipAugment(boolean skipAugment) {
         this.skipAugment = skipAugment;
+        return this;
     }
 
     /**
      * 
      * @since 0.1.0
      */
-    public void addLexResFileUrl(String fileUrl) {
+    public ImportConfig addLexResFileUrl(String fileUrl) {
         checkNotEmpty(fileUrl, "Invalid lexical resource file URL!");
         this.fileUrls.add(fileUrl);
+        return this;
     }
 
     /**
@@ -173,9 +179,10 @@ public class ImportConfig {
      * 
      * @since 0.1.0
      */
-    public void setLogLimit(int logLimit) {
+    public ImportConfig setLogLimit(int logLimit) {
         checkArgument(logLimit >= -1, "Log limit must be >= -1, found instead %s", logLimit);
         this.logLimit = logLimit;
+        return this;
     }
 
     /**
@@ -192,7 +199,27 @@ public class ImportConfig {
      * 
      * @since 0.1.0
      */
-    public void setForce(boolean force) {        
+    public ImportConfig setForce(boolean force) {        
         this.force = force;
-    }        
+        return this;
+    }
+    
+    /**
+     * A dry run simply simulates the import without writing anything into the database.
+     * 
+     * @since 0.1.0
+     */
+    public boolean isDryRun() {
+        return dryRun;
+    }
+    
+    /**
+     * See {@link #isDryRun()}
+     * 
+     * @since 0.1.0
+     */
+    public ImportConfig setDryRun(boolean dryRun) {
+        this.dryRun = dryRun;
+        return this;
+    }
 }

@@ -27,7 +27,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 
 import de.tudarmstadt.ukp.lmf.model.core.LexicalEntry;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
@@ -1622,6 +1621,7 @@ public class DiversiconTest {
                                   .synsetRelation(ERelNameSemantics.HYPERNYM, "bla_ss")
                                   .build(); 
         
+
         File xml = DivTester.writeXml(res);
         
         try {
@@ -1632,5 +1632,55 @@ public class DiversiconTest {
                
     }       
 
+    /**
+     *  
+     * @since 0.1.0
+     * 
+     */    
+    @Test
+    public void testImportDryRunXml(){
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
+
+        Diversicon div = Diversicon.connectToDb(divConfig);
+        
+        File xml = DivTester.writeXml(DivTester.GRAPH_1_HYPERNYM);
+        
+        ImportConfig importConfig = new ImportConfig()
+            .addLexResFileUrl(xml.getAbsolutePath())
+            .setAuthor(Diversicons.DEFAULT_AUTHOR)        
+            .setDryRun(true);
+                
+        div.importFiles(importConfig);
+
+        assertEquals(1, div.getImportJobs().size());
+        assertEquals(null, div.getLexicalResource(GRAPH_1_HYPERNYM.getName()));
+        
+    }
+
+    /**
+     *  
+     * @since 0.1.0
+     * 
+     */    
+    @Test
+    public void testImportDryRunResource(){
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
+
+        Diversicon div = Diversicon.connectToDb(divConfig);
+                        
+        LexicalResource res = GRAPH_1_HYPERNYM;
+        
+        ImportConfig importConfig = Internals.createImportConfig(res)                                
+            .setDryRun(true);
+                
+        div.importResource(res,
+                           DivTester.createLexResPackage(res),
+                           importConfig);
+
+        assertEquals(1, div.getImportJobs().size());
+        assertEquals(null, div.getLexicalResource(res.getName()));
+        
+    }
+    
     
 }
