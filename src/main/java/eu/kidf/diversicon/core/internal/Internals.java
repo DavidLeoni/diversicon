@@ -2041,9 +2041,9 @@ public final class Internals {
     public static ImportConfig createImportConfig(LexicalResource lexRes){
         checkNotNull(lexRes);
         
-        ImportConfig importConfig = new ImportConfig();
-        importConfig.setAuthor(Diversicons.DEFAULT_AUTHOR);        
-        importConfig.addLexResFileUrl(Diversicons.MEMORY_PROTOCOL + ":" + lexRes.hashCode());
+        ImportConfig importConfig = new ImportConfig()
+                .setAuthor(Diversicons.DEFAULT_AUTHOR)        
+                .addLexResFileUrl(Diversicons.MEMORY_PROTOCOL + ":" + lexRes.hashCode());
         return importConfig;
 
     }

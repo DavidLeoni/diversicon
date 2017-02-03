@@ -1037,9 +1037,10 @@ public class Diversicon extends Uby {
 
         if (importConfig.isDryRun() && importConfig.getFileUrls().size() > 1){
             LOG.info("");
-            LOG.info("**********   Dry run with many files to import:   ");
+            LOG.info("**********   DRY RUN: found many files to import!   ");
             LOG.info("");
-            LOG.info("**********   if second file depends on first one there might be validation errors.");             
+            LOG.info("**********            If second file depends on first one there might be validation errors due to  ");
+            LOG.info("**********            data not actually being written to disk!");             
             LOG.info("");
         }
         
@@ -1047,7 +1048,7 @@ public class Diversicon extends Uby {
         
         if (importConfig.isDryRun()){
             LOG.info("");
-            LOG.info("**********   Dry run, will not update DbInfo table   **********");
+            LOG.info("**********   DRY RUN:  skipping DbInfo table update   **********");
             LOG.info("");
         } else {
             oldDbInfo = prepareDbForImport();    
@@ -1064,7 +1065,7 @@ public class Diversicon extends Uby {
                 LOG.error("Import failed, no LexicalResource data was written to disk. "
                         + "Aborting all imports.", ex);
                 if (importConfig.isDryRun()){
-                    LOG.info("********   Dry run, no need to restore DbInfo table  *************");
+                    LOG.info("********   DRY RUN: skipping restoring DbInfo table  (no change was done to it) *************");
                 } else {
                     setDbInfo(oldDbInfo);    
                 }
@@ -1077,7 +1078,7 @@ public class Diversicon extends Uby {
             LOG.info("Skipping graph augmentation as requested by user.");
         } else if (importConfig.isDryRun()) {
             LOG.info("");
-            LOG.info("*************    Dry run, won't augment graph   ************");
+            LOG.info("*************    DRY RUN: skipping graph augmentation   ************");
             LOG.info("");            
         } else {
             try {
@@ -1091,7 +1092,7 @@ public class Diversicon extends Uby {
 
         if (importConfig.isDryRun()){
             LOG.info("");
-            LOG.info("*************    End of dry run, no data was written to disk.   ************");
+            LOG.info("*************    DRY RUN:  end of import,  no data was written to disk.   ************");
             LOG.info("");                        
         }
        
@@ -1170,7 +1171,7 @@ public class Diversicon extends Uby {
         if (importConfig.isDryRun()){
             
             LOG.info("");
-            LOG.info("*********   Dry run, skipping data writing!    *********");
+            LOG.info("*************    DRY RUN: skipping actual import!    *********");
             LOG.info("");
             
         } else {
@@ -1519,14 +1520,7 @@ public class Diversicon extends Uby {
      * on it instead.
      * </p>
      * 
-     * @param prefix
-     *            The prefix to use within the database
-     * @param namespaces
-     *            The namespaces used by the resource
-     * @param skipAugment
-     *            if true, after the import prevents the graph froom being
-     *            normalized
-     *            and augmented with transitive closure.
+     * @param importConfig a configuration for the import. Must have only one file url.
      * @param pack
      *            A LexicalResource doesn't contain stuff like namespaces, so we
      *            have to provide them by ourselves in pack.
@@ -1558,7 +1552,7 @@ public class Diversicon extends Uby {
 
             if (importConfig.isDryRun()){
                 LOG.info("");
-                LOG.info("**********   Dry run, skipping import     ***********");
+                LOG.info("**********   DRY RUN:  skipping actual import     ***********");
                 LOG.info("");                                
             } else {
                 prepareDbForImport();
@@ -1590,7 +1584,7 @@ public class Diversicon extends Uby {
         
         if (importConfig.isDryRun()){
             LOG.info("");
-            LOG.info("**********   End of dry run, no write was performed !     ***********");
+            LOG.info("**********   DRY RUN:  end of import, no data was written to disk !     ***********");
             LOG.info("");                                
         } else {
             LOG.info("Done saving.");

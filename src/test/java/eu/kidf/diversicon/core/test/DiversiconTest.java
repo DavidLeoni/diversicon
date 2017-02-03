@@ -1629,9 +1629,55 @@ public class DiversiconTest {
                
     }    
 
+    /**
+     *  
+     * @since 0.1.0
+     * 
+     */    
     @Test
-    public void testImportDryRun(){
+    public void testImportDryRunXml(){
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
+
+        Diversicon div = Diversicon.connectToDb(divConfig);
+        
+        File xml = DivTester.writeXml(DivTester.GRAPH_1_HYPERNYM);
+        
+        ImportConfig importConfig = new ImportConfig()
+            .addLexResFileUrl(xml.getAbsolutePath())
+            .setAuthor(Diversicons.DEFAULT_AUTHOR)        
+            .setDryRun(true);
+                
+        div.importFiles(importConfig);
+
+        assertEquals(1, div.getImportJobs().size());
+        assertEquals(null, div.getLexicalResource(GRAPH_1_HYPERNYM.getName()));
         
     }
+
+    /**
+     *  
+     * @since 0.1.0
+     * 
+     */    
+    @Test
+    public void testImportDryRunResource(){
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
+
+        Diversicon div = Diversicon.connectToDb(divConfig);
+                        
+        LexicalResource res = GRAPH_1_HYPERNYM;
+        
+        ImportConfig importConfig = Internals.createImportConfig(res)                                
+            .setDryRun(true);
+                
+        div.importResource(res,
+                           DivTester.createLexResPackage(res),
+                           importConfig);
+
+        assertEquals(1, div.getImportJobs().size());
+        assertEquals(null, div.getLexicalResource(res.getName()));
+        
+    }
+    
     
 }
