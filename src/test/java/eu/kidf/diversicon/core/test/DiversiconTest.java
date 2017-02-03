@@ -1614,9 +1614,15 @@ public class DiversiconTest {
                                   .synsetRelation(ERelNameSemantics.HYPERNYM, "bla_ss")
                                   .build(); 
         
-        DivTester.importResource(div, res, false);
+        File xml = DivTester.writeXml(res);
+        
+        try {
+            div.importXml(xml.getAbsolutePath());
+        } catch (InvalidImportException ex){
+            
+        }
                
-    }    
+    }       
 
     
 }
