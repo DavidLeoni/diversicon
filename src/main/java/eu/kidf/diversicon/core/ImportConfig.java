@@ -15,7 +15,7 @@ import eu.kidf.diversicon.core.XmlValidationConfig.Builder;
  * @since 0.1.0
  * @see ImportJob
  */
-// TODO Why is it not immutable ??
+// TODO: make it immutable https://github.com/diversicon-kb/diversicon-core/issues/35
 public class ImportConfig {
 
     private List<String> fileUrls;
@@ -24,6 +24,7 @@ public class ImportConfig {
     private boolean skipAugment;
     private int logLimit;   
     private boolean force;
+    private boolean dryRun;
 
     /**
      * Default constructor.
@@ -39,6 +40,7 @@ public class ImportConfig {
         this.skipAugment = false;
         this.logLimit = Diversicons.DEFAULT_LOG_LIMIT;
         this.force = false;
+        this.dryRun = false;
     }
 
     /**
@@ -194,5 +196,23 @@ public class ImportConfig {
      */
     public void setForce(boolean force) {        
         this.force = force;
-    }        
+    }
+    
+    /**
+     * A dry run simply simulates the import without writing anything into the database.
+     * 
+     * @since 0.1.0
+     */
+    public boolean isDryRun() {
+        return dryRun;
+    }
+    
+    /**
+     * See {@link #isDryRun()}
+     * 
+     * @since 0.1.0
+     */
+    public void setDryRun(boolean dryRun) {
+        this.dryRun = dryRun;
+    }
 }

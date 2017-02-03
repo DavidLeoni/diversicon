@@ -415,8 +415,7 @@ public class Diversicon extends Uby {
 
     /**
      * Validates, normalizes and augments the synsetRelation graph with edges to
-     * speed up
-     * searches.
+     * speed up searches.
      * 
      * @throws DivValidationException
      * 
@@ -1011,11 +1010,12 @@ public class Diversicon extends Uby {
      * </p>
      * 
      * @throws DivValidationException
+     * @throws InterruptedImportException
      * 
      * @since 0.1.0
      */
-    public List<ImportJob> importFiles(ImportConfig importConfig) {
-
+    public List<ImportJob> importFiles(ImportConfig importConfig) {        
+        
         Date start = new Date();
 
         List<ImportJob> ret = new ArrayList<>();
@@ -1035,7 +1035,24 @@ public class Diversicon extends Uby {
                                                   .size()
                 + " files by import author " + importConfig.getAuthor() + "...");
 
-        DbInfo oldDbInfo = prepareDbForImport();
+        if (importConfig.isDryRun() && importConfig.getFileUrls().size() > 1){
+            LOG.info("");
+            LOG.info("**********   Dry run with many files to import:   ");
+            LOG.info("");
+            LOG.info("**********   if second file depends on first one there might be validation errors.");             
+            LOG.info("");
+        }
+        
+        DbInfo oldDbInfo = null;
+        
+        if (importConfig.isDryRun()){
+            LOG.info("");
+            LOG.info("**********   Dry run, will not update DbInfo table   **********");
+            LOG.info("");
+        } else {
+            oldDbInfo = prepareDbForImport();    
+        }
+        
 
         try {
             for (String fileUrl : importConfig.getFileUrls()) {
@@ -1046,13 +1063,22 @@ public class Diversicon extends Uby {
             if (ret.isEmpty()) {
                 LOG.error("Import failed, no LexicalResource data was written to disk. "
                         + "Aborting all imports.", ex);
-                setDbInfo(oldDbInfo);
+                if (importConfig.isDryRun()){
+                    LOG.info("********   Dry run, no need to restore DbInfo table  *************");
+                } else {
+                    setDbInfo(oldDbInfo);    
+                }
+                
             }
             throw ex;
         }
 
         if (importConfig.isSkipAugment()) {
             LOG.info("Skipping graph augmentation as requested by user.");
+        } else if (importConfig.isDryRun()) {
+            LOG.info("");
+            LOG.info("*************    Dry run, won't augment graph   ************");
+            LOG.info("");            
         } else {
             try {
                 processGraph();
@@ -1062,6 +1088,13 @@ public class Diversicon extends Uby {
         }
 
         logImportResult(importConfig, start, ret);
+
+        if (importConfig.isDryRun()){
+            LOG.info("");
+            LOG.info("*************    End of dry run, no data was written to disk.   ************");
+            LOG.info("");                        
+        }
+       
         return ret;
 
     }
@@ -1104,7 +1137,7 @@ public class Diversicon extends Uby {
      * Imports a single LMF XML
      * 
      * @throws InvalidImportException
-     * @throws InterruptedImportException
+     * @throws InterruptedImportException If something goes wrong 
      * 
      * @since 0.1.0
      */
@@ -1134,20 +1167,31 @@ public class Diversicon extends Uby {
                 file,
                 pack);
 
-        LOG.info("");
-        LOG.info("Starting import...");
-        LOG.info("");
+        if (importConfig.isDryRun()){
+            
+            LOG.info("");
+            LOG.info("*********   Dry run, skipping data writing!    *********");
+            LOG.info("");
+            
+        } else {
+            
+            LOG.info("");
+            LOG.info("Starting import...");
+            LOG.info("");
 
-        try {
-            DivXmlToDbTransformer trans = new DivXmlToDbTransformer(this);
-            trans.transform(file, null);
-            endImportJob(job);
+            try {
+                DivXmlToDbTransformer trans = new DivXmlToDbTransformer(this);
+                trans.transform(file, null);
+                endImportJob(job);
 
-        } catch (Exception ex) {
-            throw new InterruptedImportException("Error while loading lmf xml " + url, ex);
+            } catch (Exception ex) {
+                throw new InterruptedImportException("Error while loading lmf xml " + url, ex);
+            }
+
+            LOG.info("Done loading LMF : " + url + " .");
+            
         }
-
-        LOG.info("Done loading LMF : " + url + " .");
+        
 
         return job;
     }
@@ -1512,18 +1556,26 @@ public class Diversicon extends Uby {
                     null,
                     pack);
 
-            prepareDbForImport();
+            if (importConfig.isDryRun()){
+                LOG.info("");
+                LOG.info("**********   Dry run, skipping import     ***********");
+                LOG.info("");                                
+            } else {
+                prepareDbForImport();
 
-            setCurrentImportJob(job);
+                setCurrentImportJob(job);
 
-            new JavaToDbTransformer(this, lexRes).transform();
+                new JavaToDbTransformer(this, lexRes).transform();
 
-            if (!importConfig.isSkipAugment()) {
-                processGraph();
+                if (!importConfig.isSkipAugment()) {
+                    processGraph();
+                }
+
+                endImportJob(job);
+
             }
 
-            endImportJob(job);
-
+            
         } catch (InvalidImportException ex) {
 
             LOG.error("Import failed! Aborting all imports! (no LexicalResource data was written to disk) \n", ex);
@@ -1534,7 +1586,15 @@ public class Diversicon extends Uby {
                     + lexRes.getName() + " !", ex);
         }
 
-        LOG.info("Done saving.");
+        
+        
+        if (importConfig.isDryRun()){
+            LOG.info("");
+            LOG.info("**********   End of dry run, no write was performed !     ***********");
+            LOG.info("");                                
+        } else {
+            LOG.info("Done saving.");
+        }                
 
         return job;
     }

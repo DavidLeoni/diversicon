@@ -27,7 +27,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 
 import de.tudarmstadt.ukp.lmf.model.core.LexicalEntry;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
@@ -1622,9 +1621,17 @@ public class DiversiconTest {
                                   .synsetRelation(ERelNameSemantics.HYPERNYM, "bla_ss")
                                   .build(); 
         
-        DivTester.importResource(div, res, false);
+        try {
+            DivTester.importResource(div, res, false);
+        } catch (InvalidImportException ex){
+            
+        }
                
     }    
 
+    @Test
+    public void testImportDryRun(){
+        
+    }
     
 }
