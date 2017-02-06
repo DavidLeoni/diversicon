@@ -25,7 +25,7 @@ In case updates are available, version numbers follow <a href="http://semver.org
 
 ### XML Validation
 
-XML Validation is [XmlValidationConfig](../src/main/java/eu/kidf/diversicon/core/XmlValidationConfig.java)
+XML Validation is [`XmlValidationConfig`](../src/main/java/eu/kidf/diversicon/core/XmlValidationConfig.java)
 
 1. XML Schema 1.0 validation, according to $eval{eu.kidf.diversicon.core.Diversicons.SCHEMA_1_PUBLIC_URL}
 2. the custom class `DivXmlValidator` performs further validation in three steps:	 
