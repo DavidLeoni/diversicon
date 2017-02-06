@@ -2507,5 +2507,13 @@ public final class Diversicons {
         }
     }
 
+    /**
+     * Returns the provenance identifier for data created automatically by Diversicon system.
+     * 
+     * @since 0.1.0
+     */
+    public static String getProvenanceId() {
+        return DivUpper.PREFIX;
+    }
 
 }

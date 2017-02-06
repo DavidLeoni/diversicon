@@ -690,7 +690,7 @@ public class Diversicon extends Uby {
         DivSynsetRelation newSsr = new DivSynsetRelation();
 
         newSsr.setDepth(1);
-        newSsr.setProvenance(Diversicon.getProvenanceId());
+        newSsr.setProvenance(Diversicons.getProvenanceId());
         
         newSsr.setRelName(superDomain);
         newSsr.setRelType(Diversicons.getRelationType(superDomain));
@@ -734,7 +734,7 @@ public class Diversicon extends Uby {
                 DivSynsetRelation newSsr = new DivSynsetRelation();
 
                 newSsr.setDepth(1);
-                newSsr.setProvenance(Diversicon.getProvenanceId());
+                newSsr.setProvenance(Diversicons.getProvenanceId());
                 newSsr.setRelName(inverseRelName);
                 newSsr.setRelType(Diversicons.getRelationType(inverseRelName));
                 newSsr.setSource(ssr.getTarget());
@@ -775,7 +775,7 @@ public class Diversicon extends Uby {
             DivSynsetRelation newSsr = new DivSynsetRelation();
 
             newSsr.setDepth(1);
-            newSsr.setProvenance(Diversicon.getProvenanceId());
+            newSsr.setProvenance(Diversicons.getProvenanceId());
             newSsr.setRelName(Diversicons.RELATION_DIVERSICON_DOMAIN);
             newSsr.setRelType(Diversicons.getRelationType(Diversicons.RELATION_DIVERSICON_DOMAIN));
             newSsr.setSource(ssr.getSource());
@@ -825,7 +825,7 @@ public class Diversicon extends Uby {
      * Before calling this, the graph has to be normalized by calling
      * {@link #normalizeGraph()}
      * 
-     * Caveats: Hibernate does not support recursive queries:
+     * Caveats: uses SQL recursive queries which are not supported by Hibernate.
      * 
      * @throws DivException
      *             when transaction goes wrong it is automatically rolled back
@@ -918,7 +918,7 @@ public class Diversicon extends Uby {
                 DivSynsetRelation ssr = new DivSynsetRelation();
 
                 ssr.setDepth(depth);
-                ssr.setProvenance(Diversicon.getProvenanceId());
+                ssr.setProvenance(Diversicons.getProvenanceId());
                 ssr.setRelName(relName);
                 ssr.setRelType(Diversicons.getRelationType(relName));
                 ssr.setSource(source);
@@ -1592,16 +1592,7 @@ public class Diversicon extends Uby {
 
         return job;
     }
-
-    /**
-     * Returns the fully qualified package name.
-     * 
-     * @since 0.1.0
-     */
-    public static String getProvenanceId() {
-        return DivUpper.PREFIX;
-    }
-
+    
     /**
      * Creates an instance of a Diversicon and opens a connection to the db.
      * Db must already exists. Present schema will be validated against required

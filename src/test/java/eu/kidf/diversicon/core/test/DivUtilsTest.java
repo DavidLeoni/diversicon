@@ -824,7 +824,7 @@ public class DivUtilsTest {
                                    .synset()
                                    .synsetRelation(ERelNameSemantics.HYPONYM, 1)
                                    .synsetRelation(ERelNameSemantics.HYPERNYM, 1, 2)
-                                   .provenance(Diversicon.getProvenanceId()) // included
+                                   .provenance(Diversicons.getProvenanceId()) // included
                                                                              // even
                                                                              // if
                                                                              // provenance
@@ -843,7 +843,7 @@ public class DivUtilsTest {
                                                                                   // >
                                                                                   // 1
                                    .depth(2)
-                                   .provenance(Diversicon.getProvenanceId())
+                                   .provenance(Diversicons.getProvenanceId())
                                    .build();
 
         File xml = DivTester.writeXml(res);

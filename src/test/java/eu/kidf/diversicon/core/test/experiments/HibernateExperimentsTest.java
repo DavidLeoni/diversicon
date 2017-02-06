@@ -96,7 +96,7 @@ public class HibernateExperimentsTest {
 
             String hqlInsert = "INSERT INTO SynsetRelation (synsetId, target,  relType, relName,  depth, provenance) "
                     + "  SELECT SR.target, SR.synsetId,  SR.relType, "
-                    + "         '" + relName + "', 1, '" + Diversicon.getProvenanceId() + "'"
+                    + "         '" + relName + "', 1, '" + Diversicons.getProvenanceId() + "'"
                     + "  FROM SynsetRelation SR"
                     + "  WHERE"
                     + "        SR.relName='" + inverseRelName + "'";
