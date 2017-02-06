@@ -4,7 +4,7 @@ RELEASE DOCS ARE ON THE <a href="http://davidleoni.github.io/diversicon/" target
 </p>
 
 <p class="josman-to-strip" align="center">
-<img alt="DiverCLI" src="docs/img/diversicon-200px.png" width="150px">
+<img alt="DiverCLI" src="docs/img/diversicon-core-writing-100px.png" >
 <br/>
 </p>
 
