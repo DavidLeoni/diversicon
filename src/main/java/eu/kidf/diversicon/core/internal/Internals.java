@@ -2048,4 +2048,38 @@ public final class Internals {
 
     }
 
+    /**
+     * Return a list of the exception messages.
+     * 
+     * @since 0.1.0
+     */
+    public static List<String> getExceptionMessagesList(Throwable throwable) {
+        List<String> result = new ArrayList<String>();
+        while (throwable != null) {
+            result.add(throwable.getMessage());
+            throwable = throwable.getCause();
+        }
+        return result; //["THIRD EXCEPTION", "SECOND EXCEPTION", "FIRST EXCEPTION"]
+    }
+    
+    /**
+     * Return the exception messages concatenated by '\n'
+     * 
+     * @since 0.1.0
+     */
+    public static String getExceptionMessages(Throwable throwable) {
+        StringBuilder sb = new StringBuilder();
+        boolean first = true;
+        for (String item : getExceptionMessagesList(throwable))
+        {
+           if (first)
+              first = false;
+           else
+              sb.append("\n");
+           sb.append(item);
+        }
+        return sb.toString();
+ 
+    }
+    
 }

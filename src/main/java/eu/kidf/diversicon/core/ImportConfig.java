@@ -186,7 +186,7 @@ public class ImportConfig {
     }
 
     /**
-     * Force import even on missing external references.  
+     * Forces import even on warnings (in particular, missing external references).  
      * 
      * @since 0.1.0
      */
