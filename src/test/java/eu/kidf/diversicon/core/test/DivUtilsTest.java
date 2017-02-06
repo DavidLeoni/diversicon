@@ -4,10 +4,15 @@ import static eu.kidf.diversicon.core.test.DivTester.*;
 import static eu.kidf.diversicon.core.test.LmfBuilder.lmf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -16,6 +21,7 @@ import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.xerces.impl.dtd.DTDGrammar;
 import org.apache.xerces.impl.dtd.XMLContentSpec;
 import org.apache.xerces.impl.dtd.XMLElementDecl;
@@ -25,25 +31,40 @@ import org.dom4j.io.SAXReader;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.github.tomakehurst.wiremock.WireMockServer;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
+import de.tudarmstadt.ukp.lmf.model.enums.ELabelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
+import eu.kidf.diversicon.core.DivConfig;
 import eu.kidf.diversicon.core.DivXmlHandler;
+import eu.kidf.diversicon.core.DivXmlValidator;
 import eu.kidf.diversicon.core.Diversicon;
 import eu.kidf.diversicon.core.Diversicons;
+import eu.kidf.diversicon.core.ExtractedStream;
+import eu.kidf.diversicon.core.ImportJob;
 import eu.kidf.diversicon.core.LexResPackage;
 import eu.kidf.diversicon.core.XmlValidationConfig;
 import eu.kidf.diversicon.core.exceptions.DivIoException;
 import eu.kidf.diversicon.core.exceptions.DivNotFoundException;
 import eu.kidf.diversicon.core.exceptions.InvalidXmlException;
-import eu.kidf.diversicon.core.internal.ExtractedStream;
 import eu.kidf.diversicon.core.internal.Internals;
+import eu.kidf.diversicon.data.DivUpper;
 import eu.kidf.diversicon.data.DivWn31;
 import eu.kidf.diversicon.data.Examplicon;
+
+import eu.kidf.diversicon.data.Smartphones;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 
 /**
  * @since 0.1.0
@@ -53,7 +74,7 @@ public class DivUtilsTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(DivUtilsTest.class);
 
-    private DBConfig dbConfig;
+    private DivConfig divConfig;
 
     @Nullable
     private String savedKeepTempFiles;
@@ -61,7 +82,7 @@ public class DivUtilsTest {
     @Before
     public void beforeMethod() {
         savedKeepTempFiles = System.getProperty(Diversicons.PROPERTY_DEBUG_KEEP_TEMP_FILES);
-        dbConfig = DivTester.createNewDbConfig();
+        divConfig = DivTester.createNewDivConfig();
     }
 
     @After
@@ -70,7 +91,7 @@ public class DivUtilsTest {
             System.setProperty(Diversicons.PROPERTY_DEBUG_KEEP_TEMP_FILES, savedKeepTempFiles);
         }
 
-        dbConfig = null;
+        divConfig = null;
     }
 
     @Test
@@ -89,11 +110,11 @@ public class DivUtilsTest {
     }
 
     @Test
-    public void testExistsDb() {
-        assertFalse(Diversicons.isSchemaValid(dbConfig));
+    public void testIsSchemaValid() {
+        assertFalse(Diversicons.isSchemaValid(divConfig.getDbConfig()));
 
-        Diversicons.dropCreateTables(dbConfig);
-        assertTrue(Diversicons.isSchemaValid(dbConfig));
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
+        assertTrue(Diversicons.isSchemaValid(divConfig.getDbConfig()));
     }
 
     @Test
@@ -123,7 +144,9 @@ public class DivUtilsTest {
                                             .synset()
                                             .definition("cool")
                                             .lexicalEntry("a")
-                                            .wordform("w")                                            
+                                            .wordform("w")
+
+                                            .semanticLabel("bla", ELabelTypeSemantics.domain)
                                             .synset()
                                             .lexicalEntry("b")
                                             .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
@@ -131,19 +154,19 @@ public class DivUtilsTest {
 
         assertEquals(1, lexRes1.getLexicons()
                                .size());
-        
+
         assertEquals(2, lexRes1.getLexicons()
-                .get(0)
-                .getLexicalEntries()                
-                .size());                
+                               .get(0)
+                               .getLexicalEntries()
+                               .size());
 
         assertEquals(1, lexRes1.getLexicons()
-                .get(0)
-                .getLexicalEntries()                
-                .get(0)
-                .getWordForms()
-                .size());        
-        
+                               .get(0)
+                               .getLexicalEntries()
+                               .get(0)
+                               .getWordForms()
+                               .size());
+
         assertEquals(2, lexRes1.getLexicons()
                                .get(0)
                                .getSynsets()
@@ -162,9 +185,9 @@ public class DivUtilsTest {
                                             .definition("uncool")
                                             .build();
 
-        Diversicons.dropCreateTables(dbConfig);
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
 
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div = Diversicon.connectToDb(divConfig);
 
         DivTester.importResource(div, lexRes1, true);
 
@@ -188,14 +211,16 @@ public class DivUtilsTest {
     @Test
     public void testReadDiversiconResource() {
 
-        LexResPackage dr = Diversicons.readPackageFromLexRes(Examplicon.XML_URI);
+        File f = Diversicons.readData(Examplicon.XML_URI)
+                            .toTempFile();
+
+        LexResPackage dr = Diversicons.readPackageFromLexRes(f);
 
         assertEquals(Examplicon.LABEL, dr.getLabel());
 
         assertEquals(Examplicon.PREFIX, dr.getPrefix());
 
-        Map<String, String> ns = Diversicons.readPackageFromLexRes(Examplicon.XML_URI)
-                                            .getNamespaces();
+        Map<String, String> ns = dr.getNamespaces();
 
         assertEquals(3, ns.size());
         assertTrue(ns.containsKey(Examplicon.PREFIX));
@@ -207,6 +232,8 @@ public class DivUtilsTest {
                                                     .namespace());
     }
 
+    
+    
     /**
      * @since 0.1.0
      */
@@ -214,14 +241,14 @@ public class DivUtilsTest {
     public void testRestoreWrongDump() throws IOException {
         Path dir = DivTester.createTestDir();
         try {
-            Diversicons.h2RestoreSql("file:" + dir.toString() + "/666", dbConfig);
+            Diversicons.h2RestoreSql("file:" + dir.toString() + "/666", divConfig);
             Assert.fail("Shouldn't arrive here!");
         } catch (DivIoException ex) {
 
         }
 
         try {
-            Diversicons.h2RestoreSql("classpath:/666", dbConfig);
+            Diversicons.h2RestoreSql("classpath:/666", divConfig);
             Assert.fail("Shouldn't arrive here!");
         } catch (DivIoException ex) {
 
@@ -234,16 +261,45 @@ public class DivUtilsTest {
      * @since 0.1.0
      */
     @Test
-    public void testDropCreateTables() {
-        Diversicons.dropCreateTables(dbConfig);
+    public void testDropCreateTables() {               
+        
+        Diversicons.createTables(divConfig.getDbConfig());
+        
+        
+        Diversicon div1 = Diversicon.connectToDb(divConfig);
+        LexicalResource res = LmfBuilder.simpleLexicalResource();                       
+        div1.importResource(res, DivTester.createLexResPackage(res), false);
+        
+        assertNotNull(div1.getLexicalResource(res.getName()));
+        
+        div1.getSession().close();
+        
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
 
-        Diversicon div = Diversicon.connectToDb(dbConfig);
+        Diversicon div2 = Diversicon.connectToDb(divConfig);
 
-        div.getSession()
+        assertNull(div2.getLexicalResource(res.getName()));
+        
+        div2.getSession()
            .close();
 
     }
 
+    
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testExists() {
+        
+        DBConfig dbc = divConfig.getDbConfig();
+        
+        assertFalse(Diversicons.exists(dbc));
+        assertFalse(Diversicons.exists(dbc)); // double, so we check it is not autocreating stuff
+        Diversicons.createTables(dbc);
+        assertTrue(Diversicons.exists(dbc));        
+    }
+    
     /**
      * Tricky for logging!
      * 
@@ -251,9 +307,35 @@ public class DivUtilsTest {
      */
     @Test
     public void testCreateTables() {
-        Diversicons.createTables(dbConfig);
+        
+        Diversicons.createTables(divConfig.getDbConfig());
 
-        // todo improve test
+        Diversicon div1 = Diversicon.connectToDb(divConfig);               
+        
+        // checks div upper preloading
+        Diversicon div = Diversicon.connectToDb(divConfig);
+        assertNotNull(div.getLexicalResource(DivUpper.of().getName()));
+        
+        ImportJob job = div.getImportJobs().get(0);
+        assertEquals(Diversicons.DIVERSICON_AUTHOR, job.getAuthor());        
+        Synset root_domain = div.getSynsetById(DivUpper.SYNSET_ROOT_DOMAIN);
+        assertEquals(DivUpper.SYNSET_ROOT_DOMAIN, root_domain.getId());
+
+        // modifies db
+        LexicalResource res = LmfBuilder.simpleLexicalResource();                       
+        div1.importResource(res, DivTester.createLexResPackage(res), false);       
+        assertNotNull(div1.getLexicalResource(res.getName()));
+        
+        
+        div1.getSession().close();
+        
+        try {
+            Diversicons.createTables(divConfig.getDbConfig());
+            Assert.fail("Shouldn't arrive here!");
+        } catch (DivIoException ex){
+            
+        }
+        
     }
 
     /**
@@ -272,8 +354,8 @@ public class DivUtilsTest {
      */
     @Test
     public void testValidateExamplicon() {
-        File f = Internals.readData(Examplicon.XML_URI)
-                          .toTempFile();
+        File f = Diversicons.readData(Examplicon.XML_URI)
+                            .toTempFile();
 
         Diversicons.validateXml(f, XmlValidationConfig.of(LOG));
     }
@@ -284,28 +366,94 @@ public class DivUtilsTest {
     // todo test could be improved
     @Test
     public void testValidateOverrideSchema() {
-        
-        File f = Internals.readData(Examplicon.XML_URI)
-                          .toTempFile();
 
-        File file = Internals.readData(Diversicons.SCHEMA_1_0_CLASSPATH_URL).toTempFile();
-        
+        File f = Diversicons.readData(Examplicon.XML_URI)
+                            .toTempFile();
+
+        File file = Diversicons.readData(Diversicons.SCHEMA_1_0_CLASSPATH_URL)
+                               .toTempFile();
+
         Diversicons.validateXml(f,
                 XmlValidationConfig.builder()
                                    .setLog(LOG)
                                    .setXsdUrl(file.getAbsolutePath())
-                                   .build());                
+                                   .build());
     }
 
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    @Ignore
+    public void testValidateTwoNamespaces() throws IOException {
+    }    
+    
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testValidateXmlStrict() throws IOException {        
+                        
+        LexicalResource lexRes = DivTester.GRAPH_WARNING;                
+        LexResPackage pack = DivTester.createLexResPackage(lexRes, DivTester.TOO_LONG_PREFIX);
+                        
+        File xml = DivTester.writeXml(lexRes, pack);
+                
+        LOG.debug("\n" + FileUtils.readFileToString(xml));
+
+        XmlValidationConfig config = XmlValidationConfig.builder()
+                                        .setStrict(true)                                        
+                                        .build(); 
+        
+        try {
+            Diversicons.validateXml(xml, config);
+            Assert.fail("Shouldn't arrive here!");
+        } catch (InvalidXmlException ex) {
+            DivXmlHandler errorHandler = ex.getErrorHandler();
+            
+            // 0 because strict warnings error report is done 
+            // outside DivXmlValidator SAXException mechanism
+            assertEquals(0, errorHandler.getErrorsCount()); 
+            assertTrue(errorHandler.getWarningCount() > 0);
+        }
+    }    
+
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testValidateXmlNonStrict() throws IOException {        
+                        
+        LexicalResource lexRes = DivTester.GRAPH_WARNING;                
+        LexResPackage pack = DivTester.createLexResPackage(lexRes, DivTester.TOO_LONG_PREFIX);
+                        
+        File xml = DivTester.writeXml(lexRes, pack);
+                
+        LOG.debug("\n" + FileUtils.readFileToString(xml));
+
+        XmlValidationConfig config = XmlValidationConfig.builder()
+                                        .setStrict(false)                                        
+                                        .build();         
+
+        DivXmlValidator v = Diversicons.validateXml(xml, config);
+        DivXmlHandler errorHandler = v.getErrorHandler();            
+        // 0 because strict warnings error report is done 
+        // outside DivXmlValidator SAXException mechanism
+        assertEquals(0, errorHandler.getErrorsCount()); 
+        assertTrue(errorHandler.getWarningCount() > 0);
+        
+    }    
+    
+    
     /**
      * @since 0.1.0
      */
     // todo test could be improved
     @Test
     public void testValidateOverrideWrongSchema() {
-        
-        File f = Internals.readData(Examplicon.XML_URI)
-                          .toTempFile();
+
+        File f = Diversicons.readData(Examplicon.XML_URI)
+                            .toTempFile();
 
         try {
             Diversicons.validateXml(f,
@@ -314,19 +462,19 @@ public class DivUtilsTest {
                                        .setXsdUrl("666")
                                        .build());
             Assert.fail("Shouldn't arrive here!");
-        } catch (DivIoException ex) {            
-            assertTrue("Expected to find '666' in exceptionn message: " + ex.getMessage(), ex.getMessage().contains("666"));
+        } catch (DivIoException ex) {
+            assertTrue("Expected to find '666' in exceptionn message: " + ex.getMessage(), ex.getMessage()
+                                                                                             .contains("666"));
         }
     }
-    
-    
+
     /**
      * @since 0.1.0
      */
     @Test
     public void testValidateXmlLogLimitZero() {
-        File f = Internals.readData(DivTester.BAD_EXAMPLICON_XML_URI)
-                          .toTempFile();
+        File f = Diversicons.readData(DivTester.BAD_EXAMPLICON_XML_URI)
+                            .toTempFile();
 
         try {
             Diversicons.validateXml(f,
@@ -341,14 +489,13 @@ public class DivUtilsTest {
         }
     }
 
-
     /**
      * @since 0.1.0
      */
     @Test
     public void testValidateXmlLogLimitOne() {
-        File f = Internals.readData(DivTester.BAD_EXAMPLICON_XML_URI)
-                          .toTempFile();
+        File f = Diversicons.readData(DivTester.BAD_EXAMPLICON_XML_URI)
+                            .toTempFile();
 
         try {
             Diversicons.validateXml(f,
@@ -369,8 +516,8 @@ public class DivUtilsTest {
     @Test
     public void testValidateXmlFailFastLimit_1() {
 
-        File f = Internals.readData(DivTester.BAD_EXAMPLICON_XML_URI)
-                          .toTempFile();
+        File f = Diversicons.readData(DivTester.BAD_EXAMPLICON_XML_URI)
+                            .toTempFile();
 
         try {
             Diversicons.validateXml(f,
@@ -392,8 +539,8 @@ public class DivUtilsTest {
      */
     @Test
     public void testValidateBadExamplicon() {
-        File f = Internals.readData(DivTester.BAD_EXAMPLICON_XML_URI)
-                          .toTempFile();
+        File f = Diversicons.readData(DivTester.BAD_EXAMPLICON_XML_URI)
+                            .toTempFile();
 
         try {
             Diversicons.validateXml(f, XmlValidationConfig.of(LOG));
@@ -411,8 +558,8 @@ public class DivUtilsTest {
     @Test
     public void testValidateXmlFailFastLimit_0() {
 
-        File f = Internals.readData(DivTester.BAD_EXAMPLICON_XML_URI)
-                          .toTempFile();
+        File f = Diversicons.readData(DivTester.BAD_EXAMPLICON_XML_URI)
+                            .toTempFile();
 
         try {
             Diversicons.validateXml(f,
@@ -458,14 +605,9 @@ public class DivUtilsTest {
                                       .lexicon()
                                       .synset()
                                       .lexicalEntry()
-                                      .synset()
+                                      .synset("prefix666_synset-2")
                                       .build();
 
-        lexRes.getLexicons()
-              .get(0)
-              .getSynsets()
-              .get(1)
-              .setId("prefix666_synset-2");
         File xml = DivTester.writeXml(lexRes);
 
         try {
@@ -501,7 +643,9 @@ public class DivUtilsTest {
 
         }
     }
+    
 
+    
     /**
      * @since 0.1.0
      */
@@ -567,7 +711,7 @@ public class DivUtilsTest {
     @Test
     public void testReadDataJar() {
         File f = new File("src/test/resources/test.jar!/a.txt");
-        ExtractedStream es = Internals.readData("jar:file://" + f.getAbsolutePath(), false);
+        ExtractedStream es = Diversicons.readData("jar:file://" + f.getAbsolutePath(), false);
         LOG.debug("Extracted stream = " + es.toString());
     }
 
@@ -577,7 +721,7 @@ public class DivUtilsTest {
     @Test
     public void testReadCompressedDataJar() {
         File f = new File("src/test/resources/test.jar!/b.txt.xz");
-        ExtractedStream es = Internals.readData("jar:file://" + f.getAbsolutePath(), true);
+        ExtractedStream es = Diversicons.readData("jar:file://" + f.getAbsolutePath(), true);
         LOG.debug("Extracted stream = " + es.toString());
     }
 
@@ -624,7 +768,7 @@ public class DivUtilsTest {
      */
     @Test
     public void testIdPattern() {
-        Pattern p = Diversicons.ID_PATTERN;
+        Pattern p = Diversicons.NAMESPACE_ID_PATTERN;
 
         assertFalse(p.matcher("t")
                      .matches());
@@ -733,7 +877,7 @@ public class DivUtilsTest {
 
         LexResPackage pack = new LexResPackage();
 
-        pack.setName(DEFAULT_TEST_PREFIX);
+        pack.setName(DivTester.GRAPH_1_HYPERNYM.getName());
         pack.setPrefix(DEFAULT_TEST_PREFIX);
         pack.setLabel(DivTester.GRAPH_1_HYPERNYM.getName());
         pack.setNamespaces(Internals.newMap(
@@ -770,8 +914,8 @@ public class DivUtilsTest {
     @Test
     public void testParseDtd() {
 
-        String dtd = Internals.readData(Diversicons.DTD_1_0_CLASSPATH_URL)
-                              .streamToString();
+        String dtd = Diversicons.readData(Diversicons.DTD_1_0_CLASSPATH_URL)
+                                .streamToString();
         DTDGrammar g = Internals.parseDtd(dtd);
         g.printElements();
         int elementDeclIndex = 0;
@@ -807,8 +951,8 @@ public class DivUtilsTest {
     @Test
     public void testGenerateXmlSchema() throws IOException {
 
-        File dtd = Internals.readData(Diversicons.DTD_1_0_CLASSPATH_URL)
-                            .toTempFile();
+        File dtd = Diversicons.readData(Diversicons.DTD_1_0_CLASSPATH_URL)
+                              .toTempFile();
 
         File xsd = new File("target", "diversicon-1.0-SNAPSHOT.xsd");
 
@@ -823,8 +967,8 @@ public class DivUtilsTest {
 
         LOG.debug("GENERATED SCHEMA IS:\n" + FileUtils.readFileToString(xsd));
 
-        File f = Internals.readData(Examplicon.XML_URI)
-                          .toTempFile();
+        File f = Diversicons.readData(Examplicon.XML_URI)
+                            .toTempFile();
 
         Diversicons.validateXml(f, XmlValidationConfig.of(LOG));
 
@@ -866,6 +1010,206 @@ public class DivUtilsTest {
         // would like pom.xml but you can't have everything in life..
         assertEquals("src/../pom.xml", Internals.relPath(new File("src/../pom.xml")));
 
+    }
+
+    /**
+     * Test cases for https://github.com/diversicon-kb/diversicon-core/issues/29
+     * 
+     * @since 0.1.0
+     */
+    @Test
+    public void testHttpGetFakeRedirect() throws IOException, URISyntaxException {
+
+        WireMockServer wireProxy = new WireMockServer(options()
+                                                               .dynamicPort()
+                                                               .enableBrowserProxying(true));
+
+        WireMockServer wireServer = new WireMockServer(options()
+                                                                .dynamicPort());
+
+        try {
+            wireServer.start();
+            wireProxy.start();
+
+            String serverUrl = "http://127.0.0.1:" + wireServer.port();
+
+            wireServer.stubFor(get(urlMatching(".*"))
+                                                     .willReturn(aResponse()
+                                                                            .withStatus(302)
+                                                                            .withHeader("Location", serverUrl + "/b")));
+
+            wireServer.stubFor(get(urlEqualTo("/b"))
+                                                    .willReturn(aResponse()
+                                                                           .withStatus(200)
+                                                                           .withHeader("Content-Type", "text/html")
+                                                                           .withBody(
+                                                                                   "<response>Some content</response>")));
+
+            wireProxy.stubFor(get(urlMatching(".*"))
+                                                    .willReturn(aResponse()
+                                                                           .proxiedFrom(serverUrl)));
+
+            DivConfig config = DivConfig.builder()
+                                        .setHttpProxy("127.0.0.1:" + wireProxy.port())
+                                        .build();
+
+            try {
+                InputStream is = Internals.httpGet(config, new URI("http://c.d"));
+                String html = IOUtils.toString(is);
+                LOG.debug(html);
+                Assert.fail("Shouldn't arrive here!");
+
+            } catch (DivIoException ex) {
+                LOG.debug("Got the expected exception : ", ex);
+                wireServer.verify(getRequestedFor(urlEqualTo("/b")));
+
+            }
+        } finally {
+
+            try {
+                wireServer.stop();
+            } catch (Exception ex) {
+                LOG.error("Couldn't stop wireServer", ex);
+            }
+
+            try {
+                wireProxy.stop();
+            } catch (Exception ex) {
+                LOG.error("Couldn't stop wireProxy", ex);
+            }
+
+        }
+    }
+
+    /** 
+     * 
+     * @since 0.1.0
+     */
+    @Test
+    public void testHttpGetWithProxy() throws IOException, URISyntaxException {
+
+        WireMockServer wireProxy = new WireMockServer(options()
+                                                               .dynamicPort()
+                                                               .enableBrowserProxying(true));
+
+        WireMockServer wireServer = new WireMockServer(options()
+                                                                .dynamicPort());
+
+        try {
+            wireServer.start();
+            wireProxy.start();
+
+            String serverUrl = "http://127.0.0.1:" + wireServer.port();
+
+            wireServer.stubFor(get(urlEqualTo("/a"))
+                                                    .willReturn(aResponse()
+                                                                           .withStatus(200)
+                                                                           .withHeader("Content-Type", "text/html")
+                                                                           .withBody(
+                                                                                   "<response>xyz</response>")));
+
+            wireProxy.stubFor(get(urlMatching(".*"))
+                                                    .willReturn(aResponse()
+                                                                           .proxiedFrom(serverUrl)));
+
+            DivConfig config = DivConfig.builder()
+                                        .setHttpProxy("127.0.0.1:" + wireProxy.port())
+                                        .build();
+
+            InputStream is1 = Internals.httpGet(config, new URI(serverUrl + "/a"));
+            String html1 = IOUtils.toString(is1);
+            assertTrue(html1.contains("xyz"));
+            
+            try {
+                InputStream is2 = Internals.httpGet(config, new URI(serverUrl + "/b"));
+                String html2 = IOUtils.toString(is2);
+                LOG.debug(html2);
+                Assert.fail("Shouldn't arrive here!");
+
+            } catch (DivIoException ex) {
+                LOG.debug("Got the expected exception : ", ex);
+                wireServer.verify(getRequestedFor(urlEqualTo("/a")));
+
+            }
+        } finally {
+
+            try {
+                wireServer.stop();
+            } catch (Exception ex) {
+                LOG.error("Couldn't stop wireServer", ex);
+            }
+
+            try {
+                wireProxy.stop();
+            } catch (Exception ex) {
+                LOG.error("Couldn't stop wireProxy", ex);
+            }
+
+        }
+    }
+
+    /**
+     * 
+     * @since 0.1.0
+     */
+    @Test
+    public void testHttpGetNoProxy() throws IOException, URISyntaxException {
+
+        WireMockServer wireServer = new WireMockServer(options()
+                                                                .dynamicPort());
+
+        try {
+            wireServer.start();
+
+            String serverUrl = "http://127.0.0.1:" + wireServer.port();
+
+            wireServer.stubFor(get(urlEqualTo("/a"))
+                                                    .willReturn(aResponse()
+                                                                           .withStatus(200)
+                                                                           .withHeader("Content-Type", "text/html")
+                                                                           .withBody(
+                                                                                   "<response>xyz</response>")));
+
+            DivConfig config = DivConfig.builder()
+                                        .build();
+
+            InputStream is1 = Internals.httpGet(config, new URI(serverUrl + "/a"));
+            String html1 = IOUtils.toString(is1);
+            assertTrue(html1.contains("xyz"));
+            
+            try {
+                InputStream is2 = Internals.httpGet(config, new URI(serverUrl + "/b"));
+                String html2 = IOUtils.toString(is2);
+                LOG.debug(html2);
+                Assert.fail("Shouldn't arrive here!");
+
+            } catch (DivIoException ex) {
+                LOG.debug("Got the expected exception : ", ex);
+                wireServer.verify(getRequestedFor(urlEqualTo("/a")));
+            }
+        } finally {
+
+            try {
+                wireServer.stop();
+            } catch (Exception ex) {
+                LOG.error("Couldn't stop wireServer", ex);
+            }
+
+        }
+    }
+    
+    
+    /**
+     * @since 0.1.0
+     */
+    @Test
+    public void testLongestCommonPrefix() {
+        assertEquals("", Internals.longestCommonPrefix("", "x"));
+        assertEquals("", Internals.longestCommonPrefix("x", ""));
+        assertEquals("x", Internals.longestCommonPrefix("x", "x"));
+        assertEquals("x", Internals.longestCommonPrefix("x", "xy"));
+        assertEquals("xy", Internals.longestCommonPrefix("xy", "xy"));
+        assertEquals("xy", Internals.longestCommonPrefix("xy", "xyz"));
     }
 
 }

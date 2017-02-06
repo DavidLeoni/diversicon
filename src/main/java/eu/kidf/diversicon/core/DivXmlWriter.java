@@ -46,9 +46,9 @@ class DivXmlWriter extends LMFXmlWriter {
      */
     public DivXmlWriter(OutputStream outputStream,
             @Nullable String dtdPath,
-            LexResPackage lexResPackage) throws SAXException {
+            LexResPackage pack) throws SAXException {
         super(outputStream, dtdPath);        
-        this.lexResPackage = checkNotNull(lexResPackage); 
+        this.lexResPackage = checkNotNull(pack); 
         
     }
 

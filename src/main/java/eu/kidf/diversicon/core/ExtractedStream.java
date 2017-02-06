@@ -1,4 +1,4 @@
-package eu.kidf.diversicon.core.internal;
+package eu.kidf.diversicon.core;
 
 import static eu.kidf.diversicon.core.internal.Internals.checkNotEmpty;
 import static eu.kidf.diversicon.core.internal.Internals.checkNotNull;
@@ -20,8 +20,8 @@ import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import eu.kidf.diversicon.core.Diversicons;
 import eu.kidf.diversicon.core.exceptions.DivIoException;
+import eu.kidf.diversicon.core.internal.Internals;
 
 /**
  * A stream possibly extracted from a compressed {@code sourceUrl}. Use

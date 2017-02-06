@@ -30,6 +30,16 @@ public class InvalidXmlException extends DivException {
     }
     
     /**
+     * Creates the exception using the provided throwable
+     * 
+     * @since 0.1.0
+     */
+    public InvalidXmlException(DivXmlHandler errorHandler, Throwable tr) {
+        super(tr);
+        setErrorHandler(errorHandler);
+    }    
+    
+    /**
      * Creates the exception using the provided message and throwable
      * 
      * @since 0.1.0

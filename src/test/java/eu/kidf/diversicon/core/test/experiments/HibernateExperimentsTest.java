@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
+import eu.kidf.diversicon.core.DivConfig;
 import eu.kidf.diversicon.core.Diversicon;
 import eu.kidf.diversicon.core.Diversicons;
 import eu.kidf.diversicon.core.test.DivTester;
@@ -54,9 +55,9 @@ public class HibernateExperimentsTest {
 
         LOG.info("Going to normalizing graph with canonical relations ...");
 
-        DBConfig dbConfig = DivTester.createNewDbConfig();
+        DivConfig divConfig = DivTester.createNewDivConfig();
 
-        Diversicon uby = Diversicon.connectToDb(dbConfig);
+        Diversicon uby = Diversicon.connectToDb(divConfig);
 
         Session session = uby.getSession();
 
@@ -135,8 +136,8 @@ public class HibernateExperimentsTest {
 
     private static class Expericon extends Diversicon {
 
-        Expericon(DBConfig dbConfig) {
-            super(dbConfig);
+        Expericon(DivConfig divConfig) {
+            super(divConfig);
         }
 
         /**

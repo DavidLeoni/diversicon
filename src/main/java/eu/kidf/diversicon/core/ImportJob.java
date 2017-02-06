@@ -9,6 +9,8 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import org.slf4j.event.Level;
+
 import eu.kidf.diversicon.core.LexResPackage;
 
 /**
@@ -178,12 +180,43 @@ public class ImportJob {
      * The log occurred during the import - most of the times will be just
      * the output logs
      * 
+     * <p>
+     * NOTE: Logs are *not* stored here by Diversicon Core, applications need to call
+     * {@link #addLogMessage(LogMessage)} explicitly. 
+     * </p>
+     * 
      * @since 0.1.0
      */
     public List<LogMessage> getLogMessages() {
         return logMessages;
     }
 
+    /**
+     * Returns the logs occurred during the import having level higher
+     * or equal to the specified one.
+     *  
+     * <p>
+     * Most of the times the messages will be just the output logs
+     * </p>
+     * <p>
+     * NOTE: Logs are *not* stored here by Diversicon Core, applications need to call
+     * {@link #addLogMessage(LogMessage)} explicitly. 
+     * </p>
+     * 
+     * @since 0.1.0
+     */
+    public List<LogMessage> getLogMessages(Level level) {
+        checkNotNull(level);
+        
+        List<LogMessage> ret = new ArrayList<>();
+        for (LogMessage msg : logMessages){
+            if (msg.getLevel().ordinal() >= level.ordinal()){
+              ret.add(msg);  
+            }
+        }
+        return logMessages;
+    }    
+    
     /**
      * See {@link #getLogMessages()}
      * 

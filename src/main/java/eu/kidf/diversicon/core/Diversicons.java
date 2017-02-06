@@ -1,18 +1,24 @@
 package eu.kidf.diversicon.core;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -23,8 +29,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.ArchiveException;
+import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
+import org.apache.commons.compress.compressors.CompressorException;
+import org.apache.commons.compress.compressors.CompressorInputStream;
+import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.xerces.impl.Constants;
 import org.basex.core.Context;
 import org.basex.io.serial.Serializer;
@@ -54,6 +67,8 @@ import org.w3c.dom.ls.LSInput;
 import org.w3c.dom.ls.LSResourceResolver;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xml.sax.helpers.LocatorImpl;
+
 import javax.annotation.Nullable;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -71,6 +86,7 @@ import javax.xml.validation.Validator;
 
 import de.tudarmstadt.ukp.lmf.hibernate.HibernateConnect;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
+import de.tudarmstadt.ukp.lmf.model.enums.ELabelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 
@@ -88,9 +104,8 @@ import eu.kidf.diversicon.core.exceptions.DivIoException;
 import eu.kidf.diversicon.core.exceptions.DivNotFoundException;
 import eu.kidf.diversicon.core.exceptions.InvalidSchemaException;
 import eu.kidf.diversicon.core.exceptions.InvalidXmlException;
-import eu.kidf.diversicon.core.internal.DivXmlValidator;
-import eu.kidf.diversicon.core.internal.ExtractedStream;
 import eu.kidf.diversicon.core.internal.Internals;
+import eu.kidf.diversicon.data.DivUpper;
 import eu.kidf.diversicon.data.DivWn31;
 
 import org.apache.xerces.dom.DOMInputImpl;
@@ -210,6 +225,13 @@ public final class Diversicons {
     public static final String DEFAULT_AUTHOR = "Default author";
 
     /**
+     * Used in automatic imports.
+     * 
+     * @since 0.1.0
+     */
+    public static final String DIVERSICON_AUTHOR = "Diversicon";
+
+    /**
      * The url protocol for lexical resources loaded from memory.
      */
     public static final String MEMORY_PROTOCOL = "memory";
@@ -247,7 +269,7 @@ public final class Diversicons {
      * 
      * @since 0.1.0
      */
-    public static final int LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH = 5;
+    public static final int LEXRES_PREFIX_SUGGESTED_LENGTH = 5;
 
     /**
      * @since 0.1.0
@@ -272,7 +294,19 @@ public final class Diversicons {
     public static final String NAMESPACE_SEPARATOR = "_";
 
     /**
+     * A Pattern for LexicalResource 'name' field and part after the prefix of
+     * other IDs.
      * 
+     * See {@link #NAMESPACE_NAME_PATTERN} for the regex.
+     * 
+     * @since 0.1.0
+     */
+    public static final String NAMESPACE_NAME_PATTERN_DESCRIPTION = "a word beginning with a unicode letter. The rest of the word may contain"
+            + " unicode letters, dots '.', dashes '-', underscores '_', but no spaces.";
+
+    /**
+     * 
+     * See {@link #NAMESPACE_ID_PATTERN} for the regex.
      * 
      * @since 0.1.0
      */
@@ -280,19 +314,126 @@ public final class Diversicons {
             + " should look something like 'wn31_blabla', with the first part being a prefix (i.e. 'wn31'),"
             + " followed by an underscore '_'. More technically, it should be"
             + " an XML NCName with the further restriction"
-            + " of having a prefix followed by an underscore and a word"
-            + " beginning with a unicode letter. The rest of the word may contain"
-            + " unicode letters, dots '.', dashes '-', underscores '_', but no spaces.";
+            + " of having a prefix followed by an underscore and " + NAMESPACE_NAME_PATTERN_DESCRIPTION;
+
+    /**
+     * @since 0.1.0
+     */
+    public static final Map<String, String> DEFAULT_NAMESPACES = Collections.unmodifiableMap(
+            Internals.newMap(DivUpper.PREFIX, DivUpper.of()
+                                                      .namespace()));
+
+    /**
+     * {@value #NAMESPACE_NAME_PATTERN_DESCRIPTION}
+     * 
+     * @since 0.1.0
+     */
+    public static final Pattern NAMESPACE_NAME_PATTERN = Pattern.compile("\\p{L}(\\w|-|_|\\.)*");
 
     /**
      * {@value #NAMESPACE_ID_PATTERN_DESCRIPTION}
      * 
      * @since 0.1.0
      */
-    public static final Pattern ID_PATTERN = Pattern.compile(
+    public static final Pattern NAMESPACE_ID_PATTERN = Pattern.compile(
             NAMESPACE_PREFIX_PATTERN.toString()
                     + NAMESPACE_SEPARATOR
-                    + "\\p{L}(\\w|-|_|\\.)*");
+                    + NAMESPACE_NAME_PATTERN.toString());
+
+    /**
+     * @since 0.1.0
+     */
+    // Names taken directly from DKPRO SynsetRelationGenerator
+    public static final String RELATION_WORDNET_TOPIC = "topic";
+
+    /**
+     * @since 0.1.0
+     */
+    // Names taken directly from DKPRO SynsetRelationGenerator
+    public static final String RELATION_WORDNET_REGION = "region";
+
+    /**
+     * @since 0.1.0
+     */
+    // Names taken directly from DKPRO SynsetRelationGenerator
+    public static final String RELATION_WORDNET_USAGE = "usage";
+
+    /**
+     * Canonical relation to specify a synset belongs to a domain (which will be
+     * another synset),
+     * see also {@link #RELATION_DIVERSICON_SUPER_DOMAIN}
+     * 
+     * <p>
+     * Example:
+     * 
+     * <pre>
+     * ss_pop-music domain-> ss_music superDomain-> ss_arts superDomain-> ss_domain
+     * </pre>
+     * </p>
+     * 
+     * @since 0.1.0
+     */
+    public static final String RELATION_DIVERSICON_DOMAIN = "domain";
+
+    /**
+     * Inverse of {@link #RELATION_DIVERSICON_DOMAIN}. See also
+     * {@link #RELATION_DIVERSICON_SUB_DOMAIN}
+     * 
+     * <p>
+     * Example:
+     * 
+     * <pre>
+     * ss_domain subDomain-> ss_arts subDomain-> ss_music domainOf-> ss_pop-music
+     * </pre>
+     * </p>
+     * 
+     * @since 0.1.0
+     */
+    public static final String RELATION_DIVERSICON_DOMAIN_OF = "domainOf";
+
+    /**
+     * 
+     * Canonical relation to specify a synset domain is included in another
+     * synset domain,
+     * For examples, see {@link #RELATION_DIVERSICON_DOMAIN}
+     * 
+     * @since 0.1.0
+     */
+    public static final String RELATION_DIVERSICON_SUPER_DOMAIN = "superDomain";
+
+    /**
+     * 
+     * Inverse of {@link #RELATION_DIVERSICON_SUPER_DOMAIN}.
+     * For examples, see {@link #RELATION_DIVERSICON_DOMAIN_OF}
+     * 
+     *
+     * @since 0.1.0
+     */
+    public static final String RELATION_DIVERSICON_SUB_DOMAIN = "subDomain";
+
+    /**
+     * 
+     * @since 0.1.0
+     */
+    private static final List<ELabelTypeSemantics> domainLabelTypeSemantics;
+
+    /**
+     * @since 0.1.0
+     */
+    // Names taken directly from DKPRO SynsetRelationGenerator
+    public static final String RELATION_WORDNET_IS_TOPIC_OF = "isTopicOf";
+
+    /**
+     * @since 0.1.0
+     */
+    // Names taken directly from DKPRO SynsetRelationGenerator
+    public static final String RELATION_WORDNET_IS_REGION_OF = "isRegionOf";
+
+    /**
+     * @since 0.1.0
+     */
+    // Names taken directly from DKPRO SynsetRelationGenerator
+    public static final String RELATION_WORDNET_IS_USAGE_OF = "isUsageOf";
 
     /**
      * 
@@ -346,7 +487,7 @@ public final class Diversicons {
             // ArchiveStreamFactory.SEVEN_Z,
             ArchiveStreamFactory.TAR,
             ArchiveStreamFactory.ZIP };
-    
+
     /**
      * Default user for databases.
      * 
@@ -358,8 +499,8 @@ public final class Diversicons {
      * Default password for databases.
      * 
      * @since 0.1.0
-     */    
-    public static final String DEFAULT_PASSWORD = "pass";    
+     */
+    public static final String DEFAULT_PASSWORD = "pass";
 
     private static final Logger LOG = LoggerFactory.getLogger(Diversicons.class);
 
@@ -379,6 +520,8 @@ public final class Diversicons {
     private static final LinkedHashSet<String> partOfRelations = new LinkedHashSet<String>();
     private static final LinkedHashSet<String> canonicalPartOfRelations = new LinkedHashSet<String>();
 
+    private static final LinkedHashSet<String> domainRelations = new LinkedHashSet<String>();
+    private static final LinkedHashSet<String> canonicalDomainRelations = new LinkedHashSet<String>();
 
     /**
      * 
@@ -397,25 +540,47 @@ public final class Diversicons {
     private static LinkedHashMap<String, String> customClassMappings;
 
     static {
-        putRelations(HYPERNYM, HYPONYM, ERelTypeSemantics.taxonomic, true, false);
-        putRelations(HYPERNYMINSTANCE, HYPONYMINSTANCE, ERelTypeSemantics.taxonomic, false, false);
-        putRelations(HOLONYM, MERONYM, ERelTypeSemantics.partWhole, true, true);
-        putRelations(HOLONYMCOMPONENT, MERONYMCOMPONENT, ERelTypeSemantics.partWhole, false, true); // todo
-                                                                                                    // is
-                                                                                                    // it
-                                                                                                    // transitive?
-        putRelations(HOLONYMMEMBER, MERONYMMEMBER, ERelTypeSemantics.partWhole, false, true);
-        putRelations(HOLONYMPART, MERONYMPART, ERelTypeSemantics.partWhole, true, true);
-        putRelations(HOLONYMPORTION, MERONYMPORTION, ERelTypeSemantics.partWhole, false, true); // todo
-                                                                                                // is
-                                                                                                // it
-                                                                                                // transitive?
-        putRelations(HOLONYMSUBSTANCE, MERONYMSUBSTANCE, ERelTypeSemantics.partWhole, false, true);
-        putRelations(SYNONYM, SYNONYM, ERelTypeSemantics.association, false, false);
-        putRelations(SYNONYMNEAR, SYNONYMNEAR, ERelTypeSemantics.association, false, false);
-        putRelations(ANTONYM, ANTONYM, ERelTypeSemantics.complementary, false, false);
 
-        customClassMappings = new LinkedHashMap();
+        domainLabelTypeSemantics = new ArrayList<>();
+
+        domainLabelTypeSemantics.add(ELabelTypeSemantics.domain);
+        domainLabelTypeSemantics.add(ELabelTypeSemantics.regionOfUsage);
+        domainLabelTypeSemantics.add(ELabelTypeSemantics.usage);
+
+        putRelations(HYPERNYM, HYPONYM, ERelTypeSemantics.taxonomic, true, false, false);
+        putRelations(HYPERNYMINSTANCE, HYPONYMINSTANCE, ERelTypeSemantics.taxonomic, false, false, false);
+        putRelations(HOLONYM, MERONYM, ERelTypeSemantics.partWhole, true, true, false);
+        putRelations(HOLONYMCOMPONENT, MERONYMCOMPONENT, ERelTypeSemantics.partWhole, false, true, false); // todo
+
+        // is it transitive?
+        putRelations(HOLONYMMEMBER, MERONYMMEMBER, ERelTypeSemantics.partWhole, false, true, false);
+        putRelations(HOLONYMPART, MERONYMPART, ERelTypeSemantics.partWhole, true, true, false);
+        putRelations(HOLONYMPORTION, MERONYMPORTION, ERelTypeSemantics.partWhole, false, true, false); // todo
+        // is it transitive?
+        putRelations(HOLONYMSUBSTANCE, MERONYMSUBSTANCE, ERelTypeSemantics.partWhole, false, true, false);
+        putRelations(SYNONYM, SYNONYM, ERelTypeSemantics.association, false, false, false);
+        putRelations(SYNONYMNEAR, SYNONYMNEAR, ERelTypeSemantics.association, false, false, false);
+        putRelations(ANTONYM, ANTONYM, ERelTypeSemantics.complementary, false, false, false);
+
+        // DOMAINS IN UBY ARE A LITTLE MESSY, SEE NOTE HERE:
+        // https://github.com/diversicon-kb/dkpro-uby/issues/3
+        // note in Sense SematicLabel.type we will have
+        // ELabelTypeSemantics.domain
+        putRelations(RELATION_WORDNET_TOPIC, RELATION_WORDNET_IS_TOPIC_OF, ERelTypeSemantics.label, false, false, true);
+        // note in Sense SematicLabel.type we will have
+        // ELabelTypeSemantics.regionOfUsage
+        putRelations(RELATION_WORDNET_REGION, RELATION_WORDNET_IS_REGION_OF, ERelTypeSemantics.label, false, false,
+                true);
+        // note in Sense SematicLabel.type we will have
+        // ELabelTypeSemantics.usage
+        putRelations(RELATION_WORDNET_USAGE, RELATION_WORDNET_IS_USAGE_OF, ERelTypeSemantics.label, false, false, true);
+
+        putRelations(RELATION_DIVERSICON_DOMAIN, RELATION_DIVERSICON_DOMAIN_OF, ERelTypeSemantics.label, false, false,
+                true);
+        putRelations(RELATION_DIVERSICON_SUPER_DOMAIN, RELATION_DIVERSICON_SUB_DOMAIN, ERelTypeSemantics.label, true,
+                false, true);
+
+        customClassMappings = new LinkedHashMap<>();
         customClassMappings.put(de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation.class.getCanonicalName(),
                 DivSynsetRelation.class.getCanonicalName());
 
@@ -435,7 +600,8 @@ public final class Diversicons {
             String relNameB,
             ERelTypeSemantics relType,
             boolean transitive,
-            boolean partof) {
+            boolean partof,
+            boolean domain) {
         checkNotEmpty(relNameA, "Invalid first relation!");
         checkNotEmpty(relNameB, "Invalid second relation!");
 
@@ -457,6 +623,12 @@ public final class Diversicons {
             partOfRelations.add(relNameA);
             canonicalPartOfRelations.add(relNameA);
             partOfRelations.add(relNameB);
+        }
+
+        if (domain) {
+            domainRelations.add(relNameA);
+            canonicalDomainRelations.add(relNameA);
+            domainRelations.add(relNameB);
         }
 
     }
@@ -525,46 +697,37 @@ public final class Diversicons {
      * @since 0.1.0
      */
     public static void dropCreateTables(DBConfig dbConfig) {
-
-        LOG.info("Recreating tables in database  " + dbConfig.getJdbc_url() + "    ...");
-
-        Configuration hcfg = getHibernateConfig(dbConfig, false);
-
-        Session session = openSession(dbConfig, false);
-        Transaction tx = null;
-
-        SchemaExport se = new SchemaExport(hcfg);
-        se.create(false, true);
-        try {
-            tx = session.beginTransaction();
-            DbInfo dbInfo = new DbInfo();
-            session.save(dbInfo);
-            tx.commit();
-        } catch (Exception ex) {
-            LOG.error("Error while saving DbInfo! Rolling back!");
-            if (tx != null) {
-                tx.rollback();
-            }
-            throw new DivException("Error while while saving DbInfo!", ex);
-        }
-        session.flush();
-        session.close();
-        LOG.info("Done recreating tables in database:  " + dbConfig.getJdbc_url());
-
+        createDb(dbConfig, true);
     }
 
     /**
-     * Creates a database based on the hibernate mappings
+     * Creates a database based on the hibernate mappings.
      * 
      * (adapted from
      * {@link de.tudarmstadt.ukp.lmf.transform.LMFDBUtils#createTables(DBConfig)
      * LMFDBUtils.createTables} )
      * 
+     * @throws DivIoException
+     *             if database already exists.
+     * 
      * @since 0.1.0
      */
     public static void createTables(DBConfig dbConfig) {
 
-        LOG.info("Creating tables in database  " + dbConfig.getJdbc_url() + " ...");
+        if (Diversicons.exists(dbConfig)) {
+            throw new DivIoException("Found already existing database!");
+        }
+
+        createDb(dbConfig, false);
+    }
+
+    /**
+     * @since 0.10.
+     */
+    static private void createDb(DBConfig dbConfig, boolean drop) {
+
+        String creatingMsg = drop ? "Recreating" : "Creating";
+        LOG.info(creatingMsg + " tables in database  " + dbConfig.getJdbc_url() + " ...");
 
         Configuration hcfg = getHibernateConfig(dbConfig, false);
 
@@ -572,7 +735,7 @@ public final class Diversicons {
         Transaction tx = null;
 
         SchemaExport se = new SchemaExport(hcfg);
-        se.create(false, true);
+        se.create(dbConfig.isShowSQL(), true);
         try {
             tx = session.beginTransaction();
             DbInfo dbInfo = new DbInfo();
@@ -587,7 +750,18 @@ public final class Diversicons {
         }
         session.flush();
         session.close();
-        LOG.info("Done creating tables in database  " + dbConfig.getJdbc_url());
+
+        // todo make it load a sql dump ....
+        Diversicon div = Diversicon.connectToDb(DivConfig.of(dbConfig));
+        ImportConfig config = new ImportConfig();
+        config.setForce(true); // because prefix 'div' is not yet in the db !
+
+        config.setAuthor(Diversicons.DIVERSICON_AUTHOR);
+        config.setFileUrls(Arrays.asList(DivUpper.of()
+                                                 .getXmlUri()));
+        div.importFiles(config);
+
+        LOG.info("Done " + creatingMsg.toLowerCase() + " tables in database  " + dbConfig.getJdbc_url());
 
     }
 
@@ -797,7 +971,7 @@ public final class Diversicons {
      * @since 0.1.0
      */
     public static List<String> getCanonicalRelations() {
-        return new ArrayList(canonicalRelations);
+        return new ArrayList<>(canonicalRelations);
     }
 
     /**
@@ -902,7 +1076,7 @@ public final class Diversicons {
      * @since 0.1.0
      */
     public static List<String> getCanonicalTransitiveRelations() {
-        return new ArrayList(canonicalTransitiveRelations);
+        return new ArrayList<>(canonicalTransitiveRelations);
     }
 
     /**
@@ -911,7 +1085,38 @@ public final class Diversicons {
      * @since 0.1.0
      */
     public static List<String> getTransitiveRelations() {
-        return new ArrayList(transitiveRelations);
+        return new ArrayList<>(transitiveRelations);
+    }
+
+    /**
+     * Returns all the domain relations (inverses included).
+     * 
+     * @since 0.1.0
+     */
+    public static List<String> getDomainRelations() {
+        return new ArrayList<>(domainRelations);
+    }
+
+    /**
+     * Returns all the dkpro domain label type semantics.
+     * For more info see
+     * <a href="https://github.com/diversicon-kb/dkpro-uby/issues/3" target=
+     * "_blank">issue on Github</a>
+     * 
+     * @since 0.1.0
+     */
+    public static List<ELabelTypeSemantics> getDomainLabelTypes() {
+        return new ArrayList<>(domainLabelTypeSemantics);
+    }
+
+    /**
+     * Returns true if {@code relName} is known to be a domain relation.
+     * 
+     * @since 0.1.0
+     */
+    public static boolean isDomainRelation(String relName) {
+        checkNotEmpty(relName, "Invalid relation name!");
+        return domainRelations.contains(relName);
     }
 
     /**
@@ -922,7 +1127,7 @@ public final class Diversicons {
      * @since 0.1.0
      */
     public static List<String> getCanonicalPartOfRelations() {
-        return new ArrayList(canonicalPartOfRelations);
+        return new ArrayList<>(canonicalPartOfRelations);
     }
 
     /**
@@ -931,7 +1136,7 @@ public final class Diversicons {
      * @since 0.1.0
      */
     public static List<String> getPartOfRelations() {
-        return new ArrayList(partOfRelations);
+        return new ArrayList<>(partOfRelations);
     }
 
     /**
@@ -1012,6 +1217,7 @@ public final class Diversicons {
         ret.setJdbc_driver_class("org.h2.Driver");
         ret.setUser(DEFAULT_USER); // same as UBY
         ret.setPassword(DEFAULT_PASSWORD); // same as UBY
+        // NOTE: in UBY isShowSQL is false by default.
         return ret;
     }
 
@@ -1085,19 +1291,22 @@ public final class Diversicons {
      * 
      * @since 0.1.0
      */
-    public static void h2RestoreSql(String dumpUrl, DBConfig dbConfig) {
+    public static void h2RestoreSql(String dumpUrl, DivConfig divConfig) {
         Internals.checkNotBlank(dumpUrl, "invalid sql/archive resource path!");
-        checkH2Db(dbConfig);
+        checkNotNull(divConfig, "Invalid divConfig!");
+        checkH2Db(divConfig.getDbConfig());
 
         Date start = new Date();
 
-        LOG.info("Restoring database " + dbConfig.getJdbc_url() + " (may require a long time to perform) ...");
+        LOG.info("Restoring database " + divConfig.getDbConfig()
+                                                  .getJdbc_url()
+                + " (may require a long time to perform) ...");
         try {
             Class.forName("org.h2.Driver");
         } catch (ClassNotFoundException ex) {
             throw new DivIoException("Error while loading h2 driver!", ex);
         }
-        ExtractedStream extractedStream = Internals.readData(dumpUrl, true);
+        ExtractedStream extractedStream = readData(dumpUrl, true);
 
         Connection conn = null;
         Statement stat = null;
@@ -1128,7 +1337,7 @@ public final class Diversicons {
 
             // todo need to improve connection with dbConfig params
 
-            conn = getH2Connection(dbConfig);
+            conn = getH2Connection(divConfig.getDbConfig());
 
             stat = conn.createStatement();
             stat.execute(saveVars);
@@ -1137,11 +1346,12 @@ public final class Diversicons {
             stat.execute(restoreSavedVars);
             conn.commit();
 
-            LOG.info("Done restoring database " + dbConfig.getJdbc_url());
+            LOG.info("Done restoring database " + divConfig.getDbConfig()
+                                                           .getJdbc_url());
             LOG.info("Elapsed time: " + Internals.formatInterval(start, new Date()));
 
             // TODO: here it should automatically fix mixing schema parts...
-            if (!Diversicons.isSchemaValid(dbConfig)) {
+            if (!Diversicons.isSchemaValid(divConfig.getDbConfig())) {
                 throw new InvalidSchemaException("Restored db but found invalid schema!");
             }
         } catch (SQLException e) {
@@ -1181,7 +1391,7 @@ public final class Diversicons {
      * 
      * @since 0.1.0
      */
-    public static void h2Execute(String sql, DBConfig dbConfig) {       
+    public static void h2Execute(String sql, DBConfig dbConfig) {
 
         Connection conn = getH2Connection(dbConfig);
 
@@ -1194,11 +1404,16 @@ public final class Diversicons {
 
     /**
      * 
-     * Restores a packaged H2 db to file system in user's home under
-     * {@link #CACHE_PATH}. The database is intended
+     * Restores a packaged H2 db to file system ,
+     * in a subdirectory of {@link cacheRoot} as specified by
+     * {@link #getCachedDir(File, String, String)}.
+     * 
+     * <p>
+     * The database is intended
      * to be accessed in read-only mode and if
      * already present no fetch is performed. The database may be fetched from
      * the internet or directly taken from a jar if on the classpath.
+     * </p>
      *
      * @param id
      *            the worldwide unique identifier for the resource, in a format
@@ -1230,31 +1445,36 @@ public final class Diversicons {
                                                                 .getVersion()
                         + ", found instead " + version + "  !");
 
-        String filepath = getCachedH2DbDir(cacheRoot, id, version).getAbsolutePath() + File.separator + id;
+        String filepath = getCachedDir(cacheRoot, id, version).getAbsolutePath() + File.separator + id;
 
         if (!new File(filepath + ".h2.db").exists()) {
             try {
                 restoreH2Db(DivWn31.of()
                                    .getH2DbUri(),
                         filepath);
-            } catch (DivIoException ex){
+            } catch (DivIoException ex) {
                 LOG.debug("Error while locating the db on the classpath!", ex);
                 LOG.info("");
                 LOG.info("Couldn't find the db on the classpath!");
                 LOG.info("");
-                LOG.info("Trying to download db from the web (it's around 40 MB, may take several mins to download... )");
-                // todo we should fetch it from diversicon-kb.eu or from maven central! ...
-                restoreH2Db("https://github.com/diversicon-kb/diversicon-wordnet-3.1/raw/master/div-wn31-h2db/src/main/resources/div-wn31.h2.db.xz",
-             filepath);
+                LOG.info(
+                        "Trying to download db from the web (it's around 40 MB, may take several mins to download... )");
+                // todo we should fetch it from diversicon-kb.eu or from maven
+                // central! ...
+                restoreH2Db(
+                        "https://github.com/diversicon-kb/diversicon-wordnet-3.1/raw/master/div-wn31-h2db/src/main/resources/div-wn31.h2.db.xz",
+                        filepath);
             }
         }
         return h2MakeDefaultFileDbConfig(filepath, true);
     }
 
     /**
+     * Returns a file pointing to dir like {@code cacheRoot/div-wn31/0.1.0/}
+     * 
      * @since 0.1.0
      */
-    public static File getCachedH2DbDir(File cacheRoot, String id, String version) {
+    public static File getCachedDir(File cacheRoot, String id, String version) {
         checkNotBlank(id, "Invalid id!");
         checkNotBlank(version, "Invalid version!");
         return new File(cacheRoot, File.separator + id + File.separator + version);
@@ -1296,7 +1516,7 @@ public final class Diversicons {
         LOG.info("Restoring database:   " + dumpUrl);
         LOG.info("                to:   " + target.getAbsolutePath() + "  ...");
 
-        ExtractedStream extractedStream = Internals.readData(dumpUrl, true);
+        ExtractedStream extractedStream = readData(dumpUrl, true);
 
         try {
             FileUtils.copyInputStreamToFile(extractedStream.stream(), target);
@@ -1320,9 +1540,15 @@ public final class Diversicons {
         Session session = sessionFactory.openSession();
 
         // dude, this is crude
-        return session.createQuery("from java.lang.Object")
-                      .iterate()
-                      .hasNext();
+        // div dirty
+        try {
+            session.createQuery("from java.lang.Object")
+                   .iterate()
+                   .hasNext();
+        } catch (org.hibernate.exception.SQLGrammarException ex) {
+            return false;
+        }
+        return true;
 
     }
 
@@ -1511,7 +1737,7 @@ public final class Diversicons {
      * Extracts the namespace prefix from provided {@code id}
      * 
      * @param id
-     *            an identifier in {@link #ID_PATTERN} format
+     *            an identifier in {@link #NAMESPACE_ID_PATTERN} format
      * @throws IllegalArgumentException
      *             when id has no valid prefix
      * 
@@ -1542,20 +1768,15 @@ public final class Diversicons {
     /**
      * 
      * @throws IllegalArgumentException
+     * 
      * @since 0.1.0
      */
     public static Map<String, String> checkNamespaces(@Nullable Map<String, String> namespaces) {
         checkNotNull(namespaces);
 
         for (String prefix : namespaces.keySet()) {
-            checkNotNull(prefix);
-            if (!NAMESPACE_PREFIX_PATTERN.matcher(prefix)
-                                         .matches()) {
-                throw new IllegalArgumentException(
-                        "Invalid prefix '" + prefix + "', it must match " + NAMESPACE_PREFIX_PATTERN.toString());
-            }
-
-            checkNotBlank(namespaces.get(prefix), "Invalid namespace url!");
+            checkPrefix(prefix);
+            checkNamespace(namespaces.get(prefix));
         }
         return namespaces;
     }
@@ -1603,7 +1824,8 @@ public final class Diversicons {
     // TODO in theory there are many other parameters we should take into
     // consideration
     @Nullable
-    private static LSInput resolveXmlResource(@Nullable String namespaceUri, @Nullable String systemId) {
+    private static LSInput resolveXmlResource(DivConfig diversiconConfig, @Nullable String namespaceUri,
+            @Nullable String systemId) {
 
         if (namespaceUri == null && systemId == null) {
             return null;
@@ -1614,8 +1836,8 @@ public final class Diversicons {
         ret.setEncoding("UTF-8");
 
         try {
-            ret.setByteStream(Internals.readData(systemId)
-                                       .stream());
+            ret.setByteStream(readData(systemId)
+                                                .stream());
             return ret;
         } catch (Exception ex) {
             if ((Diversicons.SCHEMA_1_NAMESPACE.equals(namespaceUri)
@@ -1625,12 +1847,12 @@ public final class Diversicons {
                             && systemId.contains(Diversicons.SCHEMA_FILENAME))) {
                 String classpathUrl = Diversicons.SCHEMA_1_0_CLASSPATH_URL;
 
-                LOG.debug("Defaulting to " + classpathUrl + " for unfetchable resource "
-                        + " \n     systemId=" + systemId
-                        + " \n namespaceUrl=" + namespaceUri);
+                LOG.debug("Couldn't fetch online schema, defaulting to classpath schema."
+                        + "\n     systemId=" + systemId
+                        + "\n namespaceUrl=" + namespaceUri
+                        + "\n classpathUrl=" + classpathUrl);
 
-                ret.setByteStream(Internals.readData(classpathUrl)
-                                           .stream());
+                ret.setByteStream(readData(classpathUrl).stream());
                 return ret;
             }
         }
@@ -1639,15 +1861,61 @@ public final class Diversicons {
     }
 
     /**
-     * Validates an xml file. You can pass schema overrides in the provided
-     * config.
+     * Validates a {@link LexicalResource}. Returned validator will contain
+     * collected info.
      * 
+     * <p>
+     * <b>*EXPERIMENTAL*, does not validate nor collect much. For XMLs,
+     * use {@link #validateXml(File, XmlValidationConfig)} instead !!!</b>
+     * </p>
+     * 
+     * @throws DivException
+     * @throws InvalidXmlException
+     * @since 0.1.0
+     */
+    public static DivXmlValidator validateResource(
+            LexResPackage pack,
+            @Nullable LexicalResource lexRes,
+            final XmlValidationConfig config) {
+
+        checkNotNull(pack);
+        checkNotNull(config);
+
+        // todo using name as sysmId, hope it's correct
+        DivXmlHandler errorHandler = new DivXmlHandler(config, pack.getName());
+
+        DivXmlValidator divXmlValidator = new DivXmlValidator(pack, errorHandler);
+
+        validateResourceStep(pack, lexRes, divXmlValidator);
+        try {
+            divXmlValidator.validatePack();
+        } catch (SAXException e) {
+
+            throw new InvalidXmlException(errorHandler);
+        }
+
+        // twice, so does second step
+        validateResourceStep(pack, lexRes, divXmlValidator);
+
+        return divXmlValidator;
+
+    }
+
+    /**
+     * Validates an xml file, returning a validator with collected info.
+     * 
+     * <p>
+     * You can pass schema overrides in the provided config. 
+     * </p>
+     *     
      * @throws DivException
      * @throws InvalidXmlException
      * 
      * @since 0.1.0
      */
-    public static void validateXml(File xmlFile, XmlValidationConfig config) {
+    public static DivXmlValidator validateXml(
+            File xmlFile,
+            final XmlValidationConfig config) {
 
         checkNotNull(xmlFile);
         checkNotNull(config);
@@ -1663,8 +1931,8 @@ public final class Diversicons {
             if (Internals.isBlank(config.getXsdUrl())) {
                 schema = factory.newSchema();
             } else {
-                File xsd = Internals.readData(config.getXsdUrl())
-                                    .toTempFile();
+                File xsd = readData(config.getXsdUrl())
+                                                       .toTempFile();
                 schema = factory.newSchema(xsd);
                 LOG.debug("Validating against schema: " + config.getXsdUrl());
             }
@@ -1694,7 +1962,7 @@ public final class Diversicons {
                         + "\n systemId     = " + systemId
                         + "\n baseURI      = " + baseURI);
 
-                return resolveXmlResource(namespaceURI, systemId);
+                return resolveXmlResource(config.getDiversiconConfig(), namespaceURI, systemId);
             }
         };
 
@@ -1710,36 +1978,36 @@ public final class Diversicons {
 
         DivXmlValidator divXmlValidator = new DivXmlValidator(new LexResPackage(), errorHandler);
 
-        validateXmlJavaStep(xmlFile, errorHandler, divXmlValidator, lsResResolver);
-        // need to steps!
-        validateXmlJavaStep(xmlFile, errorHandler, divXmlValidator, lsResResolver);
+        validateXmlStep(xmlFile, divXmlValidator);
+        // need two steps!
+        validateXmlStep(xmlFile, divXmlValidator);
 
-        if (errorHandler.invalid()) {
-            config.getLog()
-                  .error("Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath());
-            throw new InvalidXmlException(errorHandler,
-                    "Invalid xml! " + errorHandler.summary() + " in " + xmlFile.getAbsolutePath()
-                            + "\n" + errorHandler.firstIssueAsString());
-        }
+        divXmlValidator.checkPassed();
 
+        return divXmlValidator;
     }
 
     /**
-     * Performs validation with custom Java code. Needed because current Xerces
-     * Xml Schema 1.1 assert implemention has problems, see
-     * https://github.com/diversicon-kb/diversicon/issues/21
+     * Performs one XML validation step with custom Java code.
      * 
-     * @param file
-     * @param errorHandler
+     * <p>
+     * Needed because current Xerces
+     * Xml Schema 1.1 assert implemention has problems, see
+     * <a href="https://github.com/diversicon-kb/diversicon-core/issues/21"
+     * target="_blank">
+     * issue 21 </a>
+     * </p>
+     * 
+     * @throws InvalidXmlException
      * 
      * @since 0.1.0
      */
-    // TODO probably we could pass less parameters
-    public static void validateXmlJavaStep(
+    static void validateXmlStep(
             File file,
-            DivXmlHandler errorHandler,
-            DivXmlValidator divXmlValidator,
-            LSResourceResolver resRes) {
+            DivXmlValidator divXmlValidator) {
+
+        DivXmlHandler errorHandler = divXmlValidator.getErrorHandler();
+
         SAXParserFactory factory = SAXParserFactory.newInstance();
         factory.setValidating(false);
         SAXParser parser;
@@ -1747,13 +2015,41 @@ public final class Diversicons {
             parser = factory.newSAXParser();
             parser.getXMLReader()
                   .setErrorHandler(errorHandler);
-            DivXmlValidator handler = divXmlValidator;
 
             InputSource is = new InputSource(new FileInputStream(file));
 
-            parser.parse(is, handler);
+            parser.parse(is, divXmlValidator);
         } catch (ParserConfigurationException | SAXException | IOException e) {
-            throw new DivException(e);
+            throw new InvalidXmlException(errorHandler, e);
+        }
+
+    }
+
+    /**
+     * Performs one validation step on a lexical resource (a bit hacky)
+     * 
+     * @since 0.1.0
+     * 
+     * @throws InvalidXmlException
+     */
+    static void validateResourceStep(
+            LexResPackage pack,
+            @Nullable LexicalResource lexRes, // not much needed for now
+            DivXmlValidator divXmlValidator) {
+
+        try {
+            LocatorImpl locator = new LocatorImpl();
+            locator.setLineNumber(-1);
+            locator.setColumnNumber(-1);
+            // locator.setPublicId(publicId);
+            locator.setSystemId(divXmlValidator.getErrorHandler()
+                                               .getDefaultSystemId());
+
+            divXmlValidator.setDocumentLocator(locator);
+            divXmlValidator.startDocument();
+            divXmlValidator.endDocument();
+        } catch (SAXException ex) {
+            throw new InvalidXmlException(divXmlValidator.getErrorHandler(), ex);
         }
 
     }
@@ -1761,24 +2057,22 @@ public final class Diversicons {
     /**
      * Reads metadata about a given resource.
      * 
-     * @param path
-     *            A path to a file as specified by
-     *            {@link Internals#readData(String, boolean)
+     * @param lexResFile
+     *            an XML Lexical Resource file
      * 
      * @since 0.1.0
      */
-    public static LexResPackage readPackageFromLexRes(String lexResUrl) {
+    public static LexResPackage readPackageFromLexRes(File lexResFile) {
 
         LexResPackage ret = new LexResPackage();
 
         SAXReader reader = new SAXReader(false);
 
-        ExtractedStream es = Internals.readData(lexResUrl, true);
         DivXmlExtractor handler = new DivXmlExtractor(ret);
         reader.setDefaultHandler(handler);
-        try {
-            reader.read(es.stream());
-        } catch (DocumentException e) {
+        try (FileInputStream fis = new FileInputStream(lexResFile)) {
+            reader.read(fis);
+        } catch (DocumentException | IOException e) {
 
             if (e.getMessage()
                  .contains(DivXmlExtractor.FOUND)) {
@@ -1786,7 +2080,7 @@ public final class Diversicons {
             }
         }
         throw new DivNotFoundException("Couldn't find required tags in "
-                + lexResUrl + "  !");
+                + lexResFile.getAbsolutePath() + "  !");
 
     }
 
@@ -1799,19 +2093,19 @@ public final class Diversicons {
      */
     public static File writeLexResToXml(
             LexicalResource lexRes,
-            LexResPackage lexResPackage,
+            LexResPackage pack,
             File xmlFile) {
 
         checkNotNull(lexRes);
 
-        Internals.checkLexResPackage(lexResPackage, lexRes);
+        Internals.checkLexResPackage(pack, lexRes);
 
         DivXmlWriter writer;
         try {
             writer = new DivXmlWriter(new FileOutputStream(
                     xmlFile),
                     null,
-                    lexResPackage); // todo check if setting dtd means something
+                    pack); // todo check if setting dtd means something
 
             writer.writeElement(lexRes);
             writer.writeEndDocument();
@@ -1833,11 +2127,25 @@ public final class Diversicons {
      * @since 0.1.0
      */
     public static String checkPrefix(String prefix) {
+        checkNotNull(prefix);
         if (!NAMESPACE_PREFIX_PATTERN.matcher(prefix)
                                      .matches()) {
-            throw new IllegalArgumentException("Invalid prefix!");
+            throw new IllegalArgumentException(
+                    "Invalid prefix '" + prefix + "', it must match " + NAMESPACE_PREFIX_PATTERN.toString());
         }
         return prefix;
+    }
+
+    /**
+     * 
+     * Checks a prefix is valid, throwing IllegalArgumentException otherwise
+     * 
+     * @throws IllegalArgumentException
+     * 
+     * @since 0.1.0
+     */
+    public static String checkNamespace(String namespace) {
+        return checkNotBlank(namespace, "Invalid namespace url!");
     }
 
     /**
@@ -1849,14 +2157,33 @@ public final class Diversicons {
      * @since 0.1.0
      */
     public static void checkId(String id, @Nullable String prependedMsg) {
-        if (!ID_PATTERN.matcher(id)
-                       .matches()) {
+        if (!NAMESPACE_ID_PATTERN.matcher(id)
+                                 .matches()) {
             throw new IllegalArgumentException(String.valueOf(prependedMsg)
                     + " '" + id + "' doesn't match Diversicon ID pattern. "
                     + NAMESPACE_ID_PATTERN_DESCRIPTION.toString());
         }
     }
 
+    /**
+     * Checks an id is valid, throwing IllegalArgumentException otherwise.
+     * Particularaly useful for the special {@link LexicalResource#getName()} field.
+     *
+     * @since 0.1.0
+     * @param name the name of a Lexical Resource
+     * @param prependedMsg
+     */
+    public static void checkLexResName(String name, @Nullable String prependedMsg) {
+        if (!NAMESPACE_NAME_PATTERN.matcher(name)
+                .matches()) {
+            throw new IllegalArgumentException(String.valueOf(prependedMsg)
+                    + " '" + name + "' doesn't match Diversicon name pattern. "
+                    + NAMESPACE_NAME_PATTERN_DESCRIPTION.toString());
+        }
+
+    }
+    
+    
     /**
      * Executes an XQuery script on {@code inXml} and writes output to
      * {@code outXml}
@@ -1982,5 +2309,203 @@ public final class Diversicons {
 
         throw new UnsupportedOperationException("TODO IMPLEMENT ME!");
     }
+
+    /**
+     * Gets input stream from a url, for more info see
+     * {@link #readData(String, boolean) readData(dataUrl, false)}
+     * 
+     * @throws DivIoException
+     *             on error.
+     * 
+     * @since 0.1.0
+     */
+    public static ExtractedStream readData(String dataUrl) {
+        return readData(dataUrl, false);
+    }
+
+    /**
+     * Gets input stream from a url, for more info see
+     * {@link #readData(DivConfig, String, boolean) readData(diversiconConfig,
+     * dataUrl, false)}
+     * 
+     * @throws DivIoException
+     *             on error.
+     * 
+     * @since 0.1.0
+     */
+    public static ExtractedStream readData(String dataUrl, boolean decompress) {
+        return readData(DivConfig.of(), dataUrl, decompress);
+    }
+
+    /**
+     * Gets input stream from a url pointing to possibly compressed data.
+     * 
+     * @param dataUrl
+     *            can be like:
+     *            <ul>
+     *            <li>{@code classpath:/my/package/name/data.zip}</li>
+     *            <li>{@code file:/my/path/data.zip}</li>
+     *            <li>{@code http://... }</li>
+     *            <li>{@code jar:file:///home/user/data.jar!/my-file.txt}</li>
+     *            <li>{@code jar:file:///home/user/data.jar!/my-file.txt.zip}
+     *            </li>
+     *            <li>whatever protocol..</li>
+     *            </ul>
+     * @param decompress
+     *            if true and data is actually compressed in one of
+     *            {@link Diversicons#SUPPORTED_COMPRESSION_FORMATS} returns the
+     *            uncompressed stream (note no check is done to verify the
+     *            archive contains only one file).
+     *            In all other cases data stream is returned verbatim.
+     * @param divConfig
+     *            Configuration for accessing external resources. If unknown use
+     *            {@link DivConfig#of()}
+     * 
+     * @throws DivIoException
+     *             on error.
+     * 
+     * @since 0.1.0
+     */
+    // todo should check archives have only one file...
+    public static ExtractedStream readData(DivConfig divConfig, String dataUrl, boolean decompress) {
+        checkNotNull(dataUrl, "Invalid resource path!");
+
+        @Nullable
+        InputStream inputStream = null;
+
+        URI uri;
+
+        String uriPath;
+
+        try {
+            uri = new URI(dataUrl);
+        } catch (URISyntaxException ex) {
+            throw new DivIoException("Couldn't parse input url!", ex);
+        }
+
+        LOG.trace("reading data from " + dataUrl + " ...");
+
+        if ("classpath".equals(uri.getScheme())) {
+            uriPath = dataUrl.substring("classpath:".length());
+            String q;
+
+            q = Internals.removeStartSlashes(uriPath);
+
+            try {
+
+                String candidatePathTest = "src/test/resources/" + q;
+                LOG.trace("    Searching data at " + candidatePathTest + " ...");
+                inputStream = new FileInputStream(candidatePathTest);
+                LOG.debug("    Located data at " + candidatePathTest);
+            } catch (FileNotFoundException ex1) {
+                try {
+                    String candidatePathMain = "src/main/resources/" + q;
+                    LOG.trace("    Searching data at " + candidatePathMain + " ...");
+                    inputStream = new FileInputStream(candidatePathMain);
+                    LOG.debug("    Located data at " + candidatePathMain);
+                } catch (FileNotFoundException ex2) {
+                    inputStream = Diversicons.class.getResourceAsStream("/" + q);
+                    if (inputStream == null) {
+                        throw new DivIoException("Couldn't find input stream: " + dataUrl.toString());
+                    } else {
+                        LOG.debug("    Located data at " + dataUrl);
+                    }
+                }
+            }
+
+        } else {
+
+            if ("jar".equals(uri.getScheme())) {
+                uriPath = getJarPath(dataUrl);
+            } else {
+                uriPath = uri.getPath();
+            }
+
+            try {
+
+                if (Internals.hasProtocol(dataUrl)) {
+                    if ("http".equals(uri.getScheme())) {
+
+                        inputStream = Internals.httpGet(divConfig, uri);
+
+                    } else {
+                        inputStream = new URL(dataUrl).openStream();
+                    }
+
+                } else {
+                    inputStream = new FileInputStream(dataUrl);
+                }
+
+                LOG.debug("    Located data at " + dataUrl);
+            } catch (IOException ex) {
+                throw new DivIoException("Error while opening " + dataUrl + "  !!", ex);
+            }
+        }
+
+        if (decompress && isFormatSupported(uriPath, Diversicons.SUPPORTED_COMPRESSION_FORMATS)) {
+
+            try {
+
+                BufferedInputStream buffered = inputStream instanceof BufferedInputStream
+                        ? (BufferedInputStream) inputStream
+                        : new BufferedInputStream(inputStream);
+
+                if (isFormatSupported(uriPath, Diversicons.SUPPORTED_ARCHIVE_FORMATS)) {
+
+                    ArchiveInputStream zin = new ArchiveStreamFactory()
+                                                                       .createArchiveInputStream(buffered);
+                    for (ArchiveEntry e; (e = zin.getNextEntry()) != null;) {
+                        return new ExtractedStream(e.getName(), zin, dataUrl, true);
+                    }
+
+                } else {
+
+                    CompressorInputStream cin = new CompressorStreamFactory()
+                                                                             .createCompressorInputStream(buffered);
+                    String fname = FilenameUtils.getBaseName(uriPath);
+                    return new ExtractedStream(fname, cin, dataUrl, true);
+                }
+
+            } catch (IOException | ArchiveException | CompressorException e) {
+                throw new DivIoException("Error while iterating through " + dataUrl.toString() + " !", e);
+            }
+
+            throw new DivIoException("Found empty stream in archive " + dataUrl.toString() + " !");
+
+        } else {
+            return new ExtractedStream(uriPath, inputStream, dataUrl, false);
+
+        }
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    private static boolean isFormatSupported(String filePath,
+            String[] formats) {
+        checkNotEmpty(filePath, "Invalid filepath!");
+
+        for (String s : formats) {
+            if (filePath.toLowerCase()
+                        .endsWith("." + s)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    private static String getJarPath(String dataUrl) {
+        checkArgument(dataUrl.startsWith("jar:"), "Expected input to start with 'jar:', found instead " + dataUrl);
+        String subDataUri = dataUrl.replace("jar:", "");
+        try {
+            return new URI(subDataUri).getPath();
+        } catch (URISyntaxException e) {
+            throw new DivException("Couldn't parse subDataUrl " + subDataUri, e);
+        }
+    }
+
 
 }

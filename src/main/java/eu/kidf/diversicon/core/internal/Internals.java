@@ -1,9 +1,6 @@
 package eu.kidf.diversicon.core.internal;
 
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,11 +8,8 @@ import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -24,31 +18,34 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import javax.xml.XMLConstants;
-import javax.xml.transform.Source;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import javax.xml.validation.Validator;
-
-import org.apache.commons.compress.archivers.ArchiveEntry;
-import org.apache.commons.compress.archivers.ArchiveException;
-import org.apache.commons.compress.archivers.ArchiveInputStream;
-import org.apache.commons.compress.archivers.ArchiveStreamFactory;
-import org.apache.commons.compress.compressors.CompressorException;
-import org.apache.commons.compress.compressors.CompressorInputStream;
-import org.apache.commons.compress.compressors.CompressorStreamFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpResponse;
+import org.apache.http.ProtocolException;
+import org.apache.http.StatusLine;
+import org.apache.http.client.RedirectStrategy;
+import org.apache.http.client.fluent.Executor;
+import org.apache.http.client.fluent.Request;
+import org.apache.http.client.fluent.Response;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.DefaultRedirectStrategy;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.RedirectLocations;
+import org.apache.http.protocol.HttpContext;
 import org.apache.xerces.impl.Constants;
 import org.apache.xerces.impl.dtd.DTDGrammar;
 import org.apache.xerces.impl.dtd.XMLDTDLoader;
@@ -73,17 +70,16 @@ import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata;
 import de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata.UBYLMFFieldMetadata;
-import eu.kidf.diversicon.core.BuildInfo;
 import eu.kidf.diversicon.core.DivSynsetRelation;
-import eu.kidf.diversicon.core.DivXmlHandler;
+import eu.kidf.diversicon.core.DivXmlValidator;
 import eu.kidf.diversicon.core.Diversicon;
 import eu.kidf.diversicon.core.Diversicons;
+import eu.kidf.diversicon.core.ImportConfig;
 import eu.kidf.diversicon.core.LexResPackage;
-import eu.kidf.diversicon.core.XmlValidationConfig;
+import eu.kidf.diversicon.core.DivConfig;
 import eu.kidf.diversicon.core.exceptions.DivException;
 import eu.kidf.diversicon.core.exceptions.DivIoException;
 import eu.kidf.diversicon.core.exceptions.DivNotFoundException;
-import eu.kidf.diversicon.core.exceptions.InvalidXmlException;
 
 /**
  * 
@@ -102,6 +98,37 @@ public final class Internals {
 
     @Nullable
     private static DTDGrammar DTD_GRAMMAR;
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String NON_EXISTING_URL_1 = "http://a-probe-non-existent.eu";
+
+    /**
+     * @since 0.1.0
+     */
+    public static final String NON_EXISTING_URL_2 = "http://b-probe-non-existent.eu";
+
+    /**
+     * 
+     * 
+     * @since 0.1.0
+     */
+    private static boolean checkedIsp = false;
+
+    /**
+     * Sinful ISPs that redirect on issed pages,
+     * see <a href="https://github.com/diversicon-kb/diversicon-core/issues/29"
+     * target="_blank">
+     * issue 29 on Github</a>
+     * 
+     * <p>
+     * Can be updated during program execution.
+     * </p>
+     * 
+     * @since 0.1.0
+     */
+    private final static ConcurrentSkipListSet<String> redirectingISPs = new ConcurrentSkipListSet<>();
 
     /**
      * @since 0.1.0
@@ -627,7 +654,8 @@ public final class Internals {
      * 
      * @since 0.1.0
      */
-    public static <T> T deepCopy(T orig) {
+    @Nullable
+    public static <T> T deepCopy(@Nullable T orig) {
         return cloner.deepClone(orig);
     }
 
@@ -647,6 +675,23 @@ public final class Internals {
         }
         return ret;
     }
+    
+    /**
+     * Returns a new ArrayList, filled with provided objects.
+     * 
+     * (Note {@code Arrays.asList(T...)} returns an {@code Arrays.ArrayList}
+     * instead)
+     * 
+     * @since 0.1.0
+     */
+    public static <T> ArrayList<T> newArrayList(Iterator<T> iter) {
+        ArrayList<T> ret = new ArrayList<>();
+
+        while (iter.hasNext()){            
+            ret.add(iter.next());
+        }
+        return ret;
+    }    
 
     /**
      * Returns a new HashSet, filled with provided objects.
@@ -687,176 +732,16 @@ public final class Internals {
     }
 
     /**
-     * @since 0.1.0
-     */
-    private static boolean isFormatSupported(String filePath,
-            String[] formats) {
-        checkNotEmpty(filePath, "Invalid filepath!");
-
-        for (String s : formats) {
-            if (filePath.toLowerCase()
-                        .endsWith("." + s)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Gets input stream from a url, for more info see
-     * {@link #readData(String, boolean) readData(dataUrl, false)}
-     * 
-     * @throws DivIoException
-     *             on error.
-     * 
-     * @since 0.1.0
-     */
-    public static ExtractedStream readData(String dataUrl) {
-        return readData(dataUrl, false);
-    }
-
-    /**
-     * Gets input stream from a url pointing to possibly compressed data.
-     * 
-     * @param dataUrl
-     *            can be like:
-     *            <ul>
-     *            <li>{@code classpath:/my/package/name/data.zip}</li>
-     *            <li>{@code file:/my/path/data.zip}</li>
-     *            <li>{@code http://... }</li>
-     *            <li>{@code jar:file:///home/user/data.jar!/my-file.txt}</li>
-     *            <li>{@code jar:file:///home/user/data.jar!/my-file.txt.zip}
-     *            </li>
-     *            <li>whatever protocol..</li>
-     *            </ul>
-     * @param decompress
-     *            if true and data is actually compressed in one of
-     *            {@link Diversicons#SUPPORTED_COMPRESSION_FORMATS} returns the
-     *            uncompressed stream (note no check is done to verify the
-     *            archive contains only one file).
-     *            In all other cases data stream is returned verbatim.
-     * 
-     * @throws DivIoException
-     *             on error.
-     * 
-     * @since 0.1.0
-     */
-    // todo should check archives have only one file...
-    public static ExtractedStream readData(String dataUrl, boolean decompress) {
-        checkNotNull(dataUrl, "Invalid resource path!");
-
-        @Nullable
-        InputStream inputStream = null;
-
-        URI uri;
-
-        String uriPath;
-
-        try {
-            uri = new URI(dataUrl);
-        } catch (URISyntaxException ex) {
-            throw new DivIoException("Couldn't parse input url!", ex);
-        }
-
-        LOG.trace("reading data from " + dataUrl + " ...");
-
-        if ("classpath".equals(uri.getScheme())) {
-            uriPath = dataUrl.substring("classpath:".length());
-            String q;
-
-            q = removeStartSlashes(uriPath);
-
-            try {
-
-                String candidatePathTest = "src/test/resources/" + q;
-                LOG.trace("    Searching data at " + candidatePathTest + " ...");
-                inputStream = new FileInputStream(candidatePathTest);
-                LOG.debug("    Located data at " + candidatePathTest);
-            } catch (FileNotFoundException ex1) {
-                try {
-                    String candidatePathMain = "src/main/resources/" + q;
-                    LOG.trace("    Searching data at " + candidatePathMain + " ...");
-                    inputStream = new FileInputStream(candidatePathMain);
-                    LOG.debug("    Located data at " + candidatePathMain);
-                } catch (FileNotFoundException ex2) {
-                    inputStream = Diversicons.class.getResourceAsStream("/" + q);
-                    if (inputStream == null) {
-                        throw new DivIoException("Couldn't find input stream: " + dataUrl.toString());
-                    } else {
-                        LOG.debug("    Located data at " + dataUrl);
-                    }
-                }
-            }
-
-        } else {
-
-            if ("jar".equals(uri.getScheme())) {
-                uriPath = getJarPath(dataUrl);
-            } else {
-                uriPath = uri.getPath();
-            }
-
-            try {
-
-                if (hasProtocol(dataUrl)) {
-                    inputStream = new URL(dataUrl).openStream();
-                } else {
-                    inputStream = new FileInputStream(dataUrl);
-                }
-
-                LOG.debug("    Located data at " + dataUrl);
-            } catch (IOException ex) {
-                throw new DivIoException("Error while opening lexical resource " + dataUrl + "  !!", ex);
-            }
-        }
-
-        if (decompress && isFormatSupported(uriPath, Diversicons.SUPPORTED_COMPRESSION_FORMATS)) {
-
-            try {
-
-                BufferedInputStream buffered = inputStream instanceof BufferedInputStream
-                        ? (BufferedInputStream) inputStream
-                        : new BufferedInputStream(inputStream);
-
-                if (isFormatSupported(uriPath, Diversicons.SUPPORTED_ARCHIVE_FORMATS)) {
-
-                    ArchiveInputStream zin = new ArchiveStreamFactory()
-                                                                       .createArchiveInputStream(buffered);
-                    for (ArchiveEntry e; (e = zin.getNextEntry()) != null;) {
-                        return new ExtractedStream(e.getName(), zin, dataUrl, true);
-                    }
-
-                } else {
-
-                    CompressorInputStream cin = new CompressorStreamFactory()
-                                                                             .createCompressorInputStream(buffered);
-                    String fname = FilenameUtils.getBaseName(uriPath);
-                    return new ExtractedStream(fname, cin, dataUrl, true);
-                }
-
-            } catch (IOException | ArchiveException | CompressorException e) {
-                throw new DivIoException("Error while iterating through " + dataUrl.toString() + " !", e);
-            }
-
-            throw new DivIoException("Found empty stream in archive " + dataUrl.toString() + " !");
-
-        } else {
-            return new ExtractedStream(uriPath, inputStream, dataUrl, false);
-
-        }
-    }
-
-    /**
      * Removes all forward slashes '/' at the beginning of {@code str}
      * 
      * @since 0.1.0
      */
-    private static String removeStartSlashes(String str) {
+    public static String removeStartSlashes(String str) {
         Pattern p = Pattern.compile("/*");
         Matcher m = p.matcher(str);
 
         if (m.find()) {
-            return  str.substring(m.end(), str.length());
+            return str.substring(m.end(), str.length());
         } else {
             return str;
         }
@@ -865,20 +750,7 @@ public final class Internals {
     /**
      * @since 0.1.0
      */
-    private static String getJarPath(String dataUrl) {
-        checkArgument(dataUrl.startsWith("jar:"), "Expected input to start with 'jar:', found instead " + dataUrl);
-        String subDataUri = dataUrl.replace("jar:", "");
-        try {
-            return new URI(subDataUri).getPath();
-        } catch (URISyntaxException e) {
-            throw new DivException("Couldn't parse subDataUrl " + subDataUri, e);
-        }
-    }
-
-    /**
-     * @since 0.1.0
-     */
-    static boolean hasProtocol(String dataUrl) {
+    public static boolean hasProtocol(String dataUrl) {
         checkNotBlank(dataUrl, "Invalid data url!");
         Pattern p = Pattern.compile("^(\\w)+:(.*)");
         Matcher m = p.matcher(dataUrl);
@@ -887,7 +759,7 @@ public final class Internals {
     }
 
     /**
-     * if outPath is something like {@code a/b/c.sql.zi}p and {@code ext} is
+     * If outPath is something like {@code a/b/c.sql.zip} and {@code ext} is
      * {@code sql}, it becomes
      * {@code c.sql}
      * 
@@ -938,9 +810,10 @@ public final class Internals {
                 if (jarEntry.getName()
                             .startsWith(normalizedDirPath)) {
                     File destFile = new File(
-                                destDir.getAbsolutePath() + File.separator + jarEntry
-                                              .getName()
-                                              .substring(normalizedDirPath.length()));
+                            destDir.getAbsolutePath() + File.separator + jarEntry
+                                                                                 .getName()
+                                                                                 .substring(
+                                                                                         normalizedDirPath.length()));
 
                     if (jarEntry.isDirectory()) { // if its a directory, create
                                                   // it
@@ -948,10 +821,10 @@ public final class Internals {
                         continue;
                     } else {
                         destFile.getParentFile()
-                         .mkdirs();
+                                .mkdirs();
                     }
 
-                    InputStream is = jar.getInputStream(jarEntry); 
+                    InputStream is = jar.getInputStream(jarEntry);
                     FileOutputStream destStream = new FileOutputStream(destFile);
                     IOUtils.copy(is, destStream);
                     destStream.close();
@@ -1029,31 +902,36 @@ public final class Internals {
 
         }
     }
-    
+
     /**
-     * Returns a short relative path to file, if possible, otherwise returns the absolute path.
+     * Returns a short relative path to file, if possible, otherwise returns the
+     * absolute path.
      * 
      * @since 0.1.0
      */
-    public static String relPath(File file){
+    public static String relPath(File file) {
         checkNotNull(file);
-        
-        if (file.toString().equals(".")){
+
+        if (file.toString()
+                .equals(".")) {
             return file.toString() + "/";
         }
-        
+
         File userDir = new File(System.getProperty("user.dir"));
-        
+
         String userDirPath;
-        if (userDir.getAbsolutePath().endsWith("/")){
-          userDirPath = userDir.getAbsolutePath();  
-        } else{
+        if (userDir.getAbsolutePath()
+                   .endsWith("/")) {
+            userDirPath = userDir.getAbsolutePath();
+        } else {
             userDirPath = userDir.getAbsolutePath() + "/";
-        }               
-                
+        }
+
         try {
-            if (file.getCanonicalPath().startsWith(userDirPath)){
-                return file.getAbsolutePath().substring(userDirPath.length());
+            if (file.getCanonicalPath()
+                    .startsWith(userDirPath)) {
+                return file.getAbsolutePath()
+                           .substring(userDirPath.length());
             } else {
                 return file.getAbsolutePath();
             }
@@ -1367,7 +1245,7 @@ public final class Internals {
     @Nullable
     public static String prepareXmlElement(Object inputLmfObject,
             boolean closeTag,
-            LexResPackage lexResPackage,
+            LexResPackage pack,
             UBYLMFClassMetadata classMetadata,
             AttributesImpl atts,
             List<Object> children) throws SAXException {
@@ -1375,8 +1253,11 @@ public final class Internals {
         checkNotNull(inputLmfObject);
         checkNotNull(atts);
         checkNotNull(children);
-        Internals.checkLexResPackage(lexResPackage);
-
+        // TODO think if it is necessary
+        // Internals.checkLexResPackage(lexResPackage);
+        checkNotNull(pack);
+        
+        
         Object lmfObject = inputLmfObject;
         String elementName = lmfObject.getClass()
                                       .getSimpleName();
@@ -1384,7 +1265,7 @@ public final class Internals {
         if (inputLmfObject instanceof LexicalResource) {
 
             atts.addAttribute("", "", "prefix", "CDATA",
-                    lexResPackage.getPrefix());
+                    pack.getPrefix());
 
             // note at the end of the method we put xmlns
         } else if (inputLmfObject instanceof DivSynsetRelation) {
@@ -1429,10 +1310,11 @@ public final class Internals {
                 switch (fieldMeta.getVarType()) {
                 case ATTRIBUTE:
                 case ATTRIBUTE_OPTIONAL:
-                    if (lmfObject instanceof Sense 
+                    if (lmfObject instanceof Sense
                             && xmlFieldName.equals("index")
-                            && "0".equals(retObj.toString()) ){
-                        break; // workaround for https://github.com/diversicon-kb/diversicon/issues/24
+                            && "0".equals(retObj.toString())) {
+                        break; // workaround for
+                               // https://github.com/diversicon-kb/diversicon/issues/24
                     }
                     atts.addAttribute("", "", xmlFieldName, "CDATA", retObj.toString());
                     break;
@@ -1446,9 +1328,10 @@ public final class Internals {
                             children.add(obj);
                     break;
                 case IDREF:
-                    if (lmfObject instanceof Lemma 
-                            && xmlFieldName.equals("lexicalEntry")){
-                        break; // workaround for https://github.com/diversicon-kb/diversicon/issues/22
+                    if (lmfObject instanceof Lemma
+                            && xmlFieldName.equals("lexicalEntry")) {
+                        break; // workaround for
+                               // https://github.com/diversicon-kb/diversicon/issues/22
                     }
                     // Save IDREFs as attribute of the new element
                     atts.addAttribute("", "", xmlFieldName, "CDATA", ((IHasID) retObj).getId());
@@ -1473,9 +1356,9 @@ public final class Internals {
         if (inputLmfObject instanceof LexicalResource) {
 
             // note at the beginning of the method we put id and prefix
-            for (String prefix : lexResPackage.getNamespaces()
+            for (String prefix : pack.getNamespaces()
                                               .keySet()) {
-                String url = lexResPackage.getNamespaces()
+                String url = pack.getNamespaces()
                                           .get(prefix);
                 atts.addAttribute("", "", "xmlns:" + prefix, "CDATA",
                         url);
@@ -1492,19 +1375,17 @@ public final class Internals {
             }
 
             atts.addAttribute("", "", xsiPrefix + ":noNamespaceSchemaLocation", "CDATA",
-                      Diversicons.SCHEMA_1_0_PUBLIC_URL);
+                    Diversicons.SCHEMA_1_0_PUBLIC_URL);
 
-            // default namespace is too complicated for users!   
+            // default namespace is too complicated for users!
             // atts.addAttribute("", "", "xmlns", "CDATA",
-            //        Diversicons.SCHEMA_1_NAMESPACE );
-            
+            // Diversicons.SCHEMA_1_NAMESPACE );
+
         }
 
         return elementName;
     }
 
-    
-    
     /**
      * 
      * @param normalizedElementName
@@ -1518,7 +1399,8 @@ public final class Internals {
             String normalizedElementName) {
 
         if (DTD_GRAMMAR == null) {
-            String dtdText = readData(Diversicons.DTD_1_0_CLASSPATH_URL).streamToString();
+            String dtdText = Diversicons.readData(Diversicons.DTD_1_0_CLASSPATH_URL)
+                                        .streamToString();
             DTD_GRAMMAR = parseDtd(dtdText);
         }
 
@@ -1530,15 +1412,14 @@ public final class Internals {
 
             List<UBYLMFFieldMetadata> ret = new ArrayList<>(10);
             UBYLMFFieldMetadata[] reorderedSubelems = new UBYLMFFieldMetadata[] {};
-            String[] reorderedSubelemsNames = new String[]{};
-            
+            String[] reorderedSubelemsNames = new String[] {};
+
             int nSubElemsFound = 0;
             List<UBYLMFFieldMetadata> attrs = new ArrayList<>();
 
             String[] dtdSubElementNames = new String[] {};
 
             while (DTD_GRAMMAR.getElementDecl(elementDeclIndex++, elDec)) {
-
 
                 if (elDec.name.rawname.equals(normalizedElementName)) {
 
@@ -1547,16 +1428,16 @@ public final class Internals {
                         dtdSubElementNames = new String[] {};
                     } else {
                         dtdSubElementNames = dtdContentSpec.replace("(", "")
-                                                        .replace(")", "")
-                                                        .replace("?", "")
-                                                        .replace("+", "")
-                                                        .replace("*", "")
-                                                        .split(",");
+                                                           .replace(")", "")
+                                                           .replace("?", "")
+                                                           .replace("+", "")
+                                                           .replace("*", "")
+                                                           .split(",");
                     }
 
                     reorderedSubelems = new UBYLMFFieldMetadata[dtdSubElementNames.length];
                     reorderedSubelemsNames = new String[dtdSubElementNames.length];
-                    
+
                     for (UBYLMFFieldMetadata fm : classMetadata.getFields()) {
                         Class clazz;
                         if (Collection.class.isAssignableFrom(fm.getType())) {
@@ -1592,10 +1473,10 @@ public final class Internals {
 
             if (nSubElemsFound != dtdSubElementNames.length) {
                 throw new DivException("Error while reordering elements according to DTD!"
-                        + " \nDTD declares " + dtdSubElementNames.length + " fields, found " + nSubElemsFound 
-                        + " \nin classMetadata = " + 
-                        classMetadata.getClazz()+ ", normalizedElementName = " + 
-            normalizedElementName 
+                        + " \nDTD declares " + dtdSubElementNames.length + " fields, found " + nSubElemsFound
+                        + " \nin classMetadata = " +
+                        classMetadata.getClazz() + ", normalizedElementName = " +
+                        normalizedElementName
                         + "\nDTD fields   :  " + Arrays.toString(dtdSubElementNames)
                         + "\nFound fields :  " + Arrays.toString(reorderedSubelemsNames));
             }
@@ -1609,21 +1490,37 @@ public final class Internals {
     }
 
     /**
-     * Performs a coherence check on provided lexical resource package.
+     * Performs a coherence check on provided lexical resource package. 
+     * If the check succeeds, return the package.
      * 
      * To match it against a LexicalResource, see
      * {@link #checkLexResPackage(LexResPackage, LexicalResource)}
+     * 
+     * <p>
+     * <strong>
+     * NOTE: This check partially duplicates the checking done in {@link DivXmlValidator} and so 
+     * it should be done only when that validation is not performed.
+     * </strong> 
+     * </p>
      * 
      * @throws IllegalArgumentException
      * 
      * @since 0.1.0
      */
-    public static LexResPackage checkLexResPackage(LexResPackage lexResPackage) {
+    public static LexResPackage checkLexResPackage(LexResPackage lexResPackage) {        
         return checkLexResPackage(lexResPackage, null);
     }
 
     /**
-     * Checks provided {@code LexicalResourcePackage} matches fields in {@code LexicalResource}
+     * Check provided {@code LexicalResourcePackage} matches fields in
+     * {@code LexicalResource}. If check passes, return the validated package.
+     * 
+     * <p>
+     * <strong>
+     * NOTE: This check partially duplicates the checking done in {@link DivXmlValidator} and so 
+     * it should be done only when that validation is not performed.
+     * </strong> 
+     * </p>
      * 
      * @throws IllegalArgumentException
      * 
@@ -1632,31 +1529,27 @@ public final class Internals {
     public static LexResPackage checkLexResPackage(
             LexResPackage pack,
             @Nullable LexicalResource lexRes) {
-
-        BuildInfo build = BuildInfo.of(Diversicon.class);
-
-        checkNotBlank(pack.getName(), "Invalid lexical resource name!");
-        Diversicons.checkPrefix(pack.getPrefix());
-
-        checkNotBlank(pack.getLabel(), "Invalid lexical resource label!");
-
-        if (pack.getPrefix()
-                .length() > Diversicons.LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH) {
-            LOG.warn("Lexical resource prefix " + pack.getPrefix() + " longer than "
-                    + Diversicons.LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH
-                    + ": this may cause memory issues.");
+        
+        Diversicons.checkLexResName(pack.getName(), "Invalid lexical resource 'name' field!");
+        if (lexRes != null){
+            Internals.checkEquals("Lexical resource name " + lexRes.getName() 
+            + " doesn't match name in pack: " + pack.getName(), pack.getName(), lexRes.getName());
         }
+        Diversicons.checkPrefix(pack.getPrefix());
+        
+        checkNotBlank(pack.getLabel(), "Invalid lexical resource label!");
 
         Diversicons.checkNamespaces(pack.getNamespaces());
 
         if (!pack.getNamespaces()
                  .containsKey(pack.getPrefix())) {
             throw new IllegalArgumentException(
-                    "Couldn't find LexicalResource prefix '" + pack.getPrefix() + "' among namespace prefixes! "
-                            + "See " + build.docsAtVersion() + "/diversicon-lmf.html"
-                            + " for info on how to structure a Diversicon XML!");
+                    "Couldn't find LexicalResource prefix '" + pack.getPrefix() + "' among namespace prefixes! ");
+                           //  TODO put good docs link
+                           //  + "See " + build.docsAtVersion() + "/diversicon-lmf.html"
+                           //  + " for info on how to structure a Diversicon XML!");
         }
-
+              
         return pack;
     }
 
@@ -1777,9 +1670,9 @@ public final class Internals {
 
         checkNotNull(output);
         checkNotNull(inputDtd);
-        
+
         checkArgument(inputDtd.exists(), "Can't find input DTD " + inputDtd.getAbsolutePath());
-        
+
         File tempDir = createTempDivDir("trang").toFile();
 
         /**
@@ -1791,13 +1684,14 @@ public final class Internals {
         // xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning"
         // vc:minVersion="1.1"
 
-        new com.thaiopensource.relaxng.translate.Driver().run(new String[] { 
+        new com.thaiopensource.relaxng.translate.Driver().run(new String[] {
                 "-I", "dtd", "-O", "xsd",
-                // default namespace is too complicated for users 
+                // default namespace is too complicated for users
                 // "-i", "xmlns=" + Diversicons.SCHEMA_1_NAMESPACE,
-                // since they are not used in first pass, trang kindly removes them with a warning :-/
-               // "-i", "xmlns:fn=http://www.w3.org/2005/xpath-functions",
-               //  "-i", "xmlns:vc=http://www.w3.org/2007/XMLSchema-versioning",
+                // since they are not used in first pass, trang kindly removes
+                // them with a warning :-/
+                // "-i", "xmlns:fn=http://www.w3.org/2005/xpath-functions",
+                // "-i", "xmlns:vc=http://www.w3.org/2007/XMLSchema-versioning",
                 inputDtd.getAbsolutePath(),
                 firstPass.getAbsolutePath() });
 
@@ -1814,12 +1708,13 @@ public final class Internals {
 
         SAXReader reader = new SAXReader();
         try {
-            org.dom4j.Document document = reader.read(firstPass);            
+            org.dom4j.Document document = reader.read(firstPass);
             document.getRootElement()
-                   // default namespace is too complicated for users!
-                   // .addAttribute("targetNamespace", Diversicons.SCHEMA_1_NAMESPACE)
+                    // default namespace is too complicated for users!
+                    // .addAttribute("targetNamespace",
+                    // Diversicons.SCHEMA_1_NAMESPACE)
                     .addAttribute("xmlns:fn", "http://www.w3.org/2005/xpath-functions")
-                    .addAttribute("xmlns:vc", "http://www.w3.org/2007/XMLSchema-versioning")                    
+                    .addAttribute("xmlns:vc", "http://www.w3.org/2007/XMLSchema-versioning")
                     .addAttribute("vc:minVersion", "1.0");
             org.dom4j.io.XMLWriter writer = new org.dom4j.io.XMLWriter(new FileOutputStream(secondPass),
                     org.dom4j.io.OutputFormat.createPrettyPrint());
@@ -1833,8 +1728,8 @@ public final class Internals {
 
         String xquery;
         try {
-            xquery = IOUtils.toString(Internals.readData(Internals.FIX_DIV_SCHEMA_XQL)
-                                               .stream());
+            xquery = IOUtils.toString(Diversicons.readData(Internals.FIX_DIV_SCHEMA_XQL)
+                                                 .stream());
         } catch (IOException ex) {
             throw new DivIoException(ex);
         }
@@ -1858,7 +1753,6 @@ public final class Internals {
          */
 
     }
-
 
     /**
      * @deprecated we don't really use it, it's here just as an experiment
@@ -1904,4 +1798,288 @@ public final class Internals {
 
     }
 
+    /**
+     * Performs HTTP GET on server.
+     *
+     * @param divConfig
+     *            if unknown use {@link DivConfig#of()}
+     *
+     * @throws DivIoException
+     * 
+     * @since 0.1.0
+     */
+    public static InputStream httpGet(DivConfig divConfig, URI url) {
+
+        try {
+
+            if (!checkedIsp) {
+                LOG.debug("First get, checking if behind a redirecting ISP...");
+                detectRedirectingISP(divConfig);
+                checkedIsp = true;
+            }
+
+            LOG.debug("Fetching " + url);
+
+            Request request = Request.Get(url);
+
+            configureRequest(divConfig, request);
+            DivRedirectStrategy stra = new DivRedirectStrategy();
+            CloseableHttpClient client = HttpClientBuilder.create()
+                                                          .setRedirectStrategy(stra)
+                                                          .build();
+            Executor executor = Executor.newInstance(client);
+
+            Response response = executor.execute(request);
+
+            List<URI> uris1 = stra.getRedirectUris();
+            if (uris1.size() > 0) {
+                URI lastUri = uris1.get(uris1.size() - 1);
+                if (isIspRedirectedUrl(lastUri.toString())) {
+                    throw new DivIoException("Couldn't find the request url " + url
+                            + " (seems like your ISP redirected to this landing page: " + lastUri + "   )");
+                }
+            }
+
+            HttpResponse httpResponse = response.returnResponse();
+
+            StatusLine statusLine = httpResponse.getStatusLine();
+            if (statusLine.getStatusCode() >= 400) {
+                throw new DivIoException("ERROR: " + statusLine.getStatusCode() + ": " + statusLine.getReasonPhrase());
+            }
+
+            return httpResponse
+                               .getEntity()
+                               .getContent();
+        } catch (Exception e) {
+            throw new DivIoException(e);
+        }
+
+    }
+
+
+
+    /**
+     * Detects if behind a redirecting ISP and updates {@link #redirectingISPs}
+     * accordingly. Never throws.
+     * 
+     * <p>
+     * Some bastards ISP redirect on ad pages instead of giving 404. ,
+     * see <a href="https://github.com/diversicon-kb/diversicon-core/issues/29"
+     * target="_blank">
+     * issue 29 on Github</a>
+     * </p>
+     * 
+     * @since 0.1.0
+     */
+    private static void detectRedirectingISP(DivConfig config) {
+
+        URI lastUri_1 = null;
+        URI lastUri_2 = null;
+        
+        try {
+
+            String url1 = NON_EXISTING_URL_1;
+            LOG.debug("Fetching non-existent url " + url1);
+
+            Request request1 = configureRequest(config, Request.Get(url1));
+            DivRedirectStrategy stra1 = new DivRedirectStrategy();
+            CloseableHttpClient client1 = HttpClientBuilder.create()
+                                                           .setRedirectStrategy(stra1)
+                                                           .build();
+            Executor executor1 = Executor.newInstance(client1);
+
+            Response resp1 = executor1.execute(request1);
+            LOG.trace(resp1.returnContent()
+                           .asString());
+            List<URI> uris1 = stra1.getRedirectUris();
+            lastUri_1 = uris1.get(uris1.size() - 1);
+
+        } catch (IOException e) {
+
+            LOG.trace("Couldn't fetch non existing page " + NON_EXISTING_URL_1
+                    + "\nWith well-behaved ISPs"
+                    + " this is the expected behaviour !", e);
+
+        
+        } catch (Exception ex) {
+            LOG.debug("Caught some unexpected exception while probing if behind a redirecting ISP with url " + NON_EXISTING_URL_1, ex);
+        }
+        
+        try {
+            String url2 = NON_EXISTING_URL_2;
+            LOG.debug("Fetching non-existent url " + url2);
+            DivRedirectStrategy stra2 = new DivRedirectStrategy();
+            CloseableHttpClient client2 = HttpClientBuilder.create()
+                                                           .setRedirectStrategy(stra2)
+                                                           .build();
+            Executor executor2 = Executor.newInstance(client2);
+
+            Request request2 = configureRequest(config, Request.Get(url2));
+            Response resp2 = executor2.execute(request2);
+            LOG.trace(resp2.returnContent()
+                           .asString());
+            List<URI> uris2 = stra2.getRedirectUris();
+            
+            lastUri_2 = uris2.get(uris2.size() - 1);
+            
+        } catch (IOException e) {
+
+            LOG.trace("Couldn't fetch non existing page " + NON_EXISTING_URL_2
+                    + "\nWith well-behaved ISPs"
+                    + " this is the expected behaviour !", e);
+
+        } catch (Exception ex) {
+            LOG.debug("Caught some unexpected exception while probing if behind a redirecting ISP with url " + NON_EXISTING_URL_2, ex);
+        }
+    
+    
+        String commonUrl = "";
+        
+        if (lastUri_1 != null && lastUri_2 != null){
+            commonUrl = longestCommonPrefix(lastUri_1.toString(), lastUri_2.toString());
+        } else {
+            if (lastUri_1 != null){
+                commonUrl = lastUri_1.toString(); 
+            } else if (lastUri_2 != null){                    
+                commonUrl = lastUri_2.toString();                     
+            }
+        }
+        if (lastUri_1 != null || lastUri_2 != null ){
+            LOG.debug("***  Seems like your nasty ISP is hacking HTTP to redirect missed pages to " + commonUrl);
+            LOG.debug("***  This may cause troubles when downloading some files !");
+            redirectingISPs.add(commonUrl);
+        }                      
+        
+    }
+
+    /**
+     * Returns true if {@code url} could be the result of an inappropriate
+     * reidrection from the ISP.
+     * 
+     * See https://github.com/diversicon-kb/diversicon-core/issues/29
+     * 
+     * @since 0.1.0
+     */
+    private static boolean isIspRedirectedUrl(String url) {
+        for (String u : redirectingISPs) {
+            if (url.startsWith(u)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+   
+
+    /**
+     * Configures the request. Should work both for GETs and POSTs.
+     * 
+     * @since 0.1.0
+     */
+    private static Request configureRequest(DivConfig config, Request request) {
+        checkNotNull(config, "Invalid null config, if unknown use DivConfig.of()");
+        checkNotNull(request);
+
+        if (config.getHttpProxy() != null) {
+
+            request.viaProxy(config.getHttpProxy());
+        }
+        request.socketTimeout(config.getTimeout())
+               .connectTimeout(config.getTimeout());
+
+        return request;
+    }
+
+    /**
+     * 
+     * Returns the id of the items in the provided collection.
+     * Null collection items are reported with warnings.
+     * 
+     * @since 0.1.0
+     */
+    public static <T extends IHasID> List<String> getIds(Collection<T> col){
+        checkNotNull(col);        
+        
+        List<String> ret = new ArrayList<>();
+        
+       for (IHasID hasId : col){
+           if (hasId == null){
+               LOG.warn("Found collection with null item, skipping it !");
+           } else {
+               ret.add(hasId.getId());
+           }
+       }
+       
+       return ret;
+        
+    }
+    
+    /**
+     * Returns the longest common prefix among strings {@code a} and {@code b}.
+     * If any of them is empty, returns the empty string.
+     * 
+     * @since 0.1.0
+     */
+    public static String longestCommonPrefix(String a, String b) {
+        checkNotNull(a);
+        checkNotNull(b);
+        if (a.isEmpty() || b.isEmpty()) {
+            return "";
+        }
+        int minLength = Math.min(a.length(), b.length());
+        for (int i = 0; i < minLength; i++) {
+            if (a.charAt(i) != b.charAt(i)) {
+                return a.substring(0, i);
+            }
+        }
+        return a.substring(0, minLength);
+    }
+
+    /**
+     * @since 0.1.0
+     */
+    public static ImportConfig createImportConfig(LexicalResource lexRes){
+        checkNotNull(lexRes);
+        
+        ImportConfig importConfig = new ImportConfig()
+                .setAuthor(Diversicons.DEFAULT_AUTHOR)        
+                .addLexResFileUrl(Diversicons.MEMORY_PROTOCOL + ":" + lexRes.hashCode());
+        return importConfig;
+
+    }
+
+    /**
+     * Return a list of the exception messages.
+     * 
+     * @since 0.1.0
+     */
+    public static List<String> getExceptionMessagesList(Throwable throwable) {
+        List<String> result = new ArrayList<String>();
+        while (throwable != null) {
+            result.add(throwable.getMessage());
+            throwable = throwable.getCause();
+        }
+        return result; //["THIRD EXCEPTION", "SECOND EXCEPTION", "FIRST EXCEPTION"]
+    }
+    
+    /**
+     * Return the exception messages concatenated by '\n'
+     * 
+     * @since 0.1.0
+     */
+    public static String getExceptionMessages(Throwable throwable) {
+        StringBuilder sb = new StringBuilder();
+        boolean first = true;
+        for (String item : getExceptionMessagesList(throwable))
+        {
+           if (first)
+              first = false;
+           else
+              sb.append("\n");
+           sb.append(item);
+        }
+        return sb.toString();
+ 
+    }
+    
 }

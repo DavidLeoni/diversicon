@@ -230,10 +230,10 @@ public class XmlExperimentsTest {
     @Test
     @Ignore
     public void testXmlValidationValidator() {
-        File xmlFile = Internals.readData(Examplicon.XML_URI)
+        File xmlFile = Diversicons.readData(Examplicon.XML_URI)
                                 .toTempFile();
 
-        File xsdFile = Internals.readData(Diversicons.SCHEMA_1_0_CLASSPATH_URL, false)
+        File xsdFile = Diversicons.readData(Diversicons.SCHEMA_1_0_CLASSPATH_URL, false)
                                 .toTempFile();
 
         // if editor can't find the constant probably default xerces is being
@@ -281,12 +281,12 @@ public class XmlExperimentsTest {
     @Ignore
     public void testDamnedSkipDtdValidation() {
 
-        File xmlFile = Internals.readData(Examplicon.XML_URI)
+        File xmlFile = Diversicons.readData(Examplicon.XML_URI)
                                 .toTempFile();
 
         checkNotNull(xmlFile);
 
-        File xsdFile = Internals.readData(Diversicons.SCHEMA_1_0_CLASSPATH_URL, false)
+        File xsdFile = Diversicons.readData(Diversicons.SCHEMA_1_0_CLASSPATH_URL, false)
                                 .toTempFile();
 
         SchemaFactory factory = SchemaFactory.newInstance(Constants.W3C_XML_SCHEMA11_NS_URI);

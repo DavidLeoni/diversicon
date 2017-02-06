@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Array;
+import java.net.ServerSocket;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,21 +33,25 @@ import de.tudarmstadt.ukp.lmf.model.core.LexicalEntry;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
 import de.tudarmstadt.ukp.lmf.model.core.TextRepresentation;
+import de.tudarmstadt.ukp.lmf.model.enums.ELabelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.model.interfaces.IHasID;
 import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
+import eu.kidf.diversicon.core.DivConfig;
 import eu.kidf.diversicon.core.DivSynsetRelation;
 import eu.kidf.diversicon.core.Diversicon;
 import eu.kidf.diversicon.core.Diversicons;
+import eu.kidf.diversicon.core.ImportConfig;
 import eu.kidf.diversicon.core.ImportJob;
 import eu.kidf.diversicon.core.LexResPackage;
 import eu.kidf.diversicon.core.exceptions.DivException;
 import eu.kidf.diversicon.core.exceptions.DivNotFoundException;
 import eu.kidf.diversicon.core.exceptions.DivValidationException;
 import eu.kidf.diversicon.core.internal.Internals;
+import eu.kidf.diversicon.data.DivUpper;
 
 public final class DivTester {
 
@@ -54,6 +59,12 @@ public final class DivTester {
      * @since 0.1.0
      */
     public static final String DEFAULT_TEST_PREFIX = "test";
+    
+    /**
+     * @since 0.1.0
+     */
+    public static final String DIVERSICON_ORG_URL = "https://github.com/diversicon-kb";
+        
     
     /**
      * @since 0.1.0
@@ -69,6 +80,7 @@ public final class DivTester {
 
     private static final String TEST_RESOURCES_PATH = "it/unitn/disi/diversicon/test/";
 
+
     static final String DIVERSICON_TEST_STRING = Internals.DIVERSICON_STRING + "-test-";
 
     /**
@@ -80,8 +92,6 @@ public final class DivTester {
 
     private static int dbCounter = -1;
 
-    
-    
     /**
      * 2 verteces and 1 hypernym edge
      * 
@@ -93,24 +103,24 @@ public final class DivTester {
                                                           .synset()
                                                           .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
                                                           .build();
-   
 
     /**
-     * Graph with 3 verteces and 2 hypernym edges,  a good candidate for augmentation. 
+     * Graph with 3 verteces and 2 hypernym edges, a good candidate for
+     * augmentation.
      * 
      * @see #DAG_3_HYPERNYM
      * 
-     * @since 0.1.0 
+     * @since 0.1.0
      */
     public static LexicalResource GRAPH_3_HYPERNYM = lmf().lexicon()
-        .synset()
-        .lexicalEntry()
-        .synset()
-        .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
-        .synset()
-        .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
-        .build();
-        
+                                                          .synset()
+                                                          .lexicalEntry()
+                                                          .synset()
+                                                          .synsetRelation(ERelNameSemantics.HYPERNYM, 1)
+                                                          .synset()
+                                                          .synsetRelation(ERelNameSemantics.HYPERNYM, 2)
+                                                          .build();
+
     /**
      * 4 verteces, last one is connected to others by respectively hypernym
      * edge, holonym and 'hello' edge
@@ -159,6 +169,110 @@ public final class DivTester {
                                                                .synsetRelation(ERelNameSemantics.HOLONYM, 1)
                                                                .build();
 
+    /**
+     * A prefix longer than recommended length
+     * 
+     * @since 0.1.0
+     */
+    public static final String TOO_LONG_PREFIX = new String(new char[Diversicons.LEXRES_PREFIX_SUGGESTED_LENGTH+1]).replace("\0", "p");
+    
+    /**
+     * Graph that issues a warning when validated because it uses a too long prefix.
+     * Useful when checking strict validation.
+     * 
+     * @since 0.1.0
+     */
+    public static final LexicalResource GRAPH_WARNING = lmf(TOO_LONG_PREFIX)
+                                                        .lexicon()
+                                                        .synset()
+                                                        .lexicalEntry()                                                                           
+                                                        .build();    
+    
+    /**
+     * <pre>
+     * div_ss_n_domain
+     *    ^
+     *    | superDomain
+     * synset 1
+     *    ^
+     *    | superDomain
+     * synset 2
+     *    ^
+     *    |  domain
+     * synset 3
+     *    
+     * synset 4  // detached
+     * <pre/>
+     * @since 0.1.0
+     */
+    public static final LexicalResource GRAPH_DOMAINS_SIMPLE = lmf().lexicon()
+            .synset()
+            .synsetRelation(Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN, DivUpper.SYNSET_ROOT_DOMAIN)
+            .lexicalEntry()
+            .synset()
+            .synsetRelation(Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN, 1)
+            .lexicalEntry()                
+            .synset()
+            .synsetRelation(Diversicons.RELATION_DIVERSICON_DOMAIN, 2)
+            .lexicalEntry()
+            .synset()               
+            .build();
+
+    /**
+     * <pre>
+     * synset-1
+     *   ^
+     *   |  topic
+     * synset-2
+     * <pre/>
+     * 
+     * @since 0.1.0
+     */
+    public static final LexicalResource GRAPH_TOPIC = lmf().lexicon()
+                        .synset()                        
+                        .lexicalEntry()
+                        .synset()
+                        .synsetRelation(Diversicons.RELATION_WORDNET_TOPIC, 1)
+                        .lexicalEntry()                                      
+                        .build();
+
+    /**
+     * <pre>
+     * synset-1  - lexical-entry-1 - sense-1 - SemanticLabel type = 'domain'
+     *     
+     * synset-2  - lexical-entry-2 - sense-2 - SemanticLabel type = 'category' 
+     * <pre/>
+     * 
+     * @since 0.1.0
+     */
+    public static final LexicalResource GRAPH_DOMAIN_SEMANTIC_LABEL = lmf().lexicon()
+            .synset()                        
+            .lexicalEntry()
+            .semanticLabel("d1", ELabelTypeSemantics.domain)
+            .synset()
+            .lexicalEntry()
+            .semanticLabel("d2", ELabelTypeSemantics.category) // category is *NOT* a domain !
+            .build();
+    
+    /**
+     * <pre>
+     * 
+     *  synset-1 
+     *     | is-topic-of 
+     *  synset-2
+     *   
+     * <pre/>
+     * 
+     * @since 0.1.0
+     */
+    public static final LexicalResource GRAPH_DOMAIN_IS_TOPIC_OF = lmf().lexicon()
+                            .synset()                                       
+                            .lexicalEntry()
+                            .synset()                    
+                            .lexicalEntry()
+                            .synsetRelation(Diversicons.RELATION_WORDNET_IS_TOPIC_OF, 1,2)                    
+                            .build();
+    
     private static final Logger LOG = LoggerFactory.getLogger(DivTester.class);
 
     /**
@@ -192,10 +306,16 @@ public final class DivTester {
                 }
             }
         }
-        
+
         throw new DivNotFoundException("Couldn't find synset with id 'synset " + idNum);
     }
 
+    /**
+     * Checks first collection items have same ids as the correspong elements in
+     * second collection.
+     * 
+     * @since 0.1.0
+     */
     public static <T extends IHasID> void checkEqualIds(Collection<T> col1, Collection<T> col2) {
 
         if (col1 == null) {
@@ -255,8 +375,8 @@ public final class DivTester {
     }
 
     /**
-     * returns permutations of numbers from 0 included to size excluded. 
-     * i.e. [0,1,2],[0,2,1],[1,0,2], ... 
+     * returns permutations of numbers from 0 included to size excluded.
+     * i.e. [0,1,2],[0,2,1],[1,0,2], ...
      * 
      * 
      * @since 0.1.0
@@ -341,19 +461,19 @@ public final class DivTester {
      *
      * @since 0.1.0
      */
-    private static String getId(@Nullable IHasID hasId){
-        return hasId== null ? "null" : hasId.getId();
+    private static String getId(@Nullable IHasID hasId) {
+        return hasId == null ? "null" : hasId.getId();
     }
-    
+
     /**
      * See {@link #checkDb(LexicalResource, Diversicon)}
      * 
      * @since 0.1.0
-     */    
+     */
     private static void checkDbSynset(
-            Synset syn, 
-            Lexicon lex, 
-            Diversicon diversicon, 
+            Synset syn,
+            Lexicon lex,
+            Diversicon diversicon,
             Set<Flags> flags) {
         String synId = getId(syn);
         try {
@@ -423,11 +543,11 @@ public final class DivTester {
      * 
      * @since 0.1.0
      */
-    private static void checkDbSynsetRelations(Synset syn,  Diversicon diversicon, Set<Flags> flags) {
-        
+    private static void checkDbSynsetRelations(Synset syn, Diversicon diversicon, Set<Flags> flags) {
+
         String synId = getId(syn);
         Synset dbSyn = diversicon.getSynsetById(syn.getId());
-        
+
         List<int[]> permutations;
 
         if (flags.contains(Flags.UNORDERED_SYNSET_RELATIONS)) {
@@ -441,7 +561,7 @@ public final class DivTester {
                                    .size(); i++) {
                 normalPerm[i] = i;
             }
-            permutations = new ArrayList();
+            permutations = new ArrayList<>();
             permutations.add(normalPerm);
         }
 
@@ -524,7 +644,7 @@ public final class DivTester {
      * @since 0.1.0
      */
     public static void checkDb(LexicalResource lr, Diversicon diversicon) {
-        checkDb(lr, diversicon, new HashSet());
+        checkDb(lr, diversicon, new HashSet<Flags>());
     }
 
     /**
@@ -546,62 +666,62 @@ public final class DivTester {
     }
 
     /**
-     * Creates an xml file out of the provided lexical resource. Written 
-     * lexical resource will include provided namespaces as {@code xmlns} attributes
-     * 
-     * @param namespaces Namespaces expressed as prefix : url
-     * 
+     * Creates an xml file out of the provided lexical resource. Written
+     * lexical resource will include provided package metadata.
+     *  
      * @since 0.1.0
      */
     public static File writeXml(
-            LexicalResource lexRes, 
-            LexResPackage lexResPackage) {
-        checkNotNull(lexRes);
-        checkNotNull(lexResPackage);
+            LexicalResource lexRes,
+            LexResPackage pack) {
         
-        File ret = createTempFile(DivTester.DIVERSICON_TEST_STRING, ".xml").toFile();        
-        Diversicons.writeLexResToXml(lexRes, lexResPackage, ret);               
+        Internals.checkLexResPackage(pack, lexRes);
 
-        return ret;        
+        File ret = createTempFile(DivTester.DIVERSICON_TEST_STRING, ".xml").toFile();
+        Diversicons.writeLexResToXml(lexRes, pack, ret);
+
+        return ret;
     }
-    
+
     /**
      * Creates an xml file out of the provided lexical resource and prefix.
      * 
-     * Other required parameters will be automatcally 
+     * Other required parameters will be automatcally
      * generated in a predictable manner.
      * 
      * @since 0.1.0
      */
     public static File writeXml(LexicalResource lexRes, String prefix) {
         checkNotNull(lexRes);
-        Diversicons.checkPrefix(prefix);        
-        
+        Diversicons.checkPrefix(prefix);
+
         LexResPackage pack = createLexResPackage(lexRes, prefix);
-        
+
         return writeXml(lexRes, pack);
     }
-    
+
     /**
-     * Creates a Lexical Resource package automatically filling id, name and namespaces
+     * Creates a Lexical Resource package automatically filling id, name and
+     * namespaces
      * in a predictable manner.
      * 
      * @since 0.1.0
      */
-    public static LexResPackage createLexResPackage(LexicalResource lexRes, String prefix){
+    public static LexResPackage createLexResPackage(LexicalResource lexRes, String prefix) {
         LexResPackage pack = new LexResPackage();
-        
+
         pack.setName(lexRes.getName());
-        if (lexRes.getGlobalInformation() == null){           
+        if (lexRes.getGlobalInformation() == null) {
             pack.setLabel(prefix);
-        } else {            
-            pack.setLabel(lexRes.getGlobalInformation().getLabel());    
-        }        
+        } else {
+            pack.setLabel(lexRes.getGlobalInformation()
+                                .getLabel());
+        }
         pack.setPrefix(prefix);
-        pack.putNamespace(prefix, "http://test-"+lexRes.hashCode() + ".xml");
+        pack.putNamespace(prefix, "http://test-" + lexRes.hashCode() + ".xml");
         return pack;
     }
-    
+
     /**
      * Creates a Lexical Resource package using the default test prefix
      * 
@@ -609,17 +729,17 @@ public final class DivTester {
      * 
      * @since 0.1.0
      */
-    public static LexResPackage createLexResPackage(LexicalResource lexRes){
+    public static LexResPackage createLexResPackage(LexicalResource lexRes) {
         return createLexResPackage(lexRes, DEFAULT_TEST_PREFIX);
-    }    
-    
-    
-    
+    }
+
     /**
      * 
-     * Imports a resource automatically creating id, prefix and namespaces in a predictable way.
+     * Imports a resource automatically creating id, prefix and namespaces in a
+     * predictable way.
      * 
-     * See {@link Diversicon#importResource(LexicalResource, LexResPackage, boolean)
+     * See
+     * {@link Diversicon#importResource(LexicalResource, LexResPackage, boolean)
      * 
      * @throws DivException
      * @throws DivValidationException
@@ -627,22 +747,24 @@ public final class DivTester {
      * @since 0.1.0
      */
     public static ImportJob importResource(Diversicon div,
-            LexicalResource lexRes,        
+            LexicalResource lexRes,
             boolean skipAugment) {
-                       
-        return  div.importResource(lexRes,
-                createLexResPackage(lexRes), 
+
+        return div.importResource(lexRes,
+                createLexResPackage(lexRes),
                 skipAugment);
     }
-    
+
     /**
-     * Creates an XML file out of the provided lexical resource and {@link #DEFAULT_TEST_PREFIX}.
+     * Creates an XML file out of the provided lexical resource and
+     * {@link #DEFAULT_TEST_PREFIX}.
      * 
-     * Other required parameters will be automatically generated in a predictable manner.
+     * Other required parameters will be automatically generated in a
+     * predictable manner.
      * 
      * @since 0.1.0
      */
-    public static File writeXml(LexicalResource lexRes) {        
+    public static File writeXml(LexicalResource lexRes) {
         return writeXml(lexRes, DEFAULT_TEST_PREFIX);
     }
 
@@ -651,9 +773,9 @@ public final class DivTester {
      * 
      * @since 0.1.0
      */
-    public static DBConfig createNewDbConfig() {
+    public static DivConfig createNewDivConfig() {
         dbCounter += 1;
-        return createDbConfig(dbCounter);
+        return DivConfig.of(createDbConfig(dbCounter));
     }
 
     /**
@@ -686,38 +808,37 @@ public final class DivTester {
     /**
      * @since 0.1.0
      */
-    static File writeXml(String content){
+    static File writeXml(String content) {
         checkNotNull(content);
-        
+
         Path p = DivTester.createTestDir();
-        File f = new File(p.toFile(),"test.xml");        
+        File f = new File(p.toFile(), "test.xml");
         try {
             FileUtils.writeStringToFile(f, content);
-        } catch (IOException ex) {            
+        } catch (IOException ex) {
             throw new Error("Failed writing xml string to file " + f.getAbsolutePath(), ex);
         }
         return f;
     }
-    
+
     /**
      * Adds default prefix used during tests.
      * 
      * @since 0.1.0
      */
-    public static String tid(String name){        
+    public static String tid(String name) {
         return pid(DEFAULT_TEST_PREFIX, name);
     }
-        
+
     /**
      * Adds default prefix used during tests.
      * 
      * @since 0.1.0
      */
-    public static String pid(String prefix, String name){        
+    public static String pid(String prefix, String name) {
         return prefix + Diversicons.NAMESPACE_SEPARATOR + name;
     }
-    
-    
+
     /**
      * Utility functions for developing Diversicon.
      * 
@@ -758,16 +879,16 @@ public final class DivTester {
                 throw new DivException(ex);
             }
             System.exit(0);
-        case "s":   
-            String modelPath = "../../diversicon-model/prj/"            
-            + ((Internals.DEV_WEBSITE + "/" 
-            + Diversicons.SCHEMA_1_0_FRAGMENT 
-            + "/").substring("file://".length()));
-            
+        case "s":
+            String modelPath = "../../diversicon-model/prj/"
+                    + ((Internals.DEV_WEBSITE + "/"
+                            + Diversicons.SCHEMA_1_0_FRAGMENT
+                            + "/").substring("file://".length()));
+
             File dtd = new File(modelPath + Diversicons.DTD_FILENAME);
-            File schema = new File(modelPath + Diversicons.SCHEMA_FILENAME); 
-                        
-            Internals.generateXmlSchemaFromDtd(dtd, schema);            
+            File schema = new File(modelPath + Diversicons.SCHEMA_FILENAME);
+
+            Internals.generateXmlSchemaFromDtd(dtd, schema);
             System.exit(0);
         default:
             LOG.error("Invalid command " + args[0]);
@@ -775,5 +896,5 @@ public final class DivTester {
         }
 
     }
-    
+
 }

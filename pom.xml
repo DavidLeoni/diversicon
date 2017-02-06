@@ -116,19 +116,19 @@
 			</plugin>
 
 			<plugin>
-			  <groupId>org.codehaus.mojo</groupId>
-			  <artifactId>exec-maven-plugin</artifactId>
-			  <executions>
-			    <execution>
-			      <goals>
-			        <goal>java</goal>
-			      </goals>
-			    </execution>
-			  </executions>
-			  <configuration>
-			    	<mainClass>eu.kidf.diversicon.core.test.DivTester</mainClass>
-			    	<classpathScope>test</classpathScope>
-			  </configuration>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<goals>
+							<goal>java</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<mainClass>eu.kidf.diversicon.core.test.DivTester</mainClass>
+					<classpathScope>test</classpathScope>
+				</configuration>
 			</plugin>
 
 		</plugins>
@@ -287,6 +287,21 @@
 			<artifactId>div-wn31-model</artifactId>
 		</dependency>
 
+		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpcore</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpmime</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>fluent-hc</artifactId>
+		</dependency>
+
 
 		<!-- ****************** TEST DEPENDENCIES ****************** -->
 
@@ -327,6 +342,36 @@
 			<groupId>eu.kidf</groupId>
 			<artifactId>div-wn31-sql</artifactId>
 			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>com.github.tomakehurst</groupId>
+			<artifactId>wiremock</artifactId>
+			
+			<scope>test</scope>
+		</dependency>
+
+		<!-- for wiremock deps clashes -->
+		<dependency>
+			<groupId>com.flipkart.zjsonpatch</groupId>
+			<artifactId>zjsonpatch</artifactId>			
+			<scope>test</scope>			
+		</dependency>
+
+		<!-- for wiremock deps clashes -->
+		<dependency>
+			<groupId>com.github.jknack</groupId>
+			<artifactId>handlebars</artifactId>
+			
+			<scope>test</scope>
+		</dependency>
+
+		<!-- for wiremock deps clashes -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>			
+			<scope>test</scope>
+			
 		</dependency>
 
 

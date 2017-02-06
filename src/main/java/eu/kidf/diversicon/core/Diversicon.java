@@ -2,8 +2,6 @@ package eu.kidf.diversicon.core;
 
 import static eu.kidf.diversicon.core.Diversicons.checkId;
 import static eu.kidf.diversicon.core.internal.Internals.checkArgument;
-import static eu.kidf.diversicon.core.internal.Internals.checkEquals;
-import static eu.kidf.diversicon.core.internal.Internals.checkLexResPackage;
 import static eu.kidf.diversicon.core.internal.Internals.checkNotBlank;
 import static eu.kidf.diversicon.core.internal.Internals.checkNotEmpty;
 import static eu.kidf.diversicon.core.internal.Internals.checkNotNull;
@@ -19,10 +17,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.zip.Deflater;
 
 import javax.annotation.Nullable;
@@ -41,6 +41,7 @@ import org.hibernate.ScrollableResults;
 import org.hibernate.Transaction;
 import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Projections;
+import org.hibernate.criterion.Property;
 import org.hibernate.criterion.Restrictions;
 import org.hibernate.service.ServiceRegistryBuilder;
 import org.slf4j.Logger;
@@ -51,6 +52,7 @@ import de.tudarmstadt.ukp.lmf.api.Uby;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalEntry;
 import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
 import de.tudarmstadt.ukp.lmf.model.core.Lexicon;
+import de.tudarmstadt.ukp.lmf.model.enums.ELabelTypeSemantics;
 import de.tudarmstadt.ukp.lmf.model.enums.EPartOfSpeech;
 import de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics;
 import de.tudarmstadt.ukp.lmf.model.morphology.FormRepresentation;
@@ -68,7 +70,9 @@ import eu.kidf.diversicon.core.exceptions.InterruptedImportException;
 import eu.kidf.diversicon.core.exceptions.InvalidImportException;
 import eu.kidf.diversicon.core.exceptions.InvalidSchemaException;
 import eu.kidf.diversicon.core.exceptions.InvalidStateException;
+import eu.kidf.diversicon.core.exceptions.InvalidXmlException;
 import eu.kidf.diversicon.core.internal.Internals;
+import eu.kidf.diversicon.data.DivUpper;
 
 /**
  * Extension of {@link de.tudarmstadt.ukp.lmf.api.Uby Uby} LMF knowledge base
@@ -116,18 +120,26 @@ public class Diversicon extends Uby {
     private static final Map<Integer, Diversicon> INSTANCES = new HashMap<>();
 
     /**
+     * @since 0.1.0
+     */
+    private DivConfig config;
+
+    /**
      * @throws DivIoException
      * @throws InvalidSchemaException
      * 
      * @since 0.1.0
      */
-    protected Diversicon(DBConfig dbConfig) {
+    protected Diversicon(DivConfig config) {
         super(); // so it doesn't open connections! Let's hope they don't delete
                  // it!
 
-        checkNotNull(dbConfig, "database configuration is null");
+        checkNotNull(config);
+        Internals.checkNotNull(config.getDbConfig());
 
-        this.dbConfig = dbConfig;
+        this.config = config;
+
+        this.dbConfig = config.getDbConfig();
 
         LOG.info("Connecting to database   " + dbConfig.getJdbc_url());
 
@@ -141,8 +153,8 @@ public class Diversicon extends Uby {
         if (INSTANCES.containsKey(hashcode)) {
             throw new DivException("INTERNAL ERROR: Seems like there is some sort of duplicate Diversicon session!!");
         }
-        INSTANCES.put(hashcode, this);       
-        
+        INSTANCES.put(hashcode, this);
+
         LOG.info("Connected!");
     }
 
@@ -256,7 +268,7 @@ public class Diversicon extends Uby {
         }
         return ret;
     }
-    
+
     /**
      * See {@link #getLemmasByWrittenForm(String, EPartOfSpeech, Lexicon)}.
      * 
@@ -403,8 +415,7 @@ public class Diversicon extends Uby {
 
     /**
      * Validates, normalizes and augments the synsetRelation graph with edges to
-     * speed up
-     * searches.
+     * speed up searches.
      * 
      * @throws DivValidationException
      * 
@@ -581,8 +592,12 @@ public class Diversicon extends Uby {
         Date start = checkpoint;
 
         try {
+
             tx = session.beginTransaction();
 
+            Synset rootDomain = getSynsetById(DivUpper.SYNSET_ROOT_DOMAIN);
+            Set<String> domainCandidates = domainCandidates();
+            
             long totalSynsets = getSynsetCount();
 
             String hql = "FROM Synset";
@@ -599,6 +614,8 @@ public class Diversicon extends Uby {
 
             LOG.info("\nFound " + totalSynsets + " synsets.\n");
 
+
+            
             while (synsets.next()) {
 
                 Synset synset = (Synset) synsets.get(0);
@@ -606,38 +623,18 @@ public class Diversicon extends Uby {
 
                 List<SynsetRelation> relations = synset.getSynsetRelations();
 
-                for (SynsetRelation sr : relations) {
+                if (domainCandidates.contains(synset.getId())){
+                    normalizeCandidateDomain(synset, rootDomain, insStats);    
+                }
+                              
+                                
+                for (SynsetRelation sr : new ArrayList<>(relations)){                    
+                    
                     DivSynsetRelation ssr = (DivSynsetRelation) sr;
 
-                    if (Diversicons.hasInverse(ssr.getRelName())) {
-                        String inverseRelName = Diversicons.getInverse(ssr.getRelName());
-                        if (Diversicons.isCanonicalRelation(inverseRelName)
-                                && Diversicons.isTransitive(inverseRelName)
-                                // don't want to add cycles
-                                && !(ssr.getSource()
-                                        .getId()
-                                        .equals(ssr.getTarget()
-                                                   .getId()))
-                                && !containsRel(ssr.getTarget(),
-                                        ssr.getSource(),
-                                        inverseRelName)) {
-                            DivSynsetRelation newSsr = new DivSynsetRelation();
+                    normalizeTopicToDomain(ssr, insStats);
 
-                            newSsr.setDepth(1);
-                            newSsr.setProvenance(Diversicon.getProvenanceId());
-                            newSsr.setRelName(inverseRelName);
-                            newSsr.setRelType(Diversicons.getRelationType(inverseRelName));
-                            newSsr.setSource(ssr.getTarget());
-                            newSsr.setTarget(ssr.getSource());
-
-                            ssr.getTarget()
-                               .getSynsetRelations()
-                               .add(newSsr);
-                            session.save(newSsr);
-                            session.saveOrUpdate(ssr.getTarget());
-                            insStats.inc(inverseRelName);
-                        }
-                    }
+                    normalizeInverses(ssr, insStats);
 
                 }
 
@@ -667,7 +664,129 @@ public class Diversicon extends Uby {
             if (tx != null) {
                 tx.rollback();
             }
-            throw new DivException("Error while computing normalizing graph!", ex);
+            throw new DivException("Error while computing normalized graph!", ex);
+        }
+    }
+
+    /**
+     * Connects provided candidate domain synset by 
+     * {@link Diversicons#RELATION_DIVERSICON_SUPER_DOMAIN superDomain} relation
+     * to {@link DivUpper#SYNSET_ROOT_DOMAIN root domain}
+     * 
+     * @param synset MUST *NOT* ALREADY BE A DOMAIN (see {@link  #isDomain(String)}!!
+     * @param insertion stats to modify
+     * 
+     * @see #isDomain(Synset)
+     * @since 0.1.0
+     */
+    private void normalizeCandidateDomain(Synset synset, Synset rootDomain, InsertionStats insStats) {
+        checkNotNull(synset);
+        checkNotNull(insStats);
+
+        String superDomain = Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN;
+
+       
+                
+        DivSynsetRelation newSsr = new DivSynsetRelation();
+
+        newSsr.setDepth(1);
+        newSsr.setProvenance(Diversicon.getProvenanceId());
+        
+        newSsr.setRelName(superDomain);
+        newSsr.setRelType(Diversicons.getRelationType(superDomain));
+        newSsr.setSource(synset);
+        newSsr.setTarget(rootDomain);
+        synset
+        .getSynsetRelations()
+        .add(newSsr);
+
+        session.save(newSsr);
+        session.saveOrUpdate(synset);
+        insStats.inc(superDomain);           
+        
+    }
+
+    /**
+     * Normalizes the inverses
+     * 
+     * @param ssr
+     *            a SynsetRelation to check
+     * @param insStats
+     *            insertion stats to modify
+     * 
+     * @since 0.1.0
+     */
+    private void normalizeInverses(DivSynsetRelation ssr, InsertionStats insStats) {
+        checkNotNull(ssr);
+        checkNotNull(insStats);
+
+        if (Diversicons.hasInverse(ssr.getRelName())) {
+            String inverseRelName = Diversicons.getInverse(ssr.getRelName());
+            if (Diversicons.isCanonicalRelation(inverseRelName)
+                    // don't want to add cycles
+                    && !(ssr.getSource()
+                            .getId()
+                            .equals(ssr.getTarget()
+                                       .getId()))
+                    && !containsRel(ssr.getTarget(),
+                            ssr.getSource(),
+                            inverseRelName)) {
+                DivSynsetRelation newSsr = new DivSynsetRelation();
+
+                newSsr.setDepth(1);
+                newSsr.setProvenance(Diversicon.getProvenanceId());
+                newSsr.setRelName(inverseRelName);
+                newSsr.setRelType(Diversicons.getRelationType(inverseRelName));
+                newSsr.setSource(ssr.getTarget());
+                newSsr.setTarget(ssr.getSource());
+
+                ssr.getTarget()
+                   .getSynsetRelations()
+                   .add(newSsr);
+                session.save(newSsr);
+                session.saveOrUpdate(ssr.getTarget());
+                insStats.inc(inverseRelName);
+            }
+        }
+    }
+
+    /**
+     * @param ssr
+     *            a SynsetRelation to check
+     * @param insStats
+     *            insertion stats to modify
+     * 
+     * @since 0.1.0
+     */
+    private void normalizeTopicToDomain(SynsetRelation ssr, InsertionStats insStats) {
+        checkNotNull(ssr);
+        checkNotNull(insStats);
+
+        if ((Diversicons.RELATION_WORDNET_TOPIC.equals(ssr.getRelName())
+                && !containsRel(ssr.getSource(),
+                        ssr.getTarget(),
+                        Diversicons.RELATION_DIVERSICON_DOMAIN))
+                || (Diversicons.RELATION_WORDNET_IS_TOPIC_OF.equals(ssr.getRelName())
+                        && !containsRel(ssr.getTarget(),
+                                ssr.getSource(),
+                                Diversicons.RELATION_DIVERSICON_DOMAIN
+
+                        ))) {
+            DivSynsetRelation newSsr = new DivSynsetRelation();
+
+            newSsr.setDepth(1);
+            newSsr.setProvenance(Diversicon.getProvenanceId());
+            newSsr.setRelName(Diversicons.RELATION_DIVERSICON_DOMAIN);
+            newSsr.setRelType(Diversicons.getRelationType(Diversicons.RELATION_DIVERSICON_DOMAIN));
+            newSsr.setSource(ssr.getSource());
+            newSsr.setTarget(ssr.getTarget());
+
+            ssr.getSource()
+               .getSynsetRelations()
+               .add(newSsr);
+            session.save(newSsr);
+            session.saveOrUpdate(ssr.getSource());
+            insStats.inc(Diversicons.RELATION_DIVERSICON_DOMAIN);
         }
     }
 
@@ -860,12 +979,15 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * See {@link #importFiles(ImportConfig)}
-     * 
-     * For supported URL formats see
+     * Imports an XML using defualt config. 
+     * <ul>
+     * <li>For more options, see {@link #importFiles(ImportConfig)}.</li>
+     * <li>For supported URL formats, see
      * {@link eu.kidf.diversicon.core.internal.Internals#readData(String, boolean)
      * Internals.readData}
-     * 
+     * </li>
+     * </ul>
+     * </p>
      * @since 0.1.0
      */
     public ImportJob importXml(String fileUrl) {
@@ -879,54 +1001,85 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * Imports files, and each file import is going to be a separate
-     * transaction. In case one
-     * fails... TODO! Call is synchronous, after finishing returns logs of each
-     * import.
+     * Imports lexical resource files. Each file import is going to be a separate
+     * transaction. 
+     * 
+     * <p> In case one import fails, stops and tries to roll back as much as it can.
+     * (See <a href="https://github.com/diversicon-kb/diversicon-core/issues/38" target="_blank">
+     * issue 38</a> for more info on transactions)
+     * </p>
      * 
      * @throws DivValidationException
+     * @throws InterruptedImportException
      * 
      * @since 0.1.0
      */
-    public List<ImportJob> importFiles(ImportConfig config) {
-
+    public List<ImportJob> importFiles(ImportConfig importConfig) {        
+        
         Date start = new Date();
 
         List<ImportJob> ret = new ArrayList<>();
 
-        checkNotNull(config);
+        checkNotNull(importConfig);
 
-        checkNotBlank(config.getAuthor(), "Invalid ImportConfig author!");
-        checkNotEmpty(config.getFileUrls(), "Invalid ImportConfig filepaths!");
+        checkNotBlank(importConfig.getAuthor(), "Invalid ImportConfig author!");
+        checkNotEmpty(importConfig.getFileUrls(), "Invalid ImportConfig filepaths!");
 
         int i = 0;
-        for (String fileUrl : config.getFileUrls()) {
+        for (String fileUrl : importConfig.getFileUrls()) {
             checkNotBlank(fileUrl, "Invalid file url at position " + i + "!");
             i++;
         }
 
-        LOG.info("Going to import " + config.getFileUrls()
-                                            .size()
-                + " files by import author " + config.getAuthor() + "...");
+        LOG.info("Going to import " + importConfig.getFileUrls()
+                                                  .size()
+                + " files by import author " + importConfig.getAuthor() + "...");
 
-        DbInfo oldDbInfo = prepareDbForImport();
+        if (importConfig.isDryRun() && importConfig.getFileUrls().size() > 1){
+            LOG.info("");
+            LOG.info("**********   DRY RUN: found many files to import!   ");
+            LOG.info("");
+            LOG.info("**********            If second file depends on first one there might be validation errors due to  ");
+            LOG.info("**********            data not actually being written to disk!");             
+            LOG.info("");
+        }
+        
+        DbInfo oldDbInfo = null;
+        
+        if (importConfig.isDryRun()){
+            LOG.info("");
+            LOG.info("**********   DRY RUN:  skipping DbInfo table update   **********");
+            LOG.info("");
+        } else {
+            oldDbInfo = prepareDbForImport();    
+        }
+        
 
         try {
-            for (String fileUrl : config.getFileUrls()) {
-                ImportJob job = importFile(config, fileUrl);
+            for (String fileUrl : importConfig.getFileUrls()) {
+                ImportJob job = importFile(importConfig, fileUrl);
                 ret.add(job);
             }
         } catch (InvalidImportException ex) {
             if (ret.isEmpty()) {
                 LOG.error("Import failed, no LexicalResource data was written to disk. "
                         + "Aborting all imports.", ex);
-                setDbInfo(oldDbInfo);
+                if (importConfig.isDryRun()){
+                    LOG.info("********   DRY RUN: skipping restoring DbInfo table  (no change was done to it) *************");
+                } else {
+                    setDbInfo(oldDbInfo);    
+                }
+                
             }
             throw ex;
         }
 
-        if (config.isSkipAugment()) {
+        if (importConfig.isSkipAugment()) {
             LOG.info("Skipping graph augmentation as requested by user.");
+        } else if (importConfig.isDryRun()) {
+            LOG.info("");
+            LOG.info("*************    DRY RUN: skipping graph augmentation   ************");
+            LOG.info("");            
         } else {
             try {
                 processGraph();
@@ -935,7 +1088,14 @@ public class Diversicon extends Uby {
             }
         }
 
-        logImportResult(config, start, ret);
+        logImportResult(importConfig, start, ret);
+
+        if (importConfig.isDryRun()){
+            LOG.info("");
+            LOG.info("*************    DRY RUN:  end of import,  no data was written to disk.   ************");
+            LOG.info("");                        
+        }
+       
         return ret;
 
     }
@@ -943,14 +1103,14 @@ public class Diversicon extends Uby {
     /**
      * @since 0.1.0
      */
-    private void logImportResult(ImportConfig config, Date start, List<ImportJob> jobs) {
+    private void logImportResult(ImportConfig importConfig, Date start, List<ImportJob> jobs) {
 
-        checkNotNull(config);
+        checkNotNull(importConfig);
         checkNotNull(start);
         checkNotNull(jobs);
 
-        String plural = config.getFileUrls()
-                              .size() > 1 ? "s" : "";
+        String plural = importConfig.getFileUrls()
+                                    .size() > 1 ? "s" : "";
 
         Date end = new Date();
 
@@ -959,9 +1119,9 @@ public class Diversicon extends Uby {
         LOG.info("");
         LOG.info("");
         LOG.info("");
-        LOG.info("Done importing " + config.getFileUrls()
-                                           .size()
-                + " LMF" + plural + " by import author " + config.getAuthor());
+        LOG.info("Done importing " + importConfig.getFileUrls()
+                                                 .size()
+                + " LMF" + plural + " by import author " + importConfig.getAuthor());
         LOG.info("");
         LOG.info("Imported lexical resources: ");
         LOG.info("");
@@ -978,50 +1138,61 @@ public class Diversicon extends Uby {
      * Imports a single LMF XML
      * 
      * @throws InvalidImportException
-     * @throws InterruptedImportException
+     * @throws InterruptedImportException If something goes wrong 
      * 
      * @since 0.1.0
      */
-    private ImportJob importFile(ImportConfig config, String fileUrl) {
+    private ImportJob importFile(ImportConfig importConfig, String url) {
 
-        LOG.info("Loading LMF : " + fileUrl + " ...");
+        LOG.info("Loading LMF : " + url + " ...");
 
         File file;
         try {
-            file = Internals.readData(fileUrl, true)
-                            .toTempFile();
+            file = Diversicons.readData(config, url, true)
+                              .toTempFile();
         } catch (Exception ex) {
-            throw new InvalidImportException("Couldn't read file to import: " + fileUrl, ex);
+            throw new InvalidImportException("Couldn't read file to import: " + url, ex);
         }
 
         LexResPackage pack;
 
         try {
-            pack = Diversicons.readPackageFromLexRes(fileUrl);
+            pack = Diversicons.readPackageFromLexRes(file);
         } catch (Exception ex) {
-            throw new InvalidImportException("Couldn't extract attributes from LexicalResource " + fileUrl, ex);
+            throw new InvalidImportException("Couldn't extract attributes from LexicalResource " + url, ex);
         }
 
         ImportJob job = newImportJob(
-                config,
-                fileUrl,
+                importConfig,
+                url,
                 file,
                 pack);
 
-        LOG.info("");
-        LOG.info("Starting import...");
-        LOG.info("");
+        if (importConfig.isDryRun()){
+            
+            LOG.info("");
+            LOG.info("*************    DRY RUN: skipping actual import!    *********");
+            LOG.info("");
+            
+        } else {
+            
+            LOG.info("");
+            LOG.info("Starting import...");
+            LOG.info("");
 
-        try {
-            DivXmlToDbTransformer trans = new DivXmlToDbTransformer(this);
-            trans.transform(file, null);
-            endImportJob(job);
+            try {
+                DivXmlToDbTransformer trans = new DivXmlToDbTransformer(this);
+                trans.transform(file, null);
+                endImportJob(job);
 
-        } catch (Exception ex) {
-            throw new InterruptedImportException("Error while loading lmf xml " + fileUrl, ex);
+            } catch (Exception ex) {
+                throw new InterruptedImportException("Error while loading lmf xml " + url, ex);
+            }
+
+            LOG.info("Done loading LMF : " + url + " .");
+            
         }
-
-        LOG.info("Done loading LMF : " + fileUrl + " .");
+        
 
         return job;
     }
@@ -1084,6 +1255,16 @@ public class Diversicon extends Uby {
     }
 
     /**
+     * Returns Diversicon Configuration (which contains also UBY's DBConfig)
+     * 
+     * @since 0.1.0
+     * @see #getDbConfig()
+     */
+    public DivConfig getConfig() {
+        return config;
+    }
+
+    /**
      * Ends an import job. To be called after LMF data has been written to the
      * DB.
      * 
@@ -1120,8 +1301,11 @@ public class Diversicon extends Uby {
 
     /**
      * 
-     * Creates an {@link ImportJob} Java object. No data will be written into
-     * the db.
+     * Validates metadata and xml (if present), then returns an
+     * {@link ImportJob}. No data will
+     * be written into the db.
+     * 
+     * 
      * Still, db can get accessed to validate the input.
      * 
      * !!!! IMPORTANT !!!!! {@code pack} must already contain data about the
@@ -1131,98 +1315,119 @@ public class Diversicon extends Uby {
      *             if thrown means some validation failed but no
      *             LexicalResource data was written to disk.
      * 
-     * @param the
-     *            phyisical source LMF XML file. If there was none, use
-     *            {@code null}
+     * @param fileUrl
+     *            Url to the file to import. This is what will be used to
+     *            actually import the file
+     * @param xmlFile
+     *            the physical source LMF XML file. If there was none, use
+     *            {@code null}. This will only be used to validate the file
+     *            prior import.
      * @see #setCurrentImportJob(ImportJob)
+     * @throws InvalidImportException
      * @since 0.1.0
      */
     private ImportJob newImportJob(
-            ImportConfig config,
+            ImportConfig importConfig,
             String fileUrl,
             @Nullable File file,
             LexResPackage pack) {
 
-        try {
-            checkNotNull(config);
-            checkNotEmpty(fileUrl, "Invalid fileUrl!");
-            checkArgument(config.getFileUrls()
-                                .contains(fileUrl),
-                    "Couldn't find fileUrl " + fileUrl + "in importConfig!");
-
-            Internals.checkLexResPackage(pack);
-
-            if (file != null) {
-                LOG.info("");
-                LOG.info("Validating XML Schema of " + file.getAbsolutePath() + "   ...");
-                LOG.info("");
-                try {
-                    XmlValidationConfig xmlValidationConfig = XmlValidationConfig.builder()
-                                                                                 .setLog(LOG)
-                                                                                 .setLogLimit(config.getLogLimit())
-                                                                                 .setFailFast(true)
-                                                                                 .build();
-
-                    Diversicons.validateXml(file, xmlValidationConfig);
-                    LOG.info("XML is valid!");
-                    LOG.info("");
-                } catch (Exception ex) {
-                    throw new InvalidImportException("Found invalid XML !", ex);
-                }
-            }
-
-            List<ImportJob> jobs = getImportJobs();
-
-            for (ImportJob job : jobs) {
-
-                if (pack.equals(job.getLexResPackage())) {
-                    throw new InvalidImportException(
-                            "Looks like you're trying to import the same lexical resource twice!");
-                }
-
-                if (Objects.equals(pack.getPrefix(), job.getLexResPackage()
-                                                        .getPrefix())) {
-                    throw new InvalidImportException("Tried to import a lexical resource which "
-                            + "has the same prefix of resource:\n " + job.getLexResPackage()
-                                                                         .getName(),
-                            config, fileUrl, pack);
-                }
-            }
-
-            Map<String, String> dbNss = getNamespaces();
-
-            for (String prefix : pack.getNamespaces()
-                                     .keySet()) {
-                if (dbNss.containsKey(prefix)) {
-                    String urlInDb = dbNss.get(prefix);
-                    String urlToImport = pack.getNamespaces()
-                                             .get(prefix);
-                    if (!Objects.equals(urlInDb, urlToImport)) {
-                        throw new InvalidImportException(
-                                "Tried to import a prefix which is assigned to another resource url in the db! "
-                                        + "Prefix is " + prefix + "  ; url to import = " + urlToImport
-                                        + "  ;  url in the db = " + urlInDb,
-                                config, fileUrl, pack);
-                    }
-                }
-            }
-
-        } catch (Exception ex) {
-            throw new InvalidImportException(
-                    "Invalid import for " + fileUrl + "! \n", ex,
-                    config, fileUrl, pack);
-        }
+        validateImport(importConfig, fileUrl, file, pack);
 
         ImportJob job = new ImportJob();
 
-        job.setAuthor(config.getAuthor());
-        job.setDescription(config.getDescription());
+        job.setAuthor(importConfig.getAuthor());
+        job.setDescription(importConfig.getDescription());
         job.setStartDate(new Date());
         job.setFileUrl(fileUrl);
         job.setLexResPackage(pack);
 
         return job;
 
+    }
+
+    /**
+     * Checks import is correct, performing all {@link ValidationStep}s
+     * 
+     * <ul>
+     * <li>No write is performed on the db.</li>
+     * <li>Fails on warnings unless {@link ImportConfig#isForce()} is
+     * enabled
+     * </ul>
+     * 
+     * @throws InvalidImportException
+     * @see #newImportJob(ImportConfig, String, File, LexResPackage) for more
+     *      info.
+     * @since 0.1.0
+     */
+    private void validateImport(
+            ImportConfig importConfig,
+            String fileUrl,
+            @Nullable File xmlFile,
+            LexResPackage pack) {
+        
+        DivXmlValidator divValidator = null;
+        try {
+
+            checkNotNull(importConfig);
+            checkArgument(importConfig.getFileUrls()
+                                      .contains(fileUrl),
+                    "Couldn't find fileUrl " + fileUrl + "in importConfig!");
+            checkNotEmpty(fileUrl, "Invalid fileUrl!");
+            checkNotNull(pack);
+
+            
+
+            XmlValidationConfig xmlValidationConfig = XmlValidationConfig.builder()
+                                                                         .setLog(LOG)
+                                                                         .setLogLimit(importConfig.getLogLimit())
+                                                                         .setFailFast(true)
+                                                                         .setStrict(!importConfig.isForce())
+                                                                         .build();
+
+            // FIRST AND SECOND STEP
+
+            if (xmlFile == null) {
+                divValidator = Diversicons.validateResource(pack, null, xmlValidationConfig);
+                LOG.info("Resource is valid!");
+                LOG.info("");
+            } else {
+                LOG.info("");
+                LOG.info("Validating XML Schema of " + xmlFile.getAbsolutePath() + "   ...");
+                LOG.info("");
+                divValidator = Diversicons.validateXml(xmlFile, xmlValidationConfig);
+
+                LOG.info("XML is valid!");
+                LOG.info("");
+            }
+
+            // THIRD STEP
+
+            LOG.info("Checking XML external references against the database ...");
+            LOG.info("");
+
+            divValidator.prepareThirdPass(this, importConfig);
+            if (xmlFile == null) {
+                Diversicons.validateResourceStep(pack, null, divValidator);
+            } else {
+                Diversicons.validateXmlStep(xmlFile, divValidator);
+            }
+
+            divValidator.checkPassed();
+
+            if (divValidator.getErrorHandler().getWarningCount() > 0
+                    && importConfig.isForce()) {
+                LOG.warn("Ignoring warnings because of force flag.\n");                
+            }
+            
+            LOG.info("XML can be merged!");
+            LOG.info("");
+
+        } catch (Exception ex) {
+            throw new InvalidImportException(
+                    "Invalid import for " + fileUrl + "! \n", ex,
+                    importConfig, fileUrl, pack, divValidator);
+        }
     }
 
     /**
@@ -1281,6 +1486,26 @@ public class Diversicon extends Uby {
     }
 
     /**
+     * Shorthand for {@link #importResource(LexicalResource, LexResPackage, ImportConfig)}
+     * with default values.
+     * 
+     * @since 0.1.0
+     */
+    public ImportJob importResource(
+            LexicalResource lexRes,
+            LexResPackage pack,
+            boolean skipAugment) {
+
+        Internals.checkLexResPackage(pack, lexRes);
+        
+        ImportConfig importConfig = Internals.createImportConfig(lexRes);
+        importConfig.setSkipAugment(skipAugment);
+        
+        return importResource(lexRes, pack, importConfig);
+    }
+
+
+    /**
      * 
      * Saves a {@link LexicalResource} complete with all the lexicons, synsets,
      * etc into
@@ -1295,14 +1520,10 @@ public class Diversicon extends Uby {
      * on it instead.
      * </p>
      * 
-     * @param prefix
-     *            The prefix to use within the database
-     * @param namespaces
-     *            The namespaces used by the resource
-     * @param skipAugment
-     *            if true, after the import prevents the graph froom being
-     *            normalized
-     *            and augmented with transitive closure.
+     * @param importConfig a configuration for the import. Must have only one file url.
+     * @param pack
+     *            A LexicalResource doesn't contain stuff like namespaces, so we
+     *            have to provide them by ourselves in pack.
      * @throws InvalidImportException
      * @throws InterruptedImportException
      * 
@@ -1310,42 +1531,45 @@ public class Diversicon extends Uby {
      * @since 0.1.0
      */
     public ImportJob importResource(
-            LexicalResource lexicalResource,
-            LexResPackage lexResPackage,
-            boolean skipAugment) {
+            LexicalResource lexRes,
+            LexResPackage pack,
+            ImportConfig importConfig) {
 
-        checkLexResPackage(lexResPackage, lexicalResource);
-
+        Internals.checkLexResPackage(pack, lexRes);
+        Internals.checkEquals(1, importConfig.getFileUrls().size());
+        
         LOG.info("Going to save lexical resource to database...");
 
         ImportJob job = null;
-        ImportConfig config;
 
-        config = new ImportConfig();
-        config.setSkipAugment(skipAugment);
-        config.setAuthor(Diversicons.DEFAULT_AUTHOR);
-        String fileUrl = Diversicons.MEMORY_PROTOCOL + ":" + lexicalResource.hashCode();
-        config.addLexicalResource(fileUrl);
-
+        String fileUrl = importConfig.getFileUrls().get(0);
         try {
 
-            job = newImportJob(config,
+            job = newImportJob(importConfig,
                     fileUrl,
                     null,
-                    lexResPackage);
+                    pack);
 
-            prepareDbForImport();
+            if (importConfig.isDryRun()){
+                LOG.info("");
+                LOG.info("**********   DRY RUN:  skipping actual import     ***********");
+                LOG.info("");                                
+            } else {
+                prepareDbForImport();
 
-            setCurrentImportJob(job);
+                setCurrentImportJob(job);
 
-            new JavaToDbTransformer(this, lexicalResource).transform();
+                new JavaToDbTransformer(this, lexRes).transform();
 
-            if (!skipAugment) {
-                processGraph();
+                if (!importConfig.isSkipAugment()) {
+                    processGraph();
+                }
+
+                endImportJob(job);
+
             }
 
-            endImportJob(job);
-
+            
         } catch (InvalidImportException ex) {
 
             LOG.error("Import failed! Aborting all imports! (no LexicalResource data was written to disk) \n", ex);
@@ -1353,10 +1577,18 @@ public class Diversicon extends Uby {
             throw ex;
         } catch (Exception ex) {
             throw new InterruptedImportException("Error when importing lexical resource "
-                    + lexicalResource.getName() + " !", ex);
+                    + lexRes.getName() + " !", ex);
         }
 
-        LOG.info("Done saving.");
+        
+        
+        if (importConfig.isDryRun()){
+            LOG.info("");
+            LOG.info("**********   DRY RUN:  end of import, no data was written to disk !     ***********");
+            LOG.info("");                                
+        } else {
+            LOG.info("Done saving.");
+        }                
 
         return job;
     }
@@ -1367,8 +1599,7 @@ public class Diversicon extends Uby {
      * @since 0.1.0
      */
     public static String getProvenanceId() {
-        return Diversicon.class.getPackage()
-                               .getName();
+        return DivUpper.PREFIX;
     }
 
     /**
@@ -1385,8 +1616,8 @@ public class Diversicon extends Uby {
      * 
      * @since 0.1.0
      */
-    public static Diversicon connectToDb(DBConfig dbConfig) {
-        Diversicon ret = new Diversicon(dbConfig);
+    public static Diversicon connectToDb(DivConfig config) {
+        Diversicon ret = new Diversicon(config);
         return ret;
     }
 
@@ -1549,6 +1780,61 @@ public class Diversicon extends Uby {
             int depth,
             String... relNames) {
         return isConnected(sourceSynsetId, targetSynsetId, depth, Arrays.asList(relNames));
+    }
+
+    /**
+     * 
+     * See {@link #isInstanceConnected(String, String, int, String, List)}
+     * 
+     * @since 0.1.0
+     */
+    public boolean isInstanceConnected(
+            String sourceSynsetId,
+            String targetSynsetId,
+            int depth,
+            String instanceRel,
+            String... relNames) {
+        return isInstanceConnected(sourceSynsetId, targetSynsetId, depth, instanceRel,
+                Arrays.asList(relNames));
+    }
+
+    /**
+     * 
+     * Checks connection among paths starting with a specific relation, like
+     * i.e.
+     * {@link ERelNameSemantics#HYPERNYMINSTANCE hypernymInstance} followed by
+     * {@link ERelNameSemantics#HYPERNYMIN hypernym})
+     * 
+     * Works like {@link #isConnected(String, String, int, List)}, but checks
+     * also that first
+     * relation encountered equals instanceRel. Following links can be of any of
+     * the relations in {@code relNames}.
+     * 
+     * @since 0.1.0
+     */
+    public boolean isInstanceConnected(
+            String sourceSynsetId,
+            String targetSynsetId,
+            int depth,
+            String instanceRel,
+            List<String> relNames) {
+        checkNotEmpty(instanceRel, "Invelid instance relation");
+        checkNotNull(relNames);
+
+        if (isConnected(sourceSynsetId, targetSynsetId, 1, instanceRel)) {
+            return true;
+        }
+        Synset src = getSynsetById(sourceSynsetId);
+
+        for (SynsetRelation ssr : src.getSynsetRelations()) {
+            if (isConnected(ssr.getTarget()
+                               .getId(),
+                    targetSynsetId, -1, relNames)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -1787,13 +2073,15 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * A list of the imports performed so far.
+     * A list of the imports performed so far, ordered by ascending import time.
      * 
      * @since 0.1.0
      *
      */
     public List<ImportJob> getImportJobs() {
         Criteria crit = session.createCriteria(ImportJob.class);
+        crit.addOrder(Order.asc("id"));
+
         @SuppressWarnings("unchecked")
         List<ImportJob> ret = crit.list();
         return ret;
@@ -1947,4 +2235,193 @@ public class Diversicon extends Uby {
      * return ret;
      * }
      */
+
+    /**
+     * Returns all domains in the db, according to Uby definition.
+     * 
+     * @since 0.1.0
+     */
+    // todo put link to definition
+    public List<Synset> getUbyDomains(@Nullable Lexicon lexicon) {
+
+        Criteria criteria = session.createCriteria(Synset.class);
+        if (lexicon != null) {
+            criteria.add(Restrictions.eq("lexicon", lexicon));
+        }
+
+        criteria = criteria.createCriteria("senses")
+                           .createCriteria("semanticLabels")
+                           .add(Restrictions.in("type",
+                                   Arrays.asList(ELabelTypeSemantics.domain,
+                                           ELabelTypeSemantics.regionOfUsage,
+                                           ELabelTypeSemantics.usage)));
+
+        @SuppressWarnings("unchecked")
+        List<Synset> ret = criteria.list();
+
+        return ret;
+
+    }
+
+    /**
+     * Returns all domains in the db, according to the {@link #isDomain(Synset)
+     * Diversicon definition}.
+     * 
+     * @see #getUbyDomains(Lexicon)
+     * @since 0.1.0
+     */
+    public List<Synset> getDomains(@Nullable Lexicon lexicon) {
+        Criteria criteria = session.createCriteria(Synset.class);
+        if (lexicon != null) {
+            criteria.add(Restrictions.eq("lexicon", lexicon));
+        }
+
+        Synset rootDomain = getSynsetById(DivUpper.SYNSET_ROOT_DOMAIN);
+
+        criteria = criteria
+                           .createCriteria("synsetRelations")
+                           .add(Restrictions.eq("relName", Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN))
+                           .add(Restrictions.eq("target", rootDomain));
+
+        @SuppressWarnings("unchecked")
+        List<Synset> ret = criteria.list();
+
+        if (lexicon == null || lexicon != null && DivUpper.LEXICON_ENG.equals(lexicon.getId())) {
+            ret.add(rootDomain);
+        }
+
+        return ret;
+
+    }
+
+    /**
+     * Returns true if provided synset is a domain.
+     * 
+     * @since 0.1.0
+     */
+    public boolean isDomain(String synsetId) {
+        checkId(synsetId, "Invalid synset id!");
+
+        return isConnected(synsetId,
+                DivUpper.SYNSET_ROOT_DOMAIN, -1,                
+                Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN);        
+    }
+
+    /**
+     * Returns a list of probable domains, *excluding* the ones we already know are cerdomains.
+     * 
+     * @since 0.1.0
+     */    
+    private Set<String> domainCandidates() {
+                               
+        List<String> domainIds = Internals.getIds(getDomains(null));               
+        
+        List<String> synsetIdsBySemLabel = session.createCriteria(Synset.class)
+                            .setProjection(Property.forName("id"))
+                           .createCriteria("senses")
+                           .createCriteria("semanticLabels")
+                           .add(Restrictions.in("type", Diversicons.getDomainLabelTypes()))                           
+                           .list();
+        
+        HashSet<String> ret = new HashSet<>();
+        
+        // couldn't find better way to project ids - screw Hibernate !!!!!
+        
+        List<DivSynsetRelation> divsWordnetTopic = session.createCriteria(DivSynsetRelation.class)                
+                .add(Restrictions.eq("relName", Diversicons.RELATION_WORDNET_TOPIC))
+                .createCriteria("target")                                
+                .list();
+
+        for (DivSynsetRelation dsr : divsWordnetTopic){
+            ret.add(dsr.getTarget().getId());
+        }
+        
+        List<DivSynsetRelation> divsWordnetIsTopicOf = session.createCriteria(DivSynsetRelation.class)                      
+        .add(Restrictions.eq("relName", Diversicons.RELATION_WORDNET_IS_TOPIC_OF))
+        .createCriteria("source")                
+        .list();
+        for (DivSynsetRelation dsr : divsWordnetIsTopicOf){
+            ret.add(dsr.getSource().getId());
+        }
+        
+
+        ret.addAll(synsetIdsBySemLabel);        
+        ret.removeAll(domainIds);
+        
+        return ret;
+    }
+    
+
+    /**
+     * Returns true if provided synset is a domain.
+     * 
+     * @since 0.1.0
+     */
+    // todo performance is improvable
+    public boolean looksLikeDomain(String synsetId) {
+        checkId(synsetId, "Invalid synset id!");
+                
+        if (isDomain(synsetId)){
+            return true;
+        }
+        
+        Criteria criteria_1 = session.createCriteria(Synset.class);
+
+        criteria_1 = criteria_1.add(Restrictions.eq("id", synsetId))
+                               .createCriteria("senses")
+                               .createCriteria("semanticLabels")
+                               .add(Restrictions.in("type", Diversicons.getDomainLabelTypes()));
+
+        if (!criteria_1.list()
+                       .isEmpty()) {
+            return true;
+        }
+
+        Criteria criteria_2 = session.createCriteria(DivSynsetRelation.class);
+
+        criteria_2 = criteria_2
+                               .add(Restrictions.eq("relName", Diversicons.RELATION_WORDNET_TOPIC))
+                               .createCriteria("target")
+                               .add(Restrictions.eq("id", synsetId));
+
+        if (!criteria_2.list()
+                       .isEmpty()) {
+            return true;
+        }
+
+        Criteria criteria_3 = session.createCriteria(DivSynsetRelation.class);
+
+        criteria_3 = criteria_3
+                               .add(Restrictions.eq("relName", Diversicons.RELATION_WORDNET_IS_TOPIC_OF))
+                               .createCriteria("source")
+                               .add(Restrictions.eq("id", synsetId));
+
+        if (!criteria_3.list()
+                       .isEmpty()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns true if {@code synsetId1} is a subdomain of {@code synsetId2}
+     * 
+     * It synsets coincide returns true.
+     * 
+     * @throws IllegalArgumentException
+     *             if one or both synsets are not domains
+     * 
+     * @since 0.1.0
+     */
+    public boolean isSubdomain(String synsetId1, String synsetId2) {
+        checkArgument(isDomain(synsetId1), "First synset is not a domain! Id is %s", synsetId1);
+        checkArgument(isDomain(synsetId2), "Second synset is not a domain! Id is %s", synsetId2);
+
+        return isConnected(synsetId1,
+                synsetId2,
+                -1,
+                Diversicons.RELATION_DIVERSICON_SUPER_DOMAIN);
+    }
+
 }
