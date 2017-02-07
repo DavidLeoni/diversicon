@@ -119,7 +119,7 @@ public class HibernateTransitiveClosureDiversicon extends Diversicon {
 
                     DivSynsetRelation ssr = new DivSynsetRelation();
                     ssr.setDepth(depthToSearch + 1);
-                    ssr.setProvenance(Diversicon.getProvenanceId());
+                    ssr.setProvenance(Diversicons.getProvenanceId());
                     ssr.setRelName(relName);
                     ssr.setRelType(Diversicons.getRelationType(relName));
                     ssr.setSource(source);
