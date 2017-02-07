@@ -1274,7 +1274,7 @@ public final class Internals {
             lmfObject = dsr.toSynsetRelation();
             elementName = SynsetRelation.class.getSimpleName();
 
-            if (Diversicon.getProvenanceId()
+            if (Diversicons.getProvenanceId()
                           .equals(dsr.getProvenance())) {
                 if (dsr.getDepth() > 1) {
                     return null;
