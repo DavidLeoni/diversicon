@@ -185,7 +185,7 @@ public final class Diversicons {
     /**
      * @since 0.1.0
      */
-    public static final String DTD_1_0_CLASSPATH_URL = CLASSPATH_WEBSITE
+    public static final String DTD_1_0_CLASSPATH_URL = "classpath:/"
             + SCHEMA_1_0_FRAGMENT + "/" + DTD_FILENAME;
 
     /**
@@ -196,7 +196,7 @@ public final class Diversicons {
     /**
      * @since 0.1.0
      */
-    public static final String SCHEMA_1_0_CLASSPATH_URL = CLASSPATH_WEBSITE
+    public static final String SCHEMA_1_0_CLASSPATH_URL = "classpath:/"
             + SCHEMA_1_0_FRAGMENT
             + "/" + SCHEMA_FILENAME;
 
