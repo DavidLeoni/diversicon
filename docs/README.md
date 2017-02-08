@@ -3,7 +3,8 @@ WARNING: WORK IN PROGRESS - THIS IS ONLY A TEMPLATE FOR THE DOCUMENTATION. <br/>
 RELEASE DOCS ARE ON THE <a href="http://davidleoni.github.io/diversicon/" target="_blank">PROJECT WEBSITE</a>
 </p>
 
-This release allows to TODO. <!--If you are upgrading from previous version, see [Release notes](CHANGES.md).-->
+This release allows to perform importing of lexical resources with some validation for checking namespaces.
+ <!--If you are upgrading from previous version, see [Release notes](CHANGES.md).-->
 
 ### Getting started
 
@@ -13,11 +14,11 @@ This release allows to TODO. <!--If you are upgrading from previous version, see
     <dependency>
         <groupId>eu.kidf</groupId>
         <artifactId>diversicon-core</artifactId>
-        <version>#{version}</version>
+        <version>${project.version}</version>
     </dependency>
 ```
 
-**Without Maven**: you can download Diversicon jar and its dependencies <a href="/releases/download/diversicon-#{version}/diversicon-#{version}.zip" target="_blank"> from here</a>, then copy the jars to your project classpath.
+**Without Maven**: you can download Diversicon jar and its dependencies <a href="/releases/download/diversicon-#{version}/diversicon-${project.version}.zip" target="_blank"> from here</a>, then copy the jars to your project classpath.
 
 
 In case updates are available, version numbers follow <a href="http://semver.org/" target="_blank">semantic versioning</a> rules.
@@ -25,10 +26,10 @@ In case updates are available, version numbers follow <a href="http://semver.org
 
 ### XML Validation
 
-XML Validation is [`XmlValidationConfig`](../src/main/java/eu/kidf/diversicon/core/XmlValidationConfig.java)
+XML Validation is configured by  [`XmlValidationConfig`](../src/main/java/eu/kidf/diversicon/core/XmlValidationConfig.java) and done in two steps:
 
 1. XML Schema 1.0 validation, according to $eval{eu.kidf.diversicon.core.Diversicons.SCHEMA_1_PUBLIC_URL}
-2. the custom class `DivXmlValidator` performs further validation in three steps:	 
+2. the custom class `DivXmlValidator` performs further validation in two substeps:	 
 	1. XML structure and metadata are coherent
 	2. internal XML references are satisfied (i.e. _phablet_ links to existing _smartphone_ synset)
 	

@@ -1062,6 +1062,7 @@ public class Diversicon extends Uby {
             }
         } catch (InvalidImportException ex) {
             if (ret.isEmpty()) {
+                LOG.error("");
                 LOG.error("Import failed, no LexicalResource data was written to disk. "
                         + "Aborting all imports.", ex);
                 if (importConfig.isDryRun()){
