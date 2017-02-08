@@ -834,7 +834,7 @@ public class Diversicon extends Uby {
      * @since 0.1.0
      */
     private void computeTransitiveClosure() {
-        Date start = new Date();
+        Date startComputing = new Date();
 
         LOG.info("Computing transitive closure for SynsetRelations (may take some minutes) ...");
 
@@ -891,9 +891,11 @@ public class Diversicon extends Uby {
                                              .setCacheMode(CacheMode.IGNORE)
                                              .scroll(ScrollMode.FORWARD_ONLY);
 
-            LOG.info("\n   Elapsed time: " + Internals.formatInterval(start, new Date()) + "\n");
+            LOG.info("\n   Elapsed time: " + Internals.formatInterval(startComputing, new Date()) + "\n");
             LOG.info("\nGoing to write closure into the db...\n");
-
+            
+            Date startWriting = new Date();
+            
             while (results.next()) {
 
                 Synset source = (Synset) session.get(Synset.class, (String) results.get(0));
@@ -953,7 +955,7 @@ public class Diversicon extends Uby {
             LOG.info("Done writing transitive closure for SynsetRelations.");
             LOG.info("");
             LOG.info(relStats.toString());
-            LOG.info("Total elapsed time:  " + Internals.formatInterval(start, new Date()));
+            LOG.info("   Elapsed time:  " + Internals.formatInterval(startWriting, new Date()));
             LOG.info("");
 
         } catch (Exception ex) {
@@ -1115,7 +1117,8 @@ public class Diversicon extends Uby {
 
         Date end = new Date();
 
-        LOG.info("Elapsed time: " + Internals.formatInterval(start, end) + "   Started: " + Internals.formatDate(start)
+        LOG.info("Elapsed time for import: " + Internals.formatInterval(start, end) 
+                + "   Started: " + Internals.formatDate(start)
                 + "   Ended: " + Internals.formatDate(end));
         LOG.info("");
         LOG.info("");
