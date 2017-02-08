@@ -144,13 +144,6 @@ public final class Internals {
 
     private static final @Nullable Cloner cloner = new Cloner();
 
-    /**
-     * URL to dev website, needed for URLs schemes
-     * 
-     * @since 0.1.0
-     */
-    public static final String DEV_WEBSITE = "file://src/main/resources/website";
-
     private Internals() {
 
     }

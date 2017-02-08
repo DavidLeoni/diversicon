@@ -880,10 +880,8 @@ public final class DivTester {
             }
             System.exit(0);
         case "s":
-            String modelPath = "../../diversicon-model/prj/"
-                    + ((Internals.DEV_WEBSITE + "/"
-                            + Diversicons.SCHEMA_1_0_FRAGMENT
-                            + "/").substring("file://".length()));
+            String modelPath = "../../diversicon-model/prj/src/main/resources/"                    
+                            + Diversicons.SCHEMA_1_0_FRAGMENT + "/";
 
             File dtd = new File(modelPath + Diversicons.DTD_FILENAME);
             File schema = new File(modelPath + Diversicons.SCHEMA_FILENAME);
