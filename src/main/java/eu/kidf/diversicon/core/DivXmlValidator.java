@@ -703,6 +703,7 @@ public class DivXmlValidator extends DefaultHandler {
         String sysId = errorHandler.getDefaultSystemId();
 
         if (errorHandler.isFatal() || errorHandler.getErrorsCount() > 0) {
+            errorHandler.getConfig().getLog().error("");
             errorHandler.getConfig()
                         .getLog()
                         .error("Invalid xml! " + errorHandler.summary() + " in " + sysId);
@@ -714,6 +715,7 @@ public class DivXmlValidator extends DefaultHandler {
             if (errorHandler.getWarningCount() > 0) {
                 if (errorHandler.getConfig()
                                 .isStrict()) {
+                    errorHandler.getConfig().getLog().error("");
                     errorHandler.getConfig()
                                 .getLog()
                                 .error("There were warnings during strict validation:\n" + errorHandler.summary() + " in "
@@ -724,6 +726,7 @@ public class DivXmlValidator extends DefaultHandler {
                                     + "\n" + errorHandler.firstIssueAsString());
 
                 } else {
+                    errorHandler.getConfig().getLog().warn("");
                     errorHandler.getConfig()
                                 .getLog()
                                 .warn(errorHandler.summary() + " in "
