@@ -1950,7 +1950,7 @@ public class Diversicon extends Uby {
      * @since 0.1.0
      */
     private static String formatDate(@Nullable Date date) {
-        SimpleDateFormat sdf = new SimpleDateFormat("MMM d, yyyy");
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
 
         if (date == null) {
             return "missing";
@@ -1960,7 +1960,7 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * Returns a nicely formatted import logc
+     * Returns a nicely formatted import log
      * 
      * @param fullLog
      *            includes full log in the output
@@ -1985,23 +1985,24 @@ public class Diversicon extends Uby {
     public String formatImportJob(ImportJob job, boolean fullLog) {
         StringBuilder sb = new StringBuilder();
 
-        sb.append("IMPORT ID: ");
-        sb.append(job.getId());
-        sb.append("   LEXICAL RESOURCE: ");
+        sb.append("NAME      : ");
         sb.append(job.getLexResPackage()
                      .getName());
-        sb.append("   IMPORT AUTHOR: ");
-        sb.append(job.getAuthor());
         sb.append("\n");
-        sb.append("NAMESPACE: ");
+        sb.append("PREFIX    : ");
         sb.append(job.getLexResPackage()
-                     .getPrefix()
-                + ":" + job.getLexResPackage()
+                     .getPrefix());
+        sb.append("\n");        
+        sb.append("IMPORT ID : ");
+        sb.append(job.getId());        
+        sb.append("\n");
+        sb.append("NAMESPACE : ");
+        sb.append(job.getLexResPackage()
                            .getNamespaces()
                            .get(job.getLexResPackage()
                                    .getPrefix()));
         sb.append("\n");
-        sb.append("FROM FILE: ");
+        sb.append("FROM FILE : ");
         sb.append(job.getFileUrl());
 
         if (job.getLogMessages()
@@ -2012,13 +2013,22 @@ public class Diversicon extends Uby {
                     + " WARNINGS/ERRORS");
         }
         sb.append("\n");
-        sb.append("STARTED: ");
+        sb.append("IMPORTED BY : ");
+        sb.append(job.getAuthor());                
+        sb.append("\n");
+        sb.append("STARTED     : ");
         sb.append(formatDate(job.getStartDate()));
-        sb.append("   ENDED: ");
+        sb.append("\n");
+        sb.append("ENDED       : ");
         sb.append(formatDate(job.getEndDate()));
         sb.append("\n");
-        sb.append(job.getDescription());
+        sb.append("DURATION    : ");
+        sb.append(Internals.formatInterval(job.getStartDate(), job.getEndDate()));        
         sb.append("\n");
+        if (!Internals.isBlank(job.getDescription())){
+            sb.append(job.getDescription());
+            sb.append("\n");            
+        }
         if (fullLog) {
             sb.append("\n");
             List<LogMessage> msgs = job.getLogMessages();
@@ -2033,7 +2043,6 @@ public class Diversicon extends Uby {
             }
 
         }
-        sb.append("\n");
         return sb.toString();
 
     }
@@ -2097,9 +2106,8 @@ public class Diversicon extends Uby {
         String dataVersion = dbInfo.getVersion()
                                    .isEmpty() ? "-" : dbInfo.getVersion();
 
-        sb.append(" Schema version: " + dbInfo.getSchemaVersion());
-        sb.append("   Data version: " + dataVersion + "\n");
-        sb.append("\n");
+        sb.append("Schema version: " + dbInfo.getSchemaVersion());
+        sb.append("   Data version: " + dataVersion + "\n");        
 
         if (shortProcessedInfo) {
             if (dbInfo.isToAugment() || dbInfo.isToNormalize()) {

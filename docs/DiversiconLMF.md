@@ -59,7 +59,7 @@ attribute:
 
 ### Default namespace
 
-The prefix used in the value of a LexicalResource `prefix` attribute is intended to be
+The prefix used in the value of a `LexicalResource` `prefix` attribute is intended to be
 the default prefix of the document. Such prefix must be also defined in the `xmlns` 
 section of the document, like 'sm' here:
 

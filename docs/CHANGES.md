@@ -16,7 +16,7 @@ http://diversicon-kb.eu/manual/diversicon-core
 - ships with [Wordnet 3.1 dump](https://github.com/diversicon-kb/diversicon-wordnet-3.1)
 - a testing framework to quickly create graphs via api  	  
 - for now fully supports H2 DB. No separate installation is required.
-- better domain modeling 
+- better modeling of domains 
 - adoption of a small default lexical resource DivUpper   	  
 - some data is split into diversicon-model project
 
