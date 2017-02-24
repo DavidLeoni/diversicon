@@ -16,8 +16,8 @@
    <property name="author" column="author" node="@author" type="string"/>
    <property name="description" column="description" node="@description" type="text"/>   
    <property name="fileUrl" column="fileUrl" node="@fileUrl" type="string" length="1000"/>   
-   <property name="startDate" column="startDate" node="@startDate" type="date"/>
-   <property name="endDate" column="endDate" node="@endDate" type="date"/>
+   <property name="startDate" column="startDate" node="@startDate" type="timestamp"/>
+   <property name="endDate" column="endDate" node="@endDate" type="timestamp"/>
    
       
    <list name="logMessages" node=".">

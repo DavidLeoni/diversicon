@@ -147,4 +147,13 @@ As usual, Diversicon will try to export a graph very similar to input one, and a
 
 ### Normalized LMF
 
-A normalized LMF TODO
+When an LMF is normalized, these conditions are met: 
+
+* if there is a non-canonical relation, there is also its [canonical](#canonical-relations) inverse. 
+* transitive relations don't have self-loops
+* for each `topic` edge there must be also a `domain` edge
+* domain synsets are marked as such by being linked with a `superDomain` relation to `div-upper` synset `$eval{eu.kidf.diversicon.data.DivUpper.SYNSET_ROOT_DOMAIN}`
+
+
+
+

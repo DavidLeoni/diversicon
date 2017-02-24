@@ -8,7 +8,7 @@ As per LMF specs, each LMF XML file contains exactly one `LexicalResource`. This
 
 #### Principle 2: Imported LexicalResources shouldn't change
 
-A Diversicon database should always contain a faithful representation of the imported XMLs. To allow this, eventual changes to an imported `LexicalResource`  should be done in a controlled manner by Diversicon (i.e. ID renaming or edges added for computing transitive closure). This way at any time you should be able to export a `LexicalResource` to obtain something nearly identical to the original XML it came from. Note some difference with the original could be admitted for provenance purposes, like i.e. additional metadata documentating the passage into Diversicon. 
+A Diversicon database should always contain a faithful representation of the imported XMLs. To allow this, eventual changes to an imported `LexicalResource`  should be done in a controlled manner by Diversicon (i.e. ID renaming or edges added for computing transitive closure). All edges automatically added by Diversicon during normalization and transitive closure computation are marked as having provenance `$eval{eu.kidf.diversicon.data.DivUpper.PREFIX}`, and during export they are filtered out. This way at any time you should be able to export a `LexicalResource` to obtain something nearly identical to the original XML it came from. Note some difference with the original could be admitted for provenance purposes, like i.e. additional metadata documentating the passage into Diversicon. 
 
 If you still try directly updating an already imported `LexicalResource` (i.e. by manually editing the db), then it becomes your responability to keep the database in a consistent state.
 
@@ -47,9 +47,9 @@ validation but with important differences:
  flags in `[DbInfo](../src/main/java/eu/kidf/diversicon/core/DbInfo.java) class are reset, logging is redirected to db 
 4. lexical resource is written to the db
 5. resulting graph is validated to prevent problems with augmentations (i.e. it is checked for self-loops in hypernyms) 
-5. graph is normalized
-	5.1 [Domains](DiversiconLMF.md#Domains) are identified and linked to $eval{eu.kidf.diversicon.data.SYNSET_ROOT_DOMAIN} 
-	5.2 [Canonical relations](DiversiconLMF.md#Canonical-relations) are materialized	
+5. graph is [normalized](DiversiconLMF.md#normalized-lmf)
+	5.1 [Domains](DiversiconLMF.md#domains) are identified and linked to $eval{eu.kidf.diversicon.data.SYNSET_ROOT_DOMAIN} 
+	5.2 [Canonical relations](DiversiconLMF.md#canonical-relations) are materialized	
 6. graph is augmented by calculating the transitive closure of canonical relations.
 
 Steps after 3 are optional and configurable with 

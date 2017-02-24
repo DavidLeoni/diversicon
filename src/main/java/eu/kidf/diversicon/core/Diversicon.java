@@ -1947,19 +1947,6 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * @since 0.1.0
-     */
-    private static String formatDate(@Nullable Date date) {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
-
-        if (date == null) {
-            return "missing";
-        } else {
-            return sdf.format(date);
-        }
-    }
-
-    /**
      * Returns a nicely formatted import log
      * 
      * @param fullLog
@@ -1985,24 +1972,24 @@ public class Diversicon extends Uby {
     public String formatImportJob(ImportJob job, boolean fullLog) {
         StringBuilder sb = new StringBuilder();
 
-        sb.append("NAME      : ");
+        sb.append("NAME        : ");
         sb.append(job.getLexResPackage()
                      .getName());
         sb.append("\n");
-        sb.append("PREFIX    : ");
+        sb.append("PREFIX      : ");
         sb.append(job.getLexResPackage()
                      .getPrefix());
         sb.append("\n");        
-        sb.append("IMPORT ID : ");
+        sb.append("IMPORT ID   : ");
         sb.append(job.getId());        
         sb.append("\n");
-        sb.append("NAMESPACE : ");
+        sb.append("NAMESPACE   : ");
         sb.append(job.getLexResPackage()
                            .getNamespaces()
                            .get(job.getLexResPackage()
                                    .getPrefix()));
         sb.append("\n");
-        sb.append("FROM FILE : ");
+        sb.append("FROM FILE   : ");
         sb.append(job.getFileUrl());
 
         if (job.getLogMessages()
@@ -2017,10 +2004,10 @@ public class Diversicon extends Uby {
         sb.append(job.getAuthor());                
         sb.append("\n");
         sb.append("STARTED     : ");
-        sb.append(formatDate(job.getStartDate()));
+        sb.append(Internals.formatDate(job.getStartDate()));
         sb.append("\n");
         sb.append("ENDED       : ");
-        sb.append(formatDate(job.getEndDate()));
+        sb.append(Internals.formatDate(job.getEndDate()));
         sb.append("\n");
         sb.append("DURATION    : ");
         sb.append(Internals.formatInterval(job.getStartDate(), job.getEndDate()));        
@@ -2059,12 +2046,8 @@ public class Diversicon extends Uby {
      */
     public String formatImportJobs(boolean showFullLogs) {
         StringBuilder sb = new StringBuilder();
-
-        @SuppressWarnings("unchecked")
-        List<ImportJob> importJobs = session.createCriteria(ImportJob.class)
-                                            .addOrder(Order.desc("startDate"))
-                                            .setMaxResults(50)
-                                            .list();
+        
+        List<ImportJob> importJobs = getImportJobs();
 
         if (importJobs.isEmpty()) {
             sb.append("There are no imports to show.\n");
@@ -2072,6 +2055,7 @@ public class Diversicon extends Uby {
 
         for (ImportJob job : importJobs) {
             sb.append(formatImportJob(job, showFullLogs));
+            sb.append("\n");
         }
         return sb.toString();
     }

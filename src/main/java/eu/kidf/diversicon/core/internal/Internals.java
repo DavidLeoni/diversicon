@@ -1030,9 +1030,14 @@ public final class Internals {
      * 
      * @since 0.1.0
      */
-    public static String formatDate(Date date) {
-        SimpleDateFormat dt = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
-        return dt.format(date);
+    public static String formatDate(@Nullable Date date) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+        
+        if (date == null) {
+            return "missing";
+        } else {
+            return sdf.format(date);
+        }    
     }
 
     /**
