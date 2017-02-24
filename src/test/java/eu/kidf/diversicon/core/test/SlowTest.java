@@ -47,7 +47,7 @@ public class SlowTest {
      */
     @Test
     public void testImportWordnetInMemoryDb() throws IOException {
-        DBConfig dbConfig = Diversicons.h2MakeDefaultInMemoryDbConfig("mydb-" + new Date().getTime(), false);
+        DBConfig dbConfig = Diversicons.h2InMemoryConfig("mydb-" + new Date().getTime(), false);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(DivConfig.of(dbConfig));        
         div.importXml(DivWn31.of().getXmlUri());
@@ -73,7 +73,7 @@ public class SlowTest {
      */    
     @Test
     public void testImportWordnetInFileDb() throws IOException {
-        DBConfig dbConfig = Diversicons.h2MakeDefaultFileDbConfig("target/div-wn31-" + new Date().getTime(), false);
+        DBConfig dbConfig = Diversicons.h2FileConfig("target/div-wn31-" + new Date().getTime(), false);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(DivConfig.of(dbConfig));
         div.importXml(DivWn31.of().getXmlUri());
@@ -84,7 +84,7 @@ public class SlowTest {
      */    
     @Test
     public void testImportWordnetInMemoryExportToSql() throws IOException {
-        DBConfig dbConfig = Diversicons.h2MakeDefaultInMemoryDbConfig(
+        DBConfig dbConfig = Diversicons.h2InMemoryConfig(
                 "mydb-" + new Date().getTime(),
                 false);
         Diversicons.dropCreateTables(dbConfig);
@@ -101,7 +101,7 @@ public class SlowTest {
      */    
     @Test
     public void testImportWordnetInFileDbExportToSql() throws IOException {
-        DBConfig dbConfig = Diversicons.h2MakeDefaultFileDbConfig("target/div-wn31-" + new Date().getTime(), false);
+        DBConfig dbConfig = Diversicons.h2FileConfig("target/div-wn31-" + new Date().getTime(), false);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(DivConfig.of(dbConfig));
         div.importXml(DivWn31.of().getXmlUri());

@@ -1,6 +1,6 @@
 ### Introduction
 
-Diversicon supports `LexicalResource` reading, creation by import and some limited form of update. Delete is currently not supported. These operations relay on two principles explained here: 
+Diversicon supports `LexicalResource` reading, importing XMLs and some limited form of update. Delete is currently not supported. These operations rely on two principles: 
 
 #### Principle 1: One LexicalResource per XML
 
@@ -13,9 +13,60 @@ A Diversicon database should always contain a faithful representation of the imp
 If you still try directly updating an already imported `LexicalResource` (i.e. by manually editing the db), then it becomes your responability to keep the database in a consistent state.
 
 
-### Create
+### XML Validation
+
+XML Validation is configured by  [`XmlValidationConfig`](../src/main/java/eu/kidf/diversicon/core/XmlValidationConfig.java) and done in two steps:
+
+1. XML Schema 1.0 validation, according to $eval{eu.kidf.diversicon.core.Diversicons.SCHEMA_1_PUBLIC_URL}
+2. the custom class `DivXmlValidator` performs further validation in two substeps:	 
+	1. XML structure and metadata are coherent
+	2. internal XML references are satisfied (i.e. _phablet_ links to existing _smartphone_ synset)
+	
+By default, plain XML validation is done in _non-strict_ mode, that is, it doesn't fail on warnings.
+
+
+### XML Import
 
 Creation of `LexicalResource` should be done only through import functions of Diversicon, as this preserves database integrity and allows keeping properly track of metadata.
+
+
+XML import in Diversicon is a complex process divided into 6 steps. Notice first steps are similar to XML 
+validation but with important differences:
+
+1. XML Schema 1.0 validation, according to $eval{eu.kidf.diversicon.core.Diversicons.SCHEMA_1_PUBLIC_URL}
+   
+   NOTE: during import XML is validated in _strict_ mode, so on warnings it does fail.
+   
+2. the custom class `[DivXmlValidator](../src/main/java/eu/kidf/diversicon/core/internal/DivXmlValidator.java)` performs further validation in three steps:
+	 
+	1. XML structure and metadata are coherent
+	2. internal XML references are satisfied (i.e. _phablet_ links to existing _smartphone_ synset)
+	3. external references are satisfied and present in the db (i.e. links to Wordnet _computer_ synset are already present in the db ). If external references are not satisfied (i.e. in the XML Wordnet is referenced but was not imported yet) WARNINGs are emitted. 
+
+3. a new [ImportJob](src/main/java/eu/kidf/diversicon/core/ImportJob.java  is created,
+ flags in `[DbInfo](../src/main/java/eu/kidf/diversicon/core/DbInfo.java) class are reset, logging is redirected to db 
+4. lexical resource is written to the db
+5. resulting graph is validated to prevent problems with augmentations (i.e. it is checked for self-loops in hypernyms) 
+5. graph is normalized
+	5.1 [Domains](DiversiconLMF.md#Domains) are identified and linked to $eval{eu.kidf.diversicon.data.SYNSET_ROOT_DOMAIN} 
+	5.2 [Canonical relations](DiversiconLMF.md#Canonical-relations) are materialized	
+6. graph is augmented by calculating the transitive closure of canonical relations.
+
+Steps after 3 are optional and configurable with 
+the `skipAugment` flag in `[ImportConfig](../src/main/java/eu/kidf/diversicon/core/ImportConfig.java)`.
+The idea is that you can import many files skipping them and only after the batch import validate and enrich the graph by calling `Diversicon.processGraph()`
+	
+If any ERROR is reported, import fails. If any WARNING is reported, import fails, because by default during import there is strict validation. To change this behaviour, see the following `force` flag.
+
+#### `force` flag	
+
+If you try to import resources in the wrong order (i.e. resource A depends on B, and you import first B) or resources with circular references (A depends on B and viceversa), import will fail because of validation warnings. To still proceed with the import in these cases, you can enable a `force` flag in the `[ImportConfig](../src/main/java/eu/kidf/diversicon/core/ImportConfig.java)`.
+
+#### Import errors
+
+After validation has passed, actual import will start. If errors occur after writing to db has started, Diversicon will try some strategy for rolling back: unfortunately at this time complete rollback is **not** always
+possible due to [issue 38](https://github.com/diversicon-kb/diversicon-core/issues/38). To avoid surprises
+it can be a good idea to use the dry run flag in `[ImportConfig](../src/main/java/eu/kidf/diversicon/core/ImportConfig.java)`.
 
 
 ### Update

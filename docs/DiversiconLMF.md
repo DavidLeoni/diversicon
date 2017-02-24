@@ -146,4 +146,5 @@ As usual, Diversicon will try to export a graph very similar to input one, and a
 
 
 ### Normalized LMF
-TODO
+
+A normalized LMF TODO

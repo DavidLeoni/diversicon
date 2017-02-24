@@ -1154,11 +1154,11 @@ public final class Diversicons {
      * @param filePath
      *            the path to a database, which must end with just the
      *            database name
-     *            (so without the {@code .h2.db}).
+     *            ( <strong>must be without the '{@code .h2.db}'</strong> ).
      * 
      * @since 0.1.0
      */
-    public static DBConfig h2MakeDefaultFileDbConfig(String filePath, boolean readOnly) {
+    public static DBConfig h2FileConfig(String filePath, boolean readOnly) {
         checkNotEmpty(filePath, "Invalid file path!");
         checkArgument(!filePath.endsWith(".db"), "File path must end just with the databaset name, "
                 + "without the '.h2.db'! Found instead: " + filePath);
@@ -1170,7 +1170,7 @@ public final class Diversicons {
             readOnlyString = "";
         }
 
-        DBConfig ret = h2MakeDefaultCommonDbConfig();
+        DBConfig ret = h2CommonConfig();
         ret.setJdbc_url("jdbc:h2:file:" + filePath + readOnlyString);
 
         return ret;
@@ -1188,7 +1188,7 @@ public final class Diversicons {
      *            slower access time
      * @since 0.1.0
      */
-    public static DBConfig h2MakeDefaultInMemoryDbConfig(String dbName, boolean compressed) {
+    public static DBConfig h2InMemoryConfig(String dbName, boolean compressed) {
         checkNotEmpty(dbName, "Invalid db name!");
 
         String mem;
@@ -1200,7 +1200,7 @@ public final class Diversicons {
             mem = "mem";
         }
 
-        DBConfig ret = h2MakeDefaultCommonDbConfig();
+        DBConfig ret = h2CommonConfig();
 
         ret.setJdbc_url("jdbc:h2:" + mem + ":" + dbName + ";DB_CLOSE_DELAY=-1");
 
@@ -1210,7 +1210,7 @@ public final class Diversicons {
     /**
      * @since 0.1.0
      */
-    private static DBConfig h2MakeDefaultCommonDbConfig() {
+    private static DBConfig h2CommonConfig() {
 
         DBConfig ret = new DBConfig();
         ret.setDb_vendor("de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect");
@@ -1449,7 +1449,7 @@ public final class Diversicons {
 
         if (!new File(filepath + ".h2.db").exists()) {
             try {
-                restoreH2Db(DivWn31.of()
+                h2RestoreDb(DivWn31.of()
                                    .getH2DbUri(),
                         filepath);
             } catch (DivIoException ex) {
@@ -1461,12 +1461,12 @@ public final class Diversicons {
                         "Trying to download db from the web (it's around 40 MB, may take several mins to download... )");
                 // todo we should fetch it from diversicon-kb.eu or from maven
                 // central! ...
-                restoreH2Db(
+                h2RestoreDb(
                         "https://github.com/diversicon-kb/diversicon-wordnet-3.1/raw/master/div-wn31-h2db/src/main/resources/div-wn31.h2.db.xz",
                         filepath);
             }
         }
-        return h2MakeDefaultFileDbConfig(filepath, true);
+        return h2FileConfig(filepath, true);
     }
 
     /**
@@ -1489,14 +1489,14 @@ public final class Diversicons {
      *            {@link eu.kidf.diversicon.data.DivWn31#WORDNET_DIV_SQL_RESOURCE_URI}
      * @param targetPath
      *            the target path where to restore the db, ending with the db
-     *            name. Must NOT end with .h2.db
+     *            name. <strong>Must NOT end with .h2.db</strong>
      * 
      * @throws DivIoException
      *             if an IO error occurs
      * 
      * @since 0.1.0
      */
-    public static void restoreH2Db(String dumpUrl, String targetPath) {
+    public static void h2RestoreDb(String dumpUrl, String targetPath) {
 
         Internals.checkNotBlank(dumpUrl, "invalid h2 db dump!");
         Internals.checkNotBlank(targetPath, "invalid h2 db target path!");

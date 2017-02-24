@@ -30,7 +30,7 @@ Simple Java library to provide a multilingual SQL knowledge base for lexicons an
   	- Ships with [Wordnet 3.1 dump](https://github.com/diversicon-kb/diversicon-wordnet-3.1)
   	- a testing framework to quickly create graphs via api
   	- improved domain modeling 
-  	- adoption of a small default lexical resource DivUpper   	  
+  	- adoption of a small default lexical resource `DivUpper`   	  
   * access to DB via Hibernate
   * for now fully supports <a href="http://www.h2database.com/html/main.html" target="_blank">H2 DB</a>, a pure Java database (both in-memory and on disk). No separate installation is required.
   * dependency handling with Maven    

@@ -1343,7 +1343,7 @@ public class DiversiconTest {
     @Test  
     public void testConnectToDbH2InMemoryCompressed(){
         try {
-            DBConfig dbConfig = Diversicons.h2MakeDefaultInMemoryDbConfig("trial-" + UUID.randomUUID(), true);
+            DBConfig dbConfig = Diversicons.h2InMemoryConfig("trial-" + UUID.randomUUID(), true);
             
             
             Assert.fail("Shouldn't arrive here!");
@@ -1367,7 +1367,7 @@ public class DiversiconTest {
      */      
     @Test
     public void testMemoryUsed(){
-        DBConfig dbConfig = Diversicons.h2MakeDefaultInMemoryDbConfig("trial-" + UUID.randomUUID()
+        DBConfig dbConfig = Diversicons.h2InMemoryConfig("trial-" + UUID.randomUUID()
                                     , false);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(DivConfig.of(dbConfig));
@@ -1388,7 +1388,7 @@ public class DiversiconTest {
         
         Date start = new Date();
         
-        DBConfig dbConfig = Diversicons.h2MakeDefaultInMemoryDbConfig("trial-" + UUID.randomUUID()
+        DBConfig dbConfig = Diversicons.h2InMemoryConfig("trial-" + UUID.randomUUID()
         , false);
         Diversicons.dropCreateTables(dbConfig);
         dbConfig.setPassword("666");

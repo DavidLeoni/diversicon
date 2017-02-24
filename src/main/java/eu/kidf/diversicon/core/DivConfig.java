@@ -209,7 +209,9 @@ public class DivConfig {
     }
 
     /**
-     * Default locator config.
+     * Default config. 
+     * 
+     * <strong>NOTE: internal DBConfig is null by default !</strong> 
      * 
      * @since 0.1.0
      */
