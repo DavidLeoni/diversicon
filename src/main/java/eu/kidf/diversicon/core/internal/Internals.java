@@ -976,24 +976,24 @@ public final class Internals {
         ArrayList<String> timeArray = new ArrayList<String>();
 
         if (years > 0) {
-            timeArray.add(String.valueOf(years) + pluralize("year", years));
+            timeArray.add(String.valueOf(years) + " " + pluralize("year", years));
         }
 
         if (days > 0) {
-            timeArray.add(String.valueOf(days) + pluralize("day", days));
+            timeArray.add(String.valueOf(days) + " " + pluralize("day", days));
         }
 
         if (hours > 0) {
 
-            timeArray.add(String.valueOf(hours) + pluralize("hour", hours));
+            timeArray.add(String.valueOf(hours) + " " + pluralize("hour", hours));
         }
 
         if (minutes > 0) {
-            timeArray.add(String.valueOf(minutes) + pluralize("min", minutes));
+            timeArray.add(String.valueOf(minutes) + " " + pluralize("min", minutes));
         }
 
         if (seconds > 0) {
-            timeArray.add(String.valueOf(seconds) + pluralize("sec", seconds));
+            timeArray.add(String.valueOf(seconds) + " " + pluralize("sec", seconds));
         }
 
         String time = "";
