@@ -421,9 +421,10 @@ public final class Internals {
      * will be appended to the end of the formatted message in square braces.
      * <br/>
      * <br/>
-     * (Copied from Guava's
-     * {@link com.google.common.base.Preconditions#format(java.lang.String, java.lang.Object...) }
-     * )
+     * Copied from Guava's
+     * <br/><br/>
+     * {@code com.google.common.base.Preconditions#format(java.lang.String, java.lang.Object...) }
+     * 
      *
      * @param template
      *            a non-null string containing 0 or more {@code %s}
@@ -434,8 +435,7 @@ public final class Internals {
      *            {@link String#valueOf(Object)}. Arguments can be null.
      *
      * @since 0.1.0
-     */
-    @SuppressWarnings("javadoc")
+     */    
     public static String format(String template, @Nullable Object... args) {
         if (template == null) {
             LOG.warn("Found null template while formatting, converting it to \"null\"");

@@ -66,7 +66,7 @@ class DivXmlWriter extends LMFXmlWriter {
      * DIVERSICON NOTE: this function MUST be <i>the same</i> as 
      * {@link DivDbToXmlTransformer#doWriteElement(Object, boolean)}<br/>
      * 
-     * For an explanation, see {@link Internals#prepareXmlElement(Object, boolean, Map, de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata, AttributesImpl, List)
+     * For an explanation, see {@link Internals#prepareXmlElement(Object, boolean, LexResPackage, de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata, AttributesImpl, List)
      * Internals#prepareXmlElement} 
      * 
      * <strong>

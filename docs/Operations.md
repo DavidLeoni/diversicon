@@ -4,13 +4,13 @@ Diversicon supports `LexicalResource` reading, importing XMLs and some limited f
 
 #### Principle 1: One LexicalResource per XML
 
-As per LMF specs, each LMF XML file contains exactly one `LexicalResource`. This also simplifies file management and provenance.
+As per LMF specs, each XML file contains exactly one `LexicalResource`. This also simplifies file management and provenance.
 
 #### Principle 2: Imported LexicalResources shouldn't change
 
-A Diversicon database should always contain a faithful representation of the imported XMLs. To allow this, eventual changes to an imported `LexicalResource`  should be done in a controlled manner by Diversicon (i.e. ID renaming or edges added for computing transitive closure). All edges automatically added by Diversicon during normalization and transitive closure computation are marked as having provenance `$eval{eu.kidf.diversicon.data.DivUpper.PREFIX}`, and during export they are filtered out. This way at any time you should be able to export a `LexicalResource` to obtain something nearly identical to the original XML it came from. Note some difference with the original could be admitted for provenance purposes, like i.e. additional metadata documentating the passage into Diversicon. 
+A Diversicon database should always contain a faithful representation of the imported XMLs. To allow this, eventual changes to an imported `LexicalResource`  should be done in a controlled manner by Diversicon (i.e. ID renaming or edges added for computing transitive closure). All edges automatically added by Diversicon during normalization and transitive closure computation are marked as having provenance `$eval{eu.kidf.diversicon.data.DivUpper.PREFIX}`, and during export they are filtered out. This way at any time you should be able to export a `LexicalResource` to obtain something nearly identical to the original XML it came from. NOTE: some difference with the original could be admitted for provenance purposes, like i.e. additional metadata documentating the passage into Diversicon. 
 
-If you still try directly updating an already imported `LexicalResource` (i.e. by manually editing the db), then it becomes your responability to keep the database in a consistent state.
+If you still try [directly updating](#updating-existing-synsets-manual-db-edit) an already imported `LexicalResource` (i.e. by manually editing the db), then it becomes your responability to keep the database in a consistent state.
 
 
 ### XML Validation
@@ -35,32 +35,32 @@ validation but with important differences:
 
 1. XML Schema 1.0 validation, according to $eval{eu.kidf.diversicon.core.Diversicons.SCHEMA_1_PUBLIC_URL}
    
-   NOTE: during import XML is validated in _strict_ mode, so on warnings it does fail.
+   NOTE: during import XML is validated in _strict_ mode, so it does fail on warnings.
    
 2. the custom class `[DivXmlValidator](../src/main/java/eu/kidf/diversicon/core/internal/DivXmlValidator.java)` performs further validation in three steps:
 	 
 	1. XML structure and metadata are coherent
 	2. internal XML references are satisfied (i.e. _phablet_ links to existing _smartphone_ synset)
-	3. external references are satisfied and present in the db (i.e. links to Wordnet _computer_ synset are already present in the db ). If external references are not satisfied (i.e. in the XML Wordnet is referenced but was not imported yet) WARNINGs are emitted. 
+	3. external references are satisfied and present in the db (i.e. links to Wordnet _computer_ synset are already present in the db ). If external references are not satisfied (i.e. in the XML Wordnet is referenced but was not imported yet) _WARNING_s are emitted. 
 
 3. a new [ImportJob](src/main/java/eu/kidf/diversicon/core/ImportJob.java  is created,
  flags in `[DbInfo](../src/main/java/eu/kidf/diversicon/core/DbInfo.java) class are reset, logging is redirected to db 
 4. lexical resource is written to the db
 5. resulting graph is validated to prevent problems with augmentations (i.e. it is checked for self-loops in hypernyms) 
 5. graph is [normalized](DiversiconLMF.md#normalized-lmf)
-	5.1 [Domains](DiversiconLMF.md#domains) are identified and linked to $eval{eu.kidf.diversicon.data.SYNSET_ROOT_DOMAIN} 
+	5.1 [Domains](DiversiconLMF.md#domains) are identified and linked to `$eval{eu.kidf.diversicon.data.DivUpper.SYNSET_ROOT_DOMAIN}` 
 	5.2 [Canonical relations](DiversiconLMF.md#canonical-relations) are materialized	
 6. graph is augmented by calculating the transitive closure of canonical relations.
 
 Steps after 3 are optional and configurable with 
-the `skipAugment` flag in `[ImportConfig](../src/main/java/eu/kidf/diversicon/core/ImportConfig.java)`.
+the `skipAugment` flag in [`ImportConfig`](../src/main/java/eu/kidf/diversicon/core/ImportConfig.java).
 The idea is that you can import many files skipping them and only after the batch import validate and enrich the graph by calling `Diversicon.processGraph()`
 	
-If any ERROR is reported, import fails. If any WARNING is reported, import fails, because by default during import there is strict validation. To change this behaviour, see the following `force` flag.
+If any _ERROR_ is reported, import fails. If any _WARNING_ is reported, import fails, because by default during import there is strict validation. To change this behaviour, see the following `force` flag.
 
 #### `force` flag	
 
-If you try to import resources in the wrong order (i.e. resource A depends on B, and you import first B) or resources with circular references (A depends on B and viceversa), import will fail because of validation warnings. To still proceed with the import in these cases, you can enable a `force` flag in the `[ImportConfig](../src/main/java/eu/kidf/diversicon/core/ImportConfig.java)`.
+If you try to import resources in the wrong order (i.e. resource _A_ depends on _B_, and you import first _B_) or resources with circular references (_A_ depends on _B_ and viceversa), import will fail because of validation warnings. To still proceed with the import in these cases, you can enable a `force` flag in the `[ImportConfig](../src/main/java/eu/kidf/diversicon/core/ImportConfig.java)`.
 
 #### Import errors
 

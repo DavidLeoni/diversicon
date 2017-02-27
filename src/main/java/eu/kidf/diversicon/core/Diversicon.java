@@ -791,9 +791,8 @@ public class Diversicon extends Uby {
      * @param checkpoint
      *            last time in millisecs a message was displayed
      * @param msg
-     *            something like: "SynsetRelations normalization"
-     * @param itemsName
-     *            i.e. 'edges' or 'synsets'
+     *            something like: "SynsetRelations edge normalization"
+     * @param count the count of affected items.
      * 
      * @since 0.1.0
      */

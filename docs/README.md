@@ -3,7 +3,7 @@ WARNING: WORK IN PROGRESS - THIS IS ONLY A TEMPLATE FOR THE DOCUMENTATION. <br/>
 RELEASE DOCS ARE ON THE <a href="http://davidleoni.github.io/diversicon/" target="_blank">PROJECT WEBSITE</a>
 </p>
 
-his release allows to perform [importing](Operations.md#xml-import) of [XML lexical resources](DiversiconLMF.md) with some [validation](Operations.md#xml-validation) for checking namespaces.
+This release allows to perform [importing](Operations.md#xml-import) of [XML lexical resources](DiversiconLMF.md) with some [validation](Operations.md#xml-validation) for checking namespaces.
  <!--If you are upgrading from previous version, see [Release notes](CHANGES.md).-->
 
 ### Getting started
@@ -37,7 +37,7 @@ In case updates are available, version numbers follow <a href="http://semver.org
 ### Example Usage
 
 To create a database with Wordnet 3.1 and then import the example resource Smartphones, you can
-look at the example `[TestApp1](../../src/test/java/eu/kidf/diversicon/core/test/TestApp1.java)` 
+look at the example [`TestApp1`](../../src/test/java/eu/kidf/diversicon/core/test/TestApp1.java) 
 
 For more usage examples, you can have a look at DiverCLI project, in particular the various [Commands](https://github.com/diversicon-kb/divercli/tree/master/src/main/java/eu/kidf/diversicon/cli/commands)
 
