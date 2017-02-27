@@ -2,7 +2,6 @@ package eu.kidf.diversicon.core;
 
 import static eu.kidf.diversicon.core.internal.Internals.checkNotNull;
 
-import org.slf4j.ILoggerFactory;
 import org.slf4j.Logger;
 import org.slf4j.Marker;
 import org.slf4j.event.Level;

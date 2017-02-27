@@ -54,6 +54,7 @@ public class HibernateTransitiveClosureDiversicon extends Diversicon {
      *             {@link #computeTransitiveClosure()} instead
      * @since 0.1.0
      */
+    @SuppressWarnings("unused")
     private void computeTransitiveClosureWithoutRecursiveQueries() {
 
         Date start = new Date();
