@@ -5,7 +5,11 @@ DIVERSICON CORE ${project.version} RELEASE NOTES
 http://diversicon-kb.eu/manual/diversicon-core  
 
 
-### 0.1.0 - TODO date   
+### 0.1.0
+
+TODO date
+
+Closed issues: https://github.com/diversicon-kb/diversicon-core/milestone/1?closed=1   
 
 - much stronger XML validation
 - XML namespaces management	
@@ -20,4 +24,4 @@ http://diversicon-kb.eu/manual/diversicon-core
 - adoption of a small default lexical resource DivUpper   	  
 - some data is split into diversicon-model project
 
-Closed issues: https://github.com/diversicon-kb/diversicon-core/milestone/1?closed=1
+

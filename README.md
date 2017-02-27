@@ -10,7 +10,7 @@ RELEASE DOCS ARE ON THE <a href="http://davidleoni.github.io/diversicon/" target
 
 #### About Core
 
-Simple Java library to provide a multilingual SQL knowledge base for lexicons and concepts, based upon <a href="https://github.com/dkpro/dkpro-uby" target="_blank">DKPRO UBY</a>. 
+Java library that provides a multilingual SQL knowledge base for lexicons and concepts, based upon <a href="https://github.com/dkpro/dkpro-uby" target="_blank">DKPRO UBY</a>. 
 
 
 |**Usage**|**License**|**Roadmap**|**Contributing**|
@@ -64,7 +64,9 @@ Programming:
 
 * David Leoni - Heriot Watt University, Edinburgh - david.leoni at unitn.it
 
-Based on <a href="http://dkpro.github.io/dkpro-uby/" target="blank">DKPRO UBY framework</a>, by UKP Lab, Technische Universität Darmstadt.
+Based on:
+
+<a href="http://dkpro.github.io/dkpro-uby/" target="blank">DKPRO UBY framework</a>, by UKP Lab, Technische Universität Darmstadt.
 
 Made possible thanks to:
 

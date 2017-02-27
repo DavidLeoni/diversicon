@@ -1,6 +1,6 @@
 <p class="josman-to-strip">
 WARNING: WORK IN PROGRESS - THIS IS ONLY A TEMPLATE FOR THE DOCUMENTATION. <br/>
-RELEASE DOCS ARE ON THE <a href="http://davidleoni.github.io/diversicon/" target="_blank">PROJECT WEBSITE</a>
+RELEASE DOCS ARE ON THE <a href="http://diversicon-kb.eu/manual/diversicon-core" target="_blank">PROJECT WEBSITE</a>
 </p>
 
 This release allows to perform [importing](Operations.md#xml-import) of [XML lexical resources](DiversiconLMF.md) with some [validation](Operations.md#xml-validation) for checking namespaces.
@@ -8,7 +8,7 @@ This release allows to perform [importing](Operations.md#xml-import) of [XML lex
 
 ### Getting started
 
-**With Maven**: If you use Maven as build system, put this in the `dependencies` section of your `pom.xml`:
+If you use Maven as build system, put this in the `dependencies` section of your `pom.xml`:
 
 ```xml
     <dependency>
@@ -28,11 +28,6 @@ If you want to use Wordnet 3.1, you have to add this additional dependency:
 	</dependency>
 
 ```
-
-**Without Maven**: you can download Diversicon jar and its dependencies <a href="/releases/download/diversicon-core-#{version}/diversicon-core-${project.version}.zip" target="_blank"> from here</a>, then copy the jars to your project classpath.
-
-In case updates are available, version numbers follow <a href="http://semver.org/" target="_blank">semantic versioning</a> rules.
-
 
 ### Example Usage
 
