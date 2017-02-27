@@ -3,9 +3,7 @@ package eu.kidf.diversicon.core;
 import static eu.kidf.diversicon.core.internal.Internals.checkArgument;
 import static eu.kidf.diversicon.core.internal.Internals.checkNotEmpty;
 
-import java.text.NumberFormat;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -31,7 +29,7 @@ public class InsertionStats {
     public InsertionStats(){
         this.setEdgesPriorInsertion(0);
         this.setMaxLevel(0);
-        this.map = new HashMap();
+        this.map = new HashMap<>();
     }
 
     /**

@@ -41,8 +41,6 @@ import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import eu.kidf.diversicon.core.DbInfo;
 import eu.kidf.diversicon.core.DivConfig;
 import eu.kidf.diversicon.core.DivSynsetRelation;
-import eu.kidf.diversicon.core.DivXmlHandler;
-import eu.kidf.diversicon.core.DivXmlValidator;
 import eu.kidf.diversicon.core.Diversicon;
 import eu.kidf.diversicon.core.Diversicons;
 import eu.kidf.diversicon.core.ImportConfig;
@@ -59,8 +57,6 @@ import eu.kidf.diversicon.data.DivWn31;
 import eu.kidf.diversicon.data.Smartphones;
 import static eu.kidf.diversicon.core.internal.Internals.newHashSet;
 import static eu.kidf.diversicon.core.internal.Internals.newArrayList;
-
-import static eu.kidf.diversicon.data.DivUpper.SYNSET_ROOT_DOMAIN;
 
 /**
  * @since 0.1.0
@@ -104,7 +100,7 @@ public class DiversiconTest {
     public void testConnectToDbDontAutoCreate() {
         
         try {
-            Diversicon uby = Diversicon.connectToDb(divConfig);
+            Diversicon.connectToDb(divConfig);
             Assert.fail("Shouldn't be able to connect to non-existing db!");
         } catch (InvalidSchemaException ex){
             
@@ -1291,8 +1287,7 @@ public class DiversiconTest {
         Diversicon div = Diversicon.connectToDb(divConfig);
         DivTester.importResource(div, GRAPH_1_HYPERNYM, true);
         
-        Path dir = DivTester.createTestDir();
-        File zip = new File(dir.toString() + "/output.sql.zip");
+        DivTester.createTestDir();       
         
         try {
             div.exportToSql("", true);
@@ -1343,7 +1338,7 @@ public class DiversiconTest {
     @Test  
     public void testConnectToDbH2InMemoryCompressed(){
         try {
-            DBConfig dbConfig = Diversicons.h2MakeDefaultInMemoryDbConfig("trial-" + UUID.randomUUID(), true);
+            DBConfig dbConfig = Diversicons.h2InMemoryConfig("trial-" + UUID.randomUUID(), true);
             
             
             Assert.fail("Shouldn't arrive here!");
@@ -1367,7 +1362,7 @@ public class DiversiconTest {
      */      
     @Test
     public void testMemoryUsed(){
-        DBConfig dbConfig = Diversicons.h2MakeDefaultInMemoryDbConfig("trial-" + UUID.randomUUID()
+        DBConfig dbConfig = Diversicons.h2InMemoryConfig("trial-" + UUID.randomUUID()
                                     , false);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(DivConfig.of(dbConfig));
@@ -1388,13 +1383,13 @@ public class DiversiconTest {
         
         Date start = new Date();
         
-        DBConfig dbConfig = Diversicons.h2MakeDefaultInMemoryDbConfig("trial-" + UUID.randomUUID()
+        DBConfig dbConfig = Diversicons.h2InMemoryConfig("trial-" + UUID.randomUUID()
         , false);
         Diversicons.dropCreateTables(dbConfig);
         dbConfig.setPassword("666");
         
         try {
-            Diversicon div = Diversicon.connectToDb(DivConfig.of(dbConfig));
+            Diversicon.connectToDb(DivConfig.of(dbConfig));
             Assert.fail("Shouldn't arrive here!");
         } catch (GenericJDBCException ex){
                                    

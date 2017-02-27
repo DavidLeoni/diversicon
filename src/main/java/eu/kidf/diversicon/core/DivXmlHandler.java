@@ -10,14 +10,11 @@ import javax.annotation.Nullable;
 import javax.xml.transform.ErrorListener;
 import javax.xml.transform.TransformerException;
 
-import org.apache.xml.serialize.OutputFormat.Defaults;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
-import eu.kidf.diversicon.core.XmlValidationConfig.Builder;
 import eu.kidf.diversicon.core.exceptions.DivException;
 import eu.kidf.diversicon.core.internal.Internals;
 

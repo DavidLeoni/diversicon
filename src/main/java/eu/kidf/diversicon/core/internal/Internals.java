@@ -32,21 +32,13 @@ import javax.xml.XMLConstants;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
-import org.apache.http.ProtocolException;
 import org.apache.http.StatusLine;
-import org.apache.http.client.RedirectStrategy;
 import org.apache.http.client.fluent.Executor;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.client.fluent.Response;
-import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.RedirectLocations;
-import org.apache.http.protocol.HttpContext;
-import org.apache.xerces.impl.Constants;
 import org.apache.xerces.impl.dtd.DTDGrammar;
 import org.apache.xerces.impl.dtd.XMLDTDLoader;
 import org.apache.xerces.impl.dtd.XMLElementDecl;
@@ -93,6 +85,7 @@ import eu.kidf.diversicon.core.exceptions.DivNotFoundException;
  */
 public final class Internals {
 
+    @SuppressWarnings("rawtypes")
     @Nullable
     private static Map<Class, List<UBYLMFFieldMetadata>> ORDER_TABLE = new HashMap<>();
 
@@ -428,9 +421,10 @@ public final class Internals {
      * will be appended to the end of the formatted message in square braces.
      * <br/>
      * <br/>
-     * (Copied from Guava's
-     * {@link com.google.common.base.Preconditions#format(java.lang.String, java.lang.Object...) }
-     * )
+     * Copied from Guava's
+     * <br/><br/>
+     * {@code com.google.common.base.Preconditions#format(java.lang.String, java.lang.Object...) }
+     * 
      *
      * @param template
      *            a non-null string containing 0 or more {@code %s}
@@ -441,7 +435,7 @@ public final class Internals {
      *            {@link String#valueOf(Object)}. Arguments can be null.
      *
      * @since 0.1.0
-     */
+     */    
     public static String format(String template, @Nullable Object... args) {
         if (template == null) {
             LOG.warn("Found null template while formatting, converting it to \"null\"");
@@ -596,6 +590,7 @@ public final class Internals {
      * 
      * @since 0.1.0
      */
+    @SuppressWarnings("unchecked")
     public static <V, W> HashMap<V, W> newMap(V v, W w, Object... data) {
         HashMap<V, W> result = new HashMap<>();
 
@@ -660,6 +655,7 @@ public final class Internals {
      * 
      * @since 0.1.0
      */
+    @SuppressWarnings("unchecked")
     public static <T> ArrayList<T> newArrayList(T... objs) {
         ArrayList<T> ret = new ArrayList<>();
 
@@ -691,6 +687,7 @@ public final class Internals {
      * 
      * @since 0.1.0
      */
+    @SuppressWarnings("unchecked")
     public static <T> HashSet<T> newHashSet(T... objs) {
         HashSet<T> ret = new HashSet<>();
 
@@ -834,8 +831,8 @@ public final class Internals {
     /**
      * Extracts the directory at resource path to target directory. First
      * directory is searched in local "src/test/resources" and
-     * "src/main/resources" so the thing also
-     * works when developing in the IDE. If not found then searches in jar file.
+     * "src/main/resources" so the thing also works when developing in the IDE. 
+     * If not found then searches in jar file.
      * 
      * (adapted from Josman 0.7)
      * 
@@ -843,7 +840,7 @@ public final class Internals {
      * 
      * @since 0.1.0
      */
-    public static void copyDirFromResource(Class clazz, String sourceDirPath, File destDir) {
+    public static void copyDirFromResource(Class<?> clazz, String sourceDirPath, File destDir) {
 
         String sep = File.separator;
         @Nullable
@@ -934,9 +931,7 @@ public final class Internals {
     }
 
     /**
-     * 
-     * @param millisecs
-     *            time interval expressed in number of milliseconds
+     * Return a human readable time interval, like "1 hour 35 secs"
      * 
      * @since 0.1.0
      * 
@@ -959,8 +954,9 @@ public final class Internals {
     }
 
     /**
+     * Return a human readable time interval, like "1 hour 35 secs"
      * 
-     * @param millisecs
+     * @param millis
      *            time interval expressed in number of milliseconds
      * 
      * @since 0.1.0
@@ -976,24 +972,24 @@ public final class Internals {
         ArrayList<String> timeArray = new ArrayList<String>();
 
         if (years > 0) {
-            timeArray.add(String.valueOf(years) + pluralize("year", years));
+            timeArray.add(String.valueOf(years) + " " + pluralize("year", years));
         }
 
         if (days > 0) {
-            timeArray.add(String.valueOf(days) + pluralize("day", days));
+            timeArray.add(String.valueOf(days) + " " + pluralize("day", days));
         }
 
         if (hours > 0) {
 
-            timeArray.add(String.valueOf(hours) + pluralize("hour", hours));
+            timeArray.add(String.valueOf(hours) + " " + pluralize("hour", hours));
         }
 
         if (minutes > 0) {
-            timeArray.add(String.valueOf(minutes) + pluralize("min", minutes));
+            timeArray.add(String.valueOf(minutes) + " " + pluralize("min", minutes));
         }
 
         if (seconds > 0) {
-            timeArray.add(String.valueOf(seconds) + pluralize("sec", seconds));
+            timeArray.add(String.valueOf(seconds) + " " + pluralize("sec", seconds));
         }
 
         String time = "";
@@ -1030,15 +1026,20 @@ public final class Internals {
      * 
      * @since 0.1.0
      */
-    public static String formatDate(Date date) {
-        SimpleDateFormat dt = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
-        return dt.format(date);
+    public static String formatDate(@Nullable Date date) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+        
+        if (date == null) {
+            return "missing";
+        } else {
+            return sdf.format(date);
+        }    
     }
 
     /**
      * Returns a temporary file which is deleted on exit.
      * (to prevent deletion, set system property
-     * {@link Diversicon#PROPERTY_DEBUG_KEEP_TEMP_FILES} to true).
+     * {@link Diversicons#PROPERTY_DEBUG_KEEP_TEMP_FILES} to true).
      * 
      * @throws DivIoException
      * @since 0.1.0
@@ -1064,7 +1065,7 @@ public final class Internals {
     /**
      * Returns a temporary file which is deleted on exit
      * (to prevent deletion, set system property
-     * {@link Diversicon#PROPERTY_DEBUG_KEEP_TEMP_FILES} to true).
+     * {@link Diversicons#PROPERTY_DEBUG_KEEP_TEMP_FILES} to true).
      * 
      * @throws DivIoException
      * @since 0.1.0
@@ -1116,7 +1117,7 @@ public final class Internals {
     /**
      * Returns a temporary directory which is deleted on exit
      * (to prevent deletion, set system property
-     * {@link Diversicon#PROPERTY_DEBUG_KEEP_TEMP_FILES} to true).
+     * {@link Diversicons#PROPERTY_DEBUG_KEEP_TEMP_FILES} to true).
      * 
      * @throws DivIoException
      * @since 0.1.0
@@ -1214,7 +1215,7 @@ public final class Internals {
 
     /**
      * Copied this from
-     * {@link de.tudarmstadt.ukp.lmf.transform.UBYXMLTransform#doWriteElement}
+     * {@link de.tudarmstadt.ukp.lmf.transform.UBYXMLTransformer#doWriteElement}
      * 
      * <p>
      * Modified in Diversicon to
@@ -1235,6 +1236,7 @@ public final class Internals {
      * 
      * @since 0.1.0
      */
+    @SuppressWarnings("unchecked")
     @Nullable
     public static String prepareXmlElement(Object inputLmfObject,
             boolean closeTag,
@@ -1432,7 +1434,7 @@ public final class Internals {
                     reorderedSubelemsNames = new String[dtdSubElementNames.length];
 
                     for (UBYLMFFieldMetadata fm : classMetadata.getFields()) {
-                        Class clazz;
+                        Class<?> clazz;
                         if (Collection.class.isAssignableFrom(fm.getType())) {
                             clazz = fm.getGenericElementType();
                         } else {
@@ -1596,7 +1598,7 @@ public final class Internals {
      * Adapted from Junit
      * 
      * Asserts that two objects are equal. If they are not, an
-     * {@link IllegalArgumentError} is thrown with the given message. If
+     * {@link IllegalArgumentException} is thrown with the given message. If
      * <code>expected</code> and <code>actual</code> are <code>null</code>,
      * they are considered equal.
      *
@@ -1753,6 +1755,7 @@ public final class Internals {
      * @since 0.1.0
      */
     // Taken from here: http://stackoverflow.com/a/26414914
+    @SuppressWarnings("unused")
     public static DTDGrammar parseDtd(String dtdText) {
 
         // LOG.debug("dtdText= " + dtdText);

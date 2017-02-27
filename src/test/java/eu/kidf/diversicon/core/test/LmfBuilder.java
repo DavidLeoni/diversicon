@@ -152,7 +152,7 @@ public class LmfBuilder {
      * 
      * @since 0.1.0
      */
-    private String id(String name, Collection c) {
+    private String id(String name, Collection<?> c) {
         return id(name, (c.size() + 1));
     }
 

@@ -5,9 +5,6 @@ import static eu.kidf.diversicon.core.internal.Internals.checkNotNull;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
 import javax.annotation.Nullable;
 
 import org.xml.sax.SAXException;
@@ -34,6 +31,7 @@ class DivDbToXmlTransformer extends DBToXMLTransformer {
      * 
      * @since 0.1.0
      */
+    @SuppressWarnings("deprecation")
     public DivDbToXmlTransformer(Diversicon div, 
             OutputStream outputStream, 
             @Nullable String dtdPath,
@@ -54,8 +52,8 @@ class DivDbToXmlTransformer extends DBToXMLTransformer {
      * DIVERSICON NOTE: this function MUST be <i>the same</i> as 
      * {@link DivXmlWriter#doWriteElement(Object, boolean)}<br/>
      * 
-     * For an explanation, see {@link Internals#prepareXmlElement(Object, boolean, Map, de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata, AttributesImpl, List)
-     * Internals#prepareXmlElement} 
+     * For an explanation, see {@link Internals#prepareXmlElement(Object, boolean, LexResPackage, de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata, AttributesImpl, List)
+     * prepareXmlElement} 
      * 
      * <strong>
      * </p>

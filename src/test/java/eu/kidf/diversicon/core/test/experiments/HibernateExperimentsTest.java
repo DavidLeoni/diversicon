@@ -4,17 +4,14 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.xerces.impl.Constants;
 import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
-import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
-import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import eu.kidf.diversicon.core.DivConfig;
 import eu.kidf.diversicon.core.Diversicon;
 import eu.kidf.diversicon.core.Diversicons;
@@ -22,16 +19,6 @@ import eu.kidf.diversicon.core.test.DivTester;
 
 import static eu.kidf.diversicon.core.internal.Internals.checkArgument;
 import static eu.kidf.diversicon.core.internal.Internals.checkNotEmpty;
-
-import java.io.File;
-import java.io.IOException;
-
-import javax.xml.transform.Source;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import javax.xml.validation.Validator;
-import org.xml.sax.SAXException;
 
 /**
  * Various experiments and discarded code .
@@ -51,6 +38,7 @@ public class HibernateExperimentsTest {
      * 
      * @since 0.1.0
      */
+    @SuppressWarnings("unused")
     private void normalizeGraphWithSqlCrap() {
 
         LOG.info("Going to normalizing graph with canonical relations ...");
@@ -134,6 +122,7 @@ public class HibernateExperimentsTest {
 
     }
 
+    @SuppressWarnings("unused")
     private static class Expericon extends Diversicon {
 
         Expericon(DivConfig divConfig) {
@@ -149,8 +138,7 @@ public class HibernateExperimentsTest {
          * within given depth. In order to actually find them,
          * relations in {@code relNames} must be among the ones for which
          * transitive
-         * closure is computed.
-         * (see {@link Diversicons#getKnownRelations()}).
+         * closure is computed.         
          * 
          * @param synsetId
          * @param relNames
@@ -158,11 +146,11 @@ public class HibernateExperimentsTest {
          *            returned.
          * @param depth
          *            if -1 all parents until the root are retrieved. If zero
-         *            nothing is returned.
-         * @param lexicon
+         *            nothing is returned.        
          * 
          * @since 0.1.0
          */
+        @SuppressWarnings("unchecked")
         public Iterator<Synset> getConnectedSynsets(
                 String synsetId,
                 int depth,
@@ -171,8 +159,8 @@ public class HibernateExperimentsTest {
             checkNotEmpty(synsetId, "Invalid synset id!");
             checkArgument(depth >= -1, "Depth must be >= -1 , found instead: " + depth);
 
-            List<String> directRelations = new ArrayList();
-            List<String> inverseRelations = new ArrayList();
+            List<String> directRelations = new ArrayList<>();
+            List<String> inverseRelations = new ArrayList<>();
 
             for (String relName : relNames) {
                 if (Diversicons.isCanonicalRelation(relName) || !Diversicons.hasInverse(relName)) {

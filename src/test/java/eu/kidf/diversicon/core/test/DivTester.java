@@ -11,7 +11,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Array;
-import java.net.ServerSocket;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -44,7 +43,6 @@ import eu.kidf.diversicon.core.DivConfig;
 import eu.kidf.diversicon.core.DivSynsetRelation;
 import eu.kidf.diversicon.core.Diversicon;
 import eu.kidf.diversicon.core.Diversicons;
-import eu.kidf.diversicon.core.ImportConfig;
 import eu.kidf.diversicon.core.ImportJob;
 import eu.kidf.diversicon.core.LexResPackage;
 import eu.kidf.diversicon.core.exceptions.DivException;
@@ -64,22 +62,7 @@ public final class DivTester {
      * @since 0.1.0
      */
     public static final String DIVERSICON_ORG_URL = "https://github.com/diversicon-kb";
-        
-    
-    /**
-     * @since 0.1.0
-     */
-    private static final String MINIMAL_XML =         
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-            + "<LexicalResource name=\"lexical resource 1\">   \n" 
-            + "     <Lexicon id=\"lexicon 1\">       \n"
-            + "         <Synset id=\"synset 1\"/>    \n"        
-            + "     </Lexicon>                       \n" 
-            + "</LexicalResource>";        
-    
-
-    private static final String TEST_RESOURCES_PATH = "it/unitn/disi/diversicon/test/";
-
+               
 
     static final String DIVERSICON_TEST_STRING = Internals.DIVERSICON_STRING + "-test-";
 
@@ -384,9 +367,9 @@ public final class DivTester {
      */
     // Taken from http://stackoverflow.com/a/14444037
     private static List<int[]> permutations(int size) {
-        List<int[]> ret = new ArrayList();
+        List<int[]> ret = new ArrayList<>();
 
-        List<Integer> workingList = new ArrayList();
+        List<Integer> workingList = new ArrayList<>();
         for (int i = 0; i < size; i++) {
             workingList.add(i);
         }
@@ -739,7 +722,7 @@ public final class DivTester {
      * predictable way.
      * 
      * See
-     * {@link Diversicon#importResource(LexicalResource, LexResPackage, boolean)
+     * {@link Diversicon#importResource(LexicalResource, LexResPackage, boolean)}
      * 
      * @throws DivException
      * @throws DivValidationException
@@ -794,7 +777,7 @@ public final class DivTester {
         } else {
             s = Integer.toString(n);
         }
-        return Diversicons.h2MakeDefaultInMemoryDbConfig("test" + s, false);
+        return Diversicons.h2InMemoryConfig("test" + s, false);
 
     }
 

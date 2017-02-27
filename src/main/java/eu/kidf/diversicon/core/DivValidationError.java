@@ -42,8 +42,9 @@ public enum DivValidationError {
 
 
     /**
-     * A prefix should have length less or equal to {@link Diversicons#LEXICAL_RESOURCE_PREFIX_SUGGESTED_LENGTH} 
+     * A prefix should have length less or equal to {@link Diversicons#LEXRES_PREFIX_SUGGESTED_LENGTH} 
      * to prevent memory issues.
+     * 
      * @since 0.1.0
      */    
     TOO_LONG_PREFIX, 
@@ -68,7 +69,7 @@ public enum DivValidationError {
     MISSING_NAMESPACE_DECLARATION,
     
     /**
-     * A Lexical resource must have a valid identifier, see {@link Diversicons#ID_PATTERN}
+     * A Lexical resource must have a valid identifier, see {@link Diversicons#NAMESPACE_ID_PATTERN}
      * 
      * @since 0.1.0
      */

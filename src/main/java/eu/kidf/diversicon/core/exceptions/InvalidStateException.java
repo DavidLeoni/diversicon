@@ -13,9 +13,6 @@ public class InvalidStateException extends DivException {
     
     private static final long serialVersionUID = 1L;
 
-    private InvalidStateException(){
-        super();
-    }
     
     /**
      * Creates the exception using the provided throwable

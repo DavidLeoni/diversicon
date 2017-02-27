@@ -73,7 +73,6 @@ import javax.annotation.Nullable;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
-import javax.xml.transform.ErrorListener;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
@@ -449,6 +448,7 @@ public final class Diversicons {
      * 
      * @since 0.1.0
      */
+    @SuppressWarnings("unused")
     private static final Map<String, String> DATABASE_DRIVERS = Collections.unmodifiableMap(
             Internals.newMap(H2_IDENTIFIER, "org.h2.Driver"));
 
@@ -779,13 +779,19 @@ public final class Diversicons {
      *
      * @since 0.1.0
      */
+    // scanner warnings are bugging me way too much
+    @SuppressWarnings("resource")
     static void loadHibernateXml(Configuration hcfg, Resource xml) {
 
         LOG.debug("Loading config " + xml.getDescription() + " ...");
-
+        
+        InputStream is = null;
+        java.util.Scanner sc = null;
         try {
-
-            java.util.Scanner sc = new java.util.Scanner(xml.getInputStream()).useDelimiter("\\A");
+            
+            is = xml.getInputStream();
+            sc = new java.util.Scanner(is).useDelimiter("\\A");
+                    
             String s = sc.hasNext() ? sc.next() : "";
             sc.close();
 
@@ -796,8 +802,11 @@ public final class Diversicons {
 
         } catch (Exception e) {
             throw new DivException("Error while reading file at path: " + xml.getDescription(), e);
+        } finally {
+            if (sc != null){
+                sc.close();
+            }
         }
-
     }
 
     /**
@@ -963,7 +972,7 @@ public final class Diversicons {
 
     /**
      * Returns a list of relations used by Diversicon, in
-     * {@link de.tudarmstadt.ukp.uby.lmf.model.ERelNameSemantics Uby format}
+     * {@link de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics Uby format}
      * The list will contain only the {@link #isCanonicalRelation(String)
      * canonical} relations
      * and not their inverses.
@@ -976,13 +985,13 @@ public final class Diversicons {
 
     /**
      * Returns a list of all relations used by Diversicon, in
-     * {@link de.tudarmstadt.ukp.uby.lmf.model.ERelNameSemantics Uby format}
+     * {@link de.tudarmstadt.ukp.lmf.model.enums.ERelNameSemantics Uby format}
      * (including the inverses)
      * 
      * @since 0.1.0
      */
     public static List<String> getRelations() {
-        return new ArrayList(relationTypes.keySet());
+        return new ArrayList<String>(relationTypes.keySet());
     }
 
     /**
@@ -1154,11 +1163,11 @@ public final class Diversicons {
      * @param filePath
      *            the path to a database, which must end with just the
      *            database name
-     *            (so without the {@code .h2.db}).
+     *            ( <strong>must be without the '{@code .h2.db}'</strong> ).
      * 
      * @since 0.1.0
      */
-    public static DBConfig h2MakeDefaultFileDbConfig(String filePath, boolean readOnly) {
+    public static DBConfig h2FileConfig(String filePath, boolean readOnly) {
         checkNotEmpty(filePath, "Invalid file path!");
         checkArgument(!filePath.endsWith(".db"), "File path must end just with the databaset name, "
                 + "without the '.h2.db'! Found instead: " + filePath);
@@ -1170,7 +1179,7 @@ public final class Diversicons {
             readOnlyString = "";
         }
 
-        DBConfig ret = h2MakeDefaultCommonDbConfig();
+        DBConfig ret = h2CommonConfig();
         ret.setJdbc_url("jdbc:h2:file:" + filePath + readOnlyString);
 
         return ret;
@@ -1188,7 +1197,7 @@ public final class Diversicons {
      *            slower access time
      * @since 0.1.0
      */
-    public static DBConfig h2MakeDefaultInMemoryDbConfig(String dbName, boolean compressed) {
+    public static DBConfig h2InMemoryConfig(String dbName, boolean compressed) {
         checkNotEmpty(dbName, "Invalid db name!");
 
         String mem;
@@ -1200,7 +1209,7 @@ public final class Diversicons {
             mem = "mem";
         }
 
-        DBConfig ret = h2MakeDefaultCommonDbConfig();
+        DBConfig ret = h2CommonConfig();
 
         ret.setJdbc_url("jdbc:h2:" + mem + ":" + dbName + ";DB_CLOSE_DELAY=-1");
 
@@ -1210,7 +1219,7 @@ public final class Diversicons {
     /**
      * @since 0.1.0
      */
-    private static DBConfig h2MakeDefaultCommonDbConfig() {
+    private static DBConfig h2CommonConfig() {
 
         DBConfig ret = new DBConfig();
         ret.setDb_vendor("de.tudarmstadt.ukp.lmf.hibernate.UBYH2Dialect");
@@ -1225,6 +1234,7 @@ public final class Diversicons {
      * @deprecated TODO in progress
      * @since 0.1.0
      */
+    @SuppressWarnings("unused")
     public static void turnH2InsertionModeOn(DBConfig dbConfig) {
 
         /**
@@ -1268,6 +1278,7 @@ public final class Diversicons {
      * @since 0.1.0
      */
     public static void h2TurnInsertionModOff() {
+        @SuppressWarnings("unused")
         String restoreSavedVars = ""
                 + "  SET LOG @DIV_SAVED_LOG;"
                 + "  SET CACHE_SIZE @DIV_SAVED_CACHE_SIZE;"
@@ -1285,7 +1296,7 @@ public final class Diversicons {
      *
      * @param dumpUrl
      *            For Wordnet 3.1 packaged dump, you can use
-     *            {@link eu.kidf.diversicon.data.DivWn31#WORDNET_DIV_SQL_RESOURCE_URI}
+     *            {@link eu.kidf.diversicon.data.DivWn31#SQL_URI}
      * @throws DivIoException
      *             if an IO error occurs
      * 
@@ -1405,7 +1416,7 @@ public final class Diversicons {
     /**
      * 
      * Restores a packaged H2 db to file system ,
-     * in a subdirectory of {@link cacheRoot} as specified by
+     * in a subdirectory of {@code cacheRoot} as specified by
      * {@link #getCachedDir(File, String, String)}.
      * 
      * <p>
@@ -1449,7 +1460,7 @@ public final class Diversicons {
 
         if (!new File(filepath + ".h2.db").exists()) {
             try {
-                restoreH2Db(DivWn31.of()
+                h2RestoreDb(DivWn31.of()
                                    .getH2DbUri(),
                         filepath);
             } catch (DivIoException ex) {
@@ -1461,12 +1472,12 @@ public final class Diversicons {
                         "Trying to download db from the web (it's around 40 MB, may take several mins to download... )");
                 // todo we should fetch it from diversicon-kb.eu or from maven
                 // central! ...
-                restoreH2Db(
+                h2RestoreDb(
                         "https://github.com/diversicon-kb/diversicon-wordnet-3.1/raw/master/div-wn31-h2db/src/main/resources/div-wn31.h2.db.xz",
                         filepath);
             }
         }
-        return h2MakeDefaultFileDbConfig(filepath, true);
+        return h2FileConfig(filepath, true);
     }
 
     /**
@@ -1486,17 +1497,17 @@ public final class Diversicons {
      *
      * @param dumpUrl
      *            For Wordnet 3.1 packaged dump, you can use
-     *            {@link eu.kidf.diversicon.data.DivWn31#WORDNET_DIV_SQL_RESOURCE_URI}
+     *            {@link eu.kidf.diversicon.data.DivWn31#H2DB_URI}
      * @param targetPath
      *            the target path where to restore the db, ending with the db
-     *            name. Must NOT end with .h2.db
+     *            name. <strong>Must NOT end with .h2.db</strong>
      * 
      * @throws DivIoException
      *             if an IO error occurs
      * 
      * @since 0.1.0
      */
-    public static void restoreH2Db(String dumpUrl, String targetPath) {
+    public static void h2RestoreDb(String dumpUrl, String targetPath) {
 
         Internals.checkNotBlank(dumpUrl, "invalid h2 db dump!");
         Internals.checkNotBlank(targetPath, "invalid h2 db target path!");
@@ -1587,7 +1598,7 @@ public final class Diversicons {
     /**
      * Returns a java.sql.Connection to an H2 database from a UBY DBConfig.
      * 
-     * @throws DivIoConnection
+     * @throws DivIoException
      * 
      * @since 0.1.0
      */
@@ -1678,13 +1689,11 @@ public final class Diversicons {
 
     /**
      * Returns true if provided configuration refers to a database which could
-     * work
-     * with Diversicon. In order to work two conditions need to be met:
+     * work with Diversicon. In order to work two conditions need to be met:
      * 
      * 1) Db driver must be present in classpath
      * 2) Database must not be blacklisted
      * 
-     * @throws ClassNotFoundExc
      * 
      * @since 0.1.0
      */
@@ -2242,8 +2251,11 @@ public final class Diversicons {
      * @param inXml
      * @param outXml
      * 
+     * @deprecated CURRENTLY IT DOES *NOT* WORK.
+     * 
      * @since 0.1.0
      */
+    @SuppressWarnings("unused")
     public void transformOwa(File inXml, File outXml, int logLimit) {
 
         checkNotNull(inXml);
@@ -2271,7 +2283,7 @@ public final class Diversicons {
         // load the transformer using JAXP
         TransformerFactory factory = TransformerFactory.newInstance();
         Transformer transformer;
-        ErrorListener d;
+
         try {
             transformer = factory.newTransformer(
                     new StreamSource(stylesheet));
@@ -2291,7 +2303,7 @@ public final class Diversicons {
             throw new InvalidXmlException(handler, "Something went wrong!", ex);
         }
 
-        Document transformedDoc = result.getDocument();
+        result.getDocument();
 
         OutputFormat format = OutputFormat.createPrettyPrint();
         /*

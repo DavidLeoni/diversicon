@@ -4,15 +4,10 @@ import static eu.kidf.diversicon.core.internal.Internals.checkNotEmpty;
 import static eu.kidf.diversicon.core.internal.Internals.checkNotNull;
 
 import java.io.FileNotFoundException;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.UUID;
-
 import javax.annotation.Nullable;
 
-import org.hibernate.cfg.Configuration;
-import org.hibernate.service.ServiceRegistryBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,8 +21,6 @@ import de.tudarmstadt.ukp.lmf.model.semantics.SynSemCorrespondence;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.syntax.SubcategorizationFrame;
 import de.tudarmstadt.ukp.lmf.model.syntax.SubcategorizationFrameSet;
-import de.tudarmstadt.ukp.lmf.transform.DBConfig;
-
 import de.tudarmstadt.ukp.lmf.transform.LMFDBTransformer;
 import eu.kidf.diversicon.core.internal.Internals;
 
@@ -54,48 +47,49 @@ class JavaToDbTransformer extends LMFDBTransformer {
     private Iterator<ConstraintSet> constraintSetIter;
 
     /**
-     *
+     * Constructor of the transformer.
      * 
-     * @param resource
+     * @param lexRes
      *            a LexicalResource complete with all the lexicons, synsets,
      *            etc. MUST have a {@code name}
      * @throws FileNotFoundException
      * 
      * @since 0.1.0
      */
+    @SuppressWarnings("deprecation")
     public JavaToDbTransformer(
             Diversicon div,
-            LexicalResource lexicalResource)
+            LexicalResource lexRes)
                     throws FileNotFoundException {
         super(div.getDbConfig());        
         sessionFactory.close();  // div dirty but needed...       
-        sessionFactory = div.getSessionFactory();       
+        sessionFactory = div.getSessionFactory();
                 
-        checkNotNull(lexicalResource);
-        checkNotEmpty(lexicalResource.getName(), "Invalid lexicalResource name!");
+        checkNotNull(lexRes);
+        checkNotEmpty(lexRes.getName(), "Invalid lexicalResource name!");
         
                 
         session = sessionFactory.openSession();
         
         @Nullable
         LexicalResource existingLexicalResource = (LexicalResource) session.get(LexicalResource.class,
-                lexicalResource.getName());
+                lexRes.getName());
         session.close();
         
         if (existingLexicalResource == null) {
             /** copy to avoid double additions by LMFDBTransformer */
-            LexicalResource lexicalResourceCopy = Internals.deepCopy(lexicalResource);            
+            LexicalResource lexicalResourceCopy = Internals.deepCopy(lexRes);            
             this.lexicalResource = lexicalResourceCopy;
             this.lexicalResource.setLexicons(new ArrayList<Lexicon>());
             this.lexicalResource.setSenseAxes(new ArrayList<SenseAxis>());
         } else {
-            LOG.info("Importing into existing lexical resource " + lexicalResource.getName());
+            LOG.info("Importing into existing lexical resource " + lexRes.getName());
             this.lexicalResource = existingLexicalResource;            
         }
 
-        this.lexiconIter = lexicalResource.getLexicons()
+        this.lexiconIter = lexRes.getLexicons()
                                           .iterator();
-        this.senseAxisIter = lexicalResource.getSenseAxes()
+        this.senseAxisIter = lexRes.getSenseAxes()
                                             .iterator();       
         
 

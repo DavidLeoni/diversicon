@@ -44,7 +44,7 @@ public class ImportConfig {
 
     /**
      * The URL of the files to import. For supported URL formats see
-     * {@link eu.kidf.diversicon.core.internal.Internals#readData(String, boolean)
+     * {@link Diversicons#readData(String, boolean)
      * Internals.readData}
      * 
      * @since 0.1.0
