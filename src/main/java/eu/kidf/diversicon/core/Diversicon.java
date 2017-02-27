@@ -1972,24 +1972,24 @@ public class Diversicon extends Uby {
     public String formatImportJob(ImportJob job, boolean fullLog) {
         StringBuilder sb = new StringBuilder();
 
-        sb.append("NAME        : ");
+        sb.append("Name        : ");
         sb.append(job.getLexResPackage()
                      .getName());
         sb.append("\n");
-        sb.append("PREFIX      : ");
+        sb.append("Prefix      : ");
         sb.append(job.getLexResPackage()
                      .getPrefix());
         sb.append("\n");        
-        sb.append("IMPORT ID   : ");
+        sb.append("Import id   : ");
         sb.append(job.getId());        
         sb.append("\n");
-        sb.append("NAMESPACE   : ");
+        sb.append("Namespace   : ");
         sb.append(job.getLexResPackage()
                            .getNamespaces()
                            .get(job.getLexResPackage()
                                    .getPrefix()));
         sb.append("\n");
-        sb.append("FROM FILE   : ");
+        sb.append("From file   : ");
         sb.append(job.getFileUrl());
 
         if (job.getLogMessages()
@@ -2000,16 +2000,16 @@ public class Diversicon extends Uby {
                     + " WARNINGS/ERRORS");
         }
         sb.append("\n");
-        sb.append("IMPORTED BY : ");
+        sb.append("Imported by : ");
         sb.append(job.getAuthor());                
         sb.append("\n");
-        sb.append("STARTED     : ");
+        sb.append("Started     : ");
         sb.append(Internals.formatDate(job.getStartDate()));
         sb.append("\n");
-        sb.append("ENDED       : ");
+        sb.append("Ended       : ");
         sb.append(Internals.formatDate(job.getEndDate()));
         sb.append("\n");
-        sb.append("DURATION    : ");
+        sb.append("Duration    : ");
         sb.append(Internals.formatInterval(job.getStartDate(), job.getEndDate()));        
         sb.append("\n");
         if (!Internals.isBlank(job.getDescription())){

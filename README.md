@@ -19,7 +19,7 @@ Simple Java library to provide a multilingual SQL knowledge base for lexicons an
 
 **Features**
   
-  * thin wrapper over <a href="https://github.com/dkpro/dkpro-uby" target="_blank">UBY</a>, adds:
+  * Extension of <a href="https://github.com/dkpro/dkpro-uby" target="_blank">UBY</a>. Adds:
     - much stronger XML validation
 	- XML schema, and a simplified DTD    
     - XML namespaces management	

@@ -29,7 +29,7 @@ If you want to use Wordnet 3.1, you have to add this additional dependency:
 
 ```
 
-**Without Maven**: you can download Diversicon jar and its dependencies <a href="/releases/download/diversicon-#{version}/diversicon-${project.version}.zip" target="_blank"> from here</a>, then copy the jars to your project classpath.
+**Without Maven**: you can download Diversicon jar and its dependencies <a href="/releases/download/diversicon-core-#{version}/diversicon-core-${project.version}.zip" target="_blank"> from here</a>, then copy the jars to your project classpath.
 
 In case updates are available, version numbers follow <a href="http://semver.org/" target="_blank">semantic versioning</a> rules.
 
