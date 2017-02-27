@@ -47,7 +47,6 @@ import de.tudarmstadt.ukp.lmf.transform.LMFDBUtils;
 import de.tudarmstadt.ukp.lmf.transform.LMFXmlWriter;
 import de.tudarmstadt.ukp.lmf.transform.XMLToDBTransformer;
 import eu.kidf.diversicon.core.DivSynsetRelation;
-import eu.kidf.diversicon.core.Diversicons;
 import eu.kidf.diversicon.core.exceptions.DivException;
 import eu.kidf.diversicon.core.internal.Internals;
 

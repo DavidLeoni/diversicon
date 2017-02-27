@@ -19,21 +19,17 @@ public class InvalidImportException extends DivException {
     
     private static final long serialVersionUID = 1L;
 
-    
+    @Nullable
     private ImportConfig config;
+    @Nullable
     private String fileUrl;
+    @Nullable
     private LexResPackage pack;
     @Nullable
     private DivXmlValidator validator;
     
     
     
-    /**
-     * @since 0.1.0
-     */
-    private InvalidImportException(){
-        super();
-    }
     
     /**
      * Creates the exception using the provided throwable

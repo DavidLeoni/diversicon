@@ -95,7 +95,7 @@ public class ImportJob {
     }
 
     /**
-     * see {@link {@link #getDescription()}
+     * See {@link #getDescription()}
      * 
      * @since 0.1.0
      */
@@ -108,7 +108,7 @@ public class ImportJob {
     
     /**
      * 
-     * See {@link #getResourceDescriptor()}
+     * See {@link #getLexResPackage()}
      * 
      * @since 0.1.0
      */
@@ -129,7 +129,7 @@ public class ImportJob {
 
 
     /**
-     * @see {@link #getFileUrl()}
+     * @see #getFileUrl()
      * @since 0.1.0 
      */
     public void setFileUrl(String fileUrl) {

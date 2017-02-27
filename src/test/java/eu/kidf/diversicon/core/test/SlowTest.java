@@ -9,8 +9,6 @@ import java.util.Date;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import eu.kidf.diversicon.core.DivConfig;
@@ -28,7 +26,7 @@ import eu.kidf.diversicon.data.DivWn31;
  */
 public class SlowTest {
 
-    private static final Logger LOG = LoggerFactory.getLogger(SlowTest.class);
+    
 
     private DivConfig divConfig;
 

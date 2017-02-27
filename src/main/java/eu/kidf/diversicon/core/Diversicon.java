@@ -12,7 +12,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.sql.SQLException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -59,7 +58,6 @@ import de.tudarmstadt.ukp.lmf.model.morphology.FormRepresentation;
 import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
-import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import de.tudarmstadt.ukp.lmf.transform.DBToXMLTransformer;
 import eu.kidf.diversicon.core.LexResPackage;
 import eu.kidf.diversicon.core.exceptions.DivException;
@@ -70,7 +68,6 @@ import eu.kidf.diversicon.core.exceptions.InterruptedImportException;
 import eu.kidf.diversicon.core.exceptions.InvalidImportException;
 import eu.kidf.diversicon.core.exceptions.InvalidSchemaException;
 import eu.kidf.diversicon.core.exceptions.InvalidStateException;
-import eu.kidf.diversicon.core.exceptions.InvalidXmlException;
 import eu.kidf.diversicon.core.internal.Internals;
 import eu.kidf.diversicon.data.DivUpper;
 
@@ -82,7 +79,7 @@ import eu.kidf.diversicon.data.DivUpper;
  * is extended by {@link DivSynsetRelation} by adding {@code depth} and
  * {@code provenance} edges.
  * 
- * To create instances use {@link #connectToDb(DBConfig)} method
+ * To create instances use {@link #connectToDb(DivConfig)} method
  * 
  * <h3>Concurrency</h3>
  * <p>
@@ -130,7 +127,8 @@ public class Diversicon extends Uby {
      * 
      * @since 0.1.0
      */
-    protected Diversicon(DivConfig config) {
+    @SuppressWarnings("deprecation")
+    protected Diversicon(DivConfig config) {        
         super(); // so it doesn't open connections! Let's hope they don't delete
                  // it!
 
@@ -315,6 +313,7 @@ public class Diversicon extends Uby {
      * 
      * @since 0.1.0
      */
+    @SuppressWarnings("unchecked")
     public Iterator<Synset> getConnectedSynsets(
             String synsetId,
             int depth,
@@ -327,7 +326,7 @@ public class Diversicon extends Uby {
         if (!relNames.iterator()
                      .hasNext()
                 || depth == 0) {
-            return new ArrayList().iterator();
+            return new ArrayList<Synset>().iterator();
         }
 
         List<String> directRelations = new ArrayList<>();
@@ -543,9 +542,6 @@ public class Diversicon extends Uby {
         return "'" + s + "'";
     }
 
-    private static String makeSqlList(String[] iterable) {
-        return makeSqlList(Arrays.asList(iterable));
-    }
 
     protected static String makeSqlList(Iterable<String> iterable) {
         StringBuilder retb = new StringBuilder("(");
@@ -676,7 +672,7 @@ public class Diversicon extends Uby {
      * @param synset MUST *NOT* ALREADY BE A DOMAIN (see {@link  #isDomain(String)}!!
      * @param insertion stats to modify
      * 
-     * @see #isDomain(Synset)
+     * @see #isDomain(String)
      * @since 0.1.0
      */
     private void normalizeCandidateDomain(Synset synset, Synset rootDomain, InsertionStats insStats) {
@@ -985,8 +981,7 @@ public class Diversicon extends Uby {
      * <ul>
      * <li>For more options, see {@link #importFiles(ImportConfig)}.</li>
      * <li>For supported URL formats, see
-     * {@link eu.kidf.diversicon.core.internal.Internals#readData(String, boolean)
-     * Internals.readData}
+     * {@link Diversicons#readData(String, boolean)}
      * </li>
      * </ul>
      * </p>
@@ -1315,9 +1310,6 @@ public class Diversicon extends Uby {
      * !!!! IMPORTANT !!!!! {@code pack} must already contain data about the
      * resource!!
      * 
-     * @throws InvalidImportException
-     *             if thrown means some validation failed but no
-     *             LexicalResource data was written to disk.
      * 
      * @param fileUrl
      *            Url to the file to import. This is what will be used to
@@ -1328,6 +1320,8 @@ public class Diversicon extends Uby {
      *            prior import.
      * @see #setCurrentImportJob(ImportJob)
      * @throws InvalidImportException
+     *             if thrown means some validation failed but no
+     *             LexicalResource data was written to disk.
      * @since 0.1.0
      */
     private ImportJob newImportJob(
@@ -1603,7 +1597,7 @@ public class Diversicon extends Uby {
      * one
      * and if it doesn't match {@link InvalidSchemaException} will be thrown.
      * 
-     * @param dbConfig
+     * @param config a Diversicon config
      *
      * @throws DivIoException
      * @throws InvalidSchemaException
@@ -1798,7 +1792,7 @@ public class Diversicon extends Uby {
      * Checks connection among paths starting with a specific relation, like
      * i.e.
      * {@link ERelNameSemantics#HYPERNYMINSTANCE hypernymInstance} followed by
-     * {@link ERelNameSemantics#HYPERNYMIN hypernym})
+     * {@link ERelNameSemantics#HYPERNYM hypernym})
      * 
      * Works like {@link #isConnected(String, String, int, List)}, but checks
      * also that first
@@ -1841,9 +1835,9 @@ public class Diversicon extends Uby {
      * present in the database, without calculating new ones (except for known
      * inverses).
      * 
-     * @param sourceSynset
+     * @param sourceSynsetId
      *            the source synset
-     * @param targetSynset
+     * @param targetSynsetId
      *            the target synset
      * @param depth
      *            the maximum edge depth for relations.
@@ -1877,8 +1871,8 @@ public class Diversicon extends Uby {
             return false;
         }
 
-        List<String> directRelations = new ArrayList();
-        List<String> inverseRelations = new ArrayList();
+        List<String> directRelations = new ArrayList<>();
+        List<String> inverseRelations = new ArrayList<>();
 
         for (String relName : relNames) {
             if (Diversicons.isCanonicalRelation(relName) || !Diversicons.hasInverse(relName)) {
@@ -2166,8 +2160,7 @@ public class Diversicon extends Uby {
 
         Criteria criteria = session.createCriteria(LexResPackage.class)
                                    .add(Restrictions.like("name", lexResName));
-
-        @SuppressWarnings("unchecked")
+        
         LexResPackage ret = (LexResPackage) criteria.uniqueResult();
 
         if (ret == null) {
@@ -2187,8 +2180,7 @@ public class Diversicon extends Uby {
 
         Criteria criteria = session.createCriteria(LexResPackage.class)
                                    .add(Restrictions.like("id", lexResId));
-
-        @SuppressWarnings("unchecked")
+        
         LexResPackage ret = (LexResPackage) criteria.uniqueResult();
 
         if (ret == null) {
@@ -2251,7 +2243,7 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * Returns all domains in the db, according to the {@link #isDomain(Synset)
+     * Returns all domains in the db, according to the {@link #isDomain(String)
      * Diversicon definition}.
      * 
      * @see #getUbyDomains(Lexicon)
@@ -2299,6 +2291,7 @@ public class Diversicon extends Uby {
      * 
      * @since 0.1.0
      */    
+    @SuppressWarnings("unchecked")
     private Set<String> domainCandidates() {
                                
         List<String> domainIds = Internals.getIds(getDomains(null));               
@@ -2313,7 +2306,7 @@ public class Diversicon extends Uby {
         HashSet<String> ret = new HashSet<>();
         
         // couldn't find better way to project ids - screw Hibernate !!!!!
-        
+                
         List<DivSynsetRelation> divsWordnetTopic = session.createCriteria(DivSynsetRelation.class)                
                 .add(Restrictions.eq("relName", Diversicons.RELATION_WORDNET_TOPIC))
                 .createCriteria("target")                                

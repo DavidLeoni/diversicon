@@ -5,23 +5,14 @@ import static eu.kidf.diversicon.core.internal.Internals.checkNotNull;
 import java.io.FileNotFoundException;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nullable;
-import javax.xml.transform.OutputKeys;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
 
-import de.tudarmstadt.ukp.lmf.model.core.LexicalResource;
-import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.transform.LMFXmlWriter;
-import de.tudarmstadt.ukp.lmf.transform.UBYLMFClassMetadata;
-import de.tudarmstadt.ukp.lmf.transform.UBYXMLTransformer;
 import eu.kidf.diversicon.core.LexResPackage;
 import eu.kidf.diversicon.core.internal.Internals;
 
@@ -33,8 +24,7 @@ import eu.kidf.diversicon.core.internal.Internals;
  * @since 0.1.0
  */
 class DivXmlWriter extends LMFXmlWriter {
-    
-    private static final Logger LOG = LoggerFactory.getLogger(DivXmlWriter.class);
+        
 
     private LexResPackage lexResPackage;
 

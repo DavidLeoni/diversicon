@@ -406,8 +406,7 @@ public class DivXmlValidator extends DefaultHandler {
      * @throws SAXException
      */
     void validatePack() throws SAXException {
-
-        BuildInfo build = BuildInfo.of(Diversicon.class);
+        
 
         if (!Diversicons.NAMESPACE_NAME_PATTERN.matcher(pack.getName())
                                                .matches()) {

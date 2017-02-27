@@ -2,11 +2,6 @@ package eu.kidf.diversicon.core;
 
 import static eu.kidf.diversicon.core.internal.Internals.checkNotNull;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import javax.annotation.Nullable;
 
 
