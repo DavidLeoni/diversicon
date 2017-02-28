@@ -1420,10 +1420,13 @@ public final class Diversicons {
      * {@link #getCachedDir(File, String, String)}.
      * 
      * <p>
-     * The database is intended
-     * to be accessed in read-only mode and if
-     * already present no fetch is performed. The database may be fetched from
-     * the internet or directly taken from a jar if on the classpath.
+     * The database is intended to be accessed in read-only mode<br/>
+     * </p>
+     * <p>
+     * If already present in cache root: no fetch is performed.<br/>
+     * If not present in cache root: db is first searched in the classpath, if not 
+     * found is fetched from Github, at correct revision.
+     * </p> 
      * </p>
      *
      * @param id
@@ -1437,10 +1440,13 @@ public final class Diversicons {
      * 
      * @return The db configuration to access the DB in read-only mode.
      * 
+     * @throws DivIoException if fetch could not be performed 
+     * 
      * @since 0.1.0
      * 
      */
     // todo should throw if db is already accessed in non readonly mode
+    // Database should be fetched from Maven central, see https://github.com/diversicon-kb/diversicon-core/issues/42 
     public static DBConfig fetchH2Db(File cacheRoot, String id, String version) {
         checkNotNull(cacheRoot, "Invalid resource id!");
         checkNotBlank(id, "Invalid resource id!");
@@ -1470,11 +1476,26 @@ public final class Diversicons {
                 LOG.info("");
                 LOG.info(
                         "Trying to download db from the web (it's around 40 MB, may take several mins to download... )");
-                // todo we should fetch it from diversicon-kb.eu or from maven
-                // central! ...
-                h2RestoreDb(
-                        "https://github.com/diversicon-kb/diversicon-wordnet-3.1/raw/master/div-wn31-h2db/src/main/resources/div-wn31.h2.db.xz",
+
+
+                
+                // note: build info properties file is *only* in the _the model_
+                BuildInfo wn31BuildInfo = BuildInfo.of(DivWn31.class);
+
+                // todo we should fetch from from maven central, see https://github.com/diversicon-kb/diversicon-core/issues/42
+                // complete url is:   https://github.com/diversicon-kb/diversicon-wordnet-3.1/raw/master/div-wn31-h2db/src/main/resources/div-wn31.h2.db.xz                                       
+
+                String gitSha; 
+                if (wn31BuildInfo.getGitSha().contains("$")){
+                    LOG.warn("Seems like you are developing Diversicon Wordnet 3.1! Using 'master' as Git Sha");
+                    gitSha = "master";
+                } else {
+                    gitSha = wn31BuildInfo.getGitSha();
+                }
+                h2RestoreDb(wn31BuildInfo.getScmUrl() + "/raw/" + gitSha + "/div-wn31-h2db/src/main/resources/div-wn31.h2.db.xz",
                         filepath);
+                 
+                
             }
         }
         return h2FileConfig(filepath, true);
