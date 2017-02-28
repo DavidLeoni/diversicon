@@ -50,11 +50,12 @@ NOTE: during import XML is validated in _strict_ mode, so it does fail on warnin
 	5.2 [Canonical relations](DiversiconLMF.md#canonical-relations) are materialized	
 6. graph is augmented by calculating the transitive closure of canonical relations.
 
-Steps after 3 are optional and configurable with the `skipAugment` flag in [`ImportConfig`](../src/main/java/eu/kidf/diversicon/core/ImportConfig.java).
-Idea here is that you can import many files and delay the time consuming enriching only at the end of all imports by calling `Diversicon.processGraph()`
+Steps after 3 are optional and configurable with the `skipAugment` flag in [`ImportConfig`](../src/main/java/eu/kidf/diversicon/core/ImportConfig.java), so you can import many files at once and delay the augmentation only at the end of all imports by calling `Diversicon.processGraph()`
 	
 If any _ERROR_ is reported, import fails. 
-If any _WARNING_ is reported, import fails, because by default during import there is strict validation. To change this behaviour, see the following `force` flag.
+If any _WARNING_ is reported, import fails
+
+Import fails an warnings because by default during import strict validation is used. To change this behaviour, see the following `force` flag.
 
 #### `force` flag	
 
@@ -63,7 +64,7 @@ If you try to import resources in the wrong order (i.e. resource _A_ depends on 
 #### Import errors
 
 After validation succeeds, actual import starts. If errors occur after writing to db has started, Diversicon will to try some strategy for rolling back: unfortunately at this time complete rollback is **not** always possible due to [issue 38](https://github.com/diversicon-kb/diversicon-core/issues/38).
-To avoid surprises it can be a good idea to use the dry run flag in `[ImportConfig](../src/main/java/eu/kidf/diversicon/core/ImportConfig.java)`.
+To avoid surprises it can be a good idea to use the dry run flag in [`ImportConfig`](../src/main/java/eu/kidf/diversicon/core/ImportConfig.java).
 
 
 ### Update
