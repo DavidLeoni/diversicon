@@ -1,17 +1,13 @@
 ### Introduction
 
-Diversicon should allow importing and merging LMF XMLs produced by different people,
-preventing the clashes that may arise. 
-Diversicon should be able to read the XML files created with UBY 0.7.0, provided you
-add some bookkeeping information to the files to indicate to which namespace they belong.  
+Diversicon allows importing and merging LMF XMLs produced by different people,
+preventing the clashes that may arise. Diversicon should be able to read the XML files created with UBY 0.7.0, provided you add some bookkeeping information to the files to indicate to which namespace they belong.  
   
 ### LexicalResource name
 
-The `LexicalResource` attribute `name` must be worldwide unique. In order , you should pick a 
-reasonable long and unique prefix for your organization. In the case of Diversicon example resources, 
-we allowed ourselves the luxury of picking a short name like `div`. So for example, the resource 
-[smartphones](https://github.com/diversicon-kb/diversicon-model/blob/master/src/main/resources/smartphones.xml) 
-declaration begins this: 
+The `LexicalResource` attribute `name` must be worldwide unique. so you should pick a 
+reasonable long and unique prefix for your organization. In the case of Diversicon example resources, we allowed ourselves the luxury of picking a short name like `div`. So for example, the resource 
+[smartphones](https://github.com/diversicon-kb/diversicon-model/blob/master/src/main/resources/smartphones.xml) declaration begins like this: 
 
 ```
 <LexicalResource name="div-smartphones"
@@ -24,22 +20,19 @@ declaration begins this:
 
 ### Namespaces
   
-XML allows to declare namespaces for tags and attributes 
-(so you can write stuff like `<my-pfx:my-tag my-pfx:my-attribute="bla bla">`)
- but we abuse them to give a scope also to tag IDs: `<tag id="my-pfx_bla">`. 
-Namespaced IDs are necessary because in UBY IDs are global, and when merging multiple sources into te db 
-conflicts might occur. 
+XML allows declaring namespaces only for tags and attributes (so you can write stuff like `<my-pfx:my-tag my-pfx:my-attribute="bla bla">`) but we abuse them to give a scope also to tag IDs: `<tag id="my-pfx_bla">`. Namespaced IDs are necessary because in UBY IDs are global, and when merging multiple sources into te db conflicts might occur. 
 
 There are a few things to keep in mind:
 
-- in tag IDs there is an underscore `_` separating the prefix from the name like in `<tag id="my-pfx_bla">`
-- although we use prefixes like 'wn31` we don't require version numbers in them
+- in tag IDs there is an underscore `_` separating the prefix (i.e. 'my-pfx') from the name ('i.e. `bla`) like in
+ `<tag id="my-pfx_bla">`
+- although we use prefixes like `wn31` we don't require version numbers in them
 - we don't enforce any specific format for namespace urls, and urls are not required 
 to be resolvable nor to be persistent (although of course it is very desirable)
 - when ids are inserted into the database, prefixes _are not_ expanded
 
    
-In Diversicon LMF you can declare namespace in `LexicalResource` tag the `xmlns`
+In Diversicon LMF you can declare namespaces in `LexicalResource` tag the `xmlns`
 attribute:
 
 ```xml
@@ -57,81 +50,102 @@ attribute:
 ```
  
 
-### Default namespace
+### Document namespace
 
-The prefix used in the value of a `LexicalResource` `prefix` attribute is intended to be
-the default prefix of the document. Such prefix must be also defined in the `xmlns` 
-section of the document, like 'sm' here:
+The value of a `LexicalResource` `prefix` attribute is intended to be
+the prefix of the document. Such prefix must be also defined in the `xmlns` 
+section of the document, like `sm` here:
 
-```    
-<?xml version="1.0" encoding="UTF-8"?
-  xmlns:sm="https://github.com/diversicon-kb/diversicon/tree/master/src/main/resources/smartphones-lmf.xml"
+```xml   
+<LexicalResource name="div-smartphones"				 
+				 prefix="sm"				 
+  				 xmlns:sm="https://github.com/diversicon-kb/diversicon-model/blob/master/src/main/resources/smartphones.xml"
+  				 xmlns:wn31="https://github.com/diversicon-kb/diversicon-wordnet-3.1"
+				 				 				 
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+				 xsi:noNamespaceSchemaLocation="http://diversicon-kb.eu/schema/1.0/diversicon.xsd">
+
 ...
-      
-<LexicalResource name="div-smartphones">
 ...
-</LexicalResource>
 
 ```
 
+Note _all_ document tag ids must begin with the declared document prefix followed by an underscore, like `sm_ss_tablet` in the following example. All referenced external ids must begin with a declared prefix, like `wn31_ss_n3086983`.   
 
+```xml
 
-### IDs
-
-Each `id` attribute in the XML must be prefixed with a namespace. If it is not, when importing the 
-document Diversicon will complain. You have to 
+        <Synset id="sm_ss_tablet">
+            			           
+            <SynsetRelation target="wn31_ss_n3086983" 
+            				relType="taxonomic" 
+            				relName="hypernym"/>
+        </Synset>
+```
 
 
 TODO Each Synset must be associated to at least one Sense respective LexicalEntry
  
 
 ### Schema
-TODO
+
+Schema is provided as DTD and XSD at these addresses:
+
+**DTD:** $eval{eu.kidf.diversicon.core.Diversicons.DTD_1_PUBLIC_URL}
+**XSD:** $eval{eu.kidf.diversicon.core.Diversicons.SCHEMA_1_PUBLIC_URL}
+
+If you need specific stable versions, you can use `x.y` format like these: 
+$eval{eu.kidf.diversicon.core.Diversicons.DTD_1_0_PUBLIC_URL}
+$eval{eu.kidf.diversicon.core.Diversicons.SCHEMA_1_0_PUBLIC_URL}
+
+The DTD is an improved version of the DKPRO one ([see changes](https://github.com/diversicon-kb/diversicon-core/issues/15)). The schema is derived automatically from the DTD and then fixed with an [XQuery transform](../src/main/resources/internals/fix-div-schema.xql). 
 
 ### Canonical relations
-Canonical relations are privileged with reference to the inverse they might have, in the sense that Diversicon algorithms will only consider canonical relations and not their inverses.
-For example, since hypernymy is considered as canonical, transitive closure graph is computed only for hypernym, not hyponym. To avoid missing inforation, after an import Diversicon will make sure canonical relations are materialized in the db from the inverses with provenance $eval{eu.kidf.diversicon.core.Diversicons.getProvenanceId()}. 
+
+Canonical relations are privileged with reference to the inverse they might have, because Diversicon algorithms only consider canonical relations, and not their inverses.
+For example, since _hypernymy_ is considered as canonical, transitive closure graph is computed only for hypernyms, not hyponyms. To avoid missing information, after an import Diversicon makes sure canonical relations are materialized in the db from the inverses, using provenance `$eval{eu.kidf.diversicon.core.Diversicons.getProvenanceId()}`. 
 
 
 ### Domains
 
-Wordnet 3.1 ships with information about domains, and UBY converter recognize and convert such domains.
-Still, we needed to work a bit on the domain representation. First we describe domains as implmented in Wordnet, 
-then how they are converted in UBY and then we introduce how we modelled them in Diversicon. 
+Wordnet 3.1 ships with information about domains, and UBY converter recognize and convert such domains. Still, we needed to work a bit on the domain representation. These were our desiderata: 
+
+* need to express hierarchies
+* preference to talk about 'domain' instead of 'topics'
+* Wordnet 3.1 domains look a bit confusing
+
+
+First we describe domains as implemented in Wordnet, then how they are converted in UBY and finally we introduce they are modelled in Diversicon. 
 
 #### Wordnet domains
 
-* Wordnet partitions domain relations into  `usage` (pointer key `;r`) , `region` (pointer key `;u`) or `topic` (pointer key `;c`) relations. 
-* None of these relations is hierarchical. 
-* Only `topic ` is transitive. 
+* Wordnet partitions domain relations into
+	- `usage` (pointer key `;r`)
+	- `region` (pointer key `;u`)
+	- `topic` (pointer key `;c`) 
+* None of these relations are hierarchical 
+* Only `topic ` is transitive
 
 #### UBY Wordnet domains 
 
-Reading [UBY Wordnet converter](https://github.com/diversicon-kb/dkpro-uby/issues/3) code, looks like
-you can't directly state that a synset is a domain.  You can know if a `Synset` is a domain if
-a)  has associated at least one `Sense` that is linked in turn to a `SemanticLabel` of type `ELabelTypeSemantics.domain, regionOfUsage or usage`
-b) OR other synsets point to it with one of `usage` (pointer key `;r`) , `region` (pointer key `;u`) or `topic` (pointer key `;c`) relations. 
+In UBY seems like you can't directly state that a synset is a domain (see issue about [UBY Wordnet converter](https://github.com/diversicon-kb/dkpro-uby/issues/3)).  You can know if a `Synset` is a domain if
+a) it has associated at least one `Sense` that is linked in turn to a `SemanticLabel` of type `ELabelTypeSemantics.domain`, `regionOfUsage` or `usage`
+b) OR other synsets point to it with one relation among `usage` (pointer key `;r`) , `region` (pointer key `;u`) or `topic` (pointer key `;c`) 
 
 Note also that LMF converters use the generic word `ELabelTypeSemantics.domain` in `SemanticLabel.type`.
 
 #### Diversicon domains
 
-For the reasons stated above and given that:
-
-* We need to express hierarchies
-* we prefer talking about 'domain' instead of topics
-* Wordnet 3.1 domains look a bit confusing
-
-
 We did the following modifications:
 
-1) introduced new `domain` and `superDomain` relations, plus the respective inverses `domainOf` and `subDomain`. Example of usage:
+1) introduced new `domain` and `superDomain` relations, plus the respective inverses `domainOf` and `subDomain`. Usage example:
 
-`ss_train` `domain` `ss_transportation` `superDomain` `ss_applied-sciences` `superDomain` `div_ss_domain`
+`ss_train` `domain` `ss_transportation`
+`ss_transportation` `superDomain` `ss_applied-sciences`
+`ss_applied-sciences` `superDomain` `div_ss_domain`
 
-NOTE: computation of transitive closure [won't consider leaves](https://github.com/diversicon-kb/diversicon-core/issues/32).
+(note computation of transitive closure [won't consider leaves](https://github.com/diversicon-kb/diversicon-core/issues/32)).
 
-2) Established a new a root domain synset in `$eval{eu.kidf.diversicon.data.DivUpper.SYNSET_ROOT_DOMAIN}` in [DivUpper LexicalResource](https://github.com/diversicon-kb/diversicon-model/blob/master/src/main/resources/div-upper.xml) and made sure existing domains point to it. If a lexical resource has topics expressed only via UBY b) method (like Wordnet 3.1) during import normalization substep, edges pointing to the root marked with `div` provenance will be automatically added.
+2) Established a new a root domain synset as `$eval{eu.kidf.diversicon.data.DivUpper.SYNSET_ROOT_DOMAIN}` in [DivUpper LexicalResource](https://github.com/diversicon-kb/diversicon-model/blob/master/src/main/resources/div-upper.xml), and made sure existing domains point to it. If a lexical resource has topics expressed only via UBY _b)_ method (like Wordnet 3.1) during import normalization substep, edges pointing to the root marked with `div` provenance will be automatically added.
 
 3) When importing, Diversicon will:
 

@@ -4,13 +4,13 @@ RELEASE DOCS ARE ON THE <a href="http://diversicon-kb.eu/manual/diversicon-core"
 </p>
 
 
-This release allows to perform [importing](Operations.md#xml-import) of [XML lexical resources](DiversiconLMF.md) with some [validation](Operations.md#xml-validation) for checking namespaces.
+This release allows to [perform importing](Operations.md#xml-import) of XML [lexical resources](DiversiconLMF.md), with [some validation](Operations.md#xml-validation) for checking namespaces.
 
  <!--If you are upgrading from previous version, see [Release notes](CHANGES.md).-->
 
 ### Getting started
 
-If you use Maven as build system, put this in the `dependencies` section of your `pom.xml`:
+If you use Maven as build system, put in the `dependencies` section of your `pom.xml`:
 
 ```xml
     <dependency>
@@ -21,7 +21,7 @@ If you use Maven as build system, put this in the `dependencies` section of your
 ```
 
 
-If you want to use Wordnet 3.1, you have to add this additional dependency:
+If you want to use Wordnet 3.1,  add this additional dependency:
 
 ```xml
 	<dependency>
@@ -29,6 +29,7 @@ If you want to use Wordnet 3.1, you have to add this additional dependency:
 		<artifactId>div-wn31-h2db</artifactId>
 		<version>${project.version}</version>		
 	</dependency>
+```
 
 In case updates are available, version numbers follow <a href="http://semver.org/" target="_blank">semantic versioning</a> rules.
 
