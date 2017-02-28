@@ -305,7 +305,7 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
     public void fatalError(SAXParseException ex) throws SAXException {
         this.fatalError = ex;
         
-        if (ex.getSystemId()
+        if (ex != null && ex.getSystemId() != null &&ex.getSystemId()
               .contains(Diversicons.DTD_FILENAME)) {
             config.getLog()
                   .info("TODO: skipping DTD validation ...");
@@ -362,6 +362,7 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
     /**
      * Outputs exception {@code ex} in a format suitable for a log
      * 
+     * @param ex If possible, try to pass a valid exception. The method will still work if the exception is null, though.
      * @param defaultSystemId
      *            won't be shown in the output (See {@link #getDefaultSystemId()
      *            getter})
@@ -369,7 +370,7 @@ public class DivXmlHandler implements ErrorHandler, ErrorListener {
      * @since 0.1.0
      */
     // todo think about public id
-    private static String exceptionToString(Exception ex, String defaultSystemId) {
+    private static String exceptionToString(@Nullable Exception ex, String defaultSystemId) {
 
         if (ex == null) {
             return "#ERROR IN EXCEPTION REPORTING, FOUND NULL EXCEPTION#";

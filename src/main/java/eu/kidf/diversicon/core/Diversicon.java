@@ -986,12 +986,16 @@ public class Diversicon extends Uby {
      * </p>
      * @since 0.1.0
      */
-    public ImportJob importXml(String fileUrl) {
-
+    public ImportJob importXml(String fileUrl, String... otherFileUrls) {       
+        
         ImportConfig config = new ImportConfig();
 
         config.setAuthor(Diversicons.DEFAULT_AUTHOR);
-        config.setFileUrls(Arrays.asList(fileUrl));
+        ArrayList<String> urls = Internals.newArrayList();
+        urls.add(fileUrl);
+        urls.addAll(Arrays.asList(otherFileUrls));
+        
+        config.setFileUrls(urls);
 
         return importFiles(config).get(0);
     }
@@ -1300,15 +1304,18 @@ public class Diversicon extends Uby {
     /**
      * 
      * Validates metadata and xml (if present), then returns an
-     * {@link ImportJob}. No data will
-     * be written into the db.
+     * {@link ImportJob}. 
      * 
+     * <p>
+     * No data will be written into the db. Still, db can get accessed to validate the input.
+     * </p>
      * 
-     * Still, db can get accessed to validate the input.
-     * 
+     * <p>
+     * <strong>
      * !!!! IMPORTANT !!!!! {@code pack} must already contain data about the
      * resource!!
-     * 
+     * </strong>
+     * </p>
      * 
      * @param fileUrl
      *            Url to the file to import. This is what will be used to

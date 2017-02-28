@@ -3,6 +3,7 @@ package eu.kidf.diversicon.core;
 import static eu.kidf.diversicon.core.internal.Internals.checkNotNull;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.event.Level;
 import org.slf4j.helpers.MessageFormatter;
@@ -14,6 +15,8 @@ import org.slf4j.helpers.MessageFormatter;
  * @since 0.1.0
  */
 public class ImportLogger implements Logger {
+   
+    private static final Logger LOG = LoggerFactory.getLogger(ImportLogger.class);
     
     private Diversicon diversicon;
     
@@ -211,35 +214,39 @@ public class ImportLogger implements Logger {
     public boolean isWarnEnabled() {
         return true;
     }
+    
+    private void addLogMessage(Level level, String msg){
+        ImportJob importJob = diversicon.getDbInfo().getCurrentImportJob();
+        if (importJob == null){
+            LOG.error("Tried to append log, but there is no current import job! Log was: " + msg);         
+        } else {
+            importJob.addLogMessage(new LogMessage(importJob, level, msg));    
+        }
+    }
 
     @Override
     public void warn(String msg) {
-        ImportJob importJob = diversicon.getDbInfo().getCurrentImportJob();
-        importJob.addLogMessage(new LogMessage(importJob, Level.WARN, msg));
+        addLogMessage(Level.WARN, msg);
     }
 
     @Override
     public void warn(String format, Object arg) {
-        ImportJob importJob = diversicon.getDbInfo().getCurrentImportJob();
-        importJob.addLogMessage(new LogMessage(importJob, Level.WARN,  MessageFormatter.format(format, arg).toString()));
+        addLogMessage( Level.WARN,  MessageFormatter.format(format, arg).toString());        
     }
 
     @Override
     public void warn(String format, Object... arguments) {
-        ImportJob importJob = diversicon.getDbInfo().getCurrentImportJob();
-        importJob.addLogMessage(new LogMessage(importJob, Level.WARN,  MessageFormatter.arrayFormat(format, arguments).toString()));
+        addLogMessage( Level.WARN,  MessageFormatter.arrayFormat(format, arguments).toString());
     }
 
     @Override
     public void warn(String format, Object arg1, Object arg2) {
-        ImportJob importJob = diversicon.getDbInfo().getCurrentImportJob();
-        importJob.addLogMessage(new LogMessage(importJob, Level.WARN,  MessageFormatter.format(format, arg1, arg2).toString()));
+        addLogMessage( Level.WARN,  MessageFormatter.format(format, arg1, arg2).toString());
     }
 
     @Override
     public void warn(String msg, Throwable t) {
-        ImportJob importJob = diversicon.getDbInfo().getCurrentImportJob();
-        importJob.addLogMessage(new LogMessage(importJob, Level.WARN,  msg + t.toString()));
+        addLogMessage( Level.WARN,  msg + t.toString());
     }
 
     @Override
@@ -279,32 +286,27 @@ public class ImportLogger implements Logger {
 
     @Override
     public void error(String msg) {
-        ImportJob importJob = diversicon.getDbInfo().getCurrentImportJob();
-        importJob.addLogMessage(new LogMessage(importJob, Level.ERROR, msg));
+        addLogMessage( Level.ERROR, msg);        
     }
 
     @Override
     public void error(String format, Object arg) {
-        ImportJob importJob = diversicon.getDbInfo().getCurrentImportJob();
-        importJob.addLogMessage(new LogMessage(importJob, Level.ERROR,  MessageFormatter.format(format, arg).toString()));
+        addLogMessage( Level.ERROR,  MessageFormatter.format(format, arg).toString());
     }
 
     @Override
     public void error(String format, Object... arguments) {
-        ImportJob importJob = diversicon.getDbInfo().getCurrentImportJob();
-        importJob.addLogMessage(new LogMessage(importJob, Level.ERROR,  MessageFormatter.arrayFormat(format, arguments).toString()));
+        addLogMessage( Level.ERROR,  MessageFormatter.arrayFormat(format, arguments).toString());        
     }
 
-    @Override
+    @Override    
     public void error(String format, Object arg1, Object arg2) {
-        ImportJob importJob = diversicon.getDbInfo().getCurrentImportJob();
-        importJob.addLogMessage(new LogMessage(importJob, Level.ERROR,  MessageFormatter.format(format, arg1, arg2).toString()));
+        addLogMessage( Level.ERROR,  MessageFormatter.format(format, arg1, arg2).toString());
     }
 
     @Override
     public void error(String msg, Throwable t) {
-        ImportJob importJob = diversicon.getDbInfo().getCurrentImportJob();
-        importJob.addLogMessage(new LogMessage(importJob, Level.ERROR,  msg + t.toString()));
+        addLogMessage( Level.ERROR,  msg + t.toString());        
     }
 
     @Override

@@ -22,6 +22,7 @@ import eu.kidf.diversicon.core.Diversicons;
 import eu.kidf.diversicon.core.ExtractedStream;
 import eu.kidf.diversicon.core.internal.Internals;
 import eu.kidf.diversicon.data.DivWn31;
+import eu.kidf.diversicon.data.Examplicon;
 import eu.kidf.diversicon.data.Smartphones;
 
 /**
@@ -101,6 +102,51 @@ public class DivUtilsIT {
         div.importXml(Smartphones.of().getXmlUri());    
     }
 
+    /**
+     * 
+     * @since 0.1.0
+     * 
+     * @see DiversiconTest#testImportExampliconXmlWithoutWordnet()
+     */
+    @Test
+    public void testImportExampliconXmlWithWordnet() {
+
+        Path dir = DivTester.createTestDir();
+
+        File target = new File(dir.toString() + "/test");
+        
+        Diversicons.h2RestoreDb(DivWn31.of().getH2DbUri(), target.getAbsolutePath());
+        
+        DBConfig dbCfg = Diversicons.h2FileConfig(target.getAbsolutePath(), false); 
+        
+        Diversicon div = Diversicon.connectToDb(DivConfig.of(dbCfg));               
+        
+        div.importXml(Examplicon.of().getXmlUri());    
+    }
+
+    /**
+     * 
+     * @since 0.1.0
+     * 
+     * @see DiversiconTest#testImportSmartphonesExampliconXmlWithoutWordnet()
+     */
+    @Test
+    public void testImportSmartphonesExampliconXmlWithWordnet() {
+
+        Path dir = DivTester.createTestDir();
+
+        File target = new File(dir.toString() + "/test");
+        
+        Diversicons.h2RestoreDb(DivWn31.of().getH2DbUri(), target.getAbsolutePath());
+        
+        DBConfig dbCfg = Diversicons.h2FileConfig(target.getAbsolutePath(), false); 
+        
+        Diversicon div = Diversicon.connectToDb(DivConfig.of(dbCfg));               
+        
+        div.importXml(Smartphones.of().getXmlUri(), Examplicon.of().getXmlUri());    
+    }
+    
+    
     /**
      * @since 0.1.0
      */

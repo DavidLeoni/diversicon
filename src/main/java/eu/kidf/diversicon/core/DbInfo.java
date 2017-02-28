@@ -4,6 +4,8 @@ import static eu.kidf.diversicon.core.internal.Internals.checkNotNull;
 
 import javax.annotation.Nullable;
 
+import eu.kidf.diversicon.core.exceptions.DivNotFoundException;
+
 
 /**
  * Information about database status and creation.
@@ -33,13 +35,35 @@ public class DbInfo {
         this.description = "";        
     }
        
+
     /**
+     * Return the current import job. Note it can be {@code null}, for a null-safe version
+     * use {@link #currentImportJob} instead.
+     * 
+     * @throws DivNotFound if there is no import job
+     * 
      * @since 0.1.0
      */
     @Nullable
     public ImportJob getCurrentImportJob() {
         return currentImportJob;
     }
+    
+    /**
+     * 
+     * Return the current import job. If 
+     * 
+     * @throws DivNotFoundException if there is no import job
+     * @see #getCurrentImportJob()
+     * 
+     * @since 0.1.0
+     */
+    public ImportJob currentImportJob() {
+        if (this.currentImportJob == null){
+            throw new DivNotFoundException("There is no current import job!");
+        }
+        return currentImportJob;
+    }    
 
     /**
      * @since 0.1.0
