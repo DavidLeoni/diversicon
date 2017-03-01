@@ -2020,9 +2020,9 @@ public class Diversicon extends Uby {
             sb.append("\n");
             List<LogMessage> msgs = job.getLogMessages();
             if (msgs.isEmpty()) {
-                sb.append("  No log messages were produced during the import.\n");
+                sb.append("  No warn/error log messages were produced during the import.\n");
             } else {
-                sb.append("Full log:");
+                sb.append("Full warn/errors log:");
                 sb.append("\n");
                 for (LogMessage msg : job.getLogMessages()) {
                     sb.append(msg.getMessage() + "\n");
