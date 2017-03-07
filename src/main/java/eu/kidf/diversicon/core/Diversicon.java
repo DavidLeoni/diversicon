@@ -12,7 +12,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.sql.SQLException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -59,7 +58,6 @@ import de.tudarmstadt.ukp.lmf.model.morphology.FormRepresentation;
 import de.tudarmstadt.ukp.lmf.model.morphology.Lemma;
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
 import de.tudarmstadt.ukp.lmf.model.semantics.SynsetRelation;
-import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import de.tudarmstadt.ukp.lmf.transform.DBToXMLTransformer;
 import eu.kidf.diversicon.core.LexResPackage;
 import eu.kidf.diversicon.core.exceptions.DivException;
@@ -70,7 +68,6 @@ import eu.kidf.diversicon.core.exceptions.InterruptedImportException;
 import eu.kidf.diversicon.core.exceptions.InvalidImportException;
 import eu.kidf.diversicon.core.exceptions.InvalidSchemaException;
 import eu.kidf.diversicon.core.exceptions.InvalidStateException;
-import eu.kidf.diversicon.core.exceptions.InvalidXmlException;
 import eu.kidf.diversicon.core.internal.Internals;
 import eu.kidf.diversicon.data.DivUpper;
 
@@ -82,7 +79,7 @@ import eu.kidf.diversicon.data.DivUpper;
  * is extended by {@link DivSynsetRelation} by adding {@code depth} and
  * {@code provenance} edges.
  * 
- * To create instances use {@link #connectToDb(DBConfig)} method
+ * To create instances use {@link #connectToDb(DivConfig)} method
  * 
  * <h3>Concurrency</h3>
  * <p>
@@ -130,7 +127,8 @@ public class Diversicon extends Uby {
      * 
      * @since 0.1.0
      */
-    protected Diversicon(DivConfig config) {
+    @SuppressWarnings("deprecation")
+    protected Diversicon(DivConfig config) {        
         super(); // so it doesn't open connections! Let's hope they don't delete
                  // it!
 
@@ -315,6 +313,7 @@ public class Diversicon extends Uby {
      * 
      * @since 0.1.0
      */
+    @SuppressWarnings("unchecked")
     public Iterator<Synset> getConnectedSynsets(
             String synsetId,
             int depth,
@@ -327,7 +326,7 @@ public class Diversicon extends Uby {
         if (!relNames.iterator()
                      .hasNext()
                 || depth == 0) {
-            return new ArrayList().iterator();
+            return new ArrayList<Synset>().iterator();
         }
 
         List<String> directRelations = new ArrayList<>();
@@ -543,9 +542,6 @@ public class Diversicon extends Uby {
         return "'" + s + "'";
     }
 
-    private static String makeSqlList(String[] iterable) {
-        return makeSqlList(Arrays.asList(iterable));
-    }
 
     protected static String makeSqlList(Iterable<String> iterable) {
         StringBuilder retb = new StringBuilder("(");
@@ -676,7 +672,7 @@ public class Diversicon extends Uby {
      * @param synset MUST *NOT* ALREADY BE A DOMAIN (see {@link  #isDomain(String)}!!
      * @param insertion stats to modify
      * 
-     * @see #isDomain(Synset)
+     * @see #isDomain(String)
      * @since 0.1.0
      */
     private void normalizeCandidateDomain(Synset synset, Synset rootDomain, InsertionStats insStats) {
@@ -795,9 +791,8 @@ public class Diversicon extends Uby {
      * @param checkpoint
      *            last time in millisecs a message was displayed
      * @param msg
-     *            something like: "SynsetRelations normalization"
-     * @param itemsName
-     *            i.e. 'edges' or 'synsets'
+     *            something like: "SynsetRelations edge normalization"
+     * @param count the count of affected items.
      * 
      * @since 0.1.0
      */
@@ -985,19 +980,22 @@ public class Diversicon extends Uby {
      * <ul>
      * <li>For more options, see {@link #importFiles(ImportConfig)}.</li>
      * <li>For supported URL formats, see
-     * {@link eu.kidf.diversicon.core.internal.Internals#readData(String, boolean)
-     * Internals.readData}
+     * {@link Diversicons#readData(String, boolean)}
      * </li>
      * </ul>
      * </p>
      * @since 0.1.0
      */
-    public ImportJob importXml(String fileUrl) {
-
+    public ImportJob importXml(String fileUrl, String... otherFileUrls) {       
+        
         ImportConfig config = new ImportConfig();
 
         config.setAuthor(Diversicons.DEFAULT_AUTHOR);
-        config.setFileUrls(Arrays.asList(fileUrl));
+        ArrayList<String> urls = Internals.newArrayList();
+        urls.add(fileUrl);
+        urls.addAll(Arrays.asList(otherFileUrls));
+        
+        config.setFileUrls(urls);
 
         return importFiles(config).get(0);
     }
@@ -1306,18 +1304,18 @@ public class Diversicon extends Uby {
     /**
      * 
      * Validates metadata and xml (if present), then returns an
-     * {@link ImportJob}. No data will
-     * be written into the db.
+     * {@link ImportJob}. 
      * 
+     * <p>
+     * No data will be written into the db. Still, db can get accessed to validate the input.
+     * </p>
      * 
-     * Still, db can get accessed to validate the input.
-     * 
+     * <p>
+     * <strong>
      * !!!! IMPORTANT !!!!! {@code pack} must already contain data about the
      * resource!!
-     * 
-     * @throws InvalidImportException
-     *             if thrown means some validation failed but no
-     *             LexicalResource data was written to disk.
+     * </strong>
+     * </p>
      * 
      * @param fileUrl
      *            Url to the file to import. This is what will be used to
@@ -1328,6 +1326,8 @@ public class Diversicon extends Uby {
      *            prior import.
      * @see #setCurrentImportJob(ImportJob)
      * @throws InvalidImportException
+     *             if thrown means some validation failed but no
+     *             LexicalResource data was written to disk.
      * @since 0.1.0
      */
     private ImportJob newImportJob(
@@ -1603,7 +1603,7 @@ public class Diversicon extends Uby {
      * one
      * and if it doesn't match {@link InvalidSchemaException} will be thrown.
      * 
-     * @param dbConfig
+     * @param config a Diversicon config
      *
      * @throws DivIoException
      * @throws InvalidSchemaException
@@ -1798,7 +1798,7 @@ public class Diversicon extends Uby {
      * Checks connection among paths starting with a specific relation, like
      * i.e.
      * {@link ERelNameSemantics#HYPERNYMINSTANCE hypernymInstance} followed by
-     * {@link ERelNameSemantics#HYPERNYMIN hypernym})
+     * {@link ERelNameSemantics#HYPERNYM hypernym})
      * 
      * Works like {@link #isConnected(String, String, int, List)}, but checks
      * also that first
@@ -1841,9 +1841,9 @@ public class Diversicon extends Uby {
      * present in the database, without calculating new ones (except for known
      * inverses).
      * 
-     * @param sourceSynset
+     * @param sourceSynsetId
      *            the source synset
-     * @param targetSynset
+     * @param targetSynsetId
      *            the target synset
      * @param depth
      *            the maximum edge depth for relations.
@@ -1877,8 +1877,8 @@ public class Diversicon extends Uby {
             return false;
         }
 
-        List<String> directRelations = new ArrayList();
-        List<String> inverseRelations = new ArrayList();
+        List<String> directRelations = new ArrayList<>();
+        List<String> inverseRelations = new ArrayList<>();
 
         for (String relName : relNames) {
             if (Diversicons.isCanonicalRelation(relName) || !Diversicons.hasInverse(relName)) {
@@ -1947,20 +1947,7 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * @since 0.1.0
-     */
-    private static String formatDate(@Nullable Date date) {
-        SimpleDateFormat sdf = new SimpleDateFormat("MMM d, yyyy");
-
-        if (date == null) {
-            return "missing";
-        } else {
-            return sdf.format(date);
-        }
-    }
-
-    /**
-     * Returns a nicely formatted import logc
+     * Returns a nicely formatted import log
      * 
      * @param fullLog
      *            includes full log in the output
@@ -1985,23 +1972,24 @@ public class Diversicon extends Uby {
     public String formatImportJob(ImportJob job, boolean fullLog) {
         StringBuilder sb = new StringBuilder();
 
-        sb.append("IMPORT ID: ");
-        sb.append(job.getId());
-        sb.append("   LEXICAL RESOURCE: ");
+        sb.append("Name        : ");
         sb.append(job.getLexResPackage()
                      .getName());
-        sb.append("   IMPORT AUTHOR: ");
-        sb.append(job.getAuthor());
         sb.append("\n");
-        sb.append("NAMESPACE: ");
+        sb.append("Prefix      : ");
         sb.append(job.getLexResPackage()
-                     .getPrefix()
-                + ":" + job.getLexResPackage()
+                     .getPrefix());
+        sb.append("\n");        
+        sb.append("Import id   : ");
+        sb.append(job.getId());        
+        sb.append("\n");
+        sb.append("Namespace   : ");
+        sb.append(job.getLexResPackage()
                            .getNamespaces()
                            .get(job.getLexResPackage()
                                    .getPrefix()));
         sb.append("\n");
-        sb.append("FROM FILE: ");
+        sb.append("From file   : ");
         sb.append(job.getFileUrl());
 
         if (job.getLogMessages()
@@ -2012,20 +2000,29 @@ public class Diversicon extends Uby {
                     + " WARNINGS/ERRORS");
         }
         sb.append("\n");
-        sb.append("STARTED: ");
-        sb.append(formatDate(job.getStartDate()));
-        sb.append("   ENDED: ");
-        sb.append(formatDate(job.getEndDate()));
+        sb.append("Imported by : ");
+        sb.append(job.getAuthor());                
         sb.append("\n");
-        sb.append(job.getDescription());
+        sb.append("Started     : ");
+        sb.append(Internals.formatDate(job.getStartDate()));
         sb.append("\n");
+        sb.append("Ended       : ");
+        sb.append(Internals.formatDate(job.getEndDate()));
+        sb.append("\n");
+        sb.append("Duration    : ");
+        sb.append(Internals.formatInterval(job.getStartDate(), job.getEndDate()));        
+        sb.append("\n");
+        if (!Internals.isBlank(job.getDescription())){
+            sb.append(job.getDescription());
+            sb.append("\n");            
+        }
         if (fullLog) {
             sb.append("\n");
             List<LogMessage> msgs = job.getLogMessages();
             if (msgs.isEmpty()) {
-                sb.append("  No log messages were produced during the import.\n");
+                sb.append("  No warn/error log messages were produced during the import.\n");
             } else {
-                sb.append("Full log:");
+                sb.append("Full warn/errors log:");
                 sb.append("\n");
                 for (LogMessage msg : job.getLogMessages()) {
                     sb.append(msg.getMessage() + "\n");
@@ -2033,7 +2030,6 @@ public class Diversicon extends Uby {
             }
 
         }
-        sb.append("\n");
         return sb.toString();
 
     }
@@ -2050,12 +2046,8 @@ public class Diversicon extends Uby {
      */
     public String formatImportJobs(boolean showFullLogs) {
         StringBuilder sb = new StringBuilder();
-
-        @SuppressWarnings("unchecked")
-        List<ImportJob> importJobs = session.createCriteria(ImportJob.class)
-                                            .addOrder(Order.desc("startDate"))
-                                            .setMaxResults(50)
-                                            .list();
+        
+        List<ImportJob> importJobs = getImportJobs();
 
         if (importJobs.isEmpty()) {
             sb.append("There are no imports to show.\n");
@@ -2063,6 +2055,7 @@ public class Diversicon extends Uby {
 
         for (ImportJob job : importJobs) {
             sb.append(formatImportJob(job, showFullLogs));
+            sb.append("\n");
         }
         return sb.toString();
     }
@@ -2097,9 +2090,8 @@ public class Diversicon extends Uby {
         String dataVersion = dbInfo.getVersion()
                                    .isEmpty() ? "-" : dbInfo.getVersion();
 
-        sb.append(" Schema version: " + dbInfo.getSchemaVersion());
-        sb.append("   Data version: " + dataVersion + "\n");
-        sb.append("\n");
+        sb.append("Schema version: " + dbInfo.getSchemaVersion());
+        sb.append("   Data version: " + dataVersion + "\n");        
 
         if (shortProcessedInfo) {
             if (dbInfo.isToAugment() || dbInfo.isToNormalize()) {
@@ -2174,8 +2166,7 @@ public class Diversicon extends Uby {
 
         Criteria criteria = session.createCriteria(LexResPackage.class)
                                    .add(Restrictions.like("name", lexResName));
-
-        @SuppressWarnings("unchecked")
+        
         LexResPackage ret = (LexResPackage) criteria.uniqueResult();
 
         if (ret == null) {
@@ -2195,8 +2186,7 @@ public class Diversicon extends Uby {
 
         Criteria criteria = session.createCriteria(LexResPackage.class)
                                    .add(Restrictions.like("id", lexResId));
-
-        @SuppressWarnings("unchecked")
+        
         LexResPackage ret = (LexResPackage) criteria.uniqueResult();
 
         if (ret == null) {
@@ -2259,7 +2249,7 @@ public class Diversicon extends Uby {
     }
 
     /**
-     * Returns all domains in the db, according to the {@link #isDomain(Synset)
+     * Returns all domains in the db, according to the {@link #isDomain(String)
      * Diversicon definition}.
      * 
      * @see #getUbyDomains(Lexicon)
@@ -2307,6 +2297,7 @@ public class Diversicon extends Uby {
      * 
      * @since 0.1.0
      */    
+    @SuppressWarnings("unchecked")
     private Set<String> domainCandidates() {
                                
         List<String> domainIds = Internals.getIds(getDomains(null));               
@@ -2321,7 +2312,7 @@ public class Diversicon extends Uby {
         HashSet<String> ret = new HashSet<>();
         
         // couldn't find better way to project ids - screw Hibernate !!!!!
-        
+                
         List<DivSynsetRelation> divsWordnetTopic = session.createCriteria(DivSynsetRelation.class)                
                 .add(Restrictions.eq("relName", Diversicons.RELATION_WORDNET_TOPIC))
                 .createCriteria("target")                                

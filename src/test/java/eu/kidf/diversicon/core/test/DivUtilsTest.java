@@ -23,7 +23,6 @@ import javax.annotation.Nullable;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.xerces.impl.dtd.DTDGrammar;
-import org.apache.xerces.impl.dtd.XMLContentSpec;
 import org.apache.xerces.impl.dtd.XMLElementDecl;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
@@ -58,10 +57,6 @@ import eu.kidf.diversicon.core.internal.Internals;
 import eu.kidf.diversicon.data.DivUpper;
 import eu.kidf.diversicon.data.DivWn31;
 import eu.kidf.diversicon.data.Examplicon;
-
-import eu.kidf.diversicon.data.Smartphones;
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
@@ -907,7 +902,6 @@ public class DivUtilsTest {
 
     /**
      * @deprecated
-     * @throws IOException
      * 
      * @since 0.1.0
      */
@@ -928,19 +922,20 @@ public class DivUtilsTest {
             LOG.debug(g.getContentSpecAsString(elementDeclIndex - 1));
         }
 
-        int contentDeclIndex = 0;
-        XMLContentSpec contentSpec = new XMLContentSpec();
 
         /*
-         * while (g.getContentSpecAsString(elementDeclIndex)(contentDeclIndex++,
-         * contentSpec)) {
-         * LOG.debug("content spec: "+contentSpec.type);
-         * }
-         * 
-         * while (g.getNotationDecl(notationDeclIndex,
-         * notationDecl)ContentSpec(contentDeclIndex++, contentSpec)) {
-         * LOG.debug("content spec: "+contentSpec.type);
-         * }
+            int contentDeclIndex = 0;
+            XMLContentSpec contentSpec = new XMLContentSpec();
+ 
+            while (g.getContentSpecAsString(elementDeclIndex)(contentDeclIndex++,
+              contentSpec)) {
+                  LOG.debug("content spec: "+contentSpec.type);
+            }
+              
+            while (g.getNotationDecl(notationDeclIndex,
+                  notationDecl)ContentSpec(contentDeclIndex++, contentSpec)) {
+                  LOG.debug("content spec: "+contentSpec.type);
+            }
          */
 
     }

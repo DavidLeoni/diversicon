@@ -4,6 +4,9 @@
 !/conf/README.txt
 
 *.sql
+/*.h2.db
+/*.db
+/*.trace.db
 
 ##### MAVEN
 

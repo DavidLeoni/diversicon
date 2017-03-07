@@ -9,8 +9,6 @@ import java.util.Date;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import eu.kidf.diversicon.core.DivConfig;
@@ -28,7 +26,7 @@ import eu.kidf.diversicon.data.DivWn31;
  */
 public class SlowTest {
 
-    private static final Logger LOG = LoggerFactory.getLogger(SlowTest.class);
+    
 
     private DivConfig divConfig;
 
@@ -47,7 +45,7 @@ public class SlowTest {
      */
     @Test
     public void testImportWordnetInMemoryDb() throws IOException {
-        DBConfig dbConfig = Diversicons.h2MakeDefaultInMemoryDbConfig("mydb-" + new Date().getTime(), false);
+        DBConfig dbConfig = Diversicons.h2InMemoryConfig("mydb-" + new Date().getTime(), false);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(DivConfig.of(dbConfig));        
         div.importXml(DivWn31.of().getXmlUri());
@@ -73,7 +71,7 @@ public class SlowTest {
      */    
     @Test
     public void testImportWordnetInFileDb() throws IOException {
-        DBConfig dbConfig = Diversicons.h2MakeDefaultFileDbConfig("target/div-wn31-" + new Date().getTime(), false);
+        DBConfig dbConfig = Diversicons.h2FileConfig("target/div-wn31-" + new Date().getTime(), false);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(DivConfig.of(dbConfig));
         div.importXml(DivWn31.of().getXmlUri());
@@ -84,7 +82,7 @@ public class SlowTest {
      */    
     @Test
     public void testImportWordnetInMemoryExportToSql() throws IOException {
-        DBConfig dbConfig = Diversicons.h2MakeDefaultInMemoryDbConfig(
+        DBConfig dbConfig = Diversicons.h2InMemoryConfig(
                 "mydb-" + new Date().getTime(),
                 false);
         Diversicons.dropCreateTables(dbConfig);
@@ -101,7 +99,7 @@ public class SlowTest {
      */    
     @Test
     public void testImportWordnetInFileDbExportToSql() throws IOException {
-        DBConfig dbConfig = Diversicons.h2MakeDefaultFileDbConfig("target/div-wn31-" + new Date().getTime(), false);
+        DBConfig dbConfig = Diversicons.h2FileConfig("target/div-wn31-" + new Date().getTime(), false);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(DivConfig.of(dbConfig));
         div.importXml(DivWn31.of().getXmlUri());

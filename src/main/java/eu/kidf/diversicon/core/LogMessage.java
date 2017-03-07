@@ -2,6 +2,8 @@ package eu.kidf.diversicon.core;
 
 import static eu.kidf.diversicon.core.internal.Internals.checkNotNull;
 
+import javax.annotation.Nullable;
+
 import org.slf4j.event.Level;
 
 public class LogMessage {
@@ -13,7 +15,7 @@ public class LogMessage {
     private String message;    
     
     
-    public LogMessage(ImportJob importJob, Level level, String message){
+    public LogMessage(@Nullable ImportJob importJob, Level level, String message){
         checkNotNull(level);
         checkNotNull(message);
         checkNotNull(importJob);

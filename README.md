@@ -10,7 +10,7 @@ RELEASE DOCS ARE ON THE <a href="http://davidleoni.github.io/diversicon/" target
 
 #### About Core
 
-Simple Java library to provide a multilingual SQL knowledge base for lexicons and concepts, based upon <a href="https://github.com/dkpro/dkpro-uby" target="_blank">UBY</a>. 
+Java library that provides a multilingual SQL knowledge base for lexicons and concepts, based upon <a href="https://github.com/dkpro/dkpro-uby" target="_blank">DKPRO UBY</a>. Part of [Diversicon tools](http://diversicon-kb.eu/tools#java-libraries).
 
 
 |**Usage**|**License**|**Roadmap**|**Contributing**|
@@ -19,20 +19,9 @@ Simple Java library to provide a multilingual SQL knowledge base for lexicons an
 
 **Features**
   
-  * thin wrapper over <a href="https://github.com/dkpro/dkpro-uby" target="_blank">UBY</a>, adds:
-    - much stronger XML validation
-	- XML schema, and a simplified DTD    
-    - XML namespaces management	
-  	- simplified API for compressed XML I/O and SQL backup  
-  	- more metadata about DB and imports 
-  	- improved logging
-  	- transitive closure computation for `SynsetRelations`  	
-  	- Ships with [Wordnet 3.1 dump](https://github.com/diversicon-kb/diversicon-wordnet-3.1)
-  	- a testing framework to quickly create graphs via api
-  	- improved domain modeling 
-  	- adoption of a small default lexical resource DivUpper   	  
+  * Improves DKPRO UBY with <a href="docs/CHANGES.md#0.1.0" target="_blank">stronger validation,  namespaces handling and I/O management</a> 
   * access to DB via Hibernate
-  * for now fully supports <a href="http://www.h2database.com/html/main.html" target="_blank">H2 DB</a>, a pure Java database (both in-memory and on disk). No separate installation is required.
+  * based on <a href="http://www.h2database.com/html/main.html" target="_blank">H2 DB</a>, a pure Java database (both in-memory and on disk). No separate installation is required.
   * dependency handling with Maven    
   * unit tested with proper integration tests    
   * supports Java 7+
@@ -44,7 +33,7 @@ Simple Java library to provide a multilingual SQL knowledge base for lexicons an
 * Hibernate 
 * <a href="http://www.h2database.com/html/main.html" target="_blank">H2</a> database
 * Apache Commons IO and Compress, XZ Archiver
-* Diversicon Model <a href="https://github.com/diversicon-kb/diversicon-model" target="_blank">Diversicon Model</a>
+* <a href="https://github.com/diversicon-kb/diversicon-model" target="_blank">Diversicon Model</a>
 
 #### Projects using Diversicon Core
 
@@ -64,7 +53,10 @@ Programming:
 
 * David Leoni - Heriot Watt University, Edinburgh - david.leoni at unitn.it
 
-Based on <a href="http://dkpro.github.io/dkpro-uby/" target="blank">DKPRO UBY framework</a>, by UKP Lab, Technische Universität Darmstadt.
+
+Based on:
+
+<a href="http://dkpro.github.io/dkpro-uby/" target="blank">DKPRO UBY framework</a>, by UKP Lab, Technische Universität Darmstadt.
 
 Made possible thanks to:
 

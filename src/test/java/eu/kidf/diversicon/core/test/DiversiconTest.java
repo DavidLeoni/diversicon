@@ -41,8 +41,6 @@ import de.tudarmstadt.ukp.lmf.transform.DBConfig;
 import eu.kidf.diversicon.core.DbInfo;
 import eu.kidf.diversicon.core.DivConfig;
 import eu.kidf.diversicon.core.DivSynsetRelation;
-import eu.kidf.diversicon.core.DivXmlHandler;
-import eu.kidf.diversicon.core.DivXmlValidator;
 import eu.kidf.diversicon.core.Diversicon;
 import eu.kidf.diversicon.core.Diversicons;
 import eu.kidf.diversicon.core.ImportConfig;
@@ -56,11 +54,10 @@ import eu.kidf.diversicon.core.exceptions.InvalidSchemaException;
 import eu.kidf.diversicon.core.internal.Internals;
 import eu.kidf.diversicon.data.DivUpper;
 import eu.kidf.diversicon.data.DivWn31;
+import eu.kidf.diversicon.data.Examplicon;
 import eu.kidf.diversicon.data.Smartphones;
 import static eu.kidf.diversicon.core.internal.Internals.newHashSet;
 import static eu.kidf.diversicon.core.internal.Internals.newArrayList;
-
-import static eu.kidf.diversicon.data.DivUpper.SYNSET_ROOT_DOMAIN;
 
 /**
  * @since 0.1.0
@@ -104,7 +101,7 @@ public class DiversiconTest {
     public void testConnectToDbDontAutoCreate() {
         
         try {
-            Diversicon uby = Diversicon.connectToDb(divConfig);
+            Diversicon.connectToDb(divConfig);
             Assert.fail("Shouldn't be able to connect to non-existing db!");
         } catch (InvalidSchemaException ex){
             
@@ -660,6 +657,13 @@ public class DiversiconTest {
         assertEquals(1, div.getImportJobs()
                            .size());
         assertEquals(null, dbInfo1.getCurrentImportJob());
+        
+        try {
+            assertEquals(null, dbInfo1.currentImportJob());
+            Assert.fail("Shouldn't arrive here!");
+        } catch (DivNotFoundException ex){
+            LOG.debug("Got expected exception: ", ex);
+        }
 
         assertEquals(Diversicons.SCHEMA_VERSION_1_0, dbInfo1.getSchemaVersion());
 
@@ -977,8 +981,8 @@ public class DiversiconTest {
         
         ImportConfig ic = new ImportConfig();
         ic.setAuthor(Diversicons.DEFAULT_AUTHOR);
-        // ic.setDescription(DivTester.);
-        ic.setForce(true); // otherwise it will complain there is wordnet in the db
+
+        ic.setForce(true); // otherwise it will complain there is no wordnet in the db
         ic.addLexResFileUrl(Smartphones.of().getXmlUri());
         
         ImportJob job = div.importFiles(ic).get(0);
@@ -999,7 +1003,98 @@ public class DiversiconTest {
         
     }    
 
+    /**
+     * We should be able to import Examplicon and compute transitive closure 
+     * even without Wordnet loaded, by using the {@code force} flag. 
+     * 
+     * @see DivUtilsIT#testImportExampliconXmlWithWordnet()
+     * 
+     * @since 0.1.0
+     * 
+     */
+    @Test
+    public void testImportExampliconXmlWithoutWordnet() {
+        
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
+
+        Diversicon div = Diversicon.connectToDb(divConfig);
+        
+        ImportConfig ic = new ImportConfig();
+        ic.setAuthor(Diversicons.DEFAULT_AUTHOR);
+
+        ic.setForce(true); // otherwise it will complain there is no wordnet in the db
+        ic.addLexResFileUrl(Examplicon.of().getXmlUri());
+        
+        ImportJob job = div.importFiles(ic).get(0);
+                
+        LexicalResource lr = div.getLexicalResource(Examplicon.NAME);
+        
+        job.getLexResPackage().getNamespaces().get(Examplicon.PREFIX).equals(
+                Examplicon.of().namespace());
+        job.getLexResPackage().getNamespaces().get(DivWn31.PREFIX).equals(DivWn31.of().namespace());
+        
+        List<MetaData> metadatas = lr.getMetaData();
+        assertEquals(1, metadatas.size());
+        MetaData metadata = metadatas.get(0);
+        assertNotNull(metadata);
+        assertEquals("ex_md", metadata.getId());        
+        
+    }    
     
+    /**
+     * We should be able to import Smartphones and Examplicon and compute transitive closure 
+     * even without Wordnet loaded, by using the {@code force} flag. 
+     * 
+     * @see DivUtilsIT#testImportSmartphonesExampliconXmlWithWordnet()
+     * 
+     * @since 0.1.0
+     * 
+     */
+    @Test
+    public void testImportSmartphonesExampliconXmlWithoutWordnet() {
+        
+        Diversicons.dropCreateTables(divConfig.getDbConfig());
+
+        Diversicon div = Diversicon.connectToDb(divConfig);
+        
+        ImportConfig ic = new ImportConfig();
+        ic.setAuthor(Diversicons.DEFAULT_AUTHOR);
+
+        ic.setForce(true); // otherwise it will complain there is no wordnet in the db
+        ic.addLexResFileUrl(Smartphones.of().getXmlUri());
+        ic.addLexResFileUrl(Examplicon.of().getXmlUri());
+        
+        List<ImportJob> jobs = div.importFiles(ic);
+
+        ImportJob smJob = jobs.get(0);
+        
+        LexicalResource lrSm = div.getLexicalResource(Smartphones.NAME);
+        
+        smJob.getLexResPackage().getNamespaces().get(Smartphones.PREFIX).equals(
+                Examplicon.of().namespace());
+        smJob.getLexResPackage().getNamespaces().get(DivWn31.PREFIX).equals(DivWn31.of().namespace());
+        
+        List<MetaData> smMetadatas = lrSm.getMetaData();
+        assertEquals(1, smMetadatas.size());
+        MetaData smMetadata = smMetadatas.get(0);
+        assertNotNull(smMetadata);
+        assertEquals("sm_md", smMetadata.getId());        
+        
+        ImportJob exJob = jobs.get(1);
+        
+        LexicalResource lrEx = div.getLexicalResource(Examplicon.NAME);
+        
+        exJob.getLexResPackage().getNamespaces().get(Examplicon.PREFIX).equals(
+                Examplicon.of().namespace());
+        exJob.getLexResPackage().getNamespaces().get(DivWn31.PREFIX).equals(DivWn31.of().namespace());
+        
+        List<MetaData> metadatas = lrEx.getMetaData();
+        assertEquals(1, metadatas.size());
+        MetaData exMetadata = metadatas.get(0);
+        assertNotNull(exMetadata);
+        assertEquals("ex_md", exMetadata.getId());        
+        
+    }        
     
     /** 
      * @since 0.1.0
@@ -1291,8 +1386,7 @@ public class DiversiconTest {
         Diversicon div = Diversicon.connectToDb(divConfig);
         DivTester.importResource(div, GRAPH_1_HYPERNYM, true);
         
-        Path dir = DivTester.createTestDir();
-        File zip = new File(dir.toString() + "/output.sql.zip");
+        DivTester.createTestDir();       
         
         try {
             div.exportToSql("", true);
@@ -1343,7 +1437,7 @@ public class DiversiconTest {
     @Test  
     public void testConnectToDbH2InMemoryCompressed(){
         try {
-            DBConfig dbConfig = Diversicons.h2MakeDefaultInMemoryDbConfig("trial-" + UUID.randomUUID(), true);
+            DBConfig dbConfig = Diversicons.h2InMemoryConfig("trial-" + UUID.randomUUID(), true);
             
             
             Assert.fail("Shouldn't arrive here!");
@@ -1367,7 +1461,7 @@ public class DiversiconTest {
      */      
     @Test
     public void testMemoryUsed(){
-        DBConfig dbConfig = Diversicons.h2MakeDefaultInMemoryDbConfig("trial-" + UUID.randomUUID()
+        DBConfig dbConfig = Diversicons.h2InMemoryConfig("trial-" + UUID.randomUUID()
                                     , false);
         Diversicons.dropCreateTables(dbConfig);
         Diversicon div = Diversicon.connectToDb(DivConfig.of(dbConfig));
@@ -1388,13 +1482,13 @@ public class DiversiconTest {
         
         Date start = new Date();
         
-        DBConfig dbConfig = Diversicons.h2MakeDefaultInMemoryDbConfig("trial-" + UUID.randomUUID()
+        DBConfig dbConfig = Diversicons.h2InMemoryConfig("trial-" + UUID.randomUUID()
         , false);
         Diversicons.dropCreateTables(dbConfig);
         dbConfig.setPassword("666");
         
         try {
-            Diversicon div = Diversicon.connectToDb(DivConfig.of(dbConfig));
+            Diversicon.connectToDb(DivConfig.of(dbConfig));
             Assert.fail("Shouldn't arrive here!");
         } catch (GenericJDBCException ex){
                                    

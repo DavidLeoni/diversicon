@@ -6,8 +6,6 @@ import org.dom4j.Element;
 import org.dom4j.ElementHandler;
 import org.dom4j.ElementPath;
 import org.dom4j.Namespace;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import eu.kidf.diversicon.core.LexResPackage;
 import eu.kidf.diversicon.core.exceptions.DivException;
@@ -19,8 +17,7 @@ import eu.kidf.diversicon.core.exceptions.DivException;
  * @since 0.1.0
  */
 class DivXmlExtractor implements ElementHandler {
-
-    private static final Logger LOG = LoggerFactory.getLogger(DivXmlExtractor.class);
+    
 
     /**
      * String contained in exception messages when the handler signals to stop
@@ -33,15 +30,11 @@ class DivXmlExtractor implements ElementHandler {
     private LexResPackage divRes;
     private boolean foundLexRes = false;
 
-    private DivXmlExtractor() {
-    }
-
     /**
      * @since 0.1.0
      */
-    public DivXmlExtractor(LexResPackage divRes) {
+    public DivXmlExtractor(LexResPackage divRes) {        
         checkNotNull(divRes);
-
         this.divRes = divRes;
     }
 
