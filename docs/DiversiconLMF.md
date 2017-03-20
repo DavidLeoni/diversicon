@@ -6,8 +6,7 @@ preventing the clashes that may arise. Diversicon should be able to read the XML
 ### LexicalResource name
 
 The `LexicalResource` attribute `name` must be worldwide unique. so you should pick a 
-reasonable long and unique prefix for your organization. In the case of Diversicon example resources, we allowed ourselves the luxury of picking a short name like `div`. So for example, the resource 
-[smartphones](https://github.com/diversicon-kb/diversicon-model/blob/master/src/main/resources/smartphones.xml) declaration begins like this: 
+reasonable long and unique prefix for your organization. In the case of Diversicon example resources, we allowed ourselves the luxury of picking a short name like `div`. So for example, the resource [smartphones](https://github.com/diversicon-kb/diversicon-model/blob/master/src/main/resources/smartphones.xml) declaration begins like this: 
 
 ```
 <LexicalResource name="div-smartphones"
@@ -20,7 +19,7 @@ reasonable long and unique prefix for your organization. In the case of Diversic
 
 ### Namespaces
   
-XML allows declaring namespaces only for tags and attributes (so you can write stuff like `<my-pfx:my-tag my-pfx:my-attribute="bla bla">`) but we abuse them to give a scope also to tag IDs: `<tag id="my-pfx_bla">`. Namespaced IDs are necessary because in UBY IDs are global, and when merging multiple sources into te db conflicts might occur. 
+XML allows declaring namespaces only for tags and attributes (so you can write stuff like `<my-pfx:my-tag my-pfx:my-attribute="bla bla">`) but we abuse them to give a scope also to tag IDs: `<tag id="my-pfx_bla">`. Namespaced IDs are necessary because in UBY IDs are global, and when merging multiple sources into the db conflicts might occur. 
 
 There are a few things to keep in mind:
 
@@ -128,6 +127,7 @@ First we describe domains as implemented in Wordnet, then how they are converted
 #### UBY Wordnet domains 
 
 In UBY seems like you can't directly state that a synset is a domain (see issue about [UBY Wordnet converter](https://github.com/diversicon-kb/dkpro-uby/issues/3)).  You can know if a `Synset` is a domain if
+
 a) it has associated at least one `Sense` that is linked in turn to a `SemanticLabel` of type `ELabelTypeSemantics.domain`, `regionOfUsage` or `usage`
 b) OR other synsets point to it with one relation among `usage` (pointer key `;r`) , `region` (pointer key `;u`) or `topic` (pointer key `;c`) 
 

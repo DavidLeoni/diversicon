@@ -167,7 +167,7 @@ public final class Diversicons {
     /**
      * @since 0.1.0
      */
-    public static final String DTD_1_PUBLIC_URL = SCHEMA_1_NAMESPACE + SCHEMA_1_FRAGMENT + "/" + DTD_FILENAME;
+    public static final String DTD_1_PUBLIC_URL = SCHEMA_1_NAMESPACE + "/" + DTD_FILENAME;
 
     /**
      * @since 0.1.0
