@@ -1,12 +1,12 @@
 ### Introduction
 
-Diversicon allows importing and merging LMF XMLs produced by different people,
-preventing the clashes that may arise. Diversicon should be able to read the XML files created with UBY 0.7.0, provided you add some bookkeeping information to the files to indicate to which namespace they belong.  
+Diversicon allows importing and merging LMF XMLs produced by different people, preventing the clashes that may arise. 
+
+In particular, Diversicon should be able to read XML files in <a href="https://www.ukp.tu-darmstadt.de/fileadmin/user_upload/Group_UKP/publikationen/2012/LREC2012_ubyLMFcamera-Ready.pdf" target="_blank">UBY-LMF</a> format (created with UBY 0.7.0), provided you add some book-keeping information to xmls for expliciting the namespace they belong to.
   
 ### LexicalResource name
 
-The `LexicalResource` attribute `name` must be worldwide unique. so you should pick a 
-reasonable long and unique prefix for your organization. In the case of Diversicon example resources, we allowed ourselves the luxury of picking a short name like `div`. So for example, the resource [smartphones](https://github.com/diversicon-kb/diversicon-model/blob/master/src/main/resources/smartphones.xml) declaration begins like this: 
+The `LexicalResource` attribute `name` must be worldwide unique. so you should pick a reasonable long and unique prefix for your organization. In the case of Diversicon example resources, we allowed ourselves the luxury of picking a short name like `div`. So for example, the resource [smartphones](https://github.com/diversicon-kb/diversicon-model/blob/master/src/main/resources/smartphones.xml) declaration begins like this: 
 
 ```
 <LexicalResource name="div-smartphones"
@@ -23,8 +23,7 @@ XML allows declaring namespaces only for tags and attributes (so you can write s
 
 There are a few things to keep in mind:
 
-- in tag IDs there is an underscore `_` separating the prefix (i.e. 'my-pfx') from the name ('i.e. `bla`) like in
- `<tag id="my-pfx_bla">`
+- in tag IDs there is an underscore `_` separating the prefix (i.e. `my-pfx`) from the name ('i.e. `bla`) like in <tag id="my-pfx_bla">`
 - although we use prefixes like `wn31` we don't require version numbers in them
 - we don't enforce any specific format for namespace urls, and urls are not required 
 to be resolvable nor to be persistent (although of course it is very desirable)
@@ -81,8 +80,6 @@ Note _all_ document tag ids must begin with the declared document prefix followe
         </Synset>
 ```
 
-
-TODO Each Synset must be associated to at least one Sense respective LexicalEntry
  
 
 ### Schema
