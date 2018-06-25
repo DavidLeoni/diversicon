@@ -1902,8 +1902,10 @@ public class Diversicon extends Uby {
             directHsql = " "
                     + " ("
                     + "     SR.source.id = :sourceSynsetId"
-                    + "     AND   SR.target.id = :targetSynsetId"
-                    + "     AND   SR.relName IN " + makeSqlList(directRelations)
+                    // Gabor: optimised SQL call for performance, the conditions below
+                    // will be checked programmatically in Java
+                    //+ "     AND   SR.target.id = :targetSynsetId"
+                    //+ "     AND   SR.relName IN " + makeSqlList(directRelations)
                     + " )";
         }
 
@@ -1914,8 +1916,10 @@ public class Diversicon extends Uby {
             inverseHsql = ""
                     + "  ("
                     + "      SR.source.id = :targetSynsetId"
-                    + "      AND SR.target.id = :sourceSynsetId"
-                    + "      AND SR.relName IN " + makeSqlList(inverseRelations)
+                    // Gabor: optimised SQL call for performance, the conditions below
+                    // will be checked programmatically in Java
+                    //+ "      AND SR.target.id = :sourceSynsetId"
+                    //+ "      AND SR.relName IN " + makeSqlList(inverseRelations)
                     + "  )";
 
         }
@@ -1927,7 +1931,7 @@ public class Diversicon extends Uby {
             orHsql = "";
         }
 
-        String queryString = " SELECT 'TRUE'"
+        String queryString = " SELECT SR.relName, SR.target.id"
                 + " FROM SynsetRelation SR"
                 + " WHERE "
                 + depthConstraint
@@ -1936,14 +1940,22 @@ public class Diversicon extends Uby {
                 + orHsql
                 + inverseHsql
                 + ")";
-
+        
         Query query = session.createQuery(queryString);
         query
-             .setParameter("sourceSynsetId", sourceSynsetId)
-             .setParameter("targetSynsetId", targetSynsetId);
+             .setParameter("sourceSynsetId", sourceSynsetId);
 
-        return query.iterate()
-                    .hasNext();
+        Iterator it = query.iterate();
+        while(it.hasNext()) {
+            Object[] results = (Object[]) it.next();
+            String relName = (String) (results[0]);
+            String target = (String) (results[1]);
+            if (sourceSynsetId.equals(target) && inverseRelations.contains(relName) ||
+                targetSynsetId.equals(target) && directRelations.contains(relName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
