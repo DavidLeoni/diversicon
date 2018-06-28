@@ -1942,8 +1942,10 @@ public class Diversicon extends Uby {
                 + ")";
         
         Query query = session.createQuery(queryString);
-        query
-             .setParameter("sourceSynsetId", sourceSynsetId);
+        query.setParameter("sourceSynsetId", sourceSynsetId);
+        if (!inverseRelations.isEmpty()) {
+            query.setParameter("targetSynsetId", targetSynsetId);
+        }
 
         Iterator it = query.iterate();
         while(it.hasNext()) {
@@ -1956,6 +1958,69 @@ public class Diversicon extends Uby {
             }
         }
         return false;
+    }
+
+    /**
+     * 
+     * Returns the names of relations that hold between {@code sourceSynset}
+     * and {@code targetSynset}, within the given {@code depth}. 
+     * This function only looks for edges already present in the database, 
+     * without calculating new ones (except for known inverses).
+     * 
+     * @param sourceSynsetId
+     *            the source synset
+     * @param targetSynsetId
+     *            the target synset
+     * @param depth
+     *            the maximum edge depth for relations.
+     *            if {@code -1} no depth limit is applied. If {@code zero}
+     *            returns true only if source and target coincide.
+     * 
+     * @since 0.2.0
+     */
+    public Set<String> getRelations(
+            String sourceSynsetId,
+            String targetSynsetId,
+            int depth) {
+
+        checkId(sourceSynsetId, "Invalid source synset id!");
+        checkId(targetSynsetId, "Invalid target synset id!");
+        checkArgument(depth >= -1, "Depth must be >= -1 , found instead: " + depth);
+        Set<String> relNames = new HashSet<>();
+
+        if (sourceSynsetId.equals(targetSynsetId)) {
+            return relNames;
+        }
+
+        String depthConstraint;
+        if (depth == -1) {
+            depthConstraint = "";
+        } else {
+            depthConstraint = " SR.depth <= " + depth + " AND ";
+        }
+
+        String hsql = "(SR.source.id = :sourceSynsetId OR SR.source.id = :targetSynsetId)";
+
+        String queryString = " SELECT SR.relName, SR.target.id"
+                + " FROM SynsetRelation SR"
+                + " WHERE "
+                + depthConstraint
+                + hsql;
+        
+        Query query = session.createQuery(queryString);
+        query.setParameter("sourceSynsetId", sourceSynsetId);
+        query.setParameter("targetSynsetId", targetSynsetId);
+
+        Iterator it = query.iterate();
+        while(it.hasNext()) {
+            Object[] results = (Object[]) it.next();
+            String relName = (String) (results[0]);
+            String target = (String) (results[1]);
+            if (sourceSynsetId.equals(target) || targetSynsetId.equals(target)) {
+                relNames.add(relName);
+            }
+        }
+        return relNames;
     }
 
     /**
