@@ -343,12 +343,13 @@ public class DiversiconTest {
      * 
      * @throws DivNotFoundException
      */
-    private static void checkContainsAll(Set<Synset> set, String firstId, String... ids) {
+    private static void checkContainsAll(Iterator<Synset> iter, String firstId, String... ids) {
         
                
         Set<String> synsetIds = new HashSet<>();
-        for (Synset s : set) {
-            synsetIds.add(s.getId());
+        while (iter.hasNext()) {
+            synsetIds.add(iter.next()
+                              .getId());
         }
 
         HashSet<String> setIds = new HashSet<>();
@@ -380,12 +381,12 @@ public class DiversiconTest {
                 tid("synset-2"),
                 0,
                 ERelNameSemantics.HYPERNYM)
-                              .size() > 0);
+                              .hasNext());
 
         assertFalse(div.getConnectedSynsets(
                 tid("synset-2"),
                 -1)
-                              .size() > 0);
+                              .hasNext());
 
         checkContainsAll(div.getConnectedSynsets(
                 tid("synset-2"),
@@ -402,7 +403,7 @@ public class DiversiconTest {
         assertFalse(div.getConnectedSynsets(
                 tid("synset-2"),
                 1,
-                "hello").size() > 0);
+                "hello").hasNext());
 
         div.getSession()
                   .close();

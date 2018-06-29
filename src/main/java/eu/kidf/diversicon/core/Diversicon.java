@@ -314,7 +314,7 @@ public class Diversicon extends Uby {
      * @since 0.1.0
      */
     @SuppressWarnings("unchecked")
-    public Set<Synset> getConnectedSynsets(
+    public Iterator<Synset> getConnectedSynsets(
             String synsetId,
             int depth,
             Iterable<String> relNames) {
@@ -330,7 +330,7 @@ public class Diversicon extends Uby {
         if (!relNames.iterator()
                      .hasNext()
                 || depth == 0) {
-            return new HashSet<Synset>();
+            return new HashSet<Synset>().iterator();
         }
 
         List<String> directRelations = new ArrayList<>();
@@ -438,7 +438,7 @@ public class Diversicon extends Uby {
         }
 
         System.out.println("Done for " + synsetId + ", " + relNames.toString());
-        return connectedSynsets;
+        return connectedSynsets.iterator();
     }
 
     /**
@@ -446,7 +446,7 @@ public class Diversicon extends Uby {
      * 
      * @since 0.1.0
      */
-    public Set<Synset> getConnectedSynsets(
+    public Iterator<Synset> getConnectedSynsets(
             String synsetId,
             int depth,
             String... relNames) {
