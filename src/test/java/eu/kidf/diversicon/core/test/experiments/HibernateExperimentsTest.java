@@ -19,6 +19,8 @@ import eu.kidf.diversicon.core.test.DivTester;
 
 import static eu.kidf.diversicon.core.internal.Internals.checkArgument;
 import static eu.kidf.diversicon.core.internal.Internals.checkNotEmpty;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Various experiments and discarded code .
@@ -129,99 +131,6 @@ public class HibernateExperimentsTest {
             super(divConfig);
         }
 
-        /**
-         * EXPERIMENTAL VERSION USING UNION. HQL CAN'T HANDLE IT, OF COURSE.
-         * 
-         * Finds all of the synsets reachable from {@code synsetId} along paths
-         * of
-         * {@code relNames}
-         * within given depth. In order to actually find them,
-         * relations in {@code relNames} must be among the ones for which
-         * transitive
-         * closure is computed.         
-         * 
-         * @param synsetId
-         * @param relNames
-         *            if none is provided all reachable parent synsets are
-         *            returned.
-         * @param depth
-         *            if -1 all parents until the root are retrieved. If zero
-         *            nothing is returned.        
-         * 
-         * @since 0.1.0
-         */
-        @SuppressWarnings("unchecked")
-        public Iterator<Synset> getConnectedSynsets(
-                String synsetId,
-                int depth,
-                String... relNames) {
-
-            checkNotEmpty(synsetId, "Invalid synset id!");
-            checkArgument(depth >= -1, "Depth must be >= -1 , found instead: " + depth);
-
-            List<String> directRelations = new ArrayList<>();
-            List<String> inverseRelations = new ArrayList<>();
-
-            for (String relName : relNames) {
-                if (Diversicons.isCanonicalRelation(relName) || !Diversicons.hasInverse(relName)) {
-                    directRelations.add(relName);
-                } else {
-                    inverseRelations.add(Diversicons.getInverse(relName));
-                }
-            }
-
-            if (depth == 0) {
-                return new ArrayList<Synset>().iterator();
-            }
-
-            String directDepthConstraint;
-            String inverseDepthConstraint;
-            if (depth == -1) {
-                directDepthConstraint = "";
-                inverseDepthConstraint = "";
-            } else {
-                directDepthConstraint = " AND SRD.depth <= " + depth;
-                inverseDepthConstraint = " AND SRR.depth <= " + depth;
-            }
-
-            String directRelnameConstraint;
-            if (directRelations.isEmpty()) {
-                directRelnameConstraint = "";
-            } else {
-                directRelnameConstraint = " AND SRD.relName IN " + makeSqlList(directRelations);
-            }
-
-            String inverseRelnameConstraint;
-            if (inverseRelations.isEmpty()) {
-                inverseRelnameConstraint = "";
-            } else {
-                inverseRelnameConstraint = " AND SRR.relName IN " + makeSqlList(inverseRelations);
-            }
-
-            String queryString = "  SELECT DISTINCT s"
-                    + "             FROM"
-                    + "             ("
-                    + "                 SELECT SRD.target AS s"
-                    + "                 FROM   SynsetRelation SRD"
-                    + "                 WHERE  SRD.source.id = :synsetId"
-                    + directRelnameConstraint
-                    + directDepthConstraint
-                    + "             )"
-                    + "             UNION"
-                    + "             ("
-                    + "                 SELECT SRR.source AS s"
-                    + "                 FROM   SynsetRelation SRR"
-                    + "                 WHERE  SRR.target.id = :synsetId"
-                    + inverseRelnameConstraint
-                    + inverseDepthConstraint
-                    + "              )";
-
-            Query query = session.createQuery(queryString);
-            query
-                 .setParameter("synsetId", synsetId);
-
-            return query.iterate();
-        }
 
     }
 
