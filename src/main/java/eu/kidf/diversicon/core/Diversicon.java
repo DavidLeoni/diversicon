@@ -314,7 +314,7 @@ public class Diversicon extends Uby {
      * @since 0.1.0
      */
     @SuppressWarnings("unchecked")
-    public Iterator<Synset> getConnectedSynsets(
+    public Set<Synset> getConnectedSynsets(
             String synsetId,
             int depth,
             Iterable<String> relNames) {
@@ -323,15 +323,27 @@ public class Diversicon extends Uby {
         checkNotNull(relNames, "Invalid relation names!");
         checkArgument(depth >= -1, "Depth must be >= -1 , found instead: " + depth);
 
+        Set<String> relSet = new HashSet<>();
+        for (String relName : relNames) {
+            relSet.add(relName);
+        }
         if (!relNames.iterator()
                      .hasNext()
                 || depth == 0) {
-            return new ArrayList<Synset>().iterator();
+            return new HashSet<Synset>();
         }
 
         List<String> directRelations = new ArrayList<>();
         List<String> inverseRelations = new ArrayList<>();
 
+        String depthConstraint;
+        if (depth == -1) {
+            depthConstraint = "";
+        } else {
+            depthConstraint = " SR.depth <= " + depth + " AND ";
+        }
+        
+        
         for (String relName : relNames) {
             if (Diversicons.isCanonicalRelation(relName) || !Diversicons.hasInverse(relName)) {
                 directRelations.add(relName);
@@ -339,7 +351,7 @@ public class Diversicon extends Uby {
                 inverseRelations.add(Diversicons.getInverse(relName));
             }
         }
-
+        /*
         String directDepthConstraint;
         String inverseDepthConstraint;
         if (depth == -1) {
@@ -385,19 +397,48 @@ public class Diversicon extends Uby {
         } else {
             orHsql = "";
         }
+        */
+        String hsql = "(SR.source.id = :synsetId)";// OR SR.source.id = :targetSynsetId)";
 
-        String queryString = " "
-                + "             FROM Synset S"
-                + "             WHERE "
-                + directHsql
-                + orHsql
-                + inverseHsql;
+        String queryString = " SELECT SR.relName, SR.target.id"
+                + " FROM SynsetRelation SR"
+                + " WHERE "
+                + depthConstraint
+                + hsql;
 
         Query query = session.createQuery(queryString);
-        query
-             .setParameter("synsetId", synsetId);
+        query.setParameter("synsetId", synsetId);
+        //query.setParameter("targetSynsetId", synsetId);
 
-        return query.iterate();
+        Iterator it = query.iterate();
+        
+        Set<Synset> connectedSynsets = new HashSet<>();
+        while (it.hasNext()) {
+            Object[] result = (Object []) it.next();
+            String relName = (String) result[0];
+            String targetId = (String) result[1];
+            if (relSet.contains(relName)) {
+                connectedSynsets.add(getSynsetById(targetId));
+            }
+        }
+        
+        query = session.createQuery(queryString);
+        query.setParameter("synsetId", synsetId);
+        //query.setParameter("targetSynsetId", synsetId);
+
+        it = query.iterate();
+        
+        while (it.hasNext()) {
+            Object[] result = (Object []) it.next();
+            String relName = (String) result[0];
+            String targetId = (String) result[1];
+            if (relSet.contains(relName)) {
+                connectedSynsets.add(getSynsetById(targetId));
+            }
+        }
+
+        System.out.println("Done for " + synsetId + ", " + relNames.toString());
+        return connectedSynsets;
     }
 
     /**
@@ -405,7 +446,7 @@ public class Diversicon extends Uby {
      * 
      * @since 0.1.0
      */
-    public Iterator<Synset> getConnectedSynsets(
+    public Set<Synset> getConnectedSynsets(
             String synsetId,
             int depth,
             String... relNames) {
@@ -1957,6 +1998,7 @@ public class Diversicon extends Uby {
                 return true;
             }
         }
+        System.out.println("Done for " + sourceSynsetId + "-" + targetSynsetId + ", " + relNames.toString());
         return false;
     }
 
@@ -1976,7 +2018,7 @@ public class Diversicon extends Uby {
      *            if {@code -1} no depth limit is applied. If {@code zero}
      *            returns true only if source and target coincide.
      * 
-     * @since 0.2.0
+     * @since 0.1.0
      */
     public Set<String> getRelations(
             String sourceSynsetId,
@@ -1999,7 +2041,7 @@ public class Diversicon extends Uby {
             depthConstraint = " SR.depth <= " + depth + " AND ";
         }
 
-        String hsql = "(SR.source.id = :sourceSynsetId OR SR.source.id = :targetSynsetId)";
+        String hsql = "(SR.source.id = :synsetId)";// OR SR.source.id = :targetSynsetId)";
 
         String queryString = " SELECT SR.relName, SR.target.id"
                 + " FROM SynsetRelation SR"
@@ -2008,8 +2050,7 @@ public class Diversicon extends Uby {
                 + hsql;
         
         Query query = session.createQuery(queryString);
-        query.setParameter("sourceSynsetId", sourceSynsetId);
-        query.setParameter("targetSynsetId", targetSynsetId);
+        query.setParameter("synsetId", sourceSynsetId);
 
         Iterator it = query.iterate();
         while(it.hasNext()) {
@@ -2020,6 +2061,20 @@ public class Diversicon extends Uby {
                 relNames.add(relName);
             }
         }
+        
+        query = session.createQuery(queryString);
+        query.setParameter("synsetId", targetSynsetId);
+
+        it = query.iterate();
+        while(it.hasNext()) {
+            Object[] results = (Object[]) it.next();
+            String relName = (String) (results[0]);
+            String target = (String) (results[1]);
+            if (sourceSynsetId.equals(target) || targetSynsetId.equals(target)) {
+                relNames.add(relName);
+            }
+        }
+        
         return relNames;
     }
 
