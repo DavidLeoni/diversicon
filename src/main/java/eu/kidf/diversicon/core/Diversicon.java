@@ -437,7 +437,6 @@ public class Diversicon extends Uby {
             }
         }
 
-        System.out.println("Done for " + synsetId + ", " + relNames.toString());
         return connectedSynsets.iterator();
     }
 
@@ -1998,7 +1997,6 @@ public class Diversicon extends Uby {
                 return true;
             }
         }
-        System.out.println("Done for " + sourceSynsetId + "-" + targetSynsetId + ", " + relNames.toString());
         return false;
     }
 
