@@ -11,11 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.tudarmstadt.ukp.lmf.model.semantics.Synset;
-import eu.kidf.diversicon.core.DbInfo;
-import eu.kidf.diversicon.core.DivSynsetRelation;
-import eu.kidf.diversicon.core.Diversicon;
-import eu.kidf.diversicon.core.Diversicons;
-import eu.kidf.diversicon.core.InsertionStats;
 import eu.kidf.diversicon.core.exceptions.DivException;
 import eu.kidf.diversicon.core.internal.Internals;
 import eu.kidf.diversicon.core.test.DivTester;

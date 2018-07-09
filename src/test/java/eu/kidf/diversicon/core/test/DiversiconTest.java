@@ -367,7 +367,6 @@ public class DiversiconTest {
      * 
      * @since 0.1.0
      */
-    @Ignore
     @Test
     public void testGetConnectedSynsets_Graph_1_Hypernym() {
 
@@ -413,7 +412,6 @@ public class DiversiconTest {
     /**
      * @since 0.1.0
      */
-    @Ignore
     @Test
     public void testIsConnected() {
 
@@ -545,7 +543,6 @@ public class DiversiconTest {
     /**
      * @since 0.1.0
      */
-    @Ignore
     @Test
     public void testGetConnectedSynsets_Dag_3_Hypernym() {
 
@@ -599,7 +596,6 @@ public class DiversiconTest {
     /**
      * @since 0.1.0
      */
-    @Ignore
     @Test
     public void testGetConnectedSynsetsMultiRelNames() {
 
@@ -622,7 +618,6 @@ public class DiversiconTest {
     /**
      * @since 0.1.0
      */
-    @Ignore
     @Test
     public void testGetConnectedSynsetsNoDups() {
 
@@ -1284,7 +1279,6 @@ public class DiversiconTest {
     /**
      * @since 0.1.0
      */
-    @Ignore
     @Test
     public void testImportTwoConnectedLexicalResources() {
 

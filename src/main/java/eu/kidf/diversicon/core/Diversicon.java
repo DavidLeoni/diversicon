@@ -333,9 +333,6 @@ public class Diversicon extends Uby {
             return new HashSet<Synset>().iterator();
         }
 
-        List<String> directRelations = new ArrayList<>();
-        List<String> inverseRelations = new ArrayList<>();
-
         String depthConstraint;
         if (depth == -1) {
             depthConstraint = "";
@@ -344,6 +341,7 @@ public class Diversicon extends Uby {
         }
         
         
+        /*
         for (String relName : relNames) {
             if (Diversicons.isCanonicalRelation(relName) || !Diversicons.hasInverse(relName)) {
                 directRelations.add(relName);
@@ -351,7 +349,6 @@ public class Diversicon extends Uby {
                 inverseRelations.add(Diversicons.getInverse(relName));
             }
         }
-        /*
         String directDepthConstraint;
         String inverseDepthConstraint;
         if (depth == -1) {
@@ -398,7 +395,7 @@ public class Diversicon extends Uby {
             orHsql = "";
         }
         */
-        String hsql = "(SR.source.id = :synsetId)";// OR SR.source.id = :targetSynsetId)";
+        String hsql = "(SR.source.id = :synsetId)";
 
         String queryString = " SELECT SR.relName, SR.target.id"
                 + " FROM SynsetRelation SR"
@@ -422,6 +419,13 @@ public class Diversicon extends Uby {
             }
         }
         
+        hsql = "(SR.target.id = :synsetId)";
+        queryString = " SELECT SR.relName, SR.source.id"
+                + " FROM SynsetRelation SR"
+                + " WHERE "
+                + depthConstraint
+                + hsql;
+
         query = session.createQuery(queryString);
         query.setParameter("synsetId", synsetId);
         //query.setParameter("targetSynsetId", synsetId);
@@ -429,10 +433,16 @@ public class Diversicon extends Uby {
         it = query.iterate();
         
         while (it.hasNext()) {
+            String inverseRelName;
             Object[] result = (Object []) it.next();
             String relName = (String) result[0];
             String targetId = (String) result[1];
-            if (relSet.contains(relName)) {
+            try {
+                inverseRelName = Diversicons.getInverse(relName);
+            } catch(DivNotFoundException e) {
+                continue;
+            }
+            if (relSet.contains(inverseRelName)) {
                 connectedSynsets.add(getSynsetById(targetId));
             }
         }
@@ -1982,7 +1992,9 @@ public class Diversicon extends Uby {
                 + ")";
         
         Query query = session.createQuery(queryString);
-        query.setParameter("sourceSynsetId", sourceSynsetId);
+        if (!directRelations.isEmpty()) {
+            query.setParameter("sourceSynsetId", sourceSynsetId);
+        }
         if (!inverseRelations.isEmpty()) {
             query.setParameter("targetSynsetId", targetSynsetId);
         }
@@ -2055,7 +2067,7 @@ public class Diversicon extends Uby {
             Object[] results = (Object[]) it.next();
             String relName = (String) (results[0]);
             String target = (String) (results[1]);
-            if (sourceSynsetId.equals(target) || targetSynsetId.equals(target)) {
+            if (targetSynsetId.equals(target)) {
                 relNames.add(relName);
             }
         }
@@ -2068,11 +2080,17 @@ public class Diversicon extends Uby {
             Object[] results = (Object[]) it.next();
             String relName = (String) (results[0]);
             String target = (String) (results[1]);
-            if (sourceSynsetId.equals(target) || targetSynsetId.equals(target)) {
-                relNames.add(relName);
+            if (sourceSynsetId.equals(target)) {
+                String inverseRel;
+                try {
+                    inverseRel = Diversicons.getInverse(relName);
+                } catch(DivNotFoundException e) {
+                    continue;
+                }
+                relNames.add(inverseRel);
             }
         }
-        
+
         return relNames;
     }
 
