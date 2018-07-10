@@ -29,7 +29,6 @@ import org.junit.Ignore;
 /**
  * @since 0.1.0
  */
-@Ignore
 public class DivUtilsIT {
 
     private static final Logger LOG = LoggerFactory.getLogger(DivUtilsTest.class);
